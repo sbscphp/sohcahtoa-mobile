@@ -1,11 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Lock, Sms, User } from 'iconsax-react-nativejs';
+import { ScanFace,ScanFaceIcon } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import AuthHeader from '../../components/AuthHeader';
+import BiometricBottomSheet from '../../components/BiometricBottomSheet';
 import InputField from '../../components/InputField';
 import PrimaryButton from '../../components/PrimaryButton';
 import { Colors } from '../../constants/theme';
@@ -15,6 +17,7 @@ export default function LoginScreen() {
     const insets = useSafeAreaInsets();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [showBiometricSheet, setShowBiometricSheet] = useState(false);
 
     const handleLogin = () => {
         console.log('Login attempt:', { email, password });
@@ -83,8 +86,11 @@ export default function LoginScreen() {
                 </View>
 
                 <View style={styles.biometricSection}>
-                    <TouchableOpacity style={styles.biometricButton}>
-                        <Ionicons name="finger-print-outline" size={moderateScale(48)} color="#94A3B8" />
+                    <TouchableOpacity
+                        style={styles.biometricButton}
+                        onPress={() => setShowBiometricSheet(true)}
+                    >
+                       <ScanFaceIcon size={moderateScale(52)} color="#94A3B8" />    
                     </TouchableOpacity>
                 </View>
 
@@ -95,6 +101,15 @@ export default function LoginScreen() {
                     </TouchableOpacity>
                 </View>
             </ScrollView>
+
+            <BiometricBottomSheet
+                visible={showBiometricSheet}
+                onClose={() => setShowBiometricSheet(false)}
+                onConfirm={() => {
+                    setShowBiometricSheet(false);
+                    router.push('/(auth)/biometrics-setup');
+                }}
+            />
         </View>
     );
 }

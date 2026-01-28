@@ -15,6 +15,8 @@ export default function AuthLayout() {
             <Stack.Screen name="otp-verification" />
             <Stack.Screen name="bvn-confirmation" />
             <Stack.Screen name="secure-account" />
+            <Stack.Screen name="biometrics-setup" />
+            <Stack.Screen name="face-capture" />
         </Stack>
     );
 }
