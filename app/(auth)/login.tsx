@@ -1,5 +1,6 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { FingerScan, Lock, Sms, User } from 'iconsax-react-nativejs';
+import { Lock, Sms, User } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,7 +18,7 @@ export default function LoginScreen() {
 
     const handleLogin = () => {
         console.log('Login attempt:', { email, password });
-        // router.push('/home');
+        router.push('/(tabs)');
     };
 
     const handleSignUp = () => {
@@ -34,16 +35,20 @@ export default function LoginScreen() {
             >
                 <View style={styles.welcomeSection}>
                     <View style={styles.avatarPlaceholder}>
+                        {/* <Ionicons name="user" size={moderateScale(32)} color={Colors.light.primary} /> */}
                         <User size={moderateScale(32)} color={Colors.light.primary} variant="Linear" />
+
                     </View>
-                    <Text style={styles.welcomeTitle}>Welcome to SohCahToa BDC</Text>
-                    <Text style={styles.welcomeSubtitle}>Login to Continue</Text>
+                    <View>
+                        <Text style={styles.welcomeTitle}>Welcome to SohCahToa BDC</Text>
+                        <Text style={styles.welcomeSubtitle}>Login to Continue</Text>
+                    </View>
                 </View>
 
                 <View style={styles.form}>
                     <InputField
                         label="Email Address"
-                        placeholder="kibrahim@sbsc.com"
+                        placeholder="Enter your email address"
                         icon={Sms}
                         value={email}
                         onChangeText={setEmail}
@@ -54,7 +59,7 @@ export default function LoginScreen() {
 
                     <InputField
                         label="Password"
-                        placeholder="thisisMYpassword2025"
+                        placeholder="Enter your password"
                         icon={Lock}
                         value={password}
                         onChangeText={setPassword}
@@ -70,7 +75,7 @@ export default function LoginScreen() {
                     />
 
                     <TouchableOpacity
-                        onPress={() => console.log('Forgot password')}
+                        onPress={() => router.push('/(auth)/forget-password')}
                         style={styles.forgotPassword}
                     >
                         <Text style={styles.forgotPasswordText}>Forget Password ?</Text>
@@ -79,7 +84,7 @@ export default function LoginScreen() {
 
                 <View style={styles.biometricSection}>
                     <TouchableOpacity style={styles.biometricButton}>
-                        <FingerScan size={moderateScale(48)} color="#94A3B8" variant="Linear" />
+                        <Ionicons name="finger-print-outline" size={moderateScale(48)} color="#94A3B8" />
                     </TouchableOpacity>
                 </View>
 
@@ -106,10 +111,13 @@ const styles = ScaledSheet.create({
     },
     welcomeSection: {
         marginBottom: '24@vs',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: '16@ms',
     },
     avatarPlaceholder: {
-        width: '56@ms',
-        height: '56@ms',
+        width: '45@ms',
+        height: '45@ms',
         borderRadius: '28@ms',
         backgroundColor: '#FFF7F4',
         justifyContent: 'center',
@@ -117,8 +125,8 @@ const styles = ScaledSheet.create({
         marginBottom: '12@vs',
     },
     welcomeTitle: {
-        fontSize: '20@ms',
-        fontWeight: '800',
+        fontSize: '16@ms',
+        fontWeight: '500',
         color: '#0F172A',
         marginBottom: '6@vs',
     },
@@ -138,8 +146,9 @@ const styles = ScaledSheet.create({
     },
     forgotPasswordText: {
         fontSize: '13@ms',
-        fontWeight: '600',
+        fontWeight: '500',
         color: Colors.light.primary,
+        textDecorationLine: 'underline',
     },
     biometricSection: {
         alignItems: 'center',

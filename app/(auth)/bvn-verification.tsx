@@ -54,7 +54,7 @@ export default function BvnVerificationScreen() {
                             keyboardType="numeric"
                             maxLength={11}
                             required
-                            icon={Lock}
+                            
                         />
                     </View>
                 </ScrollView>

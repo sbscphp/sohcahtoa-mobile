@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Lock, TickCircle } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
@@ -11,6 +11,7 @@ import { Colors } from '../../constants/theme';
 
 export default function SecureAccountScreen() {
     const router = useRouter();
+    const { type } = useLocalSearchParams<{ type?: string }>();
     const insets = useSafeAreaInsets();
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -18,7 +19,7 @@ export default function SecureAccountScreen() {
     const handleCreatePassword = () => {
         if (password && password === confirmPassword) {
             console.log('Password created');
-            // Navigate to next screen or dashboard
+            router.replace('/(auth)/login');
         }
     };
 
@@ -48,13 +49,15 @@ export default function SecureAccountScreen() {
         </View>
     );
 
+    const title = type === 'reset-password' ? 'Create New Password' : 'Secure Account';
+
     return (
         <SafeAreaView style={styles.container}>
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 style={styles.container}
             >
-                <AuthHeader title="Secure Account" />
+                <AuthHeader title={title} />
 
                 <ScrollView
                     contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 80 }]}

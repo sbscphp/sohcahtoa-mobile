@@ -5,16 +5,16 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ScaledSheet } from 'react-native-size-matters';
 import AuthHeader from '../../components/AuthHeader';
 import PrimaryButton from '../../components/PrimaryButton';
-import ProgressBar from '../../components/ProgressBar';
 
 export default function OtpVerificationScreen() {
     const router = useRouter();
-    const { context, target } = useLocalSearchParams<{ context: 'bvn' | 'email'; target: 'phone' | 'email' }>();
+    const { context, target, type } = useLocalSearchParams<{ context: 'bvn' | 'email'; target: 'phone' | 'email'; type?: string }>();
     const insets = useSafeAreaInsets();
     const [otp, setOtp] = useState(['', '', '', '', '', '']);
     const inputs = useRef<TextInput[]>([]);
     const [timer, setTimer] = useState(900); // 15:00 in seconds
 
+    // ... existing timer logic ... 
     useEffect(() => {
         const interval = setInterval(() => {
             setTimer((prev) => (prev > 0 ? prev - 1 : 0));
@@ -49,16 +49,29 @@ export default function OtpVerificationScreen() {
             if (context === 'bvn') {
                 router.push('/(auth)/bvn-confirmation');
             } else {
-                router.push('/(auth)/secure-account');
+                router.push({
+                    pathname: '/(auth)/secure-account',
+                    params: { type: type } // Pass the type forward
+                });
             }
         }
     };
 
     const isEmailTarget = target === 'email';
-    const title = context === 'email' ? 'Enter OTP to Verify your Email Address' : 'Enter OTP to Verify your BVN';
-    const subtitle = isEmailTarget
+    const isResetPassword = type === 'reset-password';
+
+    let title = context === 'email' ? 'Enter OTP to Verify your Email Address' : 'Enter OTP to Verify your BVN';
+    let subtitle = isEmailTarget
         ? 'A six (6) digit OTP has been sent to your mail linked to BVN feu*****gmail.com. Enter to verify'
         : 'A six (6) digit OTP has been sent to your phone number linked to BVN 713*****598. Enter to verify';
+
+    let headerTitle = 'Sign up';
+
+    if (isResetPassword) {
+        title = 'Enter OTP to Reset Password';
+        subtitle = 'A six (6) digit OTP has been sent to your email address. Enter it below to verify your identity.';
+        headerTitle = 'Forget Password';
+    }
 
     return (
         <SafeAreaView style={styles.container}>
@@ -66,13 +79,13 @@ export default function OtpVerificationScreen() {
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 style={styles.container}
             >
-                <AuthHeader title="Sign up" />
+                <AuthHeader title={headerTitle} />
 
                 <ScrollView
                     contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 80 }]}
                     showsVerticalScrollIndicator={false}
                 >
-                 {/* {context === 'bvn' && <ProgressBar progress={1.0} />} */}
+                    {/* {context === 'bvn' && <ProgressBar progress={1.0} />} */}
 
                     <View style={styles.content}>
                         <Text style={styles.title}>{title}</Text>
@@ -153,7 +166,7 @@ const styles = ScaledSheet.create({
     },
     otpInput: {
         width: '44@s',
-        height: '54@vs',
+        height: '44@vs',
         borderWidth: 1,
         borderColor: '#E2E8F0',
         borderRadius: '8@ms',

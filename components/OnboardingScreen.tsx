@@ -26,7 +26,6 @@ interface OnboardingSlide {
     bgImage: ImageSourcePropType;
 }
 
-// Updated Data based on designs
 const ONBOARDING_DATA: OnboardingSlide[] = [
     {
         id: '1',
@@ -35,7 +34,7 @@ const ONBOARDING_DATA: OnboardingSlide[] = [
         testimonial: 'SohCahToa makes managing my small FX needs simple. The rates are fair, the process is quick, and I never worry about delays. It\'s the most reliable platform I\'ve used',
         author: 'Adekunle, Ibrahim',
         role: 'Student',
-        image: require('../assets/images/user-img-1.png'),
+        image: require('../assets/images/user-img-1.jpg'),
         bgImage: require('../assets/images/onboard-img-1.png'),
     },
     {
@@ -45,7 +44,7 @@ const ONBOARDING_DATA: OnboardingSlide[] = [
         testimonial: 'As someone working abroad, I need a platform I can trust for regular currency exchanges. SohCahToa delivers every time, secure, clear, and consistently dependable',
         author: 'Feubode Gesikeme',
         role: 'Expatriate',
-        image: require('../assets/images/user-img-2.png'),
+        image: require('../assets/images/user-img-2.jpg'),
         bgImage: require('../assets/images/onboard-img-2.png'),
     },
     {
@@ -55,7 +54,7 @@ const ONBOARDING_DATA: OnboardingSlide[] = [
         testimonial: 'SohCahToa has been the most trustworthy place for my FX needs. The process is smooth, the rates are honest, and I always feel secure using their platform',
         author: 'Moshood Aremu',
         role: 'Head of Project, SBSC',
-        image: require('../assets/images/user-img-3.png'),
+        image: require('../assets/images/user-img-3.jpg'),
         bgImage: require('../assets/images/onboard-img-3.png'),
     },
 ];
@@ -136,11 +135,11 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onSignUp, onLogin }
                     </View>
                     <Animated.View style={[styles.imageContainer, { opacity, transform: [{ scale }] }]}>
 
-                        <Image
+                        {/* <Image
                             source={item.bgImage}
                             style={styles.backgroundImage}
                             resizeMode="cover"
-                        />
+                        /> */}
 
                         {/* Dark Title Overlay */}
                         <View style={styles.titleOverlay}>
@@ -284,7 +283,7 @@ const styles = ScaledSheet.create({
         height: '100%',
         alignItems: 'center',
         borderRadius: '16@ms',
-        backgroundColor: 'rgba(0, 0, 0, 0.2)',
+        backgroundColor: 'rgba(241, 241, 241, 1)',
 
     },
     imageContainer: {
@@ -300,22 +299,22 @@ const styles = ScaledSheet.create({
     },
     titleOverlay: {
         position: 'absolute',
-        top: '4@vs',
+        top: '2@vs',
         left: '10@s',
         right: '10@s',
-        backgroundColor: '#00000080',
-        padding: '10@ms',
+        // backgroundColor: '#00000080',
+        // padding: '10@ms',
         borderRadius: '8@ms',
     },
     title: {
         fontSize: '34@ms',
-        fontWeight: '800',
-        color: '#FFFFFF',
+        fontWeight: '700',
+        color: '#050404ff',
         marginBottom: '4@vs',
     },
     subtitle: {
         fontSize: '14@ms',
-        color: '#ffffffff',
+        color: '#080808ff',
         marginTop: '8@vs',
     },
     testimonialCard: {
@@ -359,7 +358,7 @@ const styles = ScaledSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         marginTop: '1@vs',
-        marginBottom: '30@vs',
+        marginBottom: '15@vs',
     },
     dot: {
         height: '7@ms',

@@ -57,7 +57,7 @@ const styles = ScaledSheet.create({
     },
     label: {
         fontSize: '14@ms',
-        fontWeight: '600',
+        fontWeight: '400',
         color: '#475569',
         marginBottom: '6@vs',
     },
@@ -72,7 +72,7 @@ const styles = ScaledSheet.create({
         borderColor: '#E2E8F0',
         borderRadius: '28@ms',
         paddingHorizontal: '12@s',
-        height: '46@vs',
+        height: '40@vs',
     },
     leftIcon: {
         marginRight: '12@s',

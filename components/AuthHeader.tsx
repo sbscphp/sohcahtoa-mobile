@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { ArrowCircleLeft } from 'iconsax-react-nativejs';
+import { ArrowCircleLeft2 } from 'iconsax-react-nativejs';
 import React from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
@@ -20,7 +20,7 @@ const AuthHeader: React.FC<AuthHeaderProps> = ({ title }) => {
                 accessibilityLabel="Go back"
                 accessibilityRole="button"
             >
-                <ArrowCircleLeft size={moderateScale(28)} color="#94A3B8" />
+                <ArrowCircleLeft2 size={moderateScale(28)} color="#94A3B8" />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>{title}</Text>
             <View style={{ width: moderateScale(28) }} />

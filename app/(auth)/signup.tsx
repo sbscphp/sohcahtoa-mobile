@@ -15,7 +15,9 @@ export default function SignupScreen() {
     const [selectedType, setSelectedType] = useState<UserType>(null);
 
     const handleContinue = () => {
-        if (selectedType) {
+        if (selectedType === 'tourist' || selectedType === 'expatriate') {
+            router.push('/(auth)/passport-verification');
+        } else if (selectedType === 'citizen') {
             router.push('/(auth)/bvn-verification');
         }
     };
