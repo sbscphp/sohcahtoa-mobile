@@ -28,7 +28,8 @@ export default function ForgotPasswordScreen() {
             <AuthHeader title="Forget Password" />
 
             <View style={styles.contentContainer}>
-               
+
+                <ProgressBar progress={0.5} totalSteps={2} />
 
                 <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
                     <Text style={styles.title}>Enter your Email Address to Continue</Text>
@@ -42,6 +43,7 @@ export default function ForgotPasswordScreen() {
                         keyboardType="email-address"
                         autoCapitalize="none"
                         required
+                        disabled={!email}
                     />
                 </ScrollView>
 
@@ -70,7 +72,7 @@ const styles = ScaledSheet.create({
         flexGrow: 1,
     },
     title: {
-        fontSize: '15@ms', 
+        fontSize: '15@ms',
         fontWeight: '500',
         color: '#0F172A',
         marginBottom: '24@vs',

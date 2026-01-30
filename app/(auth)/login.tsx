@@ -11,6 +11,7 @@ import BiometricBottomSheet from '../../components/BiometricBottomSheet';
 import InputField from '../../components/InputField';
 import PrimaryButton from '../../components/PrimaryButton';
 import { Colors } from '../../constants/theme';
+import UserSharing from '../../assets/icons/user-sharing.svg';
 
 export default function LoginScreen() {
     const router = useRouter();
@@ -38,9 +39,7 @@ export default function LoginScreen() {
             >
                 <View style={styles.welcomeSection}>
                     <View style={styles.avatarPlaceholder}>
-                        {/* <Ionicons name="user" size={moderateScale(32)} color={Colors.light.primary} /> */}
-                        <User size={moderateScale(32)} color={Colors.light.primary} variant="Linear" />
-
+                        <UserSharing width={moderateScale(22)} height={moderateScale(22)} color={Colors.light.primary}/>
                     </View>
                     <View>
                         <Text style={styles.welcomeTitle}>Welcome to SohCahToa BDC</Text>
@@ -58,6 +57,7 @@ export default function LoginScreen() {
                         keyboardType="email-address"
                         autoCapitalize="none"
                         required
+                        disabled={!email}
                     />
 
                     <InputField
@@ -68,6 +68,7 @@ export default function LoginScreen() {
                         onChangeText={setPassword}
                         isPassword
                         required
+                        disabled={!password}    
                     />
 
                     <PrimaryButton
@@ -90,7 +91,7 @@ export default function LoginScreen() {
                         style={styles.biometricButton}
                         onPress={() => setShowBiometricSheet(true)}
                     >
-                       <ScanFaceIcon size={moderateScale(52)} color="#94A3B8" />    
+                       <ScanFaceIcon size={moderateScale(52)} color="#94A3B8"/>    
                     </TouchableOpacity>
                 </View>
 

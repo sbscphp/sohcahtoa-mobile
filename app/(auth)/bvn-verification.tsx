@@ -8,6 +8,7 @@ import AuthHeader from '../../components/AuthHeader';
 import InputField from '../../components/InputField';
 import OtpOptionSheet from '../../components/OtpOptionSheet';
 import PrimaryButton from '../../components/PrimaryButton';
+import ProgressBar from '@/components/ProgressBar';
 
 export default function BvnVerificationScreen() {
     const router = useRouter();
@@ -41,7 +42,7 @@ export default function BvnVerificationScreen() {
                     contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 80 }]}
                     showsVerticalScrollIndicator={false}
                 >
-                    {/* <ProgressBar progress={0.5} /> */}
+                    <ProgressBar progress={0.5} />
 
                     <View style={styles.content}>
                         <Text style={styles.title}>Enter your Bank verification Number (BVN)</Text>
@@ -54,7 +55,7 @@ export default function BvnVerificationScreen() {
                             keyboardType="numeric"
                             maxLength={11}
                             required
-                            
+                            disabled={!bvn}
                         />
                     </View>
                 </ScrollView>

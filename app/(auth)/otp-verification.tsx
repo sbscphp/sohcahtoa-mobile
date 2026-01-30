@@ -1,3 +1,4 @@
+import ProgressBar from '@/components/ProgressBar';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -85,7 +86,9 @@ export default function OtpVerificationScreen() {
                     contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 80 }]}
                     showsVerticalScrollIndicator={false}
                 >
-                    {/* {context === 'bvn' && <ProgressBar progress={1.0} />} */}
+                    {context === 'bvn' && <ProgressBar progress={0.34} />}
+                    {context === 'email' && <ProgressBar progress={0.67} />}
+                    {isResetPassword && <ProgressBar progress={0.67} totalSteps={2} />}
 
                     <View style={styles.content}>
                         <Text style={styles.title}>{title}</Text>

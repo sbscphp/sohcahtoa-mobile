@@ -1,5 +1,4 @@
 import { useRouter } from 'expo-router';
-import { Scan } from 'iconsax-react-nativejs';
 import React from 'react';
 import { StatusBar, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -81,20 +80,24 @@ const styles = ScaledSheet.create({
         flex: 1,
         aspectRatio: 0.8,
         alignSelf: 'center',
-        marginTop: '60@vs',
+        marginTop: '40@vs',
         marginBottom: '40@vs',
-        maxWidth: 300,
+        maxWidth: 400,
+        maxHeight: 400,
         position: 'relative',
         justifyContent: 'center',
         alignItems: 'center',
     },
     corner: {
         position: 'absolute',
-        width: '40@ms',
-        height: '40@ms',
+        width: '80@ms',
+        height: '80@ms',
         borderColor: Colors.light.primary,
-        borderWidth: 10,
-        borderRadius: '8@ms',
+        borderWidth: 9,
+        borderTopLeftRadius: '20@ms',
+        borderTopRightRadius: '20@ms',
+        borderBottomLeftRadius: '20@ms',
+        borderBottomRightRadius: '20@ms',
     },
     topLeft: {
         top: 0,

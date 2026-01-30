@@ -1,3 +1,4 @@
+import ProgressBar from '@/components/ProgressBar';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Lock, TickCircle } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
@@ -38,9 +39,9 @@ export default function SecureAccountScreen() {
     const ValidationItem = ({ label, isValid }: { label: string; isValid: boolean }) => (
         <View style={styles.validationRow}>
             <TickCircle
-                size={moderateScale(20)}
-                color={isValid ? '#10B981' : '#94A3B8'}
-                variant="Bold"
+                size={moderateScale(18)}
+                color={isValid ? '#10B981' : 'rgba(77, 75, 75, 1)'}
+                variant={isValid ? "Bold" : "Outline"}
                 style={styles.validationIcon}
             />
             <Text style={[styles.validationText, isValid && styles.validationTextValid]}>
@@ -63,6 +64,8 @@ export default function SecureAccountScreen() {
                     contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 80 }]}
                     showsVerticalScrollIndicator={false}
                 >
+
+                    {type === 'reset-password' ? null : <ProgressBar progress={1.0} totalSteps={2} /> }
                     <View style={styles.content}>
                         <Text style={styles.title}>Create a Password to Secure your Account</Text>
 
@@ -74,6 +77,7 @@ export default function SecureAccountScreen() {
                             isPassword
                             icon={Lock}
                             required
+                            disabled={!password}
                         />
 
                         <View style={styles.validationBox}>
@@ -92,6 +96,7 @@ export default function SecureAccountScreen() {
                             isPassword
                             icon={Lock}
                             required
+                            disabled={!confirmPassword}
                         />
                     </View>
                 </ScrollView>
@@ -115,7 +120,7 @@ const styles = ScaledSheet.create({
         backgroundColor: '#FFFFFF',
     },
     scrollContent: {
-        paddingHorizontal: '24@s',
+        paddingHorizontal: '16@s',
     },
     content: {
         marginTop: '16@vs',
@@ -127,10 +132,9 @@ const styles = ScaledSheet.create({
         marginBottom: '24@vs',
     },
     validationBox: {
-        backgroundColor: '#E5E5E5',
-        borderRadius: '20@ms',
-        padding: '20@ms',
-        marginBottom: '28@vs',
+        backgroundColor: '#FFFFFF',
+        padding: '10@ms',
+        marginBottom: '20@vs',
         gap: '14@vs',
     },
     validationRow: {
@@ -142,7 +146,7 @@ const styles = ScaledSheet.create({
     },
     validationText: {
         fontSize: '13@ms',
-        color: '#6C6969',
+        color: 'rgba(77, 75, 75, 1)',
         fontWeight: '400',
     },
     validationTextValid: {

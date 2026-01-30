@@ -8,6 +8,7 @@ interface InputFieldProps extends TextInputProps {
     icon?: Icon;
     isPassword?: boolean;
     required?: boolean;
+    disabled?: boolean;
 }
 
 const InputField: React.FC<InputFieldProps> = ({
@@ -15,6 +16,7 @@ const InputField: React.FC<InputFieldProps> = ({
     icon: IconComponent,
     isPassword,
     required,
+    disabled,
     ...props
 }) => {
     const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -24,9 +26,9 @@ const InputField: React.FC<InputFieldProps> = ({
             <Text style={styles.label}>
                 {label} {required && <Text style={styles.required}>*</Text>}
             </Text>
-            <View style={styles.inputWrapper}>
+            <View style={disabled ? styles.inputDisabledWrapper : styles.inputWrapper}>
                 {IconComponent && (
-                    <IconComponent size={moderateScale(20)} color="#94A3B8" style={styles.leftIcon} />
+                    <IconComponent size={moderateScale(20)} color="rgba(77, 75, 75, 1)" style={styles.leftIcon} />
                 )}
                 <TextInput
                     style={styles.input}
@@ -40,9 +42,9 @@ const InputField: React.FC<InputFieldProps> = ({
                         style={styles.rightIcon}
                     >
                         {isPasswordVisible ? (
-                            <EyeSlash size={moderateScale(20)} color="#94A3B8" />
+                            <EyeSlash size={moderateScale(20)} color="rgba(77, 75, 75, 1)" />
                         ) : (
-                            <Eye size={moderateScale(20)} color="#94A3B8" />
+                            <Eye size={moderateScale(20)} color="rgba(77, 75, 75, 1)" />
                         )}
                     </TouchableOpacity>
                 )}
@@ -56,10 +58,10 @@ const styles = ScaledSheet.create({
         marginBottom: '16@vs',
     },
     label: {
-        fontSize: '14@ms',
+        fontSize: '15@ms',
         fontWeight: '400',
         color: '#475569',
-        marginBottom: '6@vs',
+        marginBottom: '10@vs',
     },
     required: {
         color: '#EF4444',
@@ -69,7 +71,17 @@ const styles = ScaledSheet.create({
         alignItems: 'center',
         backgroundColor: '#FFFFFF',
         borderWidth: 1,
-        borderColor: '#E2E8F0',
+        borderColor: 'rgba(77, 75, 75, 1)',
+        borderRadius: '28@ms',
+        paddingHorizontal: '12@s',
+        height: '40@vs',
+    },
+    inputDisabledWrapper: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FFFFFF',
+        borderWidth: 1,
+        borderColor: 'rgba(204, 202, 202, 1)',
         borderRadius: '28@ms',
         paddingHorizontal: '12@s',
         height: '40@vs',
@@ -84,7 +96,7 @@ const styles = ScaledSheet.create({
         height: '100%',
     },
     rightIcon: {
-        padding: '4@ms',
+        padding: '6@ms',
     },
 });
 
