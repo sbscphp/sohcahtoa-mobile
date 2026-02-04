@@ -70,7 +70,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onSignUp, onLogin }
     const [activeIndex, setActiveIndex] = useState(0);
     const insets = useSafeAreaInsets();
 
-    // Auto-sliding logic
+    
     useEffect(() => {
         const timer = setInterval(() => {
             if (activeIndex < ONBOARDING_DATA.length - 1) {
@@ -84,7 +84,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onSignUp, onLogin }
                     animated: true,
                 });
             }
-        }, 5000); // 5 seconds for better readability
+        }, 5000); 
 
         return () => clearInterval(timer);
     }, [activeIndex]);
@@ -135,19 +135,13 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onSignUp, onLogin }
                     </View>
                     <Animated.View style={[styles.imageContainer, { opacity, transform: [{ scale }] }]}>
 
-                        {/* <Image
-                            source={item.bgImage}
-                            style={styles.backgroundImage}
-                            resizeMode="cover"
-                        /> */}
-
-                        {/* Dark Title Overlay */}
+                       
                         <View style={styles.titleOverlay}>
                             <Text style={styles.title}>{item.title}</Text>
                             <Text style={styles.subtitle}>{item.subtitle}</Text>
                         </View>
 
-                        {/* Testimonial Card */}
+                        
                         <View style={styles.testimonialCard}>
                             <Text style={styles.testimonialText} numberOfLines={4}>{item.testimonial}</Text>
                             <View style={styles.authorContainer}>

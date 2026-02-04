@@ -1,5 +1,8 @@
+import ActionSelectionSheet from '@/components/ActionSelectionSheet';
+import CurrencyDropdown, { CurrencyItem } from '@/components/CurrencyDropdown';
+import VirtualCard from '@/components/VirtualCard';
 import { useRouter } from 'expo-router';
-import { Add, ArrowDown2,WalletMinus,WalletAdd1, ArrowSwapHorizontal, Eye, EyeSlash, Notification, ImportCircle } from 'iconsax-react-nativejs';
+import { Add, ArrowDown2, Bank, Buildings, Eye, EyeSlash, Hospital, ImportCircle, Map1, Notification, People, Refresh, Teacher, User, WalletAdd1, WalletMinus } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
 import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -7,52 +10,134 @@ import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import { Colors } from '../../constants/theme';
 
 const ACTION_BUTTONS = [
-    { title: 'Buy FX', icon: WalletAdd1, route: '/buy-fx' },
-    { title: 'Sell FX', icon: WalletMinus, route: '/sell-fx' },
-    { title: 'Receive money', icon:ImportCircle , route: '/receive' },
+    { title: 'Buy FX', icon: WalletAdd1, type: 'buy' },
+    { title: 'Sell FX', icon: WalletMinus, type: 'sell' },
+    { title: 'Receive money', icon: ImportCircle, type: 'receive' },
 ];
+
+const Dot = () => (
+    <View style={{
+        width: moderateScale(10),
+        height: moderateScale(10),
+        borderRadius: moderateScale(5),
+        backgroundColor: '#0F172A',
+        marginHorizontal: moderateScale(2),
+    }} />
+);
 
 const TRANSACTIONS = [
     { id: '1', title: 'Personal Travel Allowance', date: 'Dec 8 2025 • 11 am', amount: '$200', status: 'Pending', type: 'debit' },
     { id: '2', title: 'Business Travel Allowance', date: 'Dec 8 2025 • 11 am', amount: '$3,000', status: 'Success', type: 'credit' },
+    { id: '3', title: 'Medical Allowance', date: 'Dec 8 2025 • 11 am', amount: '$1,000', status: 'Pending', type: 'debit' },
+    { id: '4', title: 'Medical Allowance', date: 'Dec 8 2025 • 11 am', amount: '$1,000', status: 'Pending', type: 'debit' },
+    { id: '5', title: 'Medical Allowance', date: 'Dec 8 2025 • 11 am', amount: '$1,000', status: 'Pending', type: 'debit' },
 ];
 
 export default function HomeScreen() {
-    const insets = useSafeAreaInsets();
     const router = useRouter();
+    const insets = useSafeAreaInsets();
     const [showBalance, setShowBalance] = useState(true);
     const [selectedFilter, setSelectedFilter] = useState('All');
+    const [transactionFilters, setTransactionFilters] = useState(['All', 'PTA', 'BTA', 'Medical']);
+    const [selectedTxFilter, setSelectedTxFilter] = useState('All');
+    const [actionSheetType, setActionSheetType] = useState<'buy' | 'sell' | 'receive' | null>(null);
+    const [currencySheetVisible, setCurrencySheetVisible] = useState(false);
+    const [selectedCurrency, setSelectedCurrency] = useState<CurrencyItem>({ id: '4', code: 'USD', flag: '🇺🇸' });
+
+    const handleActionPress = (action: string) => {
+        console.log('Selected action:', action);
+        if (action === 'vacation') {
+            setActionSheetType(null); 
+            router.push('/(buy-fx)/(pta)/create-pta');
+        } else {
+            setActionSheetType(null);
+        }
+    };
+
+    const handleTopFilterChange = (filter: string) => {
+        setSelectedFilter(filter);
+        if (filter === 'FX bought') {
+            setTransactionFilters(['All', 'PTA', 'BTA', 'Medical']);
+            setSelectedTxFilter('PTA');
+        } else if (filter === 'FX sold') {
+            setTransactionFilters(['All', 'Resident', 'Tourist', 'Expatriate']);
+            setSelectedTxFilter('Resident');
+        } else if (filter === 'Received FX') {
+            setTransactionFilters(['All', 'IMTO']);
+            setSelectedTxFilter('All');
+        } else {
+            setTransactionFilters(['All', 'PTA', 'BTA', 'Medical']);
+            setSelectedTxFilter('All');
+        }
+    };
+
+    const getSheetConfig = () => {
+        switch (actionSheetType) {
+            case 'buy':
+                return {
+                    title: 'Buy FX',
+                    headerIcon: <WalletMinus size={moderateScale(24)} color="#FF6B2C" />,
+                    actions: [
+                        { id: '1', title: 'I am going on a Vacation (PTA)', subtitle: 'Buy FX to cover your travel and accommodation', icon: <User size={moderateScale(20)} color="#FF6B2C" variant="Bulk" />, onPress: () => handleActionPress('vacation') },
+                        { id: '2', title: 'I am travelling for business (BTA)', subtitle: 'Buy FX to cover your business trip abroad', icon: <Bank size={moderateScale(20)} color="#FF6B2C" variant="Bulk" />, onPress: () => handleActionPress('business') },
+                        { id: '3', title: 'Pay School Fees', subtitle: 'Pay tuition for undergraduate & postgraduate studies.', icon: <Teacher size={moderateScale(20)} color="#FF6B2C" variant="Bulk" />, onPress: () => handleActionPress('school') },
+                        { id: '4', title: 'Seek Medical Treatment', subtitle: 'Pay for medical treatment or hospital bills abroad', icon: <Hospital size={moderateScale(20)} color="#FF6B2C" variant="Bulk" />, onPress: () => handleActionPress('medical') },
+                        { id: '5', title: 'Pay a Professional Body', subtitle: 'E.g International membership fee', icon: <People size={moderateScale(24)} color="#FF6B2C" variant="Bulk" />, onPress: () => handleActionPress('professional') },
+                        { id: '6', title: 'I am Touring Nigeria', subtitle: 'Buy FX to cover your travel, accommodation', icon: <Map1 size={moderateScale(20)} color="#FF6B2C" variant="Bulk" />, onPress: () => handleActionPress('touring') },
+                    ]
+                };
+            case 'sell':
+                return {
+                    title: 'Sell FX',
+                    headerIcon: <WalletAdd1 size={moderateScale(24)} color="#FF6B2C" />,
+                    actions: [
+                        { id: '1', title: 'Resident', subtitle: 'I have FX and want Naira', icon: <User size={moderateScale(20)} color="#FF6B2C" variant="Bulk" />, onPress: () => handleActionPress('resident') },
+                        { id: '2', title: 'I am Touring Nigeria', subtitle: 'I am touring Nigeria and want Naira', icon: <Map1 size={moderateScale(20)} color="#FF6B2C" variant="Bulk" />, onPress: () => handleActionPress('touring_inbound') },
+                        { id: '3', title: 'Expatriate; I am a foreigner who works in Nigeria', subtitle: 'I am a foreigner living or working in Nigeria', icon: <Buildings size={moderateScale(20)} color="#FF6B2C" variant="Bulk" />, onPress: () => handleActionPress('expatriate') },
+                    ]
+                };
+            case 'receive':
+                return {
+                    title: 'Receive FX',
+                    headerIcon: <WalletAdd1 size={moderateScale(24)} color="#FF6B2C" />,
+                    actions: [
+                        { id: '1', title: 'Receive Money from Abroad', subtitle: 'Receive international transfer and fund money from relatives, business and associates', icon: <User size={moderateScale(20)} color="#FF6B2C" variant="Bulk" />, onPress: () => handleActionPress('receive_abroad') },
+                    ]
+                };
+            default:
+                return null;
+        }
+    };
+
+    const activeConfig = getSheetConfig();
+
 
     const FILTERS = ['All', 'FX bought', 'FX sold', 'Received FX'];
 
     return (
         <View style={[styles.container, { paddingTop: insets.top }]}>
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-
-                {/* Header */}
-                <View style={styles.header}>
-                    <View style={styles.headerLeft}>
-                        <Image
-                            source={require('../../assets/images/user-img-1.jpg')}
-                            style={styles.avatar}
-                        />
-                        <View>
-                            <Text style={styles.greeting}>Good morning 🌤️</Text>
-                            <Text style={styles.username}>Emmanuel Israel</Text>
-                        </View>
+            <View style={styles.header}>
+                <View style={styles.headerLeft}>
+                    <Image
+                        source={require('../../assets/images/user-img-1.jpg')}
+                        style={styles.avatar}
+                    />
+                    <View>
+                        <Text style={styles.greeting}>Good morning 🌤️</Text>
+                        <Text style={styles.username}>Emmanuel Israel</Text>
                     </View>
-                    <TouchableOpacity style={styles.notificationBtn}>
-                        <Notification size={moderateScale(24)} color="#1E293B" variant="Linear" />
-                    </TouchableOpacity>
                 </View>
-
-                {/* Filters */}
+                <TouchableOpacity style={styles.notificationBtn}>
+                    <Notification size={moderateScale(24)} color="#1E293B" variant="Linear" />
+                </TouchableOpacity>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterContainer}>
                     {FILTERS.map((filter) => (
                         <TouchableOpacity
                             key={filter}
                             style={[styles.filterChip, selectedFilter === filter && styles.filterChipActive]}
-                            onPress={() => setSelectedFilter(filter)}
+                            onPress={() => handleTopFilterChange(filter)}
                         >
                             <Text style={[styles.filterText, selectedFilter === filter && styles.filterTextActive]}>
                                 {filter}
@@ -69,43 +154,67 @@ export default function HomeScreen() {
                             <Text style={styles.balanceLabel}>Total FX units</Text>
                             <TouchableOpacity onPress={() => setShowBalance(!showBalance)}>
                                 {showBalance ?
-                                    <Eye size={moderateScale(18)} color="#1E293B" /> :
-                                    <EyeSlash size={moderateScale(18)} color="#1E293B" />
+                                    <Eye size={moderateScale(18)} color="#1E293B" variant="Bold" /> :
+                                    <EyeSlash size={moderateScale(18)} color="#1E293B" variant="Bold" />
                                 }
                             </TouchableOpacity>
                         </View>
 
-                        <View style={styles.currencySelector}>
-                            <Image
-                                source={require('../../assets/images/user-img-1.jpg')}
-                                style={styles.flag}
-                            />
-                            <Text style={styles.currencyCode}>USD</Text>
-                            <ArrowDown2 size={moderateScale(14)} color="#FFFFFF" />
+                        <View style={{ zIndex: 100 }}>
+                            <TouchableOpacity
+                                style={styles.currencySelector}
+                                onPress={() => setCurrencySheetVisible(!currencySheetVisible)}
+                                activeOpacity={0.7}
+                            >
+                                <View style={styles.flagWrapper}>
+                                    <Text style={styles.flagText}>{selectedCurrency.flag}</Text>
+                                </View>
+                                <Text style={styles.currencyCode}>{selectedCurrency.code}</Text>
+                                <ArrowDown2 size={moderateScale(14)} color="#FFFFFF" />
+                            </TouchableOpacity>
+
+                            {currencySheetVisible && (
+                                <CurrencyDropdown
+                                    onSelect={(currency) => setSelectedCurrency(currency)}
+                                    selectedCurrencyCode={selectedCurrency.code}
+                                    onClose={() => setCurrencySheetVisible(false)}
+                                />
+                            )}
                         </View>
                     </View>
 
                     <View style={styles.balanceRow}>
                         <View style={styles.currencyBadge}>
-                            <Text style={styles.currencySymbol}>$</Text>
+                            <Text style={styles.currencySymbol}>
+                                {selectedCurrency.code === 'NGN' ? '₦' :
+                                    selectedCurrency.code === 'GHS' ? '₵' :
+                                        selectedCurrency.code === 'KES' ? 'KSh' :
+                                            selectedCurrency.code === 'USD' ? '$' :
+                                                selectedCurrency.code === 'GBP' ? '£' :
+                                                    selectedCurrency.code === 'SEK' ? 'kr' : '$'}
+                            </Text>
                         </View>
-                        <Text style={styles.balanceAmount}>
-                            {showBalance ? (
-                                <>
-                                    428,095
-                                    <Text style={styles.balanceDecimal}>.00</Text>
-                                </>
-                            ) : (
-                                '*******'
-                            )}
-                        </Text>
+                        {showBalance ? (
+                            <Text style={styles.balanceAmount}>
+                                428,095
+                                <Text style={styles.balanceDecimal}>.00</Text>
+                            </Text>
+                        ) : (
+                            <View style={{ flexDirection: 'row', alignItems: 'center', height: moderateScale(38) }}>
+                                <Dot /><Dot /><Dot />
+                            </View>
+                        )}
                     </View>
                 </View>
 
                 {/* Actions Grid */}
                 <View style={styles.actionsGrid}>
                     {ACTION_BUTTONS.map((action, index) => (
-                        <TouchableOpacity key={index} style={styles.actionButton}>
+                        <TouchableOpacity
+                            key={index}
+                            style={styles.actionButton}
+                            onPress={() => setActionSheetType(action.type as any)}
+                        >
                             <View style={styles.actionIcon}>
                                 <action.icon size={moderateScale(24)} color="#1E293B" />
                             </View>
@@ -113,38 +222,25 @@ export default function HomeScreen() {
                         </TouchableOpacity>
                     ))}
                 </View>
-
+                <View style={styles.divider} />
                 {/* Cards Section */}
                 <View style={styles.cardsSection}>
-                    <Text style={styles.sectionTitle}>Cards</Text>
+                    <View style={styles.sectionHeader}>
+                        <Text style={styles.sectionTitle}>Cards</Text>
+                        <Text style={styles.seeAllBtn}>Manage Cards</Text>
+                    </View>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.cardsScroll}>
-                        {/* Virtual Card */}
+
                         <View style={styles.card}>
-                            <Image
-                                // source={require('../../assets/images/card-bg.png')}
-                                style={styles.cardBg}
-                                resizeMode="cover"
+                            <VirtualCard
+                                name="Emmanuel Israel"
+                                last4Digits="7093"
+                                expiry="08/27"
                             />
-                            {/* Overlay content for card would go here */}
-                            <View style={styles.cardContent}>
-                                <View style={styles.cardTop}>
-                                    <View style={styles.chip} />
-                                    <Text style={styles.cardType}>Prepaid card</Text>
-                                    <Text style={styles.visaText}>VISA</Text>
-                                </View>
-                                <View style={styles.cardBottom}>
-                                    <Text style={styles.cardNumber}>•••• 7093</Text>
-                                    <View style={styles.cardDetails}>
-                                        <Text style={styles.cardExpiry}>08/27</Text>
-                                        <Text style={styles.cardHolder}>Emmanuel Israel</Text>
-                                    </View>
-                                </View>
-                            </View>
                         </View>
 
-                        {/* Add Card Button */}
                         <TouchableOpacity style={styles.addCardButton}>
-                            <Add size={moderateScale(32)} color="#1E293B" />
+                            <Add size={moderateScale(26)} color="#1E293B" />
                         </TouchableOpacity>
                     </ScrollView>
                 </View>
@@ -153,40 +249,59 @@ export default function HomeScreen() {
                 <View style={styles.transactionsSection}>
                     <View style={styles.sectionHeader}>
                         <Text style={styles.sectionTitle}>Recent Transactions</Text>
-                        <TouchableOpacity style={styles.seeAllBtn}>
+                        <TouchableOpacity style={styles.seeAllBtn} onPress={() => router.push('/all-transactions')}>
                             <Text style={styles.seeAllText}>See all</Text>
                         </TouchableOpacity>
                     </View>
 
                     <View style={styles.transactionFilters}>
-                        {/* Reusing simplified filters for transactions */}
-                        <TouchableOpacity style={[styles.filterChip, styles.filterChipActive]}><Text style={styles.filterTextActive}>All</Text></TouchableOpacity>
-                        <TouchableOpacity style={styles.filterChip}><Text style={styles.filterText}>PTA</Text></TouchableOpacity>
-                        <TouchableOpacity style={styles.filterChip}><Text style={styles.filterText}>BTA</Text></TouchableOpacity>
-                        <TouchableOpacity style={styles.filterChip}><Text style={styles.filterText}>Medical</Text></TouchableOpacity>
+                        {transactionFilters.map((filter) => (
+                            <TouchableOpacity
+                                key={filter}
+                                style={[styles.filterChip, selectedTxFilter === filter && styles.filterChipActive]}
+                                onPress={() => setSelectedTxFilter(filter)}
+                            >
+                                <Text style={[styles.filterText, selectedTxFilter === filter && styles.filterTextActive]}>
+                                    {filter}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
 
                     </View>
-
-                    {TRANSACTIONS.map((tx) => (
-                        <View key={tx.id} style={styles.transactionItem}>
-                            <View style={[styles.transactionIcon, { backgroundColor: '#F8FAFC' }]}>
-                                <ArrowSwapHorizontal size={moderateScale(20)} color="#64748B" />
+                    <View style={styles.transactionList}>
+                        {TRANSACTIONS.map((tx) => (
+                            <View key={tx.id} style={styles.transactionItem}>
+                                <View style={[styles.transactionIcon, { backgroundColor: '#F8FAFC' }]}>
+                                    <Refresh size={moderateScale(16)} color="#64748B" />
+                                </View>
+                                <View style={styles.transactionInfo}>
+                                    <Text style={styles.transactionTitle}>{tx.title}</Text>
+                                    <Text style={styles.transactionDate}>{tx.date}</Text>
+                                </View>
+                                <View style={styles.transactionAmountContainer}>
+                                    <Text style={styles.transactionAmount}>{tx.amount}</Text>
+                                    <Text style={[styles.transactionStatus, tx.status === 'Pending' ? { color: 'rgba(181, 71, 8, 1)', backgroundColor: 'rgba(255, 250, 235, 1)' } : { color: '#166534', backgroundColor: '#F0FDF4' }]}>
+                                        {tx.status}
+                                    </Text>
+                                </View>
                             </View>
-                            <View style={styles.transactionInfo}>
-                                <Text style={styles.transactionTitle}>{tx.title}</Text>
-                                <Text style={styles.transactionDate}>{tx.date}</Text>
-                            </View>
-                            <View style={styles.transactionAmountContainer}>
-                                <Text style={styles.transactionAmount}>{tx.amount}</Text>
-                                <Text style={[styles.transactionStatus, tx.status === 'Pending' ? { color: '#D97706', backgroundColor: '#FEF3C7' } : { color: '#166534', backgroundColor: '#F0FDF4' }]}>
-                                    {tx.status}
-                                </Text>
-                            </View>
-                        </View>
-                    ))}
+                        ))}
+                    </View>
                 </View>
 
             </ScrollView>
+
+            {activeConfig && (
+                <ActionSelectionSheet
+                    visible={!!actionSheetType}
+                    onClose={() => setActionSheetType(null)}
+                    title={activeConfig.title}
+                    headerIcon={activeConfig.headerIcon}
+                    actions={activeConfig.actions}
+                />
+            )}
+
+
         </View>
     );
 }
@@ -203,7 +318,7 @@ const styles = ScaledSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: '20@s',
+        paddingHorizontal: '10@s',
         marginBottom: '20@vs',
     },
     headerLeft: {
@@ -230,19 +345,24 @@ const styles = ScaledSheet.create({
         padding: '4@ms',
     },
     filterContainer: {
-        paddingHorizontal: '20@s',
+        paddingHorizontal: '10@s',
         marginBottom: '24@vs',
     },
     filterChip: {
-        paddingHorizontal: '16@s',
+        paddingHorizontal: '10@s',
         paddingVertical: '6@vs',
         borderRadius: '20@ms',
         borderWidth: 1,
         borderColor: '#E2E8F0',
         marginRight: '8@s',
     },
+    transactionList: {
+        backgroundColor: 'rgba(245, 245, 245, 1)',
+        borderRadius: '12@ms',
+        marginHorizontal: '10@s',
+    },
     filterChipActive: {
-        backgroundColor: '#FFF7ED', // Orange-50
+        backgroundColor: '#FFF7ED',
         borderColor: '#FFEDD5',
     },
     filterText: {
@@ -254,7 +374,7 @@ const styles = ScaledSheet.create({
         fontWeight: '500',
     },
     balanceSection: {
-        paddingHorizontal: '20@s',
+        paddingHorizontal: '10@s',
         marginBottom: '24@vs',
     },
     balanceHeader: {
@@ -288,17 +408,24 @@ const styles = ScaledSheet.create({
     currencySelector: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#1E293B',
+        backgroundColor: 'rgba(35, 35, 35, 1)',
         paddingHorizontal: '12@s',
-        paddingVertical: '6@vs',
-        borderRadius: '20@ms',
+        paddingVertical: '8@vs',
+        borderRadius: '24@ms',
         gap: '6@s',
     },
-    flag: {
-        width: '16@ms',
-        height: '16@ms',
-        borderRadius: '8@ms',
-        backgroundColor: '#FFFFFF',
+    flagWrapper: {
+        width: '24@ms',
+        height: '24@ms',
+        borderRadius: '12@ms',
+        // backgroundColor: '#000000ff',
+        justifyContent: 'center',
+        alignItems: 'center',
+        overflow: 'hidden',
+    },
+    flagText: {
+        fontSize: '12@ms',
+        lineHeight: '16@ms',
     },
     currencyCode: {
         color: '#FFFFFF',
@@ -321,8 +448,14 @@ const styles = ScaledSheet.create({
         width: '80%',
         padding: '4@s',
         gap: '16@s',
-        marginBottom: '32@vs',
+        marginBottom: '10@vs',
         marginHorizontal: '10@s',
+    },
+    divider: {
+        width: '100%',
+        height: '1@ms',
+        backgroundColor: '#E2E8F0',
+        marginVertical: '20@s',
     },
     actionButton: {
         flex: 1,
@@ -331,7 +464,7 @@ const styles = ScaledSheet.create({
         borderRadius: '20@ms',
         padding: '8@ms',
         borderWidth: 1,
-        borderColor: '#E2E8F0', 
+        borderColor: '#E2E8F0',
     },
     actionIcon: {
         marginBottom: '8@vs',
@@ -343,32 +476,32 @@ const styles = ScaledSheet.create({
         textAlign: 'center',
     },
     cardsSection: {
-        marginBottom: '32@vs',
+        marginBottom: '20@vs',
     },
     sectionHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: '20@s',
-        marginBottom: '16@vs',
-    },
-    sectionTitle: {
-        fontSize: '16@ms',
-        fontWeight: '600',
-        color: '#0F172A',
-        marginLeft: '20@s', // Since using padding in container usually, but here doing manually for consistency
+        paddingHorizontal: '10@s',
         marginBottom: '10@vs',
     },
+    sectionTitle: {
+        fontSize: '14@ms',
+        fontWeight: '400',
+        color: '#0F172A',
+    },
     cardsScroll: {
-        paddingHorizontal: '20@s',
-        gap: '16@s',
+        paddingHorizontal: '6@s',
+        gap: '12@s',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     card: {
         width: '280@s',
-        height: '160@vs',
+        height: '140@vs',
         borderRadius: '20@ms',
         overflow: 'hidden',
-        backgroundColor: '#1E293B', // Fallback
     },
     cardBg: {
         ...StyleSheet.absoluteFillObject,
@@ -425,24 +558,25 @@ const styles = ScaledSheet.create({
         fontSize: '12@ms',
     },
     addCardButton: {
-        width: '60@s',
-        height: '160@vs',
-        borderRadius: '20@ms',
+        width: '50@s',
+        height: '130@vs',
+        borderRadius: '15@ms',
         borderWidth: 1,
-        borderColor: '#0F172A', // Using dashed border effect visually with image often better, but clear code logic here
+        borderColor: '#0F172A',
         borderStyle: 'dashed',
         justifyContent: 'center',
         alignItems: 'center',
         backgroundColor: '#F8FAFC',
     },
     transactionsSection: {
-        paddingHorizontal: '20@s',
+        // paddingHorizontal: '15@s',
     },
     seeAllBtn: {
-        backgroundColor: '#F1F5F9',
         paddingHorizontal: '12@s',
         paddingVertical: '4@vs',
         borderRadius: '12@ms',
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
     },
     seeAllText: {
         fontSize: '12@ms',
@@ -453,13 +587,14 @@ const styles = ScaledSheet.create({
         flexDirection: 'row',
         marginBottom: '16@vs',
         gap: '8@s',
+        paddingHorizontal: '10@s',
     },
     transactionItem: {
         flexDirection: 'row',
         alignItems: 'center',
         paddingVertical: '12@vs',
-        borderBottomWidth: 1,
-        borderBottomColor: '#F1F5F9',
+        borderRadius: '12@ms',
+        paddingHorizontal: '15@s',
     },
     transactionIcon: {
         width: '40@ms',
@@ -492,11 +627,11 @@ const styles = ScaledSheet.create({
         marginBottom: '4@vs',
     },
     transactionStatus: {
-        fontSize: '10@ms',
-        fontWeight: '500',
+        fontSize: '12@ms',
+        fontWeight: '600',
         paddingHorizontal: '6@s',
-        paddingVertical: '2@vs',
-        borderRadius: '4@ms',
+        paddingVertical: '4@vs',
+        borderRadius: '12@ms',
         overflow: 'hidden',
     },
 });

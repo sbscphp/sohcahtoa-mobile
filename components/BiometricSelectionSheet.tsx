@@ -1,21 +1,22 @@
 import { Colors } from '@/constants/theme';
-import { InfoCircle } from 'iconsax-react-nativejs';
-import { ScanFaceIcon } from 'lucide-react-native';
+import { Fingerprint, ScanFaceIcon } from 'lucide-react-native';
 import React from 'react';
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import PrimaryButton from './PrimaryButton';
 
-interface BiometricBottomSheetProps {
+interface BiometricSelectionSheetProps {
     visible: boolean;
     onClose: () => void;
-    onConfirm: () => void;
+    onSelectFace: () => void;
+    onSelectFingerprint: () => void;
 }
 
-const BiometricBottomSheet: React.FC<BiometricBottomSheetProps> = ({
+const BiometricSelectionSheet: React.FC<BiometricSelectionSheetProps> = ({
     visible,
     onClose,
-    onConfirm,
+    onSelectFace,
+    onSelectFingerprint,
 }) => {
     return (
         <Modal
@@ -29,37 +30,37 @@ const BiometricBottomSheet: React.FC<BiometricBottomSheetProps> = ({
                 <TouchableOpacity style={styles.backdrop} onPress={onClose} activeOpacity={1} />
 
                 <View style={styles.sheetContent}>
-
                     <View style={styles.headerIconContainer}>
-
                         <View style={styles.warningIconBg}>
-                            <InfoCircle size={moderateScale(24)} color={Colors.light.primary} variant="Bold" />
+                            {/* ! icon or InfoCircle - using InfoCircle orange as per design vibe */}
+                            <Text style={styles.exclamationMark}>!</Text>
                         </View>
                     </View>
 
-                    <Text style={styles.title}>Biometric Setup</Text>
+                    <Text style={styles.title}>Choose Biometric Setup</Text>
 
                     <Text style={styles.description}>
-                        Enable biometric authentication to securely access your account faster using your face ID.
+                        Select desired biometrics for secure login to your account.
                     </Text>
 
-                    <View style={styles.centerIconContainer}>
+                    <View style={styles.graphicContainer}>
                         <ScanFaceIcon size={moderateScale(48)} color="#94A3B8" />
+                        <View style={styles.verticalDivider} />
+                        <Fingerprint size={moderateScale(48)} color="#94A3B8" />
                     </View>
-
-                    <Text style={styles.consentText}>
-                        By continuing, you consent to using your face ID for secure account access. You can turn this off anytime in settings.
-                    </Text>
 
                     <View style={styles.buttonContainer}>
                         <PrimaryButton
-                            title="Yes, Setup Biometrics"
-                            onPress={onConfirm}
-                            style={styles.confirmButton}
+                            title="Face Recognition"
+                            onPress={onSelectFace}
+                            style={styles.faceButton}
                         />
 
-                        <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-                            <Text style={styles.closeButtonText}>No, Close</Text>
+                        <TouchableOpacity
+                            style={styles.fingerprintButton}
+                            onPress={onSelectFingerprint}
+                        >
+                            <Text style={styles.fingerprintButtonText}>Fingerprint</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -92,14 +93,14 @@ const styles = ScaledSheet.create({
         width: '40@ms',
         height: '40@ms',
         borderRadius: '20@ms',
-        backgroundColor: 'rgba(241, 241, 241, 1)',
+        backgroundColor: '#FFF7ED', // Light Orange bg
         justifyContent: 'center',
         alignItems: 'center',
     },
-    warningIcon: {
+    exclamationMark: {
         fontSize: '20@ms',
-        fontWeight: '700',
-        color: '#F97316', // Orange
+        fontWeight: '800',
+        color: '#FF6B2C', // Primary Color
     },
     title: {
         fontSize: '18@ms',
@@ -113,37 +114,37 @@ const styles = ScaledSheet.create({
         lineHeight: '20@ms',
         marginBottom: '32@vs',
     },
-    centerIconContainer: {
+    graphicContainer: {
+        flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: '24@vs',
-    },
-    consentText: {
-        fontSize: '13@ms',
-        color: '#64748B',
-        textAlign: 'center',
+        justifyContent: 'center',
+        gap: '24@s',
         marginBottom: '32@vs',
-        lineHeight: '18@ms',
+    },
+    verticalDivider: {
+        width: '1@s',
+        height: '48@vs',
+        backgroundColor: Colors.light.primary, // Orange divider as seen in design
     },
     buttonContainer: {
         gap: '12@vs',
     },
-    confirmButton: {
+    faceButton: {
         width: '100%',
     },
-    closeButton: {
+    fingerprintButton: {
         width: '100%',
-        height: '40@vs',
+        height: '48@vs',
         borderRadius: '28@ms',
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#F1F5F9', 
+        backgroundColor: '#F1F5F9', // Light gray 
     },
-    closeButtonText: {
+    fingerprintButtonText: {
         color: '#0F172A',
         fontSize: '14@ms',
         fontWeight: '500',
-        paddingVertical: '10@ms',
     },
 });
 
-export default BiometricBottomSheet;
+export default BiometricSelectionSheet;

@@ -1,17 +1,17 @@
-import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Lock, Sms, User } from 'iconsax-react-nativejs';
-import { ScanFace,ScanFaceIcon } from 'lucide-react-native';
+import { Lock, Sms } from 'iconsax-react-nativejs';
+import { ScanFaceIcon } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
+import UserSharing from '../../assets/icons/user-sharing.svg';
 import AuthHeader from '../../components/AuthHeader';
-import BiometricBottomSheet from '../../components/BiometricBottomSheet';
+import BiometricSelectionSheet from '../../components/BiometricSelectionSheet';
 import InputField from '../../components/InputField';
 import PrimaryButton from '../../components/PrimaryButton';
 import { Colors } from '../../constants/theme';
-import UserSharing from '../../assets/icons/user-sharing.svg';
+import BiometricBottomSheet from '@/components/BiometricBottomSheet';
 
 export default function LoginScreen() {
     const router = useRouter();
@@ -19,6 +19,7 @@ export default function LoginScreen() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [showBiometricSheet, setShowBiometricSheet] = useState(false);
+    const [showBiometricBottomSheet, setShowBiometricBottomSheet] = useState(false);
 
     const handleLogin = () => {
         console.log('Login attempt:', { email, password });
@@ -39,7 +40,7 @@ export default function LoginScreen() {
             >
                 <View style={styles.welcomeSection}>
                     <View style={styles.avatarPlaceholder}>
-                        <UserSharing width={moderateScale(22)} height={moderateScale(22)} color={Colors.light.primary}/>
+                        <UserSharing width={moderateScale(22)} height={moderateScale(22)} color={Colors.light.primary} />
                     </View>
                     <View>
                         <Text style={styles.welcomeTitle}>Welcome to SohCahToa BDC</Text>
@@ -68,7 +69,7 @@ export default function LoginScreen() {
                         onChangeText={setPassword}
                         isPassword
                         required
-                        disabled={!password}    
+                        disabled={!password}
                     />
 
                     <PrimaryButton
@@ -89,9 +90,9 @@ export default function LoginScreen() {
                 <View style={styles.biometricSection}>
                     <TouchableOpacity
                         style={styles.biometricButton}
-                        onPress={() => setShowBiometricSheet(true)}
+                        onPress={() => setShowBiometricBottomSheet(true)}
                     >
-                       <ScanFaceIcon size={moderateScale(52)} color="#94A3B8"/>    
+                        <ScanFaceIcon size={moderateScale(42)} color="#94A3B8" />
                     </TouchableOpacity>
                 </View>
 
@@ -104,11 +105,24 @@ export default function LoginScreen() {
             </ScrollView>
 
             <BiometricBottomSheet
+                visible={showBiometricBottomSheet}
+                onClose={() => setShowBiometricBottomSheet(false)}
+                onConfirm={() => {
+                    setShowBiometricSheet(true);
+                    setShowBiometricBottomSheet(false);
+                }}
+            />
+
+            <BiometricSelectionSheet
                 visible={showBiometricSheet}
                 onClose={() => setShowBiometricSheet(false)}
-                onConfirm={() => {
+                onSelectFace={() => {
                     setShowBiometricSheet(false);
                     router.push('/(auth)/biometrics-setup');
+                }}
+                onSelectFingerprint={() => {
+                    setShowBiometricSheet(false);
+                    router.push('/(auth)/fingerprint-setup');
                 }}
             />
         </View>

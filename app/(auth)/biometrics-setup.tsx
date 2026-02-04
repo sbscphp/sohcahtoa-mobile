@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { Scan } from 'iconsax-react-nativejs';
+import { ScanFaceIcon } from 'lucide-react-native';
 import React from 'react';
 import { Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -7,7 +7,6 @@ import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import AuthHeader from '../../components/AuthHeader';
 import PrimaryButton from '../../components/PrimaryButton';
 import { Colors } from '../../constants/theme';
-import { ScanFaceIcon } from 'lucide-react-native';
 
 export default function BiometricsSetupScreen() {
     const router = useRouter();
