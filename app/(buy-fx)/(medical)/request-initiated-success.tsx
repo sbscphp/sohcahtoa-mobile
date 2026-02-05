@@ -6,7 +6,7 @@ export default function RequestSuccessScreen() {
     const router = useRouter();
 
     const handleViewTransaction = () => {
-        router.push('/(buy-fx)/(pta)/view-pta');
+        router.push('/(buy-fx)/(medical)/view-medical');
     };
 
     const handleGoHome = () => {
@@ -15,8 +15,8 @@ export default function RequestSuccessScreen() {
 
     return (
         <SuccessScreen
-            headerTitle="Request Initiated Successful"
-             title="Request Submitted Successfully"
+            headerTitle="Transaction Request Successful"
+            title="Request Submitted Successfully"
             description="You have successfully initiated a new transaction request. Your documents have been received and currently awaiting approval."
             onViewTransaction={handleViewTransaction}
             onGoHome={handleGoHome}

@@ -9,6 +9,7 @@ interface FileUploadProps {
     fileName?: string | null;
     title?: string;
     subtitle?: string;
+    status?: 'default' | 'approved' | 'pending' | 'error';
 }
 
 const FileUpload: React.FC<FileUploadProps> = ({
@@ -16,10 +17,29 @@ const FileUpload: React.FC<FileUploadProps> = ({
     fileName,
     title = 'Upload or change here.',
     subtitle = 'PDF, PNG, IMG, JPG Supported. Max. size: 20 MB',
+    status = 'default',
 }) => {
+    const getContainerBorderColor = () => {
+        switch (status) {
+            case 'approved': return '#86EFAC';
+            case 'error': return '#FCA5A5';
+            case 'pending': return '#FDBA74';
+            default: return '#E2E8F0';
+        }
+    };
+
+    const getPreviewBorderColor = () => {
+        switch (status) {
+            case 'approved': return '#86EFAC';
+            case 'pending': return '#7c807eff'; // Keep default for pending preview unless specified
+            case 'error': return '#FCA5A5';
+            default: return '#7c807eff';
+        }
+    };
+
     if (!fileName) {
         return (
-            <TouchableOpacity style={styles.uploadContainer} onPress={onUpload}>
+            <TouchableOpacity style={[styles.uploadContainer, { borderColor: getContainerBorderColor() }]} onPress={onUpload}>
                 <View style={styles.uploadTextContainer}>
                     <View style={styles.uploadTitleRow}>
                         <View style={styles.uploadIconContainer}>
@@ -40,7 +60,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
     }
 
     return (
-        <View style={styles.previewContainer}>
+        <View style={[styles.previewContainer, { borderColor: getPreviewBorderColor() }]}>
             <View style={styles.previewImagePlaceholder}>
                 <Ionicons name="document-text-outline" size={moderateScale(48)} color="#898d8bff" />
                 <Text style={styles.fileNameText} numberOfLines={1}>{fileName}</Text>
@@ -55,10 +75,10 @@ const FileUpload: React.FC<FileUploadProps> = ({
 
 const styles = ScaledSheet.create({
     uploadContainer: {
-        backgroundColor: '#F8F9FA',
+        backgroundColor: 'rgba(241, 241, 241, 1)',
         borderRadius: '12@ms',
-        borderWidth: 1,
-        borderColor: '#E2E8F0',
+        borderWidth: 3,
+        borderColor: 'rgba(228, 228, 231, 1)', 
         borderStyle: 'dashed',
         padding: '16@ms',
         flexDirection: 'column',
@@ -99,11 +119,9 @@ const styles = ScaledSheet.create({
     },
     browseButton: {
         backgroundColor: '#FFFFFF',
-        paddingVertical: '8@vs',
-        paddingHorizontal: '16@s',
+        paddingVertical: '10@vs',
+        paddingHorizontal: '18@s',
         borderRadius: '20@ms',
-        borderWidth: 1,
-        borderColor: '#E2E8F0',
         alignSelf: 'flex-end',
         flexDirection: 'row',
         alignItems: 'center',
@@ -115,9 +133,9 @@ const styles = ScaledSheet.create({
     },
     previewContainer: {
         backgroundColor: '#FFFFFF',
-        borderRadius: '10@ms',
+        borderRadius: '16@ms',
         borderWidth: 2,
-        borderColor: '#7c807eff',
+        borderColor: '#7c807eff', 
         borderStyle: 'dashed',
         height: '120@vs',
         justifyContent: 'center',
@@ -133,7 +151,7 @@ const styles = ScaledSheet.create({
         alignItems: 'center',
         backgroundColor: '#ffffffff',
         paddingHorizontal: '16@s',
-        borderRadius: '10@ms',
+        borderRadius: '16@ms',
     },
     fileNameText: {
         marginTop: 8,

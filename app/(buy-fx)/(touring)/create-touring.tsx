@@ -36,7 +36,7 @@ const LOCATIONS: LocationItem[] = [
     { id: '4', title: 'Festac Local Government', subtitle: '1st Avenue, Festac Town.' },
 ];
 
-export default function PersonalTravelAllowanceScreen() {
+export default function TouringScreen() {
     const router = useRouter();
     const [currentStep, setCurrentStep] = useState(0);
 
@@ -45,9 +45,6 @@ export default function PersonalTravelAllowanceScreen() {
     const [nin, setNin] = useState('');
     const [formAId, setFormAId] = useState('');
     const [passportNumber, setPassportNumber] = useState('');
-
-    // Step 1: Documents State
-    // (In a real app, these would probably store file objects or URIs)
 
     // Step 2: Exchange State
     const [transactionType, setTransactionType] = useState<'buy' | 'sell'>('buy');
@@ -78,14 +75,31 @@ export default function PersonalTravelAllowanceScreen() {
 
     // Fields for Step 0
     const credentialFields = [
-        { label: 'Bank Verification Number', placeholder: 'Enter your BVN', value: bvn, onChangeText: setBvn, required: true, keyboardType: 'numeric' as const },
-        { label: 'National Identification Number', placeholder: 'Enter your NIN', value: nin, onChangeText: setNin, required: true, keyboardType: 'numeric' as const },
-        { label: 'Form A ID', placeholder: 'Enter form A ID', value: formAId, onChangeText: setFormAId, required: true },
-        { label: 'International Passport Number', placeholder: 'Enter international passport', value: passportNumber, onChangeText: setPassportNumber, required: true },
+        { label: 'Bank Verification Number (BVN)', placeholder: 'Enter your BVN', value: bvn, onChangeText: setBvn, required: true, keyboardType: 'numeric' as const },
+        { label: 'National Identification Number (NIN)', placeholder: 'Enter your NIN', value: nin, onChangeText: setNin, required: true, keyboardType: 'numeric' as const },
+        { label: 'Form A ID', placeholder: 'Enter Form A ID', value: formAId, onChangeText: setFormAId, required: true },
+        { label: 'International Passport Number', placeholder: 'Enter international passport number', value: passportNumber, onChangeText: setPassportNumber, required: true },
     ];
 
     // Documents for Step 1
     const documentFields = [
+        {
+            label: 'International Passport',
+            onUpload: () => console.log('Upload Passport'),
+            required: true,
+            associatedInputs: (
+                <View>
+                    <View style={{ flexDirection: 'row', gap: 12 }}>
+                        <View style={{ flex: 1 }}>
+                            <InputField label='Passport Issue Date' required placeholder='dd/mm/yyyy' rightIcon={Calendar} />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <InputField label='Passport Expiry Date' required placeholder='dd/mm/yyyy' rightIcon={Calendar} />
+                        </View>
+                    </View>
+                </View>
+            )
+        },
         {
             label: 'Valid Visa',
             onUpload: () => console.log('Upload Visa'),
@@ -124,12 +138,12 @@ export default function PersonalTravelAllowanceScreen() {
 
     const handleConfirmInitiate = () => {
         setInitiateSheetVisible(false);
-        router.push('/(buy-fx)/(pta)/request-initiated-success');
+        router.push('/(buy-fx)/(touring)/request-initiated-success');
     };
 
     return (
         <TransactionLayout
-            title="Personal Travel Allowance"
+            title="Tourist"
             currentStep={currentStep}
             totalSteps={4}
             onBack={handleBack}
@@ -176,6 +190,7 @@ export default function PersonalTravelAllowanceScreen() {
                     }}
                     selectedLocation={selectedLocation}
                     onSelectLocation={setSelectedLocation}
+                    title="Select Pick Up Point"
                 />
             )}
 
@@ -183,11 +198,11 @@ export default function PersonalTravelAllowanceScreen() {
                 visible={initiateSheetVisible}
                 onClose={() => setInitiateSheetVisible(false)}
                 onConfirm={handleConfirmInitiate}
-                title="Initiate PTA Transaction request?"
+                title="Initiate Tourist Transaction request?"
                 items={[
                     {
                         title: "Verification before approval",
-                        description: "You will be able to process your PTA once your documents are verified and approved.",
+                        description: "Your travel documents (passport, visa, and return ticket) must be verified before your tourist FX request can be approved.",
                         iconType: 'verify'
                     },
                     {

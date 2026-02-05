@@ -4,10 +4,9 @@ import { LocationItem } from '@/components/LocationSelectionSheet';
 import CredentialStep from '@/components/transaction-flow/CredentialStep';
 import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
-import LocationStep from '@/components/transaction-flow/LocationStep';
+import MedicalBankDetailsStep from '@/components/transaction-flow/MedicalBankDetailsStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
 import { useRouter } from 'expo-router';
-import { Calendar } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
 import { View } from 'react-native';
 
@@ -36,7 +35,7 @@ const LOCATIONS: LocationItem[] = [
     { id: '4', title: 'Festac Local Government', subtitle: '1st Avenue, Festac Town.' },
 ];
 
-export default function PersonalTravelAllowanceScreen() {
+export default function MedicalPaymentScreen() {
     const router = useRouter();
     const [currentStep, setCurrentStep] = useState(0);
 
@@ -45,9 +44,6 @@ export default function PersonalTravelAllowanceScreen() {
     const [nin, setNin] = useState('');
     const [formAId, setFormAId] = useState('');
     const [passportNumber, setPassportNumber] = useState('');
-
-    // Step 1: Documents State
-    // (In a real app, these would probably store file objects or URIs)
 
     // Step 2: Exchange State
     const [transactionType, setTransactionType] = useState<'buy' | 'sell'>('buy');
@@ -67,7 +63,16 @@ export default function PersonalTravelAllowanceScreen() {
     const [amountGet, setAmountGet] = useState('1'); // Placeholder
     const [amountSend, setAmountSend] = useState('1,500'); // Placeholder
 
-    // Step 3: Location State
+    // Step 3: Bank Details State (Replacing Location)
+    const [beneficiaryName, setBeneficiaryName] = useState('');
+    const [beneficiaryAddress, setBeneficiaryAddress] = useState('');
+    const [beneficiaryBank, setBeneficiaryBank] = useState('');
+    const [routingNumber, setRoutingNumber] = useState('');
+    const [accountNumber, setAccountNumber] = useState('');
+    const [bankAddress, setBankAddress] = useState('');
+    const [swiftCode, setSwiftCode] = useState('');
+
+    // Keeping these for now if needed else where
     const [selectedState, setSelectedState] = useState<LocationItem | null>(null);
     const [selectedCity, setSelectedCity] = useState<LocationItem | null>(null);
     const [selectedLocation, setSelectedLocation] = useState<LocationItem | null>(null);
@@ -78,30 +83,36 @@ export default function PersonalTravelAllowanceScreen() {
 
     // Fields for Step 0
     const credentialFields = [
-        { label: 'Bank Verification Number', placeholder: 'Enter your BVN', value: bvn, onChangeText: setBvn, required: true, keyboardType: 'numeric' as const },
-        { label: 'National Identification Number', placeholder: 'Enter your NIN', value: nin, onChangeText: setNin, required: true, keyboardType: 'numeric' as const },
-        { label: 'Form A ID', placeholder: 'Enter form A ID', value: formAId, onChangeText: setFormAId, required: true },
+        { label: 'Bank Verification Number (BVN)', placeholder: 'Enter your BVN', value: bvn, onChangeText: setBvn, required: true, keyboardType: 'numeric' as const },
+        { label: 'National Identification Number (NIN)', placeholder: 'Enter your NIN', value: nin, onChangeText: setNin, required: true, keyboardType: 'numeric' as const },
+        { label: 'Form A ID', placeholder: 'Enter Form A ID', value: formAId, onChangeText: setFormAId, required: true },
         { label: 'International Passport Number', placeholder: 'Enter international passport', value: passportNumber, onChangeText: setPassportNumber, required: true },
     ];
 
     // Documents for Step 1
     const documentFields = [
         {
-            label: 'Valid Visa',
-            onUpload: () => console.log('Upload Visa'),
+            label: 'Form A',
+            onUpload: () => console.log('Upload Invoice'),
             required: true,
-            associatedInputs: (
-                <InputField label="Valid Visa Number" placeholder="Enter valid visa number" required />
-            )
         },
         {
-            label: 'Return Ticket',
-            onUpload: () => console.log('Upload Ticket'),
+            label: 'International Passport',
+            onUpload: () => console.log('Upload Report'),
+            required: true,
+        },
+        {
+            label: 'Valid Visa',
+            onUpload: () => console.log('Upload Passport'),
             required: true,
             associatedInputs: (
-                <InputField label="Return Ticket Number" placeholder="Enter return ticket number" required />
+                <View>
+                    <View style={{ flex: 1 }}>
+                        <InputField label='Valid Visa' required placeholder='Enter valid visa number' />
+                    </View>
+                </View>
             )
-        }
+        },
     ];
 
     // --- Handlers ---
@@ -124,17 +135,17 @@ export default function PersonalTravelAllowanceScreen() {
 
     const handleConfirmInitiate = () => {
         setInitiateSheetVisible(false);
-        router.push('/(buy-fx)/(pta)/request-initiated-success');
+        router.push('/(buy-fx)/(medical)/request-initiated-success');
     };
 
     return (
         <TransactionLayout
-            title="Personal Travel Allowance"
+            title="Medical Fee"
             currentStep={currentStep}
             totalSteps={4}
             onBack={handleBack}
             onNext={handleNext}
-            nextLabel={currentStep === 3 ? (selectedState && selectedCity ? "Initiate Transaction Request" : "Continue") : "Continue"}
+            nextLabel={currentStep === 3 ? (beneficiaryName && accountNumber ? "Initiate Transaction Request" : "Continue") : "Continue"}
         >
             {currentStep === 0 && (
                 <CredentialStep fields={credentialFields} />
@@ -159,23 +170,21 @@ export default function PersonalTravelAllowanceScreen() {
             )}
 
             {currentStep === 3 && (
-                <LocationStep
-                    states={STATES}
-                    cities={CITIES}
-                    locations={LOCATIONS}
-                    selectedState={selectedState}
-                    onSelectState={(item) => {
-                        setSelectedState(item);
-                        setSelectedCity(null);
-                        setSelectedLocation(null);
-                    }}
-                    selectedCity={selectedCity}
-                    onSelectCity={(item) => {
-                        setSelectedCity(item);
-                        setSelectedLocation(null);
-                    }}
-                    selectedLocation={selectedLocation}
-                    onSelectLocation={setSelectedLocation}
+                <MedicalBankDetailsStep
+                    beneficiaryName={beneficiaryName}
+                    setBeneficiaryName={setBeneficiaryName}
+                    beneficiaryAddress={beneficiaryAddress}
+                    setBeneficiaryAddress={setBeneficiaryAddress}
+                    beneficiaryBank={beneficiaryBank}
+                    setBeneficiaryBank={setBeneficiaryBank}
+                    routingNumber={routingNumber}
+                    setRoutingNumber={setRoutingNumber}
+                    accountNumber={accountNumber}
+                    setAccountNumber={setAccountNumber}
+                    bankAddress={bankAddress}
+                    setBankAddress={setBankAddress}
+                    swiftCode={swiftCode}
+                    setSwiftCode={setSwiftCode}
                 />
             )}
 
@@ -183,16 +192,16 @@ export default function PersonalTravelAllowanceScreen() {
                 visible={initiateSheetVisible}
                 onClose={() => setInitiateSheetVisible(false)}
                 onConfirm={handleConfirmInitiate}
-                title="Initiate PTA Transaction request?"
+                title="Initiate Medical FX request?"
                 items={[
                     {
                         title: "Verification before approval",
-                        description: "You will be able to process your PTA once your documents are verified and approved.",
+                        description: "Your medical documents, hospital invoice, and referral letter must be verified and approved before your request can be processed.",
                         iconType: 'verify'
                     },
                     {
-                        title: "Maximum of $4,000 per quarter",
-                        description: "The maximum you can transact is $4,000 per quarter.",
+                        title: "Maximum of $5,000 per quarter",
+                        description: "The maximum amount you can request for foreign medical payments is $5,000 per quarter, in line with CBN guidelines.",
                         iconType: 'limit'
                     }
                 ]}

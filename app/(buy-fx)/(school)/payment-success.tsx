@@ -2,11 +2,11 @@ import SuccessScreen from '@/components/SuccessScreen';
 import { useRouter } from 'expo-router';
 import React from 'react';
 
-export default function RequestSuccessScreen() {
+export default function PaymentSuccessScreen() {
     const router = useRouter();
 
     const handleViewTransaction = () => {
-        router.push('/(buy-fx)/(pta)/view-pta');
+        router.push('/(buy-fx)/(school)/view-school');
     };
 
     const handleGoHome = () => {
@@ -15,11 +15,12 @@ export default function RequestSuccessScreen() {
 
     return (
         <SuccessScreen
-            headerTitle="Request Initiated Successful"
-             title="Request Submitted Successfully"
-            description="You have successfully initiated a new transaction request. Your documents have been received and currently awaiting approval."
+            headerTitle="Payment Successful"
+            title="Payment Successfully"
+            description="Your payment has been received and your funds will be released soon."
             onViewTransaction={handleViewTransaction}
             onGoHome={handleGoHome}
+            primaryButtonText="View Transaction"
         />
     );
 }

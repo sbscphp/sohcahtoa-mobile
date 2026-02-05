@@ -109,13 +109,13 @@ const styles = ScaledSheet.create({
         marginBottom: '16@vs',
     },
     title: {
-        fontSize: '16@ms',
+        fontSize: '17@ms',
         fontWeight: '600',
         color: '#0F172A',
         marginBottom: '8@vs',
     },
     description: {
-        fontSize: '12@ms',
+        fontSize: '13@ms',
         color: '#64748B',
     },
     listContainer: {
@@ -132,8 +132,8 @@ const styles = ScaledSheet.create({
         paddingVertical: '4@vs',
     },
     itemIconContainer: {
-        width: '40@ms',
-        height: '40@ms',
+        width: '42@ms',
+        height: '42@ms',
         borderRadius: '20@ms',
         backgroundColor: '#FFFFFF',
         justifyContent: 'center',
@@ -144,13 +144,13 @@ const styles = ScaledSheet.create({
         flex: 1,
     },
     itemTitle: {
-        fontSize: '13@ms',
+        fontSize: '14@ms',
         fontWeight: '600',
         color: '#0F172A',
         marginBottom: '4@vs',
     },
     itemSubtitle: {
-        fontSize: '12@ms',
+        fontSize: '13@ms',
         color: 'rgba(102, 102, 102, 1)',
         lineHeight: '18@ms',
     },

@@ -6,6 +6,8 @@ export default function Layout() {
             <Stack.Screen name="create-pta" options={{ headerShown: false }} />
             <Stack.Screen name="request-initiated-success" options={{ headerShown: false }} />
             <Stack.Screen name="view-pta" options={{ headerShown: false }} />
+            <Stack.Screen name="payment" options={{ headerShown: false }} />
+            <Stack.Screen name="payment-success" options={{ headerShown: false }} />
         </Stack>
     )
 }

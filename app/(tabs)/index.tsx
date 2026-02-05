@@ -45,10 +45,25 @@ export default function HomeScreen() {
     const [selectedCurrency, setSelectedCurrency] = useState<CurrencyItem>({ id: '4', code: 'USD', flag: '🇺🇸' });
 
     const handleActionPress = (action: string) => {
-        console.log('Selected action:', action);
+        // console.log('Selected action:', action);
         if (action === 'vacation') {
             setActionSheetType(null); 
             router.push('/(buy-fx)/(pta)/create-pta');
+        } else if (action === 'business') {
+            setActionSheetType(null); 
+            router.push('/(buy-fx)/(bta)/create-bta');
+        } else if (action === 'school') {
+            setActionSheetType(null); 
+            router.push('/(buy-fx)/(school)/create-school');
+        } else if (action === 'medical') {
+            setActionSheetType(null); 
+            router.push('/(buy-fx)/(medical)/create-medical');
+        } else if (action === 'professional') {
+            setActionSheetType(null); 
+            router.push('/(buy-fx)/(professional)/create-professional');
+        } else if (action === 'touring') {
+            setActionSheetType(null); 
+            router.push('/(buy-fx)/(touring)/create-touring');
         } else {
             setActionSheetType(null);
         }

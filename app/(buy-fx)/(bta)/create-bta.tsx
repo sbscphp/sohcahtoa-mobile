@@ -36,7 +36,7 @@ const LOCATIONS: LocationItem[] = [
     { id: '4', title: 'Festac Local Government', subtitle: '1st Avenue, Festac Town.' },
 ];
 
-export default function PersonalTravelAllowanceScreen() {
+export default function BusinessTravelAllowanceScreen() {
     const router = useRouter();
     const [currentStep, setCurrentStep] = useState(0);
 
@@ -44,10 +44,9 @@ export default function PersonalTravelAllowanceScreen() {
     const [bvn, setBvn] = useState('');
     const [nin, setNin] = useState('');
     const [formAId, setFormAId] = useState('');
+    const [tin, setTin] = useState('');
     const [passportNumber, setPassportNumber] = useState('');
-
-    // Step 1: Documents State
-    // (In a real app, these would probably store file objects or URIs)
+    const [tccNumber, setTccNumber] = useState('');
 
     // Step 2: Exchange State
     const [transactionType, setTransactionType] = useState<'buy' | 'sell'>('buy');
@@ -78,30 +77,50 @@ export default function PersonalTravelAllowanceScreen() {
 
     // Fields for Step 0
     const credentialFields = [
-        { label: 'Bank Verification Number', placeholder: 'Enter your BVN', value: bvn, onChangeText: setBvn, required: true, keyboardType: 'numeric' as const },
-        { label: 'National Identification Number', placeholder: 'Enter your NIN', value: nin, onChangeText: setNin, required: true, keyboardType: 'numeric' as const },
-        { label: 'Form A ID', placeholder: 'Enter form A ID', value: formAId, onChangeText: setFormAId, required: true },
+        { label: 'Bank Verification Number(BVN)', placeholder: 'Enter your BVN', value: bvn, onChangeText: setBvn, required: true, keyboardType: 'numeric' as const },
+        { label: 'Tax Identification Number(TIN)', placeholder: 'Enter your TIN', value: tin, onChangeText: setTin, required: true, keyboardType: 'numeric' as const },
+        { label: 'National Identification Number(NIN)', placeholder: 'Enter your NIN', value: nin, onChangeText: setNin, required: true, keyboardType: 'numeric' as const },
+        { label: 'Form A ID', placeholder: 'Enter Form A ID', value: formAId, onChangeText: setFormAId, required: true, keyboardType: 'numeric' as const },
         { label: 'International Passport Number', placeholder: 'Enter international passport', value: passportNumber, onChangeText: setPassportNumber, required: true },
     ];
 
     // Documents for Step 1
     const documentFields = [
         {
-            label: 'Valid Visa',
-            onUpload: () => console.log('Upload Visa'),
+            label: 'Tax Clearance Certificate (TCC)',
+            onUpload: () => console.log('Upload Letter'),
             required: true,
             associatedInputs: (
-                <InputField label="Valid Visa Number" placeholder="Enter valid visa number" required />
+                <View>
+                    <InputField label='Tax Clearance Certificate (TCC)' required placeholder='Enter TCC number' value={tccNumber} onChangeText={setTccNumber} keyboardType='numeric' />
+                </View>
             )
         },
         {
-            label: 'Return Ticket',
-            onUpload: () => console.log('Upload Ticket'),
+            label: 'International Passport',
+            onUpload: () => console.log('Upload Passport'),
             required: true,
             associatedInputs: (
-                <InputField label="Return Ticket Number" placeholder="Enter return ticket number" required />
+                <View style={{ flexDirection: 'row', gap: 12 }}>
+                        <View style={{ flex: 1 }}>
+                            <InputField label='Passport Issue Date' required placeholder='dd/mm/yyyy' rightIcon={Calendar} />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <InputField label='Passport Expiry Date' required placeholder='dd/mm/yyyy' rightIcon={Calendar} />
+                        </View>
+                    </View>
             )
-        }
+        },
+        {
+            label: 'Tax Identification Number (TIN)',
+            onUpload: () => console.log('Upload Letter'),
+            required: true,
+            associatedInputs: (
+                <View>
+                    <InputField label='Tax Identification Number (TIN)' required placeholder='Enter TIN number' value={tccNumber} onChangeText={setTccNumber} keyboardType='numeric' />
+                </View>
+            )
+        },
     ];
 
     // --- Handlers ---
@@ -124,12 +143,12 @@ export default function PersonalTravelAllowanceScreen() {
 
     const handleConfirmInitiate = () => {
         setInitiateSheetVisible(false);
-        router.push('/(buy-fx)/(pta)/request-initiated-success');
+        router.push('/(buy-fx)/(bta)/request-initiated-success');
     };
 
     return (
         <TransactionLayout
-            title="Personal Travel Allowance"
+            title="Business Travel Allowance"
             currentStep={currentStep}
             totalSteps={4}
             onBack={handleBack}
@@ -183,16 +202,16 @@ export default function PersonalTravelAllowanceScreen() {
                 visible={initiateSheetVisible}
                 onClose={() => setInitiateSheetVisible(false)}
                 onConfirm={handleConfirmInitiate}
-                title="Initiate PTA Transaction request?"
+                title="Initiate BTA Transaction request?"
                 items={[
                     {
                         title: "Verification before approval",
-                        description: "You will be able to process your PTA once your documents are verified and approved.",
+                        description: "You will be able to process your BTA once your documents are verified and approved.",
                         iconType: 'verify'
                     },
                     {
-                        title: "Maximum of $4,000 per quarter",
-                        description: "The maximum you can transact is $4,000 per quarter.",
+                        title: "Maximum of $5,000 per quarter",
+                        description: "The maximum you can transact under BTA is $5,000 per quarter for each eligible business traveler.",
                         iconType: 'limit'
                     }
                 ]}

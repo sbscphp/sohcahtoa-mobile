@@ -1,42 +1,18 @@
 import InitiateTransactionSheet from '@/components/InitiateTransactionSheet';
 import InputField from '@/components/InputField';
 import { LocationItem } from '@/components/LocationSelectionSheet';
+import BankDetailsStep from '@/components/transaction-flow/BankDetailsStep';
 import CredentialStep from '@/components/transaction-flow/CredentialStep';
 import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
-import LocationStep from '@/components/transaction-flow/LocationStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
 import { useRouter } from 'expo-router';
-import { Calendar } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
 import { View } from 'react-native';
 
-const STATES: LocationItem[] = [
-    { id: '1', title: 'Lagos State' },
-    { id: '2', title: 'Ogun State' },
-    { id: '3', title: 'Rivers State' },
-    { id: '4', title: 'Kaduna State' },
-    { id: '5', title: 'Enugu State' },
-    { id: '6', title: 'Kano State' },
-];
 
-const CITIES: LocationItem[] = [
-    { id: '1', title: 'Ajeromi Local Government' },
-    { id: '2', title: 'Agege Local Government' },
-    { id: '3', title: 'Alimosho Local Government' },
-    { id: '4', title: 'Amuwo Odofin Local Government' },
-    { id: '5', title: 'Apapa Local Government' },
-    { id: '6', title: 'Badagry Local Government' },
-];
 
-const LOCATIONS: LocationItem[] = [
-    { id: '1', title: 'Ajeromi Local Government', subtitle: 'Femi Areola Street, Ikeja GRA.' },
-    { id: '2', title: 'Agege Local Government', subtitle: 'Femi Areola Street, Ikeja GRA.' },
-    { id: '3', title: 'Ikorodu Local Government', subtitle: '23 T.O.S Benson Avenue, Ikorodu.' },
-    { id: '4', title: 'Festac Local Government', subtitle: '1st Avenue, Festac Town.' },
-];
-
-export default function PersonalTravelAllowanceScreen() {
+export default function ProfessionalScreen() {
     const router = useRouter();
     const [currentStep, setCurrentStep] = useState(0);
 
@@ -45,9 +21,8 @@ export default function PersonalTravelAllowanceScreen() {
     const [nin, setNin] = useState('');
     const [formAId, setFormAId] = useState('');
     const [passportNumber, setPassportNumber] = useState('');
-
-    // Step 1: Documents State
-    // (In a real app, these would probably store file objects or URIs)
+    const [evidenceOfMembership, setEvidenceOfMembership] = useState('');
+    const [invoiceNumber, setInvoiceNumber] = useState('');
 
     // Step 2: Exchange State
     const [transactionType, setTransactionType] = useState<'buy' | 'sell'>('buy');
@@ -67,10 +42,11 @@ export default function PersonalTravelAllowanceScreen() {
     const [amountGet, setAmountGet] = useState('1'); // Placeholder
     const [amountSend, setAmountSend] = useState('1,500'); // Placeholder
 
-    // Step 3: Location State
-    const [selectedState, setSelectedState] = useState<LocationItem | null>(null);
-    const [selectedCity, setSelectedCity] = useState<LocationItem | null>(null);
-    const [selectedLocation, setSelectedLocation] = useState<LocationItem | null>(null);
+    // Step 3: Bank Details State (Replacing Location)
+    const [bankName, setBankName] = useState('');
+    const [accountNumber, setAccountNumber] = useState('');
+    const [accountName, setAccountName] = useState('');
+    const [iban, setIban] = useState('');
 
     const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
 
@@ -78,30 +54,34 @@ export default function PersonalTravelAllowanceScreen() {
 
     // Fields for Step 0
     const credentialFields = [
-        { label: 'Bank Verification Number', placeholder: 'Enter your BVN', value: bvn, onChangeText: setBvn, required: true, keyboardType: 'numeric' as const },
-        { label: 'National Identification Number', placeholder: 'Enter your NIN', value: nin, onChangeText: setNin, required: true, keyboardType: 'numeric' as const },
-        { label: 'Form A ID', placeholder: 'Enter form A ID', value: formAId, onChangeText: setFormAId, required: true },
+        { label: 'Bank Verification Number (BVN)', placeholder: 'Enter your BVN', value: bvn, onChangeText: setBvn, required: true, keyboardType: 'numeric' as const },
+        { label: 'National Identification Number (NIN)', placeholder: 'Enter your NIN', value: nin, onChangeText: setNin, required: true, keyboardType: 'numeric' as const },
+        { label: 'Form A ID', placeholder: 'Enter Form A ID', value: formAId, onChangeText: setFormAId, required: true },
         { label: 'International Passport Number', placeholder: 'Enter international passport', value: passportNumber, onChangeText: setPassportNumber, required: true },
     ];
 
     // Documents for Step 1
     const documentFields = [
         {
-            label: 'Valid Visa',
-            onUpload: () => console.log('Upload Visa'),
+            label: 'Evidence of Membership',
+            onUpload: () => console.log('Upload Invoice'),
             required: true,
             associatedInputs: (
-                <InputField label="Valid Visa Number" placeholder="Enter valid visa number" required />
+                <View style={{ marginBottom: 16 }}>
+                    <InputField label='Evidence of Membership' placeholder='Enter evidence of membership' value={evidenceOfMembership} onChangeText={setEvidenceOfMembership} required />
+                </View>
             )
         },
         {
-            label: 'Return Ticket',
-            onUpload: () => console.log('Upload Ticket'),
+            label: 'Invoice from Professional Body',
+            onUpload: () => console.log('Upload Passport'),
             required: true,
             associatedInputs: (
-                <InputField label="Return Ticket Number" placeholder="Enter return ticket number" required />
+                <View style={{ marginBottom: 16 }}>
+                    <InputField label='Invoice from Professional Body' placeholder='Enter invoice number' value={invoiceNumber} onChangeText={setInvoiceNumber} required />
+                </View>
             )
-        }
+        },
     ];
 
     // --- Handlers ---
@@ -124,17 +104,17 @@ export default function PersonalTravelAllowanceScreen() {
 
     const handleConfirmInitiate = () => {
         setInitiateSheetVisible(false);
-        router.push('/(buy-fx)/(pta)/request-initiated-success');
+        router.push('/(buy-fx)/(professional)/request-initiated-success');
     };
 
     return (
         <TransactionLayout
-            title="Personal Travel Allowance"
+            title="Professional"
             currentStep={currentStep}
             totalSteps={4}
             onBack={handleBack}
             onNext={handleNext}
-            nextLabel={currentStep === 3 ? (selectedState && selectedCity ? "Initiate Transaction Request" : "Continue") : "Continue"}
+            nextLabel={currentStep === 3 ? (bankName && accountNumber ? "Initiate Transaction Request" : "Continue") : "Continue"}
         >
             {currentStep === 0 && (
                 <CredentialStep fields={credentialFields} />
@@ -159,23 +139,15 @@ export default function PersonalTravelAllowanceScreen() {
             )}
 
             {currentStep === 3 && (
-                <LocationStep
-                    states={STATES}
-                    cities={CITIES}
-                    locations={LOCATIONS}
-                    selectedState={selectedState}
-                    onSelectState={(item) => {
-                        setSelectedState(item);
-                        setSelectedCity(null);
-                        setSelectedLocation(null);
-                    }}
-                    selectedCity={selectedCity}
-                    onSelectCity={(item) => {
-                        setSelectedCity(item);
-                        setSelectedLocation(null);
-                    }}
-                    selectedLocation={selectedLocation}
-                    onSelectLocation={setSelectedLocation}
+                <BankDetailsStep
+                    bankName={bankName}
+                    setBankName={setBankName}
+                    accountNumber={accountNumber}
+                    setAccountNumber={setAccountNumber}
+                    accountName={accountName}
+                    setAccountName={setAccountName}
+                    iban={iban}
+                    setIban={setIban}
                 />
             )}
 
@@ -183,16 +155,16 @@ export default function PersonalTravelAllowanceScreen() {
                 visible={initiateSheetVisible}
                 onClose={() => setInitiateSheetVisible(false)}
                 onConfirm={handleConfirmInitiate}
-                title="Initiate PTA Transaction request?"
+                title="Initiate Professional Transaction request?"
                 items={[
                     {
                         title: "Verification before approval",
-                        description: "You will be able to process your PTA once your documents are verified and approved.",
+                        description: "Your supporting documents (exam registration, training invoice, or admission letter) must be verified before your request can be processed.",
                         iconType: 'verify'
                     },
                     {
-                        title: "Maximum of $4,000 per quarter",
-                        description: "The maximum you can transact is $4,000 per quarter.",
+                        title: "Maximum of $2,000 per quarter",
+                        description: "The maximum amount allowed for professional exams or training fees is $2,000 per year, according to CBN guidelines.",
                         iconType: 'limit'
                     }
                 ]}

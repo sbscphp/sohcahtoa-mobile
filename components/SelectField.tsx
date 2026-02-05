@@ -1,59 +1,51 @@
-import { Eye, EyeSlash, Icon } from 'iconsax-react-nativejs';
-import React, { useState } from 'react';
-import { Text, TextInput, TextInputProps, TouchableOpacity, View } from 'react-native';
+import { Icon } from 'iconsax-react-nativejs';
+import React from 'react';
+import { Text, TouchableOpacity, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 
-interface InputFieldProps extends TextInputProps {
+interface SelectFieldProps {
     label: string;
+    placeholder: string;
+    value?: string;
     icon?: Icon;
     rightIcon?: Icon;
-    isPassword?: boolean;
     required?: boolean;
     disabled?: boolean;
+    onPress: () => void;
 }
 
-const InputField: React.FC<InputFieldProps> = ({
+const SelectField: React.FC<SelectFieldProps> = ({
     label,
+    placeholder,
+    value,
     icon: IconComponent,
     rightIcon: RightIconComponent,
-    isPassword,
     required,
     disabled,
-    ...props
+    onPress
 }) => {
-    const [isPasswordVisible, setIsPasswordVisible] = useState(false);
-
     return (
         <View style={styles.container}>
             <Text style={styles.label}>
                 {label} {required && <Text style={styles.required}>*</Text>}
             </Text>
-            <View style={disabled ? styles.inputDisabledWrapper : styles.inputWrapper}>
+            <TouchableOpacity
+                onPress={onPress}
+                disabled={disabled}
+                style={disabled ? styles.inputDisabledWrapper : styles.inputWrapper}
+            >
                 {IconComponent && (
                     <IconComponent size={moderateScale(20)} color="rgba(77, 75, 75, 1)" style={styles.leftIcon} />
                 )}
-                <TextInput
-                    style={styles.input}
-                    secureTextEntry={isPassword && !isPasswordVisible}
-                    placeholderTextColor="#94A3B8"
-                    {...props}
-                />
-                {isPassword && (
-                    <TouchableOpacity
-                        onPress={() => setIsPasswordVisible(!isPasswordVisible)}
-                        style={styles.rightIcon}
-                    >
-                        {isPasswordVisible ? (
-                            <EyeSlash size={moderateScale(20)} color="rgba(77, 75, 75, 1)" />
-                        ) : (
-                            <Eye size={moderateScale(20)} color="rgba(77, 75, 75, 1)" />
-                        )}
-                    </TouchableOpacity>
-                )}
-                {RightIconComponent && !isPassword && (
+
+                <Text style={[styles.input, !value && styles.placeholder]}>
+                    {value || placeholder}
+                </Text>
+
+                {RightIconComponent && (
                     <RightIconComponent size={moderateScale(20)} color="rgba(77, 75, 75, 1)" style={{ marginLeft: moderateScale(12) }} />
                 )}
-            </View>
+            </TouchableOpacity>
         </View>
     );
 };
@@ -74,7 +66,7 @@ const styles = ScaledSheet.create({
     inputWrapper: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'inherit',
+        backgroundColor: '#FFFFFF',
         borderWidth: 1,
         borderColor: 'rgba(143, 139, 139, 1)',
         borderRadius: '28@ms',
@@ -84,7 +76,7 @@ const styles = ScaledSheet.create({
     inputDisabledWrapper: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'inherit',
+        backgroundColor: '#F1F5F9', // Slightly generic disabled color
         borderWidth: 1,
         borderColor: 'rgba(204, 202, 202, 1)',
         borderRadius: '28@ms',
@@ -98,11 +90,10 @@ const styles = ScaledSheet.create({
         flex: 1,
         fontSize: '15@ms',
         color: '#0F172A',
-        height: '100%',
     },
-    rightIcon: {
-        padding: '6@ms',
+    placeholder: {
+        color: '#94A3B8',
     },
 });
 
-export default InputField;
+export default SelectField;

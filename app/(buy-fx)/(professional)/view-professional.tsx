@@ -7,7 +7,7 @@ import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Text, TouchableOpacity } from 'react-native';
 
-export default function ViewPtaScreen() {
+export default function ViewProfessionalScreen() {
     const router = useRouter();
     const [activeTab, setActiveTab] = useState('overview');
 
@@ -15,19 +15,19 @@ export default function ViewPtaScreen() {
     const [status, setStatus] = useState<TransactionStatus>('pending');
 
     // Document States
-    const [formAFile, setFormAFile] = useState<string | null>('form-a-doc.pdf');
-    const [passportFile, setPassportFile] = useState<string | null>('my-passport.jpg');
-    const [visaFile, setVisaFile] = useState<string | null>('my-visa.pdf');
+    const [utilityBillFile, setUtilityBillFile] = useState<string | null>('utility-bill.jpg');
+    const [formAFile, setFormAFile] = useState<string | null>('form-a.pdf');
+    const [evidenceOfMembershipFile, setEvidenceOfMembershipFile] = useState<string | null>('evidence-of-membership.pdf');
 
     const handleBack = () => {
         router.back();
     };
 
     const handleProceed = () => {
-        router.push('/(buy-fx)/(pta)/payment');
+        router.push('/(buy-fx)/(professional)/payment');
     };
 
-    const handleUpload = async (docType: 'forma' | 'passport' | 'visa') => {
+    const handleUpload = async (docType: 'utilityBill' | 'formA' | 'evidenceOfMembership') => {
         try {
             const result = await getDocumentAsync({
                 type: ['application/pdf', 'image/*'],
@@ -38,9 +38,9 @@ export default function ViewPtaScreen() {
                 const file = result.assets[0];
                 const fileName = file.name;
 
-                if (docType === 'forma') setFormAFile(fileName);
-                else if (docType === 'passport') setPassportFile(fileName);
-                else if (docType === 'visa') setVisaFile(fileName);
+                if (docType === 'utilityBill') setUtilityBillFile(fileName);
+                else if (docType === 'formA') setFormAFile(fileName);
+                else if (docType === 'evidenceOfMembership') setEvidenceOfMembershipFile(fileName);
             }
         } catch (error) {
             console.error("Error picking document:", error);
@@ -65,37 +65,33 @@ export default function ViewPtaScreen() {
 
 
     const detailsItems = [
-        { label: 'Transaction ID', value: '674AGHA6773' },
-        { label: 'Amount (₦)', value: '₦ 1,500,000' },
+        { label: 'Transaction ID', value: 'PRO-112930' },
+        { label: 'Amount (₦)', value: '₦ 1,200,000' },
         { label: 'Equivalent Amount (FX)', value: '$1,000' },
-        { label: 'Date Initiated', value: 'Dec 8 2025' },
-        { label: 'Pickup Address', value: '3, Adeola Odeku, VI, Lagos', isRightAligned: true },
+        { label: 'Date Initiated', value: 'Mar 10 2026' },
     ];
 
     const detailsDocuments = [
-        { label: 'BVN Number', value: '744 ********* 373' },
-        { label: 'TIN', value: '673***********344' },
-        { label: 'Form A ID', value: '47743GA' },
-        { label: 'Form A Document', fileName: 'form-a-doc.pdf' },
-        { label: 'Visa', fileName: 'my-visa.pdf' },
-        { label: 'Return Ticket', fileName: 'my-return-ticket.pdf' },
-        { label: 'Return Ticket', fileName: 'my-return-ticket.pdf' },
+        { label: 'Exam Body', value: 'CFA Institute' },
+        { label: 'Exam Type', value: 'Level 1' },
+        { label: 'Exam Invoice', fileName: 'exam-invoice.pdf' },
+        { label: 'International Passport', fileName: 'my-passport.jpg' },
     ];
 
     const docsItems = [
-        { label: 'Form A', fileName: formAFile, onUpload: () => handleUpload('forma'), required: true },
-        { label: 'International Passport', fileName: passportFile, onUpload: () => handleUpload('passport'), required: true },
-        { label: 'Valid Visa', fileName: visaFile, onUpload: () => handleUpload('visa'), required: true },
+        { label: 'Form A', fileName: formAFile, onUpload: () => handleUpload('formA'), required: true },
+        { label: 'Utility Bill', fileName: utilityBillFile, onUpload: () => handleUpload('utilityBill'), required: true },
+        { label: 'Evidence of Membership', fileName: evidenceOfMembershipFile, onUpload: () => handleUpload('evidenceOfMembership'), required: true },
     ];
 
-   
+
     const getMessage = () => {
         if (status === 'approved' || status === 'awaiting_disbursement' || status === 'settled')
-            return "Congratulations! You application have been approved. Kindly proceed to make payment.";
+            return "Congratulations! Your exam payment request has been approved. Please proceed to payment.";
         if (status === 'rejected')
-            return "Your quarterly limit has been used. Please try again next quarter.";
+            return "Request rejected. Please verify the exam details and try again.";
 
-        return "This is a message box that show the message from the SohCahToa Admin regarding the request for more information about this application from the client. For this use-case, admin noted that customer should re-upload one of their documentation as it not clear.";
+        return "This is a message box that show the message from the SohCahToa Admin. Admin noted that the invoice is unclear.";
     };
 
     return (
@@ -106,10 +102,10 @@ export default function ViewPtaScreen() {
             tabs={tabs}
             onBack={handleBack}
             showActionButton={status !== 'pending' && status !== 'rejected' && status !== 'settled'}
-            actionButtonTitle={status === 'approved' || status === 'awaiting_disbursement' ? "Proceed to Payment" : "Resubmit Transaction Request"}
+            actionButtonTitle={status === 'approved' || status === 'awaiting_disbursement' ? "Proceed to Payment" : "Resubmit Request"}
             onActionPress={handleProceed}
         >
-        
+
             <TouchableOpacity onPress={toggleState} style={{ marginLeft: 'auto', justifyContent: 'center', marginBottom: 10 }}>
                 <Text style={{ fontSize: 10, color: '#ccc' }}>DEV: {status}</Text>
             </TouchableOpacity>
@@ -117,9 +113,9 @@ export default function ViewPtaScreen() {
             {activeTab === 'overview' && (
                 <TransactionStatusView
                     status={status}
-                    id="8833"
-                    date="16 Nov 2025"
-                    time="11:00 am"
+                    id="112930"
+                    date="10 Mar 2026"
+                    time="04:15 pm"
                     message={getMessage()}
                 />
             )}
@@ -128,6 +124,12 @@ export default function ViewPtaScreen() {
                 <TransactionDetailsView
                     details={detailsItems}
                     documents={detailsDocuments}
+                    beneficiaryDetails={[
+                        { label: 'Transaction ID', value: '674AGHA6773', isRightAligned: true },
+                        { label: 'Account Name', value: 'Finance International', isRightAligned: true },
+                        { label: 'Account Number', value: '23456786543', isRightAligned: true },
+                        { label: 'Form A', value: '27833987444', isRightAligned: true },
+                    ]}
                 />
             )}
 
