@@ -1,3 +1,4 @@
+import ProgressBar from '@/components/ProgressBar';
 import { useRouter } from 'expo-router';
 import { InfoCircle } from 'iconsax-react-nativejs';
 import React from 'react';
@@ -6,7 +7,6 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ScaledSheet } from 'react-native-size-matters';
 import AuthHeader from '../../components/AuthHeader';
 import PrimaryButton from '../../components/PrimaryButton';
-import ProgressBar from '@/components/ProgressBar';
 
 export default function BvnConfirmationScreen() {
     const router = useRouter();
@@ -34,7 +34,7 @@ export default function BvnConfirmationScreen() {
                 contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 100 }]}
                 showsVerticalScrollIndicator={false}
             >
-           <ProgressBar progress={0.34} />
+                <ProgressBar step={1} totalSteps={3} />
 
                 <View style={styles.content}>
                     <Text style={styles.title}>Final Step Ahead</Text>

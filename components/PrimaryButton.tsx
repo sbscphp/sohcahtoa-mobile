@@ -40,18 +40,26 @@ const PrimaryButton: React.FC<PrimaryButtonProps> = ({
 const styles = ScaledSheet.create({
     button: {
         backgroundColor: Colors.light.primary,
-        height: '40@vs',
+        height: '45@vs',
         borderRadius: '28@ms',
         justifyContent: 'center',
         alignItems: 'center',
         width: '100%',
+        shadowColor: 'rgba(35, 35, 35, 0.05)',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+        elevation: 5,
     },
     disabledButton: {
         backgroundColor: '#FFCCB4',
     },
     text: {
         color: '#FFFFFF',
-        fontSize: '14@ms',
+        fontSize: '15@ms',
         fontWeight: '500',
     },
 });

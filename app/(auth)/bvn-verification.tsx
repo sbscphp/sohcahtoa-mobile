@@ -1,5 +1,5 @@
+import ProgressBar from '@/components/ProgressBar';
 import { useRouter } from 'expo-router';
-import { Lock } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -8,7 +8,6 @@ import AuthHeader from '../../components/AuthHeader';
 import InputField from '../../components/InputField';
 import OtpOptionSheet from '../../components/OtpOptionSheet';
 import PrimaryButton from '../../components/PrimaryButton';
-import ProgressBar from '@/components/ProgressBar';
 
 export default function BvnVerificationScreen() {
     const router = useRouter();
@@ -42,7 +41,7 @@ export default function BvnVerificationScreen() {
                     contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 80 }]}
                     showsVerticalScrollIndicator={false}
                 >
-                    <ProgressBar progress={0.5} />
+                    <ProgressBar step={1} totalSteps={3} />
 
                     <View style={styles.content}>
                         <Text style={styles.title}>Enter your Bank verification Number (BVN)</Text>

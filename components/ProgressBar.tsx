@@ -4,28 +4,40 @@ import { ScaledSheet } from 'react-native-size-matters';
 import { Colors } from '../constants/theme';
 
 interface ProgressBarProps {
-    progress: number; // 0 to 1
+    progress?: number; // 0 to 1
+    step?: number; // 1-based index
     totalSteps?: number;
 }
 
-const ProgressBar: React.FC<ProgressBarProps> = ({ progress, totalSteps = 3 }) => {
-    // Determine which step is "active" by finding the threshold closest to progress
-    let activeIndex = 0;
-    let minDiff = Number.MAX_VALUE;
+const ProgressBar: React.FC<ProgressBarProps> = ({ progress, step, totalSteps = 3 }) => {
+    // Determine active step. explicit 'step' takes precedence.
+    // If 'step' is provided, it's 1-based.
+    // If 'progress' is provided, we estimate the step.
 
-    for (let i = 0; i < totalSteps; i++) {
-        const threshold = (i + 1) / totalSteps;
-        const diff = Math.abs(progress - threshold);
-        if (diff < minDiff) {
-            minDiff = diff;
-            activeIndex = i;
+    let currentStep = 0;
+
+    if (step !== undefined) {
+        currentStep = step;
+    } else {
+        // Fallback backward compatibility calculation
+        let minDiff = Number.MAX_VALUE;
+        for (let i = 0; i < totalSteps; i++) {
+            const threshold = (i + 1) / totalSteps;
+            const diff = Math.abs((progress ?? 0) - threshold);
+            if (diff < minDiff) {
+                minDiff = diff;
+                currentStep = i + 1;
+            }
         }
     }
 
     return (
         <View style={styles.container}>
             {Array.from({ length: totalSteps }).map((_, index) => {
-                const isActive = index === activeIndex;
+                // index is 0-based. Step is 1-based.
+                // If currentStep is 1, index 0 should be active.
+                // If currentStep is 2, index 0 and 1 should be active.
+                const isActive = index < currentStep;
 
                 return (
                     <React.Fragment key={index}>

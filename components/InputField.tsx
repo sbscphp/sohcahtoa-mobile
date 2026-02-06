@@ -6,6 +6,7 @@ import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 interface InputFieldProps extends TextInputProps {
     label: string;
     icon?: Icon;
+    rightIcon?: Icon;
     isPassword?: boolean;
     required?: boolean;
     disabled?: boolean;
@@ -14,6 +15,7 @@ interface InputFieldProps extends TextInputProps {
 const InputField: React.FC<InputFieldProps> = ({
     label,
     icon: IconComponent,
+    rightIcon: RightIconComponent,
     isPassword,
     required,
     disabled,
@@ -48,6 +50,9 @@ const InputField: React.FC<InputFieldProps> = ({
                         )}
                     </TouchableOpacity>
                 )}
+                {RightIconComponent && !isPassword && (
+                    <RightIconComponent size={moderateScale(20)} color="rgba(77, 75, 75, 1)" style={{ marginLeft: moderateScale(12) }} />
+                )}
             </View>
         </View>
     );
@@ -61,7 +66,7 @@ const styles = ScaledSheet.create({
         fontSize: '15@ms',
         fontWeight: '400',
         color: '#475569',
-        marginBottom: '10@vs',
+        marginBottom: '8@vs',
     },
     required: {
         color: '#EF4444',
@@ -69,22 +74,22 @@ const styles = ScaledSheet.create({
     inputWrapper: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#FFFFFF',
+        backgroundColor: 'inherit',
         borderWidth: 1,
-        borderColor: 'rgba(77, 75, 75, 1)',
+        borderColor: 'rgba(143, 139, 139, 1)',
         borderRadius: '28@ms',
-        paddingHorizontal: '12@s',
-        height: '40@vs',
+        paddingHorizontal: '14@s',
+        height: '45@vs',
     },
     inputDisabledWrapper: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#FFFFFF',
+        backgroundColor: 'inherit',
         borderWidth: 1,
         borderColor: 'rgba(204, 202, 202, 1)',
         borderRadius: '28@ms',
-        paddingHorizontal: '12@s',
-        height: '40@vs',
+        paddingHorizontal: '14@s',
+        height: '45@vs',
     },
     leftIcon: {
         marginRight: '12@s',

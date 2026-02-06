@@ -12,7 +12,7 @@ export default function FaceCaptureScreen() {
     const insets = useSafeAreaInsets();
 
     const handleContinue = () => {
-        router.push('/(auth)/otp-verification');
+        router.push('/(tabs)');
     };
 
     const handleCancel = () => {

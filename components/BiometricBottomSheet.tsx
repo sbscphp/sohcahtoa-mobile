@@ -1,9 +1,10 @@
-import { Scan } from 'iconsax-react-nativejs';
+import { Colors } from '@/constants/theme';
+import { InfoCircle } from 'iconsax-react-nativejs';
+import { ScanFaceIcon } from 'lucide-react-native';
 import React from 'react';
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import PrimaryButton from './PrimaryButton';
-import { ScanFaceIcon } from 'lucide-react-native';
 
 interface BiometricBottomSheetProps {
     visible: boolean;
@@ -28,11 +29,11 @@ const BiometricBottomSheet: React.FC<BiometricBottomSheetProps> = ({
                 <TouchableOpacity style={styles.backdrop} onPress={onClose} activeOpacity={1} />
 
                 <View style={styles.sheetContent}>
-                    {/* Warning/Info Icon */}
+
                     <View style={styles.headerIconContainer}>
-                        {/* Using Warning2 or similar as "!" icon placeholder */}
+
                         <View style={styles.warningIconBg}>
-                            <Text style={styles.warningIcon}>!</Text>
+                            <InfoCircle size={moderateScale(24)} color={Colors.light.primary} variant="Bold" />
                         </View>
                     </View>
 
@@ -43,7 +44,7 @@ const BiometricBottomSheet: React.FC<BiometricBottomSheetProps> = ({
                     </Text>
 
                     <View style={styles.centerIconContainer}>
-                        <ScanFaceIcon size={moderateScale(48)} color="#94A3B8" /> 
+                        <ScanFaceIcon size={moderateScale(48)} color="#94A3B8" />
                     </View>
 
                     <Text style={styles.consentText}>
@@ -91,7 +92,7 @@ const styles = ScaledSheet.create({
         width: '40@ms',
         height: '40@ms',
         borderRadius: '20@ms',
-        backgroundColor: '#FFF7ED', // Light orange
+        backgroundColor: 'rgba(241, 241, 241, 1)',
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -135,7 +136,7 @@ const styles = ScaledSheet.create({
         borderRadius: '28@ms',
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#F1F5F9', // Light gray standard
+        backgroundColor: '#F1F5F9', 
     },
     closeButtonText: {
         color: '#0F172A',
