@@ -2,6 +2,7 @@ import { Calendar, Clock, SearchStatus } from 'iconsax-react-nativejs';
 import React from 'react';
 import { Text, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
+import EmptyState from '../../assets/icons/empty-state.svg';
 
 export type TransactionStatus = 'pending' | 'approved' | 'more_info' | 'rejected' | 'awaiting_disbursement' | 'settled';
 
@@ -18,7 +19,7 @@ export default function TransactionStatusView({ status, id, date, time, message 
         return (
             <View style={styles.pendingContainer}>
                 <View style={styles.pendingIconContainer}>
-                    <SearchStatus size={moderateScale(80)} color="#E2E8F0" variant="Bulk" />
+                    <EmptyState  width={moderateScale(100)} height={moderateScale(120)} />
                 </View>
                 <Text style={styles.pendingTitle}>Application is Under Review</Text>
                 <Text style={styles.pendingDesc}>
@@ -239,7 +240,7 @@ const styles = ScaledSheet.create({
         textAlign: 'center',
     },
     pendingDesc: {
-        fontSize: '12@ms',
+        fontSize: '14@ms',
         color: '#64748B',
         textAlign: 'center',
         lineHeight: '22@ms',

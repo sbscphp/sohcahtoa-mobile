@@ -66,7 +66,7 @@ const styles = ScaledSheet.create({
         fontSize: '15@ms',
         fontWeight: '400',
         color: '#475569',
-        marginBottom: '10@vs',
+        marginBottom: '8@vs',
     },
     required: {
         color: '#EF4444',
@@ -79,7 +79,7 @@ const styles = ScaledSheet.create({
         borderColor: 'rgba(143, 139, 139, 1)',
         borderRadius: '28@ms',
         paddingHorizontal: '14@s',
-        height: '40@vs',
+        height: '45@vs',
     },
     inputDisabledWrapper: {
         flexDirection: 'row',
@@ -89,7 +89,7 @@ const styles = ScaledSheet.create({
         borderColor: 'rgba(204, 202, 202, 1)',
         borderRadius: '28@ms',
         paddingHorizontal: '14@s',
-        height: '40@vs',
+        height: '45@vs',
     },
     leftIcon: {
         marginRight: '12@s',

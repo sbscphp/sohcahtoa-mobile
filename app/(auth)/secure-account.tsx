@@ -65,7 +65,7 @@ export default function SecureAccountScreen() {
                     showsVerticalScrollIndicator={false}
                 >
 
-                    {type === 'reset-password' ? null : <ProgressBar progress={1.0} totalSteps={2} /> }
+                    {type === 'reset-password' ? null : <ProgressBar step={3} totalSteps={3} />}
                     <View style={styles.content}>
                         <Text style={styles.title}>Create a Password to Secure your Account</Text>
 

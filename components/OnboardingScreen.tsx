@@ -318,7 +318,7 @@ const styles = ScaledSheet.create({
         right: '10@s',
         backgroundColor: '#FFFFFF',
         borderRadius: '12@ms',
-        padding: '12@ms',
+        padding: '20@ms',
         marginBottom: '4@vs',
     },
     testimonialText: {

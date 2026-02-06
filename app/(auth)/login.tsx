@@ -40,7 +40,7 @@ export default function LoginScreen() {
             >
                 <View style={styles.welcomeSection}>
                     <View style={styles.avatarPlaceholder}>
-                        <UserSharing width={moderateScale(22)} height={moderateScale(22)} color={Colors.light.primary} />
+                        <UserSharing width={moderateScale(28)} height={moderateScale(28)} color={Colors.light.primary} />
                     </View>
                     <View>
                         <Text style={styles.welcomeTitle}>Welcome to SohCahToa BDC</Text>

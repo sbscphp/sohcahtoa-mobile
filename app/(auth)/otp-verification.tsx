@@ -86,9 +86,9 @@ export default function OtpVerificationScreen() {
                     contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 80 }]}
                     showsVerticalScrollIndicator={false}
                 >
-                    {context === 'bvn' && <ProgressBar progress={0.34} />}
-                    {context === 'email' && <ProgressBar progress={0.67} />}
-                    {isResetPassword && <ProgressBar progress={0.67} totalSteps={2} />}
+                    {context === 'bvn' && <ProgressBar step={1} totalSteps={3} />}
+                    {context === 'email' && <ProgressBar step={2} totalSteps={3} />}
+                    {isResetPassword && <ProgressBar step={1} totalSteps={2} />}
 
                     <View style={styles.content}>
                         <Text style={styles.title}>{title}</Text>

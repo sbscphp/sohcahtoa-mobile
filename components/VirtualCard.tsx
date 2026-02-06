@@ -21,9 +21,9 @@ const CardBackground = () => (
     <Svg style={StyleSheet.absoluteFillObject}>
         <Defs>
             <LinearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <Stop offset="0%" stopColor="#8B4513" stopOpacity="1" />
-                <Stop offset="40%" stopColor="#A0522D" stopOpacity="1" />
-                <Stop offset="100%" stopColor="#CD853F" stopOpacity="1" />
+                <Stop offset="0%" stopColor="#bd7145ff" stopOpacity="1" />
+                <Stop offset="40%" stopColor="#d4743dff" stopOpacity="1" />
+                <Stop offset="100%" stopColor="#DF9457" stopOpacity="1" />
             </LinearGradient>
 
             {/* Subtle overlay shapes for the "sheen" effect */}
@@ -60,7 +60,7 @@ const VirtualCard: React.FC<VirtualCardProps> = ({
             <View style={styles.content}>
 
                 <View style={styles.topRow}>
-                    <Chip  />
+                    <Chip />
                     <Text style={styles.prepaidText}>Prepaid card</Text>
                     <View style={{ flex: 1 }} />
                     <VisaLogo />
@@ -228,7 +228,7 @@ const styles = ScaledSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'flex-end',
-        marginBottom: '20@vs',
+        marginBottom: '25@vs',
     },
     expiryContainer: {
         flexDirection: 'row',

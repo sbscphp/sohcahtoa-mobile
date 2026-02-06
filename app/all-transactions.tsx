@@ -1,9 +1,10 @@
+import SearchEmpty from '@/assets/icons/empty-state.svg';
 import FilterMailSquare from '@/assets/images/filter-mail-square.svg';
 import FilterBottomSheet from '@/components/FilterBottomSheet';
 import Header from '@/components/Header';
 import { Refresh } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
-import { SectionList, Text, View } from 'react-native';
+import { SectionList, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 
@@ -64,8 +65,7 @@ export default function AllTransactionsScreen() {
     const [filteredData, setFilteredData] = useState(DATA);
 
     const parseDate = (dateStr: string) => {
-        // Simple parser for "MMM D YYYY" or "Dec 8 2025 • 11 am"
-        // Removing time part for comparison
+
         const cleanDate = dateStr.split('•')[0].trim();
         return new Date(cleanDate);
     };
@@ -79,9 +79,7 @@ export default function AllTransactionsScreen() {
 
         const newData = DATA.map(section => {
             const date = new Date(section.title);
-            // Filter sections by date range if title is a date (e.g., "December 8, 2025")
-            // Note: "Today" needs special handling or assumption. Assuming "Today" is within range for demo if not parsed.
-            // Actually, better to filter ITEMS.
+
 
             const filteredItems = section.data.filter(item => {
                 const itemDate = parseDate(item.date);
@@ -168,17 +166,39 @@ export default function AllTransactionsScreen() {
                 onRightPress={() => setFilterVisible(true)}
             />
 
-            <SectionList
-                sections={filteredData}
-                keyExtractor={(item) => item.id}
-                renderItem={renderItem}
-                renderSectionHeader={({ section: { title } }) => (
-                    <Text style={styles.sectionHeader}>{title}</Text>
-                )}
-                contentContainerStyle={styles.listContent}
-                stickySectionHeadersEnabled={false}
-                showsVerticalScrollIndicator={false}
-            />
+            {filteredData.length > 0 ? (
+                <SectionList
+                    sections={filteredData}
+                    keyExtractor={(item) => item.id}
+                    renderItem={renderItem}
+                    renderSectionHeader={({ section: { title } }) => (
+                        <Text style={styles.sectionHeader}>{title}</Text>
+                    )}
+                    contentContainerStyle={styles.listContent}
+                    stickySectionHeadersEnabled={false}
+                    showsVerticalScrollIndicator={false}
+                />
+            ) : (
+                <View style={styles.emptyContainer}>
+                    <View style={styles.emptyIconContainer}>
+                        <SearchEmpty width={moderateScale(150)} height={moderateScale(120)} />
+                    </View>
+                    <Text style={styles.emptyTitle}>No Transaction Yet</Text>
+                    <Text style={styles.emptyDesc}>
+                        No transaction available. Check back later
+                    </Text>
+
+                    <View style={styles.buttonContainer}>
+                        <TouchableOpacity style={styles.buyButton} onPress={() => { /* Handle Buy FX */ }}>
+                            <Text style={styles.buyButtonText}>Buy FX</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity style={styles.sellButton} onPress={() => { /* Handle Sell FX */ }}>
+                            <Text style={styles.sellButtonText}>Sell FX</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            )}
 
             <FilterBottomSheet
                 visible={filterVisible}
@@ -211,7 +231,7 @@ const styles = ScaledSheet.create({
     },
     transactionWrapper: {
         backgroundColor: 'rgba(245, 245, 245, 1)',
-        marginHorizontal: '10@s',
+        marginHorizontal: '4@s',
         padding: '12@ms',
     },
     topRadius: {
@@ -271,5 +291,57 @@ const styles = ScaledSheet.create({
     statusText: {
         fontSize: '11@ms',
         fontWeight: '500',
+    },
+    emptyContainer: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: '20@s',
+        marginBottom: '90@vs',
+    },
+    emptyIconContainer: {
+        marginBottom: '16@vs',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    emptyTitle: {
+        fontSize: '16@ms',
+        fontWeight: '600',
+        color: '#0F172A',
+        marginBottom: '8@vs',
+    },
+    emptyDesc: {
+        fontSize: '14@ms',
+        color: '#64748B',
+        textAlign: 'center',
+        marginBottom: '32@vs',
+    },
+    buttonContainer: {
+        width: '100%',
+        gap: '16@vs',
+    },
+    buyButton: {
+        backgroundColor: '#FF6B00', // Orange color from design
+        paddingVertical: '16@vs',
+        borderRadius: '30@ms',
+        alignItems: 'center',
+        width: '100%',
+    },
+    buyButtonText: {
+        color: '#FFFFFF',
+        fontSize: '16@ms',
+        fontWeight: '600',
+    },
+    sellButton: {
+        backgroundColor: '#F8FAFC', // Light background
+        paddingVertical: '16@vs',
+        borderRadius: '30@ms',
+        alignItems: 'center',
+        width: '100%',
+    },
+    sellButtonText: {
+        color: '#0F172A',
+        fontSize: '16@ms',
+        fontWeight: '600',
     },
 });
