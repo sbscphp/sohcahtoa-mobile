@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleProp, Text, TextStyle, TouchableOpacity, ViewStyle } from 'react-native';
+import { Pressable, StyleProp, Text, TextStyle, ViewStyle } from 'react-native';
 import { ScaledSheet } from 'react-native-size-matters';
 import { Colors } from '../constants/theme';
 
@@ -23,17 +23,21 @@ const PrimaryButton: React.FC<PrimaryButtonProps> = ({
     accessibilityLabel,
 }) => {
     return (
-        <TouchableOpacity
-            activeOpacity={0.8}
+        <Pressable
             onPress={onPress}
             disabled={disabled}
-            style={[styles.button, disabled && styles.disabledButton, style]}
+            style={({ pressed }) => [
+                styles.button,
+                disabled && styles.disabledButton,
+                pressed && { opacity: 0.8 },
+                style
+            ]}
             accessible={accessible}
             accessibilityLabel={accessibilityLabel || title}
             accessibilityRole="button"
         >
             <Text style={[styles.text, textStyle]}>{title}</Text>
-        </TouchableOpacity>
+        </Pressable>
     );
 };
 

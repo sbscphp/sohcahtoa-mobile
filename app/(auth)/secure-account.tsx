@@ -54,14 +54,16 @@ export default function SecureAccountScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
+            <AuthHeader title={title} />
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                style={styles.container}
+                style={{ flex: 1 }}
             >
-                <AuthHeader title={title} />
-
                 <ScrollView
-                    contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 80 }]}
+                    contentContainerStyle={[
+                        styles.scrollContent,
+                        { paddingBottom: insets.bottom + 100 } // Increased padding for footer
+                    ]}
                     showsVerticalScrollIndicator={false}
                 >
 

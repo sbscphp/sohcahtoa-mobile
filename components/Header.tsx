@@ -46,7 +46,7 @@ const styles = ScaledSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: '16@s',
+        paddingHorizontal: '10@s',
         paddingVertical: '12@vs',
         backgroundColor: '#FFFFFF',
         borderBottomWidth: 1,

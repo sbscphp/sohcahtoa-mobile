@@ -214,14 +214,14 @@ const styles = ScaledSheet.create({
     },
     cardNumber: {
         color: '#FFFFFF',
-        fontSize: '18@ms',
+        fontSize: '16@ms',
         fontWeight: '500',
         fontFamily: 'Courier',
         marginLeft: '8@ms',
     },
     balanceText: {
         color: '#FFFFFF',
-        fontSize: '18@ms',
+        fontSize: '16@ms',
         fontWeight: '600',
     },
     footerRow: {
@@ -242,12 +242,12 @@ const styles = ScaledSheet.create({
     },
     expiryDate: {
         color: '#FFFFFF',
-        fontSize: '14@ms',
+        fontSize: '13@ms',
         fontWeight: '500',
     },
     cardHolder: {
         color: '#FFFFFF',
-        fontSize: '14@ms',
+        fontSize: '13@ms',
         fontWeight: '500',
         textTransform: 'uppercase',
     },

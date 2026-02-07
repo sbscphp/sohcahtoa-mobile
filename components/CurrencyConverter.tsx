@@ -2,7 +2,7 @@ import CurrencySelectionSheet from '@/components/CurrencySelectionSheet';
 import InputField from '@/components/InputField';
 import { ArrowDown2 } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
-import { Image, Text, TouchableOpacity, View } from 'react-native';
+import { Image, Pressable, Text, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import SwapIcons from '../assets/icons/coins-swap.svg';
 
@@ -26,7 +26,7 @@ export interface CurrencyConverterProps {
     amountGet: string;
     amountSend: string;
 
-    rate: string; // e.g., "1 USD = 1500 NGN"
+    rate: string;
 }
 
 export default function CurrencyConverter({
@@ -78,31 +78,42 @@ export default function CurrencyConverter({
         <View style={styles.container}>
             <View style={styles.toggleWrapper}>
                 <View style={styles.toggleContainer}>
-                    <TouchableOpacity
-                        style={[styles.toggleBtn, isBuy && styles.toggleBtnActive]}
+                    <Pressable
+                        style={({ pressed }) => [
+                            styles.toggleBtn,
+                            isBuy && styles.toggleBtnActive,
+                            pressed && { opacity: 0.8 },
+                        ]}
                         onPress={() => onTransactionTypeChange('buy')}
                     >
                         <Text style={isBuy ? styles.toggleTextActive : styles.toggleText}>Buy FX</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={[styles.toggleBtn, !isBuy && styles.toggleBtnActive]}
+                    </Pressable>
+                    <Pressable
+                        style={({ pressed }) => [
+                            styles.toggleBtn,
+                            !isBuy && styles.toggleBtnActive,
+                            pressed && { opacity: 0.8 },
+                        ]}
                         onPress={() => onTransactionTypeChange('sell')}
                     >
                         <Text style={!isBuy ? styles.toggleTextActive : styles.toggleText}>Sell FX</Text>
-                    </TouchableOpacity>
+                    </Pressable>
                 </View>
 
                 <View style={styles.exchangeCard}>
                     <View style={styles.exchangeRow}>
                         <Text style={styles.exchangeLabel}>You Get Exactly</Text>
-                        <TouchableOpacity
-                            style={styles.currencyPill}
+                        <Pressable
+                            style={({ pressed }) => [
+                                styles.currencyPill,
+                                pressed && { opacity: 0.8 },
+                            ]}
                             onPress={handleGetCurrencyPress}
                         >
                             <Image source={{ uri: currencyGet.flagUrl }} style={styles.flag} />
                             <Text style={styles.currencyPillText}>{currencyGet.code}</Text>
                             <ArrowDown2 size={moderateScale(16)} color="#292D32" />
-                        </TouchableOpacity>
+                        </Pressable>
                     </View>
                     <View style={{ marginVertical: -25 }}>
                         <InputField style={{ backgroundColor: 'rgba(241, 241, 241, 1)' }} height={moderateScale(48)} label='' value={`${getCurrencySymbol(currencyGet.code)} ${amountGet}`} editable={false} />
@@ -111,22 +122,31 @@ export default function CurrencyConverter({
             </View>
 
             <View style={{ alignItems: 'center', marginVertical: -12, zIndex: 10 }} pointerEvents="box-none">
-                <TouchableOpacity style={styles.swapIconCircle} onPress={handleSwap} activeOpacity={0.8}>
+                <Pressable
+                    style={({ pressed }) => [
+                        styles.swapIconCircle,
+                        pressed && { opacity: 0.8 },
+                    ]}
+                    onPress={handleSwap}
+                >
                     <SwapIcons width={moderateScale(24)} height={moderateScale(24)} color="#FFFFFF" />
-                </TouchableOpacity>
+                </Pressable>
             </View>
 
             <View style={styles.exchangeCard}>
                 <View style={styles.exchangeRow}>
                     <Text style={[styles.exchangeLabel, { paddingHorizontal: 10 }]}>What you send</Text>
-                    <TouchableOpacity
-                        style={styles.currencyPill}
+                    <Pressable
+                        style={({ pressed }) => [
+                            styles.currencyPill,
+                            pressed && { opacity: 0.8 },
+                        ]}
                         onPress={handleSendCurrencyPress}
                     >
                         <Image source={{ uri: currencySend.flagUrl }} style={styles.flag} />
                         <Text style={styles.currencyPillText}>{currencySend.code}</Text>
                         <ArrowDown2 size={moderateScale(16)} color="#292D32" />
-                    </TouchableOpacity>
+                    </Pressable>
                 </View>
                 <View style={{ marginVertical: -25, paddingHorizontal: 10 }}>
                     <InputField style={{ backgroundColor: 'rgba(241, 241, 241, 1)' }} height={moderateScale(48)} label='' value={`${getCurrencySymbol(currencySend.code)} ${amountSend}`} editable={false} />

@@ -589,7 +589,7 @@ const styles = ScaledSheet.create({
     seeAllBtn: {
         paddingHorizontal: '12@s',
         paddingVertical: '4@vs',
-        borderRadius: '12@ms',
+        borderRadius: '14@ms',
         borderWidth: 1,
         borderColor: '#E2E8F0',
     },
