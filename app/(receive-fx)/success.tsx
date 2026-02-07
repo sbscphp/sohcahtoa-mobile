@@ -13,7 +13,7 @@ export default function ReceiveSuccessScreen() {
             description="Your payment has been received and your funds will be released soon."
             onViewTransaction={() => {
                 // Navigate to details or history
-                router.push('/(tabs)');
+                router.push('/(receive-fx)/view-receive-fx');
             }}
             onGoHome={() => router.push('/(tabs)')}
             primaryButtonText="View Transaction"

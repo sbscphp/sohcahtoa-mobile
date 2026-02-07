@@ -1,7 +1,7 @@
 import Header from '@/components/Header';
 import PrimaryButton from '@/components/PrimaryButton';
-import React from 'react';
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import React, { useRef } from 'react';
+import { PanResponder, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 
@@ -35,6 +35,28 @@ export default function TransactionViewLayout({
 }: TransactionViewLayoutProps) {
     const insets = useSafeAreaInsets();
 
+    // Create pan responder for swipe gestures
+    const panResponder = useRef(
+        PanResponder.create({
+            onMoveShouldSetPanResponder: (_, gestureState) => {
+                // Only respond to horizontal swipes
+                return Math.abs(gestureState.dx) > Math.abs(gestureState.dy) && Math.abs(gestureState.dx) > 20;
+            },
+            onPanResponderRelease: (_, gestureState) => {
+                const currentIndex = tabs.findIndex(tab => tab.key === activeTab);
+
+                // Swipe left (next tab)
+                if (gestureState.dx < -50 && currentIndex < tabs.length - 1) {
+                    onTabChange(tabs[currentIndex + 1].key);
+                }
+                // Swipe right (previous tab)
+                else if (gestureState.dx > 50 && currentIndex > 0) {
+                    onTabChange(tabs[currentIndex - 1].key);
+                }
+            },
+        })
+    ).current;
+
     return (
         <View style={[styles.container, { paddingTop: insets.top }]}>
             <Header title={title} onBackPress={onBack} />
@@ -43,23 +65,27 @@ export default function TransactionViewLayout({
                 {tabs.map((tab) => (
                     <TouchableOpacity
                         key={tab.key}
-                        style={[styles.tabItem, activeTab === tab.key && styles.activeTabItem]}
+                        style={styles.tabItem}
                         onPress={() => onTabChange(tab.key)}
                     >
-                        <Text style={[styles.tabText, activeTab === tab.key && styles.activeTabText]}>
-                            {tab.label}
-                        </Text>
+                        <View style={[styles.tabTextContainer, activeTab === tab.key && styles.activeTabItem]}>
+                            <Text style={[styles.tabText, activeTab === tab.key && styles.activeTabText]}>
+                                {tab.label}
+                            </Text>
+                        </View>
                     </TouchableOpacity>
                 ))}
             </View>
 
-            <ScrollView
-                style={{ flex: 1 }}
-                contentContainerStyle={styles.scrollContent}
-                showsVerticalScrollIndicator={false}
-            >
-                {children}
-            </ScrollView>
+            <View style={{ flex: 1 }} {...panResponder.panHandlers}>
+                <ScrollView
+                    style={{ flex: 1 }}
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={false}
+                >
+                    {children}
+                </ScrollView>
+            </View>
 
             {showActionButton && actionButtonTitle && (
                 <View style={[styles.footer, { paddingBottom: insets.bottom + moderateScale(10) }]}>
@@ -80,17 +106,19 @@ const styles = ScaledSheet.create({
     },
     tabBar: {
         flexDirection: 'row',
-        paddingHorizontal: '16@s',
-        borderBottomWidth: 1,
-        borderBottomColor: '#F1F5F9',
     },
     tabItem: {
-        marginRight: '30@s',
+        flex: 1,
         paddingVertical: '12@vs',
+        alignItems: 'center',
+    },
+    tabTextContainer: {
+        paddingBottom: '10@vs',
     },
     activeTabItem: {
         borderBottomWidth: 2,
         borderBottomColor: '#FF6813',
+
     },
     tabText: {
         fontSize: '13@ms',
@@ -104,7 +132,7 @@ const styles = ScaledSheet.create({
     scrollContent: {
         paddingHorizontal: '20@s',
         paddingVertical: '20@vs',
-        paddingBottom: '100@vs',
+        paddingBottom: '40@vs',
     },
     footer: {
         position: 'absolute',
