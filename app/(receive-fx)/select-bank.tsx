@@ -4,7 +4,7 @@ import ProgressBar from '@/components/ProgressBar';
 import { useRouter } from 'expo-router';
 import { Bank } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 
 // Simplified Bank Card Component
@@ -55,30 +55,35 @@ export default function SelectBankScreen() {
         <View style={styles.container}>
             <Header title="Receive Funds: IMTO" />
 
-            <ScrollView
-                style={styles.content}
-                contentContainerStyle={styles.scrollContent}
-                showsVerticalScrollIndicator={false}
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                style={{ flex: 1 }}
             >
-                <ProgressBar step={4} totalSteps={6} />
+                <ScrollView
+                    style={styles.content}
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={false}
+                >
+                    <ProgressBar step={4} totalSteps={6} />
 
-                <Text style={styles.sectionTitle}>
-                    Where would you like to receive the balance?
-                </Text>
+                    <Text style={styles.sectionTitle}>
+                        Where would you like to receive the balance?
+                    </Text>
 
-                <View style={styles.banksContainer}>
-                    {banks.map((bank) => (
-                        <BankCard
-                            key={bank.id}
-                            bankName={bank.name}
-                            accountNumber={bank.account}
-                            isSelected={selectedBank === bank.id}
-                            onPress={() => setSelectedBank(bank.id)}
-                        />
-                    ))}
-                </View>
+                    <View style={styles.banksContainer}>
+                        {banks.map((bank) => (
+                            <BankCard
+                                key={bank.id}
+                                bankName={bank.name}
+                                accountNumber={bank.account}
+                                isSelected={selectedBank === bank.id}
+                                onPress={() => setSelectedBank(bank.id)}
+                            />
+                        ))}
+                    </View>
 
-            </ScrollView>
+                </ScrollView>
+            </KeyboardAvoidingView>
 
             <View style={styles.footer}>
                 <PrimaryButton

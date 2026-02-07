@@ -1,8 +1,9 @@
+import BiometricBottomSheet from '@/components/BiometricBottomSheet';
 import { useRouter } from 'expo-router';
 import { Lock, Sms } from 'iconsax-react-nativejs';
 import { ScanFaceIcon } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import UserSharing from '../../assets/icons/user-sharing.svg';
@@ -11,7 +12,6 @@ import BiometricSelectionSheet from '../../components/BiometricSelectionSheet';
 import InputField from '../../components/InputField';
 import PrimaryButton from '../../components/PrimaryButton';
 import { Colors } from '../../constants/theme';
-import BiometricBottomSheet from '@/components/BiometricBottomSheet';
 
 export default function LoginScreen() {
     const router = useRouter();
@@ -34,75 +34,80 @@ export default function LoginScreen() {
         <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
             <AuthHeader title="Login" />
 
-            <ScrollView
-                contentContainerStyle={styles.scrollContent}
-                showsVerticalScrollIndicator={false}
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                style={styles.keyboardAvoidingView}
             >
-                <View style={styles.welcomeSection}>
-                    <View style={styles.avatarPlaceholder}>
-                        <UserSharing width={moderateScale(28)} height={moderateScale(28)} color={Colors.light.primary} />
+                <ScrollView
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={false}
+                >
+                    <View style={styles.welcomeSection}>
+                        <View style={styles.avatarPlaceholder}>
+                            <UserSharing width={moderateScale(28)} height={moderateScale(28)} color={Colors.light.primary} />
+                        </View>
+                        <View>
+                            <Text style={styles.welcomeTitle}>Welcome to SohCahToa BDC</Text>
+                            <Text style={styles.welcomeSubtitle}>Login to Continue</Text>
+                        </View>
                     </View>
-                    <View>
-                        <Text style={styles.welcomeTitle}>Welcome to SohCahToa BDC</Text>
-                        <Text style={styles.welcomeSubtitle}>Login to Continue</Text>
+
+                    <View style={styles.form}>
+                        <InputField
+                            label="Email Address"
+                            placeholder="Enter your email address"
+                            icon={Sms}
+                            value={email}
+                            onChangeText={setEmail}
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                            required
+                            disabled={!email}
+                        />
+
+                        <InputField
+                            label="Password"
+                            placeholder="Enter your password"
+                            icon={Lock}
+                            value={password}
+                            onChangeText={setPassword}
+                            isPassword
+                            required
+                            disabled={!password}
+                        />
+
+                        <PrimaryButton
+                            title="Login"
+                            onPress={handleLogin}
+                            style={styles.loginButton}
+                            disabled={!email || !password}
+                        />
+
+                        <TouchableOpacity
+                            onPress={() => router.push('/(auth)/forget-password')}
+                            style={styles.forgotPassword}
+                        >
+                            <Text style={styles.forgotPasswordText}>Forget Password ?</Text>
+                        </TouchableOpacity>
                     </View>
-                </View>
 
-                <View style={styles.form}>
-                    <InputField
-                        label="Email Address"
-                        placeholder="Enter your email address"
-                        icon={Sms}
-                        value={email}
-                        onChangeText={setEmail}
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                        required
-                        disabled={!email}
-                    />
+                    <View style={styles.biometricSection}>
+                        <TouchableOpacity
+                            style={styles.biometricButton}
+                            onPress={() => setShowBiometricBottomSheet(true)}
+                        >
+                            <ScanFaceIcon size={moderateScale(42)} color="#94A3B8" />
+                        </TouchableOpacity>
+                    </View>
 
-                    <InputField
-                        label="Password"
-                        placeholder="Enter your password"
-                        icon={Lock}
-                        value={password}
-                        onChangeText={setPassword}
-                        isPassword
-                        required
-                        disabled={!password}
-                    />
-
-                    <PrimaryButton
-                        title="Login"
-                        onPress={handleLogin}
-                        style={styles.loginButton}
-                        disabled={!email || !password}
-                    />
-
-                    <TouchableOpacity
-                        onPress={() => router.push('/(auth)/forget-password')}
-                        style={styles.forgotPassword}
-                    >
-                        <Text style={styles.forgotPasswordText}>Forget Password ?</Text>
-                    </TouchableOpacity>
-                </View>
-
-                <View style={styles.biometricSection}>
-                    <TouchableOpacity
-                        style={styles.biometricButton}
-                        onPress={() => setShowBiometricBottomSheet(true)}
-                    >
-                        <ScanFaceIcon size={moderateScale(42)} color="#94A3B8" />
-                    </TouchableOpacity>
-                </View>
-
-                <View style={styles.signUpFooter}>
-                    <Text style={styles.notUserText}>Not Emmanuel Isreal ? </Text>
-                    <TouchableOpacity onPress={handleSignUp}>
-                        <Text style={styles.signUpText}>Sign Up</Text>
-                    </TouchableOpacity>
-                </View>
-            </ScrollView>
+                    <View style={styles.signUpFooter}>
+                        <Text style={styles.notUserText}>Not Emmanuel Isreal ? </Text>
+                        <TouchableOpacity onPress={handleSignUp}>
+                            <Text style={styles.signUpText}>Sign Up</Text>
+                        </TouchableOpacity>
+                    </View>
+                </ScrollView>
+            </KeyboardAvoidingView>
 
             <BiometricBottomSheet
                 visible={showBiometricBottomSheet}
@@ -133,6 +138,9 @@ const styles = ScaledSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#FFFFFF',
+    },
+    keyboardAvoidingView: {
+        flex: 1,
     },
     scrollContent: {
         paddingHorizontal: '24@s',

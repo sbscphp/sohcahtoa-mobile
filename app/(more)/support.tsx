@@ -5,12 +5,12 @@ import PrimaryButton from '@/components/PrimaryButton';
 import SelectField from '@/components/SelectField';
 import * as DocumentPicker from 'expo-document-picker';
 import { useRouter } from 'expo-router';
-import { Add, Trash } from 'iconsax-react-nativejs';
+import { Trash } from 'iconsax-react-nativejs';
+import { ChevronDown } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import FilePlus from '../../assets/icons/elements.svg';
-import { ChevronDown } from 'lucide-react-native';
 
 const SupportFileUpload = ({
     onUpload,
@@ -22,12 +22,12 @@ const SupportFileUpload = ({
     file: DocumentPicker.DocumentPickerAsset | null;
 }) => {
     if (file) {
-        
+
         return (
             <View style={styles.fileFilledContainer}>
                 <View style={styles.fileInfo}>
                     <View style={styles.fileIconWrapper}>
-                        
+
                         <FilePlus width={moderateScale(20)} height={moderateScale(20)} />
                     </View>
                     <View style={{ flex: 1 }}>
@@ -45,7 +45,7 @@ const SupportFileUpload = ({
     return (
         <TouchableOpacity style={styles.fileEmptyContainer} onPress={onUpload}>
             <View style={styles.uploadIconWrapper}>
-               <FilePlus width={moderateScale(20)} height={moderateScale(20)} />
+                <FilePlus width={moderateScale(20)} height={moderateScale(20)} />
             </View>
             <Text style={styles.uploadText}>Click to upload</Text>
         </TouchableOpacity>
@@ -119,61 +119,66 @@ export default function SupportScreen() {
         <View style={styles.container}>
             <Header title="Support" />
 
-            <ScrollView
-                style={styles.content}
-                contentContainerStyle={styles.scrollContent}
-                showsVerticalScrollIndicator={false}
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                style={{ flex: 1 }}
             >
-                <Text style={styles.instructionText}>
-                    Need help? Fill out this form to contact support for assistances
-                </Text>
-
-                <InputField
-                    label="Customer ID"
-                    placeholder="Enter customer id"
-                    value={customerId}
-                    onChangeText={setCustomerId}
-                    required
-                />
-
-                <SelectField
-                    label="Category"
-                    placeholder="Select category"
-                    value={category?.label}
-                    onPress={() => setCategorySheetVisible(true)}
-                    required
-                    rightIcon={<ChevronDown size={moderateScale(20)} color="#0F172A" />}
-                />
-
-                <InputField
-                    label="Description"
-                    placeholder="Start typing your description"
-                    value={description}
-                    onChangeText={setDescription}
-                    required
-                />
-
-                <View style={styles.attachmentContainer}>
-                    <Text style={styles.label}>
-                        Attachment (optional) <Text style={styles.required}>*</Text>
+                <ScrollView
+                    style={styles.content}
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={false}
+                >
+                    <Text style={styles.instructionText}>
+                        Need help? Fill out this form to contact support for assistances
                     </Text>
-                    <SupportFileUpload
-                        onUpload={handleFilePick}
-                        onRemove={handleRemoveFile}
-                        file={attachment}
+
+                    <InputField
+                        label="Customer ID"
+                        placeholder="Enter customer id"
+                        value={customerId}
+                        onChangeText={setCustomerId}
+                        required
                     />
-                </View>
 
-                <Text style={styles.noteText}>
-                    Note: Once submitted, you can track it in support history
-                </Text>
+                    <SelectField
+                        label="Category"
+                        placeholder="Select category"
+                        value={category?.label}
+                        onPress={() => setCategorySheetVisible(true)}
+                        required
+                        rightIcon={<ChevronDown size={moderateScale(20)} color="#0F172A" />}
+                    />
 
-                <PrimaryButton
-                    title="Submit Form"
-                    onPress={handleSubmit}
-                    style={styles.submitButton}
-                />
-            </ScrollView>
+                    <InputField
+                        label="Description"
+                        placeholder="Start typing your description"
+                        value={description}
+                        onChangeText={setDescription}
+                        required
+                    />
+
+                    <View style={styles.attachmentContainer}>
+                        <Text style={styles.label}>
+                            Attachment (optional) <Text style={styles.required}>*</Text>
+                        </Text>
+                        <SupportFileUpload
+                            onUpload={handleFilePick}
+                            onRemove={handleRemoveFile}
+                            file={attachment}
+                        />
+                    </View>
+
+                    <Text style={styles.noteText}>
+                        Note: Once submitted, you can track it in support history
+                    </Text>
+
+                    <PrimaryButton
+                        title="Submit Form"
+                        onPress={handleSubmit}
+                        style={styles.submitButton}
+                    />
+                </ScrollView>
+            </KeyboardAvoidingView>
 
             <GenericSelectionSheet
                 visible={isCategorySheetVisible}
@@ -183,7 +188,7 @@ export default function SupportScreen() {
                 selectedItem={category?.value || ''}
                 onSelect={(item) => {
                     setCategory(item);
-                    setCategorySheetVisible(false); 
+                    setCategorySheetVisible(false);
                 }}
                 confirmButtonText="Confirm Selection"
             />
@@ -202,7 +207,7 @@ const styles = ScaledSheet.create({
     },
     scrollContent: {
         padding: '20@ms',
-        paddingBottom: '40@vs', 
+        paddingBottom: '40@vs',
     },
     instructionText: {
         fontSize: '15@ms',
@@ -233,7 +238,7 @@ const styles = ScaledSheet.create({
     submitButton: {
         marginTop: 'auto'
     },
-    
+
     fileEmptyContainer: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -262,7 +267,7 @@ const styles = ScaledSheet.create({
         justifyContent: 'space-between',
         padding: '12@ms',
         borderWidth: 1,
-        borderColor: '#E2E8F0', 
+        borderColor: '#E2E8F0',
         borderRadius: '16@ms',
         backgroundColor: '#FFFFFF',
         height: '60@vs',

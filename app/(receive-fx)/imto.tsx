@@ -5,7 +5,7 @@ import ProgressBar from '@/components/ProgressBar';
 import { useRouter } from 'expo-router';
 import { InfoCircle, MoneyRecive } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 
 // Placeholder icons since we don't have the exact SVGs
@@ -62,104 +62,109 @@ export default function ImtoScreen() {
         <View style={styles.container}>
             <Header title="Receive Funds: IMTO" />
 
-            <ScrollView
-                style={styles.content}
-                contentContainerStyle={styles.scrollContent}
-                showsVerticalScrollIndicator={false}
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                style={{ flex: 1 }}
             >
-                <ProgressBar step={1} totalSteps={6} />
+                <ScrollView
+                    style={styles.content}
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={false}
+                >
+                    <ProgressBar step={1} totalSteps={6} />
 
-                <Text style={styles.sectionTitle}>
-                    How would you like to receive your funds?
-                </Text>
-
-                <View style={styles.infoBanner}>
-                    <InfoCircle size={moderateScale(20)} color="#F97316" variant="Bold" />
-                    <Text style={styles.infoText}>
-                        Maximum USD cash pickup is <Text style={{ fontWeight: '700' }}>$500</Text>
+                    <Text style={styles.sectionTitle}>
+                        How would you like to receive your funds?
                     </Text>
-                </View>
 
-                <View style={styles.optionsContainer}>
-                    <TouchableOpacity
-                        style={[
-                            styles.optionCard,
-                            selectedImto === 'moneygram' && styles.optionCardSelected
-                        ]}
-                        onPress={() => setSelectedImto('moneygram')}
-                        activeOpacity={0.8}
-                    >
-                        <MoneyGramIcon />
-                        <Text style={styles.optionText}>MoneyGram</Text>
-                    </TouchableOpacity>
+                    <View style={styles.infoBanner}>
+                        <InfoCircle size={moderateScale(20)} color="#F97316" variant="Bold" />
+                        <Text style={styles.infoText}>
+                            Maximum USD cash pickup is <Text style={{ fontWeight: '700' }}>$500</Text>
+                        </Text>
+                    </View>
 
-                    {selectedImto === 'moneygram' && (
-                        <View style={styles.formContainer}>
-                            <InputField
-                                label="Reference Number"
-                                placeholder="Enter Reference Number"
-                                value={referenceNumber}
-                                onChangeText={(text) => {
-                                    setReferenceNumber(text);
-                                    setShowError(false);
-                                }}
-                                required
-                                wrapperStyle={showError ? styles.inputError : {}}
-                            />
-                            {showError && (
-                                <Text style={styles.errorText}>
-                                    The reference ID provided is incorrect. Please try again later
-                                </Text>
-                            )}
+                    <View style={styles.optionsContainer}>
+                        <TouchableOpacity
+                            style={[
+                                styles.optionCard,
+                                selectedImto === 'moneygram' && styles.optionCardSelected
+                            ]}
+                            onPress={() => setSelectedImto('moneygram')}
+                            activeOpacity={0.8}
+                        >
+                            <MoneyGramIcon />
+                            <Text style={styles.optionText}>MoneyGram</Text>
+                        </TouchableOpacity>
 
-                            <View style={{ height: moderateScale(16) }} />
+                        {selectedImto === 'moneygram' && (
+                            <View style={styles.formContainer}>
+                                <InputField
+                                    label="Reference Number"
+                                    placeholder="Enter Reference Number"
+                                    value={referenceNumber}
+                                    onChangeText={(text) => {
+                                        setReferenceNumber(text);
+                                        setShowError(false);
+                                    }}
+                                    required
+                                    wrapperStyle={showError ? styles.inputError : {}}
+                                />
+                                {showError && (
+                                    <Text style={styles.errorText}>
+                                        The reference ID provided is incorrect. Please try again later
+                                    </Text>
+                                )}
 
-                            <InputField
-                                label="Sender’s Name"
-                                placeholder="Enter Sender’s Name"
-                                value={senderName}
-                                onChangeText={setSenderName}
-                                required
-                            />
-                        </View>
-                    )}
+                                <View style={{ height: moderateScale(16) }} />
 
-                    <TouchableOpacity
-                        style={[
-                            styles.optionCard,
-                            selectedImto === 'western_union' && styles.optionCardSelected
-                        ]}
-                        onPress={() => setSelectedImto('western_union')}
-                        activeOpacity={0.8}
-                    >
-                        <WesternUnionIcon />
-                        <Text style={styles.optionText}>Western Union</Text>
-                    </TouchableOpacity>
+                                <InputField
+                                    label="Sender’s Name"
+                                    placeholder="Enter Sender’s Name"
+                                    value={senderName}
+                                    onChangeText={setSenderName}
+                                    required
+                                />
+                            </View>
+                        )}
 
-                    {selectedImto === 'western_union' && (
-                        <View style={styles.formContainer}>
-                            <InputField
-                                label="MTCN"
-                                placeholder="Enter MTCN"
-                                value={referenceNumber}
-                                onChangeText={setReferenceNumber}
-                                required
-                            />
-                            <View style={{ height: moderateScale(16) }} />
-                            <InputField
-                                label="Sender’s Name"
-                                placeholder="Enter Sender’s Name"
-                                value={senderName}
-                                onChangeText={setSenderName}
-                                required
-                            />
-                        </View>
-                    )}
+                        <TouchableOpacity
+                            style={[
+                                styles.optionCard,
+                                selectedImto === 'western_union' && styles.optionCardSelected
+                            ]}
+                            onPress={() => setSelectedImto('western_union')}
+                            activeOpacity={0.8}
+                        >
+                            <WesternUnionIcon />
+                            <Text style={styles.optionText}>Western Union</Text>
+                        </TouchableOpacity>
 
-                </View>
+                        {selectedImto === 'western_union' && (
+                            <View style={styles.formContainer}>
+                                <InputField
+                                    label="MTCN"
+                                    placeholder="Enter MTCN"
+                                    value={referenceNumber}
+                                    onChangeText={setReferenceNumber}
+                                    required
+                                />
+                                <View style={{ height: moderateScale(16) }} />
+                                <InputField
+                                    label="Sender’s Name"
+                                    placeholder="Enter Sender’s Name"
+                                    value={senderName}
+                                    onChangeText={setSenderName}
+                                    required
+                                />
+                            </View>
+                        )}
+
+                    </View>
 
 
-            </ScrollView>
+                </ScrollView>
+            </KeyboardAvoidingView>
 
             <View style={styles.footer}>
                 <PrimaryButton

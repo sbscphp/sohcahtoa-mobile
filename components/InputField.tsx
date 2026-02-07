@@ -1,11 +1,11 @@
 import { Eye, EyeSlash, Icon } from 'iconsax-react-nativejs';
-import React, { useState } from 'react';
+import React, { ReactNode, useState } from 'react';
 import { Text, TextInput, TextInputProps, TouchableOpacity, View } from 'react-native';
-import { ScaledSheet, moderateScale } from 'react-native-size-matters';
+import { moderateScale, ScaledSheet } from 'react-native-size-matters';
 
 interface InputFieldProps extends TextInputProps {
     label: string;
-    icon?: Icon;
+    icon?: Icon | ReactNode;
     rightIcon?: Icon;
     isPassword?: boolean;
     required?: boolean;
@@ -16,7 +16,7 @@ interface InputFieldProps extends TextInputProps {
 
 const InputField: React.FC<InputFieldProps> = ({
     label,
-    icon: IconComponent,
+    icon,
     rightIcon: RightIconComponent,
     isPassword,
     required,
@@ -37,8 +37,15 @@ const InputField: React.FC<InputFieldProps> = ({
                 wrapperStyle,
                 height ? { height } : undefined
             ]}>
-                {IconComponent && (
-                    <IconComponent size={moderateScale(20)} color="rgba(77, 75, 75, 1)" style={styles.leftIcon} />
+                {icon && (
+                    React.isValidElement(icon) ? (
+                        <View style={styles.leftIcon}>{icon}</View>
+                    ) : (
+                        (() => {
+                            const IconComponent = icon as Icon;
+                            return <IconComponent size={moderateScale(20)} color="rgba(77, 75, 75, 1)" style={styles.leftIcon} />;
+                        })()
+                    )
                 )}
                 <TextInput
                     style={styles.input}
@@ -71,7 +78,7 @@ const styles = ScaledSheet.create({
         marginBottom: '16@vs',
     },
     label: {
-        fontSize: '15@ms',
+        fontSize: '12@ms',
         fontWeight: '400',
         color: '#475569',
         marginBottom: '8@vs',
@@ -104,7 +111,7 @@ const styles = ScaledSheet.create({
     },
     input: {
         flex: 1,
-        fontSize: '15@ms',
+        fontSize: '14@ms',
         color: '#0F172A',
         height: '100%',
     },

@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { Sms } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet } from 'react-native-size-matters';
 import AuthHeader from '../../components/AuthHeader';
@@ -31,21 +31,26 @@ export default function ForgotPasswordScreen() {
 
                 <ProgressBar progress={0.5} totalSteps={2} />
 
-                <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-                    <Text style={styles.title}>Enter your Email Address to Continue</Text>
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    style={{ flex: 1 }}
+                >
+                    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+                        <Text style={styles.title}>Enter your Email Address to Continue</Text>
 
-                    <InputField
-                        label="Email Address"
-                        placeholder="Enter your email address"
-                        icon={Sms}
-                        value={email}
-                        onChangeText={setEmail}
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                        required
-                        disabled={!email}
-                    />
-                </ScrollView>
+                        <InputField
+                            label="Email Address"
+                            placeholder="Enter your email address"
+                            icon={Sms}
+                            value={email}
+                            onChangeText={setEmail}
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                            required
+                            disabled={!email}
+                        />
+                    </ScrollView>
+                </KeyboardAvoidingView>
 
                 <View style={styles.footer}>
                     <PrimaryButton

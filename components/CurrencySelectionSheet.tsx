@@ -1,9 +1,10 @@
 import { CloseCircle, SearchNormal1 } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
-import { FlatList, Image, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { FlatList, Image, KeyboardAvoidingView, Modal, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import Money from '../assets/icons/money-02.svg';
+import InputField from './InputField';
 import PrimaryButton from './PrimaryButton';
 interface Currency {
     code: string;
@@ -70,7 +71,10 @@ const CurrencySelectionSheet: React.FC<CurrencySelectionSheetProps> = ({
             <View style={styles.overlay}>
                 <TouchableOpacity style={styles.backdrop} onPress={onClose} activeOpacity={1} />
 
-                <View style={[styles.sheetContent, { paddingBottom: insets.bottom + moderateScale(20) }]}>
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    style={[styles.sheetContent, { paddingBottom: insets.bottom + moderateScale(20) }]}
+                >
 
                     <View style={styles.headerIconContainer}>
                         <SearchNormal1 size={24} color="#FF6B2C" variant="Bold" />
@@ -89,16 +93,17 @@ const CurrencySelectionSheet: React.FC<CurrencySelectionSheetProps> = ({
                     <Text style={styles.title}>Select Currency</Text>
                     <Text style={styles.subtitle}>Select an option below</Text>
 
-                    <View style={styles.searchContainer}>
-                        <SearchNormal1 size={moderateScale(20)} color="#94A3B8" />
-                        <TextInput
-                            style={styles.searchInput}
-                            placeholder="Enter key word"
-                            placeholderTextColor="#94A3B8"
-                            value={searchQuery}
-                            onChangeText={setSearchQuery}
-                        />
-                    </View>
+
+                    <InputField
+                        label=''
+                        placeholder="Enter key word"
+                        placeholderTextColor="#94A3B8"
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                        icon={<SearchNormal1 size={moderateScale(20)} color="#94A3B8" />}
+                    // wrapperStyle={{ borderWidth: 1, borderColor: '#94A3B8', borderRadius: '0@ms', }}
+                    />
+
 
                     <FlatList
                         data={filteredCurrencies}
@@ -122,7 +127,7 @@ const CurrencySelectionSheet: React.FC<CurrencySelectionSheetProps> = ({
                             textStyle={styles.secondaryBtnText}
                         />
                     </View>
-                </View>
+                </KeyboardAvoidingView>
             </View>
         </Modal>
     );
@@ -169,7 +174,6 @@ const styles = ScaledSheet.create({
     subtitle: {
         fontSize: '14@ms',
         color: '#64748B',
-        marginBottom: '20@vs',
     },
     searchContainer: {
         flexDirection: 'row',
@@ -221,7 +225,7 @@ const styles = ScaledSheet.create({
         marginTop: '10@vs'
     },
     primaryBtn: {
-        backgroundColor: '#FFD7C5', 
+        backgroundColor: '#FFD7C5',
         borderRadius: '30@ms',
         paddingVertical: '16@vs',
         alignItems: 'center',

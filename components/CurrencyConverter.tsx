@@ -104,7 +104,7 @@ export default function CurrencyConverter({
                             <ArrowDown2 size={moderateScale(16)} color="#292D32" />
                         </TouchableOpacity>
                     </View>
-                    <View style={{ marginVertical: -30 }}>
+                    <View style={{ marginVertical: -25 }}>
                         <InputField style={{ backgroundColor: 'rgba(241, 241, 241, 1)' }} height={moderateScale(48)} label='' value={`${getCurrencySymbol(currencyGet.code)} ${amountGet}`} editable={false} />
                     </View>
                 </View>
@@ -118,7 +118,7 @@ export default function CurrencyConverter({
 
             <View style={styles.exchangeCard}>
                 <View style={styles.exchangeRow}>
-                    <Text style={styles.exchangeLabel}>What you send</Text>
+                    <Text style={[styles.exchangeLabel, { paddingHorizontal: 10 }]}>What you send</Text>
                     <TouchableOpacity
                         style={styles.currencyPill}
                         onPress={handleSendCurrencyPress}
@@ -128,7 +128,7 @@ export default function CurrencyConverter({
                         <ArrowDown2 size={moderateScale(16)} color="#292D32" />
                     </TouchableOpacity>
                 </View>
-                <View style={{ marginVertical: -30 }}>
+                <View style={{ marginVertical: -25, paddingHorizontal: 10 }}>
                     <InputField style={{ backgroundColor: 'rgba(241, 241, 241, 1)' }} height={moderateScale(48)} label='' value={`${getCurrencySymbol(currencySend.code)} ${amountSend}`} editable={false} />
                 </View>
 

@@ -4,7 +4,7 @@ import ProgressBar from '@/components/ProgressBar';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { InfoCircle } from 'iconsax-react-nativejs';
 import React from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 
 // Placeholder icons 
@@ -33,77 +33,82 @@ export default function VerificationResultScreen() {
         <View style={styles.container}>
             <Header title="Receive Funds: IMTO" />
 
-            <ScrollView
-                style={styles.content}
-                contentContainerStyle={styles.scrollContent}
-                showsVerticalScrollIndicator={false}
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                style={{ flex: 1 }}
             >
-                <ProgressBar step={2} totalSteps={6} />
-                {isVerified ? (
-                    <Text style={styles.sectionTitle}>Reference Details</Text>
-                ) : (
-                    <Text style={styles.sectionTitle}>Reference Details</Text>
-                )}
-
-                <View style={styles.infoBanner}>
-                    <InfoCircle size={moderateScale(20)} color="#F97316" variant="Bold" />
-                    <Text style={styles.infoText}>
-                        Maximum USD cash pickup is <Text style={{ fontWeight: '700' }}>$500</Text>
-                    </Text>
-                </View>
-
-                {/* Transaction Details Card */}
-                <View style={styles.detailsContainer}>
-                    <Text style={styles.detailsHeader}>Transaction Details</Text>
-
-                    <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Reference</Text>
-                        <Text style={styles.detailValue}>{reference}</Text>
-                    </View>
-
-                    <View style={styles.divider} />
-
-                    <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Senders Name</Text>
-                        <Text style={styles.detailValue}>{senderName}</Text>
-                    </View>
-
-                    <View style={styles.divider} />
-
+                <ScrollView
+                    style={styles.content}
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={false}
+                >
+                    <ProgressBar step={2} totalSteps={6} />
                     {isVerified ? (
-                        <>
-                            <View style={styles.detailRow}>
-                                <Text style={styles.detailLabel}>Amount</Text>
-                                <Text style={styles.detailValue}>{amount}</Text>
-                            </View>
+                        <Text style={styles.sectionTitle}>Reference Details</Text>
+                    ) : (
+                        <Text style={styles.sectionTitle}>Reference Details</Text>
+                    )}
 
-                            <View style={styles.divider} />
+                    <View style={styles.infoBanner}>
+                        <InfoCircle size={moderateScale(20)} color="#F97316" variant="Bold" />
+                        <Text style={styles.infoText}>
+                            Maximum USD cash pickup is <Text style={{ fontWeight: '700' }}>$500</Text>
+                        </Text>
+                    </View>
 
-                            <View style={styles.detailRow}>
-                                <Text style={styles.detailLabel}>Receiver's Name</Text>
-                                <Text style={styles.detailValue}>{receiverName}</Text>
-                            </View>
+                    {/* Transaction Details Card */}
+                    <View style={styles.detailsContainer}>
+                        <Text style={styles.detailsHeader}>Transaction Details</Text>
 
-                            <View style={styles.divider} />
+                        <View style={styles.detailRow}>
+                            <Text style={styles.detailLabel}>Reference</Text>
+                            <Text style={styles.detailValue}>{reference}</Text>
+                        </View>
 
+                        <View style={styles.divider} />
+
+                        <View style={styles.detailRow}>
+                            <Text style={styles.detailLabel}>Senders Name</Text>
+                            <Text style={styles.detailValue}>{senderName}</Text>
+                        </View>
+
+                        <View style={styles.divider} />
+
+                        {isVerified ? (
+                            <>
+                                <View style={styles.detailRow}>
+                                    <Text style={styles.detailLabel}>Amount</Text>
+                                    <Text style={styles.detailValue}>{amount}</Text>
+                                </View>
+
+                                <View style={styles.divider} />
+
+                                <View style={styles.detailRow}>
+                                    <Text style={styles.detailLabel}>Receiver's Name</Text>
+                                    <Text style={styles.detailValue}>{receiverName}</Text>
+                                </View>
+
+                                <View style={styles.divider} />
+
+                                <View style={styles.detailRow}>
+                                    <Text style={styles.detailLabel}>Status</Text>
+                                    <View style={styles.statusBadgeVerified}>
+                                        <Text style={styles.statusTextVerified}>Verified</Text>
+                                    </View>
+                                </View>
+                            </>
+                        ) : (
                             <View style={styles.detailRow}>
                                 <Text style={styles.detailLabel}>Status</Text>
-                                <View style={styles.statusBadgeVerified}>
-                                    <Text style={styles.statusTextVerified}>Verified</Text>
+                                <View style={styles.statusBadgeNotVerified}>
+                                    <Text style={styles.statusTextNotVerified}>Not Verified</Text>
                                 </View>
                             </View>
-                        </>
-                    ) : (
-                        <View style={styles.detailRow}>
-                            <Text style={styles.detailLabel}>Status</Text>
-                            <View style={styles.statusBadgeNotVerified}>
-                                <Text style={styles.statusTextNotVerified}>Not Verified</Text>
-                            </View>
-                        </View>
-                    )}
-                </View>
+                        )}
+                    </View>
 
-            </ScrollView>
+                </ScrollView>
+            </KeyboardAvoidingView>
 
             <View style={styles.footer}>
                 {isVerified ? (

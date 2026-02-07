@@ -5,7 +5,7 @@ import ProgressBar from '@/components/ProgressBar';
 import LocationStep from '@/components/transaction-flow/LocationStep';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { ScaledSheet } from 'react-native-size-matters';
 
 // Mock Data (Reused from create-bta.tsx)
@@ -46,34 +46,39 @@ export default function PickupLocationScreen() {
         <View style={styles.container}>
             <Header title="Receive Funds: IMTO" />
 
-            <ScrollView
-                style={styles.content}
-                contentContainerStyle={styles.scrollContent}
-                showsVerticalScrollIndicator={false}
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                style={{ flex: 1 }}
             >
-                <ProgressBar step={4} totalSteps={6} />
+                <ScrollView
+                    style={styles.content}
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={false}
+                >
+                    <ProgressBar step={4} totalSteps={6} />
 
-                <LocationStep
-                    title="Where would you like to pick up your cash?"
-                    states={STATES}
-                    cities={CITIES}
-                    locations={LOCATIONS}
-                    selectedState={selectedState}
-                    onSelectState={(item) => {
-                        setSelectedState(item);
-                        setSelectedCity(null);
-                        setSelectedLocation(null);
-                    }}
-                    selectedCity={selectedCity}
-                    onSelectCity={(item) => {
-                        setSelectedCity(item);
-                        setSelectedLocation(null);
-                    }}
-                    selectedLocation={selectedLocation}
-                    onSelectLocation={setSelectedLocation}
-                />
+                    <LocationStep
+                        title="Where would you like to pick up your cash?"
+                        states={STATES}
+                        cities={CITIES}
+                        locations={LOCATIONS}
+                        selectedState={selectedState}
+                        onSelectState={(item) => {
+                            setSelectedState(item);
+                            setSelectedCity(null);
+                            setSelectedLocation(null);
+                        }}
+                        selectedCity={selectedCity}
+                        onSelectCity={(item) => {
+                            setSelectedCity(item);
+                            setSelectedLocation(null);
+                        }}
+                        selectedLocation={selectedLocation}
+                        onSelectLocation={setSelectedLocation}
+                    />
 
-            </ScrollView>
+                </ScrollView>
+            </KeyboardAvoidingView>
 
             <View style={styles.footer}>
                 <PrimaryButton

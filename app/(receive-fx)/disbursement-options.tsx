@@ -4,7 +4,7 @@ import ProgressBar from '@/components/ProgressBar';
 import { useRouter } from 'expo-router';
 import { Bank, Calendar } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 
 // Mock Data
@@ -26,87 +26,83 @@ export default function DisbursementOptionsScreen() {
         <View style={styles.container}>
             <Header title="Receive Funds: IMTO" />
 
-            <ScrollView
-                style={styles.content}
-                contentContainerStyle={styles.scrollContent}
-                showsVerticalScrollIndicator={false}
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                style={{ flex: 1 }}
             >
-                <ProgressBar step={6} totalSteps={6} />
+                <ScrollView
+                    style={styles.content}
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={false}
+                >
+                    <ProgressBar step={6} totalSteps={6} />
 
-                <Text style={styles.sectionTitle}>
-                    How would you like your funds disbursed?
-                </Text>
+                    <Text style={styles.sectionTitle}>
+                        How would you like your funds disbursed?
+                    </Text>
 
-                <View style={styles.optionsContainer}>
-                    {/* Bank Transfer Option */}
-                    <View>
+                    <View style={styles.optionsContainer}>
+
+                        <View>
+                            <TouchableOpacity
+                                style={[
+                                    styles.optionHeader,
+                                    selectedMethod === 'bank' && styles.optionHeaderSelected
+                                ]}
+                                onPress={() => setSelectedMethod('bank')}
+                                activeOpacity={0.8}
+                            >
+                                <Text style={styles.optionTitle}>Bank Transfer</Text>
+                            </TouchableOpacity>
+
+                            {selectedMethod === 'bank' && (
+                                <View style={styles.optionContent}>
+                                    <Text style={styles.subLabel}>Please select your preferred bank</Text>
+
+                                    <View style={styles.bankList}>
+                                        {BANKS.map((bank) => (
+                                            <TouchableOpacity
+                                                key={bank.id}
+                                                style={[
+                                                    styles.bankCard,
+                                                    selectedBank === bank.id && styles.bankCardSelected
+                                                ]}
+                                                onPress={() => setSelectedBank(bank.id)}
+                                                activeOpacity={0.8}
+                                            >
+                                                <View style={styles.bankIconContainer}>
+                                                    <Bank size={moderateScale(20)} color="#D97706" />
+                                                </View>
+                                                <View>
+                                                    <Text style={styles.bankName}>{bank.name}</Text>
+                                                    <Text style={styles.accountDetails}>{bank.account}</Text>
+                                                </View>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+
+                                    <TouchableOpacity style={styles.addAccountButton}>
+                                        <Calendar size={moderateScale(18)} color="#F97316" />
+                                        <Text style={styles.addAccountText}>Add New Account</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            )}
+                        </View>
+
                         <TouchableOpacity
                             style={[
                                 styles.optionHeader,
-                                selectedMethod === 'bank' && styles.optionHeaderSelected
+                                selectedMethod === 'pickup' && styles.optionHeaderSelected
                             ]}
-                            onPress={() => setSelectedMethod('bank')}
+                            onPress={() => setSelectedMethod('pickup')}
                             activeOpacity={0.8}
                         >
-                            <Text style={styles.optionTitle}>Bank Transfer</Text>
+                            <Text style={styles.optionTitle}>Branch Pickup</Text>
                         </TouchableOpacity>
-
-                        {selectedMethod === 'bank' && (
-                            <View style={styles.optionContent}>
-                                <Text style={styles.subLabel}>Please select your preferred bank</Text>
-
-                                <View style={styles.bankList}>
-                                    {BANKS.map((bank) => (
-                                        <TouchableOpacity
-                                            key={bank.id}
-                                            style={[
-                                                styles.bankCard,
-                                                selectedBank === bank.id && styles.bankCardSelected
-                                            ]}
-                                            onPress={() => setSelectedBank(bank.id)}
-                                            activeOpacity={0.8}
-                                        >
-                                            <View style={styles.bankIconContainer}>
-                                                <Bank size={moderateScale(20)} color="#D97706" variant="Bold" />
-                                            </View>
-                                            <View>
-                                                <Text style={styles.bankName}>{bank.name}</Text>
-                                                <Text style={styles.accountDetails}>{bank.account}</Text>
-                                            </View>
-                                        </TouchableOpacity>
-                                    ))}
-                                </View>
-
-                                <TouchableOpacity style={styles.addAccountButton}>
-                                    <Calendar size={moderateScale(18)} color="#F97316" variant="Bold" />
-                                    {/* Using Calendar icon as placeholder, visually looked like a plus or calendar in the blurry image, 
-                                        but "Add New Account" usually implies a Plus. The image has a specific icon. 
-                                        I'll use a generic icon or the one from the image if I could identify it better. 
-                                        Actually, let's use a Plus icon if available or just text if unsure. 
-                                        The image shows a calendar-like icon? maybe it's "Add New Account" with a bank icon? 
-                                        Let's stick to a simple Plus or Bank icon. 
-                                        Wait, the image shows a calendar icon? No, it looks like a bank or plus. 
-                                        I'll use a standard Plus or empty for now. */}
-                                    <Text style={styles.addAccountText}>Add New Account</Text>
-                                </TouchableOpacity>
-                            </View>
-                        )}
                     </View>
 
-                    {/* Branch Pickup Option */}
-                    <TouchableOpacity
-                        style={[
-                            styles.optionHeader,
-                            selectedMethod === 'pickup' && styles.optionHeaderSelected
-                        ]}
-                        onPress={() => setSelectedMethod('pickup')}
-                        activeOpacity={0.8}
-                    >
-                        <Text style={styles.optionTitle}>Branch Pickup</Text>
-                    </TouchableOpacity>
-                </View>
-
-            </ScrollView>
+                </ScrollView>
+            </KeyboardAvoidingView>
 
             <View style={styles.footer}>
                 <PrimaryButton
@@ -145,7 +141,7 @@ const styles = ScaledSheet.create({
     },
     optionHeader: {
         padding: '16@ms',
-        borderWidth: 1,
+        borderWidth: 1.5,
         borderColor: '#F1F5F9',
         borderRadius: '8@ms',
         backgroundColor: '#FCFCFC',
@@ -161,23 +157,29 @@ const styles = ScaledSheet.create({
     },
     optionContent: {
         marginTop: '16@vs',
-        marginBottom: '8@vs',
-        paddingLeft: '4@s', // Indent slightly or keep aligned? Design seems aligned.
+        marginBottom: '4@vs',
+        paddingLeft: '4@s',
+        borderWidth: 1.5,
+        borderColor: '#F1F5F9',
+        borderRadius: '8@ms',
+        backgroundColor: '#ffffffff',
     },
     subLabel: {
         fontSize: '14@ms',
         color: '#475569',
-        marginBottom: '12@vs',
+        marginVertical: '12@vs',
+        marginHorizontal: '12@s',
     },
     bankList: {
         gap: '12@vs',
-        marginBottom: '16@vs',
+        marginBottom: '8@vs',
     },
     bankCard: {
         flexDirection: 'row',
         alignItems: 'center',
         padding: '16@ms',
-        borderWidth: 1,
+        marginHorizontal: '7@s',
+        borderWidth: 1.5,
         borderColor: '#F1F5F9',
         borderRadius: '12@ms',
         backgroundColor: '#FCFCFC',
@@ -212,12 +214,13 @@ const styles = ScaledSheet.create({
         padding: '14@ms',
         borderWidth: 1,
         borderColor: '#F97316',
-        borderRadius: '30@ms', // Rounded pill shape as per previous buttons or outline?
-        // Image shows outline button with rounded corners but not fully pill?
-        // Actually image shows "Add New Account" inside a button-like container.
-        // Let's match the primary button shape but outline.
+        borderRadius: '30@ms',
         backgroundColor: '#FFFFFF',
         gap: '8@s',
+        width: '55%',
+        alignSelf: 'flex-start',
+        marginHorizontal: '12@s',
+        marginVertical: '9@vs',
     },
     addAccountText: {
         fontSize: '14@ms',

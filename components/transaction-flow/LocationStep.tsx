@@ -178,7 +178,7 @@ const styles = ScaledSheet.create({
         gap: '6@vs',
     },
     label: {
-        fontSize: '15@ms',
+        fontSize: '13@ms',
         color: '#475569',
         marginBottom: '6@vs',
     },
@@ -210,7 +210,7 @@ const styles = ScaledSheet.create({
         padding: '22@ms',
         alignItems: 'center',
         gap: '8@vs',
-        height: '100@vs',
+        minHeight: '100@vs',
         justifyContent: 'center',
         marginTop: '12@vs',
     },
@@ -220,7 +220,7 @@ const styles = ScaledSheet.create({
         color: '#0F172A',
     },
     emptyStateText: {
-        fontSize: '13@ms',
+        fontSize: '12@ms',
         color: '#64748B',
     },
     iconCircle: {
