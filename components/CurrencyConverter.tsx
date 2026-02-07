@@ -105,7 +105,7 @@ export default function CurrencyConverter({
                         </TouchableOpacity>
                     </View>
                     <View style={{ marginVertical: -30 }}>
-                        <InputField style={{ backgroundColor: 'rgba(241, 241, 241, 1)' }} label='' value={`${getCurrencySymbol(currencyGet.code)} ${amountGet}`} editable={false} />
+                        <InputField style={{ backgroundColor: 'rgba(241, 241, 241, 1)' }} height={moderateScale(48)} label='' value={`${getCurrencySymbol(currencyGet.code)} ${amountGet}`} editable={false} />
                     </View>
                 </View>
             </View>
@@ -129,7 +129,7 @@ export default function CurrencyConverter({
                     </TouchableOpacity>
                 </View>
                 <View style={{ marginVertical: -30 }}>
-                    <InputField style={{ backgroundColor: 'rgba(241, 241, 241, 1)' }} label='' value={`${getCurrencySymbol(currencySend.code)} ${amountSend}`} editable={false} />
+                    <InputField style={{ backgroundColor: 'rgba(241, 241, 241, 1)' }} height={moderateScale(48)} label='' value={`${getCurrencySymbol(currencySend.code)} ${amountSend}`} editable={false} />
                 </View>
 
                 <View style={styles.rateInfo}>

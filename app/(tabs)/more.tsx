@@ -14,7 +14,6 @@ interface MenuItem {
 }
 
 import { useRouter } from 'expo-router';
-import { Info } from 'lucide-react-native';
 
 export default function MoreScreen() {
     const router = useRouter();
@@ -41,6 +40,7 @@ export default function MoreScreen() {
             icon: <Headphone size={moderateScale(18)} color="rgba(255, 104, 19, 1)" variant="Linear" />,
             title: 'Support',
             subtitle: 'Get help with app issues',
+            onPress: () => router.push('/support'),
         },
         {
             icon: <Judge size={moderateScale(18)} color="rgba(255, 104, 19, 1)" variant="Linear" />,
@@ -51,6 +51,7 @@ export default function MoreScreen() {
             icon: <MessageQuestion size={moderateScale(18)} color="rgba(255, 104, 19, 1)" variant="Linear" />,
             title: 'FAQs',
             subtitle: 'Get quick app answers about App',
+            onPress: () => router.push('/faqs'),
         },
         {
             icon: <LogoutCurve size={moderateScale(18)} color="rgba(255, 104, 19, 1)" variant="Linear" />,
@@ -175,7 +176,7 @@ const styles = ScaledSheet.create({
         textAlign: 'center',
         marginTop: '20@vs',
         color: '#94A3B8',
-        fontSize: '14@ms',
+        fontSize: '13@ms',
     },
     modalOverlay: {
         flex: 1,

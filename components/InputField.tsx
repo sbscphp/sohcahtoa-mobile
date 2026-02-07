@@ -10,6 +10,8 @@ interface InputFieldProps extends TextInputProps {
     isPassword?: boolean;
     required?: boolean;
     disabled?: boolean;
+    wrapperStyle?: any;
+    height?: number | string;
 }
 
 const InputField: React.FC<InputFieldProps> = ({
@@ -19,6 +21,8 @@ const InputField: React.FC<InputFieldProps> = ({
     isPassword,
     required,
     disabled,
+    wrapperStyle,
+    height,
     ...props
 }) => {
     const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -28,7 +32,11 @@ const InputField: React.FC<InputFieldProps> = ({
             <Text style={styles.label}>
                 {label} {required && <Text style={styles.required}>*</Text>}
             </Text>
-            <View style={disabled ? styles.inputDisabledWrapper : styles.inputWrapper}>
+            <View style={[
+                disabled ? styles.inputDisabledWrapper : styles.inputWrapper,
+                wrapperStyle,
+                height ? { height } : undefined
+            ]}>
                 {IconComponent && (
                     <IconComponent size={moderateScale(20)} color="rgba(77, 75, 75, 1)" style={styles.leftIcon} />
                 )}

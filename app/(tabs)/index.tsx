@@ -47,22 +47,22 @@ export default function HomeScreen() {
     const handleActionPress = (action: string) => {
         // console.log('Selected action:', action);
         if (action === 'vacation') {
-            setActionSheetType(null); 
+            setActionSheetType(null);
             router.push('/(buy-fx)/(pta)/create-pta');
         } else if (action === 'business') {
-            setActionSheetType(null); 
+            setActionSheetType(null);
             router.push('/(buy-fx)/(bta)/create-bta');
         } else if (action === 'school') {
-            setActionSheetType(null); 
+            setActionSheetType(null);
             router.push('/(buy-fx)/(school)/create-school');
         } else if (action === 'medical') {
-            setActionSheetType(null); 
+            setActionSheetType(null);
             router.push('/(buy-fx)/(medical)/create-medical');
         } else if (action === 'professional') {
-            setActionSheetType(null); 
+            setActionSheetType(null);
             router.push('/(buy-fx)/(professional)/create-professional');
         } else if (action === 'touring') {
-            setActionSheetType(null); 
+            setActionSheetType(null);
             router.push('/(buy-fx)/(touring)/create-touring');
         } else {
             setActionSheetType(null);
@@ -116,7 +116,7 @@ export default function HomeScreen() {
                     title: 'Receive FX',
                     headerIcon: <WalletAdd1 size={moderateScale(24)} color="#FF6B2C" />,
                     actions: [
-                        { id: '1', title: 'Receive Money from Abroad', subtitle: 'Receive international transfer and fund money from relatives, business and associates', icon: <User size={moderateScale(20)} color="#FF6B2C" variant="Bulk" />, onPress: () => handleActionPress('receive_abroad') },
+                        { id: '1', title: 'Receive Money from Abroad', subtitle: 'Receive international transfer and fund money from relatives, business and associates', icon: <User size={moderateScale(20)} color="#FF6B2C" variant="Bulk" />, onPress: () => { setActionSheetType(null); router.push('/(receive-fx)/imto'); } },
                     ]
                 };
             default:

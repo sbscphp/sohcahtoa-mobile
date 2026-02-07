@@ -10,7 +10,7 @@ export default function AppIndex() {
     };
 
     const handleLogin = () => {
-        router.push('/(auth)/welcome-back');
+        router.push('/(tabs)');
     };
 
     return (
