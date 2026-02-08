@@ -24,6 +24,9 @@ interface ExchangeStepProps {
     amountSend: string;
 
     rate: string; // e.g., "1 USD = 1500 NGN"
+    allowedModes?: ('buy' | 'sell')[];
+    onAmountGetChange?: (amount: string) => void;
+    onAmountSendChange?: (amount: string) => void;
 }
 
 export default function ExchangeStep({
@@ -35,10 +38,12 @@ export default function ExchangeStep({
     onCurrencySendChange,
     amountGet,
     amountSend,
-    rate
+    rate,
+    allowedModes,
+    onAmountGetChange,
+    onAmountSendChange
 }: ExchangeStepProps) {
-    // No local state needed for the converter as it's passed down or handled in the child
-    // If you need to keep 'isBuy', remember it comes from props.transactionType now.
+
 
     return (
         <View style={styles.container}>
@@ -54,6 +59,9 @@ export default function ExchangeStep({
                 amountGet={amountGet}
                 amountSend={amountSend}
                 rate={rate}
+                allowedModes={allowedModes}
+                onAmountGetChange={onAmountGetChange}
+                onAmountSendChange={onAmountSendChange}
             />
         </View>
     );

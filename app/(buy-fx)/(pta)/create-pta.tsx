@@ -7,9 +7,7 @@ import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import LocationStep from '@/components/transaction-flow/LocationStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
 import { useRouter } from 'expo-router';
-import { Calendar } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
-import { View } from 'react-native';
 
 const STATES: LocationItem[] = [
     { id: '1', title: 'Lagos State' },
@@ -155,6 +153,8 @@ export default function PersonalTravelAllowanceScreen() {
                     amountGet={amountGet}
                     amountSend={amountSend}
                     rate={`1 ${currencyGet.code} = 1500 ${currencySend.code}`}
+                    onAmountGetChange={setAmountGet}
+                    onAmountSendChange={setAmountSend}
                 />
             )}
 

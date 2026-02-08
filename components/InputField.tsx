@@ -48,7 +48,7 @@ const InputField: React.FC<InputFieldProps> = ({
                     )
                 )}
                 <TextInput
-                    style={styles.input}
+                    style={[styles.input, props.style]}
                     secureTextEntry={isPassword && !isPasswordVisible}
                     placeholderTextColor="#94A3B8"
                     {...props}

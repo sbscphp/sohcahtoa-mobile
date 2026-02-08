@@ -64,6 +64,9 @@ export default function HomeScreen() {
         } else if (action === 'touring') {
             setActionSheetType(null);
             router.push('/(buy-fx)/(touring)/create-touring');
+        } else if (action === 'touring_inbound') {
+            setActionSheetType(null);
+            router.push('/(sell-fx)/(tourist)/create-tourist');
         } else {
             setActionSheetType(null);
         }

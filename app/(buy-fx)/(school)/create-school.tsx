@@ -105,7 +105,7 @@ export default function SchoolFeesScreen() {
         },
     ];
 
-   
+
     const undergraduateDocuments = [
         {
             label: 'Evidence of Admission',
@@ -139,23 +139,23 @@ export default function SchoolFeesScreen() {
     ];
 
     const postgraduateDocuments = [
-            
-            {
-                label: 'International Passport',
-                onUpload: () => console.log('Upload Passport'),
-                required: true,
-                associatedInputs: (
-                    <View style={{ flexDirection: 'row', gap: 12 }}>
-                        <View style={{ flex: 1 }}>
-                            <InputField label='Passport Issue Date' required placeholder='dd/mm/yyyy' rightIcon={Calendar} />
-                        </View>
-                        <View style={{ flex: 1 }}>
-                            <InputField label='Passport Expiry Date' required placeholder='dd/mm/yyyy' rightIcon={Calendar} />
-                        </View>
+
+        {
+            label: 'International Passport',
+            onUpload: () => console.log('Upload Passport'),
+            required: true,
+            associatedInputs: (
+                <View style={{ flexDirection: 'row', gap: 12 }}>
+                    <View style={{ flex: 1 }}>
+                        <InputField label='Passport Issue Date' required placeholder='dd/mm/yyyy' rightIcon={Calendar} />
                     </View>
-                )
-            },
-            {
+                    <View style={{ flex: 1 }}>
+                        <InputField label='Passport Expiry Date' required placeholder='dd/mm/yyyy' rightIcon={Calendar} />
+                    </View>
+                </View>
+            )
+        },
+        {
             label: 'School Invoice',
             onUpload: () => console.log('Upload Invoice'),
             required: true,
@@ -184,9 +184,9 @@ export default function SchoolFeesScreen() {
             onUpload: () => console.log('Upload First Degree Certificate'),
             required: true,
         },
-        ]
-       
-     const documentFields = admissionType === 'Post-Graduate' ? postgraduateDocuments : undergraduateDocuments;
+    ]
+
+    const documentFields = admissionType === 'Post-Graduate' ? postgraduateDocuments : undergraduateDocuments;
 
     // --- Handlers ---
 
@@ -239,6 +239,8 @@ export default function SchoolFeesScreen() {
                     amountGet={amountGet}
                     amountSend={amountSend}
                     rate={`1 ${currencyGet.code} = 1500 ${currencySend.code}`}
+                    onAmountGetChange={setAmountGet}
+                    onAmountSendChange={setAmountSend}
                 />
             )}
 

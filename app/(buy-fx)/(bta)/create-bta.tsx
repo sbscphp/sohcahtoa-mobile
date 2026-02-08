@@ -102,13 +102,13 @@ export default function BusinessTravelAllowanceScreen() {
             required: true,
             associatedInputs: (
                 <View style={{ flexDirection: 'row', gap: 12 }}>
-                        <View style={{ flex: 1 }}>
-                            <InputField label='Passport Issue Date' required placeholder='dd/mm/yyyy' rightIcon={Calendar} />
-                        </View>
-                        <View style={{ flex: 1 }}>
-                            <InputField label='Passport Expiry Date' required placeholder='dd/mm/yyyy' rightIcon={Calendar} />
-                        </View>
+                    <View style={{ flex: 1 }}>
+                        <InputField label='Passport Issue Date' required placeholder='dd/mm/yyyy' rightIcon={Calendar} />
                     </View>
+                    <View style={{ flex: 1 }}>
+                        <InputField label='Passport Expiry Date' required placeholder='dd/mm/yyyy' rightIcon={Calendar} />
+                    </View>
+                </View>
             )
         },
         {
@@ -174,6 +174,8 @@ export default function BusinessTravelAllowanceScreen() {
                     amountGet={amountGet}
                     amountSend={amountSend}
                     rate={`1 ${currencyGet.code} = 1500 ${currencySend.code}`}
+                    onAmountGetChange={setAmountGet}
+                    onAmountSendChange={setAmountSend}
                 />
             )}
 

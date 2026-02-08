@@ -27,6 +27,9 @@ export interface CurrencyConverterProps {
     amountSend: string;
 
     rate: string;
+    allowedModes?: ('buy' | 'sell')[];
+    onAmountGetChange?: (amount: string) => void;
+    onAmountSendChange?: (amount: string) => void;
 }
 
 export default function CurrencyConverter({
@@ -38,7 +41,10 @@ export default function CurrencyConverter({
     onCurrencySendChange,
     amountGet,
     amountSend,
-    rate
+    rate,
+    allowedModes = ['buy', 'sell'],
+    onAmountGetChange,
+    onAmountSendChange
 }: CurrencyConverterProps) {
     const [currencySheetVisible, setCurrencySheetVisible] = useState(false);
     const [activeCurrencyField, setActiveCurrencyField] = useState<'get' | 'send' | null>(null);
@@ -78,26 +84,30 @@ export default function CurrencyConverter({
         <View style={styles.container}>
             <View style={styles.toggleWrapper}>
                 <View style={styles.toggleContainer}>
-                    <Pressable
-                        style={({ pressed }) => [
-                            styles.toggleBtn,
-                            isBuy && styles.toggleBtnActive,
-                            pressed && { opacity: 0.8 },
-                        ]}
-                        onPress={() => onTransactionTypeChange('buy')}
-                    >
-                        <Text style={isBuy ? styles.toggleTextActive : styles.toggleText}>Buy FX</Text>
-                    </Pressable>
-                    <Pressable
-                        style={({ pressed }) => [
-                            styles.toggleBtn,
-                            !isBuy && styles.toggleBtnActive,
-                            pressed && { opacity: 0.8 },
-                        ]}
-                        onPress={() => onTransactionTypeChange('sell')}
-                    >
-                        <Text style={!isBuy ? styles.toggleTextActive : styles.toggleText}>Sell FX</Text>
-                    </Pressable>
+                    {allowedModes.includes('buy') && (
+                        <Pressable
+                            style={({ pressed }) => [
+                                styles.toggleBtn,
+                                isBuy && styles.toggleBtnActive,
+                                pressed && { opacity: 0.8 },
+                            ]}
+                            onPress={() => onTransactionTypeChange('buy')}
+                        >
+                            <Text style={isBuy ? styles.toggleTextActive : styles.toggleText}>Buy FX</Text>
+                        </Pressable>
+                    )}
+                    {allowedModes.includes('sell') && (
+                        <Pressable
+                            style={({ pressed }) => [
+                                styles.toggleBtn,
+                                !isBuy && styles.toggleBtnActive,
+                                pressed && { opacity: 0.8 },
+                            ]}
+                            onPress={() => onTransactionTypeChange('sell')}
+                        >
+                            <Text style={!isBuy ? styles.toggleTextActive : styles.toggleText}>Sell FX</Text>
+                        </Pressable>
+                    )}
                 </View>
 
                 <View style={styles.exchangeCard}>
@@ -115,8 +125,21 @@ export default function CurrencyConverter({
                             <ArrowDown2 size={moderateScale(16)} color="#292D32" />
                         </Pressable>
                     </View>
-                    <View style={{ marginVertical: -25 }}>
-                        <InputField style={{ backgroundColor: 'rgba(241, 241, 241, 1)' }} height={moderateScale(48)} label='' value={`${getCurrencySymbol(currencyGet.code)} ${amountGet}`} editable={false} />
+                    <View style={{ marginVertical: -25, zIndex: 5 }}>
+                        <InputField
+                            wrapperStyle={{ backgroundColor: 'rgba(241, 241, 241, 1)' }}
+                            height={moderateScale(48)}
+                            label=''
+                            value={amountGet}
+                            onChangeText={onAmountGetChange}
+                            editable={!!onAmountGetChange}
+                            keyboardType="numeric"
+                            icon={
+                                <Text style={{ fontSize: moderateScale(14), color: '#0F172A', fontWeight: '600' }}>
+                                    {getCurrencySymbol(currencyGet.code)}
+                                </Text>
+                            }
+                        />
                     </View>
                 </View>
             </View>
@@ -129,7 +152,7 @@ export default function CurrencyConverter({
                     ]}
                     onPress={handleSwap}
                 >
-                    <SwapIcons width={moderateScale(24)} height={moderateScale(24)} color="#FFFFFF" />
+                    <SwapIcons width={moderateScale(20)} height={moderateScale(20)} color="#FFFFFF" />
                 </Pressable>
             </View>
 
@@ -148,8 +171,21 @@ export default function CurrencyConverter({
                         <ArrowDown2 size={moderateScale(16)} color="#292D32" />
                     </Pressable>
                 </View>
-                <View style={{ marginVertical: -25, paddingHorizontal: 10 }}>
-                    <InputField style={{ backgroundColor: 'rgba(241, 241, 241, 1)' }} height={moderateScale(48)} label='' value={`${getCurrencySymbol(currencySend.code)} ${amountSend}`} editable={false} />
+                <View style={{ marginVertical: -25, paddingHorizontal: 10, zIndex: 5 }}>
+                    <InputField
+                        wrapperStyle={{ backgroundColor: 'rgba(241, 241, 241, 1)' }}
+                        height={moderateScale(48)}
+                        label=''
+                        value={amountSend}
+                        onChangeText={onAmountSendChange}
+                        editable={!!onAmountSendChange}
+                        keyboardType="numeric"
+                        icon={
+                            <Text style={{ fontSize: moderateScale(14), color: '#0F172A', fontWeight: '600' }}>
+                                {getCurrencySymbol(currencySend.code)}
+                            </Text>
+                        }
+                    />
                 </View>
 
                 <View style={styles.rateInfo}>
@@ -248,9 +284,9 @@ const styles = ScaledSheet.create({
         color: '#0F172A',
     },
     swapIconCircle: {
-        width: '40@ms',
-        height: '40@ms',
-        borderRadius: '20@ms',
+        width: '35@ms',
+        height: '35@ms',
+        borderRadius: '17.5@ms',
         backgroundColor: '#0F172A',
         justifyContent: 'center',
         alignItems: 'center',

@@ -113,7 +113,7 @@ export default function TransactionDetailsView({ details, documents = [], docume
                 <>
                     <Text style={[styles.sectionHeader, { marginTop: moderateScale(62) }]}>Disbursement Details</Text>
 
-                    {/* Payment Info Section */}
+                  
                     {disbursementDetails.paymentInfo.map((item, index) => (
                         <View key={index}>
                             <View style={styles.detailRow}>
@@ -223,6 +223,7 @@ const styles = ScaledSheet.create({
         fontSize: '14@ms',
         color: 'rgba(255, 104, 19, 1)',
         fontWeight: '400',
+        textAlign: 'right',
         marginTop: '2@vs',
     },
     bankDetailsContainer: {

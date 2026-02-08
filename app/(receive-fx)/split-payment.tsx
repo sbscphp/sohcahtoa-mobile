@@ -63,6 +63,8 @@ export default function SplitPaymentScreen() {
                         amountGet={amountGet}
                         amountSend={amountSend}
                         rate="USD1 - NGN1500"
+                        onAmountGetChange={setAmountGet}
+                        onAmountSendChange={setAmountSend}
                     />
 
                     <View style={styles.infoBanner}>
