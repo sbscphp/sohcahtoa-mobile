@@ -6,6 +6,8 @@ export default function TouristLayout() {
     return (
         <Stack>
             <Stack.Screen name="create-tourist" options={{ headerShown: false }} />
+            <Stack.Screen name="success" options={{ headerShown: false }} />
+            <Stack.Screen name="view-tourist" options={{ headerShown: false }} />
         </Stack>
     );
 }

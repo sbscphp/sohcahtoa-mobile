@@ -7,8 +7,7 @@ export default function TouristSuccessScreen() {
     const router = useRouter();
 
     const handleViewTransaction = () => {
-        // For now, go to all transactions as there is no specific view-tourist page yet
-        router.push('/all-transactions');
+        router.push('/(sell-fx)/(tourist)/view-tourist');
     };
 
     const handleGoHome = () => {
@@ -17,7 +16,7 @@ export default function TouristSuccessScreen() {
 
     return (
         <SuccessScreen
-            headerTitle="Request Initiated Successful"
+            headerTitle="Transaction Request Successful"
             title="Request Submitted Successfully"
             description="You have successfully initiated a new transaction request. Your documents have been received and currently awaiting approval."
             onViewTransaction={handleViewTransaction}

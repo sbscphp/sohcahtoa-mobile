@@ -121,7 +121,7 @@ const styles = ScaledSheet.create({
 
     },
     tabText: {
-        fontSize: '14@ms',
+        fontSize: '13@ms',
         color: '#64748B',
         fontWeight: '500',
     },

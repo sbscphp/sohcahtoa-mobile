@@ -44,7 +44,7 @@ const PrimaryButton: React.FC<PrimaryButtonProps> = ({
 const styles = ScaledSheet.create({
     button: {
         backgroundColor: Colors.light.primary,
-        height: '45@vs',
+        height: '40@vs',
         borderRadius: '28@ms',
         justifyContent: 'center',
         alignItems: 'center',
