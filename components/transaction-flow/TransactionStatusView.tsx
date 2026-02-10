@@ -2,7 +2,7 @@ import { Calendar, Clock, SearchStatus } from 'iconsax-react-nativejs';
 import React from 'react';
 import { Text, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
-import EmptyState from '../../assets/icons/empty-state.svg';
+import EmptyState from '../../assets/icons/no-search-found.svg';
 
 export type TransactionStatus = 'pending' | 'approved' | 'more_info' | 'rejected' | 'awaiting_disbursement' | 'settled';
 
@@ -226,11 +226,11 @@ const styles = ScaledSheet.create({
 
     pendingContainer: {
         alignItems: 'center',
-        paddingVertical: '40@vs',
+        paddingVertical: '10@vs',
         paddingHorizontal: '20@s',
     },
     pendingIconContainer: {
-        marginBottom: '24@vs',
+        marginBottom: '14@vs',
     },
     pendingTitle: {
         fontSize: '18@ms',

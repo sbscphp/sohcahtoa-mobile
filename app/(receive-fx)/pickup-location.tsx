@@ -37,6 +37,8 @@ export default function PickupLocationScreen() {
     const [selectedState, setSelectedState] = useState<LocationItem | null>(null);
     const [selectedCity, setSelectedCity] = useState<LocationItem | null>(null);
     const [selectedLocation, setSelectedLocation] = useState<LocationItem | null>(null);
+    const [pickupDate, setPickupDate] = useState('');
+    const [pickupTime, setPickupTime] = useState('');
 
     const handleSubmit = () => {
         router.push('/(receive-fx)/split-payment');
@@ -75,6 +77,10 @@ export default function PickupLocationScreen() {
                         }}
                         selectedLocation={selectedLocation}
                         onSelectLocation={setSelectedLocation}
+                        pickupDate={pickupDate}
+                        onPickupDateChange={setPickupDate}
+                        pickupTime={pickupTime}
+                        onPickupTimeChange={setPickupTime}
                     />
 
                 </ScrollView>

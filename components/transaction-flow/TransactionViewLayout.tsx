@@ -39,17 +39,17 @@ export default function TransactionViewLayout({
     const panResponder = useRef(
         PanResponder.create({
             onMoveShouldSetPanResponder: (_, gestureState) => {
-                // Only respond to horizontal swipes
+
                 return Math.abs(gestureState.dx) > Math.abs(gestureState.dy) && Math.abs(gestureState.dx) > 20;
             },
             onPanResponderRelease: (_, gestureState) => {
                 const currentIndex = tabs.findIndex(tab => tab.key === activeTab);
 
-                // Swipe left (next tab)
+
                 if (gestureState.dx < -50 && currentIndex < tabs.length - 1) {
                     onTabChange(tabs[currentIndex + 1].key);
                 }
-                // Swipe right (previous tab)
+
                 else if (gestureState.dx > 50 && currentIndex > 0) {
                     onTabChange(tabs[currentIndex - 1].key);
                 }
@@ -68,11 +68,10 @@ export default function TransactionViewLayout({
                         style={styles.tabItem}
                         onPress={() => onTabChange(tab.key)}
                     >
-                        <View style={[styles.tabTextContainer, activeTab === tab.key && styles.activeTabItem]}>
-                            <Text style={[styles.tabText, activeTab === tab.key && styles.activeTabText]}>
-                                {tab.label}
-                            </Text>
-                        </View>
+                        <Text style={[styles.tabText, activeTab === tab.key && styles.activeTabText]}>
+                            {tab.label}
+                        </Text>
+                        {activeTab === tab.key && <View style={styles.activeTabIndicator} />}
                     </TouchableOpacity>
                 ))}
             </View>
@@ -106,19 +105,13 @@ const styles = ScaledSheet.create({
     },
     tabBar: {
         flexDirection: 'row',
+        borderBottomWidth: 1,
+        borderBottomColor: '#F1F5F9',
     },
     tabItem: {
         flex: 1,
         paddingVertical: '12@vs',
         alignItems: 'center',
-    },
-    tabTextContainer: {
-        paddingBottom: '10@vs',
-    },
-    activeTabItem: {
-        borderBottomWidth: 2,
-        borderBottomColor: '#FF6813',
-
     },
     tabText: {
         fontSize: '13@ms',
@@ -126,8 +119,15 @@ const styles = ScaledSheet.create({
         fontWeight: '500',
     },
     activeTabText: {
-        color: '#FF6813',
+        color: 'rgba(221, 79, 5, 1)',
         fontWeight: '600',
+    },
+    activeTabIndicator: {
+        position: 'absolute',
+        bottom: 0,
+        height: 2,
+        width: '80%',
+        backgroundColor: 'rgba(221, 79, 5, 1)',
     },
     scrollContent: {
         paddingHorizontal: '20@s',

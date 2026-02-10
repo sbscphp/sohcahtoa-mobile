@@ -1,5 +1,5 @@
 import ProgressBar from '@/components/ProgressBar';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { InfoCircle } from 'iconsax-react-nativejs';
 import React from 'react';
 import { ScrollView, Text, View } from 'react-native';
@@ -11,11 +11,16 @@ import PrimaryButton from '../../components/PrimaryButton';
 export default function BvnConfirmationScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
+    const { userType } = useLocalSearchParams<{ userType?: string }>();
 
     const handleSendOtp = () => {
         router.push({
             pathname: '/(auth)/otp-verification',
-            params: { context: 'email', target: 'email' }
+            params: {
+                context: 'email',
+                target: 'email',
+                userType: userType || undefined
+            }
         });
     };
 
@@ -34,7 +39,7 @@ export default function BvnConfirmationScreen() {
                 contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 100 }]}
                 showsVerticalScrollIndicator={false}
             >
-                <ProgressBar step={1} totalSteps={3} />
+                {userType !== 'expatriate' && <ProgressBar step={1} totalSteps={3} />}
 
                 <View style={styles.content}>
                     <Text style={styles.title}>Final Step Ahead</Text>

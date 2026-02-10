@@ -1,3 +1,4 @@
+import DatePickerField from '@/components/DatePickerField';
 import InitiateTransactionSheet from '@/components/InitiateTransactionSheet';
 import InputField from '@/components/InputField';
 import { LocationItem } from '@/components/LocationSelectionSheet';
@@ -7,7 +8,6 @@ import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import LocationStep from '@/components/transaction-flow/LocationStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
 import { useRouter } from 'expo-router';
-import { Calendar } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
 import { View } from 'react-native';
 
@@ -113,23 +113,21 @@ export default function CreateResidentScreen() {
             associatedInputs: (
                 <View style={{ flexDirection: 'row', gap: 12 }}>
                     <View style={{ flex: 1 }}>
-                        <InputField
+                        <DatePickerField
                             label='Passport Issue Date'
                             required
-                            placeholder='dd/mm/yyyy'
-                            rightIcon={Calendar}
                             value={passportIssueDate}
-                            onChangeText={setPassportIssueDate}
+                            onDateChange={setPassportIssueDate}
+                            maximumDate={new Date()}
                         />
                     </View>
                     <View style={{ flex: 1 }}>
-                        <InputField
+                        <DatePickerField
                             label='Passport Expiry Date'
                             required
-                            placeholder='dd/mm/yyyy'
-                            rightIcon={Calendar}
                             value={passportExpiryDate}
-                            onChangeText={setPassportExpiryDate}
+                            onDateChange={setPassportExpiryDate}
+                            minimumDate={new Date()}
                         />
                     </View>
                 </View>
@@ -233,6 +231,10 @@ export default function CreateResidentScreen() {
                     selectedLocation={selectedLocation}
                     onSelectLocation={setSelectedLocation}
                     title="Select Pick Up Point"
+                    pickupDate={pickupDate}
+                    onPickupDateChange={setPickupDate}
+                    pickupTime={pickupTime}
+                    onPickupTimeChange={setPickupTime}
                 />
             )}
 

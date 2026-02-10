@@ -94,7 +94,7 @@ export default function PaymentScreen() {
 
                     {/* Info Box */}
                     <View style={styles.infoBox}>
-                        <InfoCircle size={moderateScale(20)} color="#FF6813" variant="Bold" style={{ marginTop: 2 }} />
+                        <InfoCircle size={moderateScale(20)} color="rgba(221, 79, 5, 1)" variant="Bold" style={{ marginTop: 2 }} />
                         <Text style={styles.infoText}>
                             Once approved, 75% of your funds will be sent to your bank account or prepaid card, while the remaining 25% will be available for cash pickup at the nearest branch (passport endorsement required)
                         </Text>

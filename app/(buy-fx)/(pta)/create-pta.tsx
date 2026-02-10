@@ -69,6 +69,8 @@ export default function PersonalTravelAllowanceScreen() {
     const [selectedState, setSelectedState] = useState<LocationItem | null>(null);
     const [selectedCity, setSelectedCity] = useState<LocationItem | null>(null);
     const [selectedLocation, setSelectedLocation] = useState<LocationItem | null>(null);
+    const [pickupDate, setPickupDate] = useState('');
+    const [pickupTime, setPickupTime] = useState('');
 
     const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
 
@@ -176,6 +178,10 @@ export default function PersonalTravelAllowanceScreen() {
                     }}
                     selectedLocation={selectedLocation}
                     onSelectLocation={setSelectedLocation}
+                    pickupDate={pickupDate}
+                    onPickupDateChange={setPickupDate}
+                    pickupTime={pickupTime}
+                    onPickupTimeChange={setPickupTime}
                 />
             )}
 

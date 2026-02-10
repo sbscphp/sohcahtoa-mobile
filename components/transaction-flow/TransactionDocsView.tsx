@@ -31,7 +31,7 @@ export default function TransactionDocsView({ status, documents }: TransactionDo
             return <CloseCircle size={moderateScale(16)} color="#EF4444" variant="Bold" />;
         }
         return <TickCircle size={moderateScale(16)}
-            color={status === 'approved' || status === 'awaiting_disbursement' || status === 'settled' ? "#16A34A" : status === 'more_info' ? "#EF4444" : "#FF6813"}
+            color={status === 'approved' || status === 'awaiting_disbursement' || status === 'settled' ? "#16A34A" : status === 'more_info' ? "#EF4444" : "rgba(221, 79, 5, 1)"}
             variant="Bold"
         />;
     };
@@ -114,7 +114,7 @@ const styles = ScaledSheet.create({
     },
     docStatusTextPending: {
         fontSize: '12@ms',
-        color: '#FF6813',
+        color: 'rgba(221, 79, 5, 1)',
         fontWeight: '500',
     },
     docStatusTextError: {
@@ -129,7 +129,7 @@ const styles = ScaledSheet.create({
         alignItems: 'center',
         paddingVertical: '8@vs',
         borderBottomWidth: 1,
-        borderBottomColor: '#F1F5F9', 
+        borderBottomColor: '#F1F5F9',
     },
     detailLabel: {
         fontSize: '13@ms',

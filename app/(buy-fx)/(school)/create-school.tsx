@@ -1,3 +1,4 @@
+import DatePickerField from '@/components/DatePickerField';
 import GenericSelectionSheet, { SelectionItem } from '@/components/GenericSelectionSheet';
 import InitiateTransactionSheet from '@/components/InitiateTransactionSheet';
 import InputField from '@/components/InputField';
@@ -8,7 +9,7 @@ import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
 import { useRouter } from 'expo-router';
-import { ArrowDown2, Calendar, Teacher } from 'iconsax-react-nativejs';
+import { ArrowDown2, Teacher } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
 import { View } from 'react-native';
 
@@ -51,6 +52,8 @@ export default function SchoolFeesScreen() {
     const [nin, setNin] = useState('');
     const [formAId, setFormAId] = useState('');
     const [passportNumber, setPassportNumber] = useState('');
+    const [passportIssueDate, setPassportIssueDate] = useState('');
+    const [passportExpiryDate, setPassportExpiryDate] = useState('');
     const [admissionType, setAdmissionType] = useState('');
 
     // Step 2: Exchange State
@@ -147,10 +150,10 @@ export default function SchoolFeesScreen() {
             associatedInputs: (
                 <View style={{ flexDirection: 'row', gap: 12 }}>
                     <View style={{ flex: 1 }}>
-                        <InputField label='Passport Issue Date' required placeholder='dd/mm/yyyy' rightIcon={Calendar} />
+                        <DatePickerField label='Passport Issue Date' value={passportIssueDate} onDateChange={setPassportIssueDate} required maximumDate={new Date()} />
                     </View>
                     <View style={{ flex: 1 }}>
-                        <InputField label='Passport Expiry Date' required placeholder='dd/mm/yyyy' rightIcon={Calendar} />
+                        <DatePickerField label='Passport Expiry Date' value={passportExpiryDate} onDateChange={setPassportExpiryDate} required minimumDate={new Date()} />
                     </View>
                 </View>
             )
@@ -295,7 +298,7 @@ export default function SchoolFeesScreen() {
                 subtitle="Select an option below"
                 headerIcon={Teacher}
                 headerIconBg="#FFF7ED"
-                headerIconColor="#FF6813"
+                headerIconColor="rgba(221, 79, 5, 1)"
                 items={ADMISSION_TYPES}
                 selectedItem={admissionType}
                 onSelect={(item) => setAdmissionType(item.value)}

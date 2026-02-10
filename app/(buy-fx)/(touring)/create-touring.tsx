@@ -1,3 +1,4 @@
+import DatePickerField from '@/components/DatePickerField';
 import InitiateTransactionSheet from '@/components/InitiateTransactionSheet';
 import InputField from '@/components/InputField';
 import { LocationItem } from '@/components/LocationSelectionSheet';
@@ -7,7 +8,6 @@ import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import LocationStep from '@/components/transaction-flow/LocationStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
 import { useRouter } from 'expo-router';
-import { Calendar } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
 import { View } from 'react-native';
 
@@ -45,6 +45,8 @@ export default function TouringScreen() {
     const [nin, setNin] = useState('');
     const [formAId, setFormAId] = useState('');
     const [passportNumber, setPassportNumber] = useState('');
+    const [passportIssueDate, setPassportIssueDate] = useState('');
+    const [passportExpiryDate, setPassportExpiryDate] = useState('');
 
     // Step 2: Exchange State
     const [transactionType, setTransactionType] = useState<'buy' | 'sell'>('buy');
@@ -68,6 +70,8 @@ export default function TouringScreen() {
     const [selectedState, setSelectedState] = useState<LocationItem | null>(null);
     const [selectedCity, setSelectedCity] = useState<LocationItem | null>(null);
     const [selectedLocation, setSelectedLocation] = useState<LocationItem | null>(null);
+    const [pickupDate, setPickupDate] = useState('');
+    const [pickupTime, setPickupTime] = useState('');
 
     const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
 
@@ -91,10 +95,10 @@ export default function TouringScreen() {
                 <View>
                     <View style={{ flexDirection: 'row', gap: 12 }}>
                         <View style={{ flex: 1 }}>
-                            <InputField label='Passport Issue Date' required placeholder='dd/mm/yyyy' rightIcon={Calendar} />
+                            <DatePickerField label='Passport Issue Date' value={passportIssueDate} onDateChange={setPassportIssueDate} required maximumDate={new Date()} />
                         </View>
                         <View style={{ flex: 1 }}>
-                            <InputField label='Passport Expiry Date' required placeholder='dd/mm/yyyy' rightIcon={Calendar} />
+                            <DatePickerField label='Passport Expiry Date' value={passportExpiryDate} onDateChange={setPassportExpiryDate} required minimumDate={new Date()} />
                         </View>
                     </View>
                 </View>
@@ -193,6 +197,10 @@ export default function TouringScreen() {
                     selectedLocation={selectedLocation}
                     onSelectLocation={setSelectedLocation}
                     title="Select Pick Up Point"
+                    pickupDate={pickupDate}
+                    onPickupDateChange={setPickupDate}
+                    pickupTime={pickupTime}
+                    onPickupTimeChange={setPickupTime}
                 />
             )}
 

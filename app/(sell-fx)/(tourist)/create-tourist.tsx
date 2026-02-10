@@ -1,4 +1,5 @@
 
+import DatePickerField from '@/components/DatePickerField';
 import InitiateTransactionSheet from '@/components/InitiateTransactionSheet';
 import InputField from '@/components/InputField';
 import { LocationItem } from '@/components/LocationSelectionSheet';
@@ -8,7 +9,6 @@ import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import LocationStep from '@/components/transaction-flow/LocationStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
 import { useRouter } from 'expo-router';
-import { Calendar } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
@@ -73,6 +73,8 @@ export default function CreateTouristScreen() {
     const [selectedState, setSelectedState] = useState<LocationItem | null>(null);
     const [selectedCity, setSelectedCity] = useState<LocationItem | null>(null);
     const [selectedLocation, setSelectedLocation] = useState<LocationItem | null>(null);
+    const [pickupDate, setPickupDate] = useState('');
+    const [pickupTime, setPickupTime] = useState('');
 
     // Transfer Details
     const [accountName, setAccountName] = useState('');
@@ -91,7 +93,7 @@ export default function CreateTouristScreen() {
         }
     ];
 
-    // Configuration for Step 1
+
     const documentFields = [
         {
             label: 'International Passport',
@@ -100,23 +102,21 @@ export default function CreateTouristScreen() {
             associatedInputs: (
                 <View style={{ flexDirection: 'row', gap: 12 }}>
                     <View style={{ flex: 1 }}>
-                        <InputField
+                        <DatePickerField
                             label='Passport Issue Date'
                             required
-                            placeholder='dd/mm/yyyy'
-                            rightIcon={Calendar}
                             value={passportIssueDate}
-                            onChangeText={setPassportIssueDate}
+                            onDateChange={setPassportIssueDate}
+                            maximumDate={new Date()}
                         />
                     </View>
                     <View style={{ flex: 1 }}>
-                        <InputField
+                        <DatePickerField
                             label='Passport Expiry Date'
                             required
-                            placeholder='dd/mm/yyyy'
-                            rightIcon={Calendar}
                             value={passportExpiryDate}
-                            onChangeText={setPassportExpiryDate}
+                            onDateChange={setPassportExpiryDate}
+                            minimumDate={new Date()}
                         />
                     </View>
                 </View>
@@ -277,6 +277,10 @@ export default function CreateTouristScreen() {
                             selectedLocation={selectedLocation}
                             onSelectLocation={setSelectedLocation}
                             title="Select Pick Up Point"
+                            pickupDate={pickupDate}
+                            onPickupDateChange={setPickupDate}
+                            pickupTime={pickupTime}
+                            onPickupTimeChange={setPickupTime}
                         />
                     )}
                 </View>

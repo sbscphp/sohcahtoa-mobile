@@ -9,7 +9,7 @@ import PrimaryButton from '../../components/PrimaryButton';
 
 export default function OtpVerificationScreen() {
     const router = useRouter();
-    const { context, target, type } = useLocalSearchParams<{ context: 'bvn' | 'email'; target: 'phone' | 'email'; type?: string }>();
+    const { context, target, type, userType } = useLocalSearchParams<{ context: 'bvn' | 'email'; target: 'phone' | 'email'; type?: string; userType?: string }>();
     const insets = useSafeAreaInsets();
     const [otp, setOtp] = useState(['', '', '', '', '', '']);
     const inputs = useRef<TextInput[]>([]);
@@ -52,7 +52,10 @@ export default function OtpVerificationScreen() {
             } else {
                 router.push({
                     pathname: '/(auth)/secure-account',
-                    params: { type: type } // Pass the type forward
+                    params: {
+                        type: type,
+                        userType: userType || undefined
+                    }
                 });
             }
         }
@@ -86,8 +89,8 @@ export default function OtpVerificationScreen() {
                     contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 80 }]}
                     showsVerticalScrollIndicator={false}
                 >
-                    {context === 'bvn' && <ProgressBar step={1} totalSteps={3} />}
-                    {context === 'email' && <ProgressBar step={2} totalSteps={3} />}
+                    {context === 'bvn' && userType !== 'expatriate' && <ProgressBar step={1} totalSteps={3} />}
+                    {context === 'email' && userType !== 'expatriate' && <ProgressBar step={2} totalSteps={3} />}
                     {isResetPassword && <ProgressBar step={1} totalSteps={2} />}
 
                     <View style={styles.content}>

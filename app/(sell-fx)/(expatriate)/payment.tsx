@@ -94,7 +94,7 @@ export default function PaymentScreen() {
 
                     {/* Info Box */}
                     <View style={styles.infoBox}>
-                        <InfoCircle size={moderateScale(20)} color="#FF6813" variant="Bold" style={{ marginTop: 2 }} />
+                        <InfoCircle size={moderateScale(20)} color="rgba(221, 79, 5, 1)" variant="Bold" style={{ marginTop: 2 }} />
                         <Text style={styles.infoText}>
                             Once payment is confirmed, your foreign exchange will be available for pickup at your selected location. Please bring your work permit and passport documents.
                         </Text>

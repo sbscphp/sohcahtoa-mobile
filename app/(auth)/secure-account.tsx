@@ -12,7 +12,7 @@ import { Colors } from '../../constants/theme';
 
 export default function SecureAccountScreen() {
     const router = useRouter();
-    const { type } = useLocalSearchParams<{ type?: string }>();
+    const { type, userType } = useLocalSearchParams<{ type?: string; userType?: string }>();
     const insets = useSafeAreaInsets();
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -67,7 +67,7 @@ export default function SecureAccountScreen() {
                     showsVerticalScrollIndicator={false}
                 >
 
-                    {type === 'reset-password' ? null : <ProgressBar step={3} totalSteps={3} />}
+                    {type === 'reset-password' ? null : userType !== 'expatriate' && <ProgressBar step={3} totalSteps={3} />}
                     <View style={styles.content}>
                         <Text style={styles.title}>Create a Password to Secure your Account</Text>
 

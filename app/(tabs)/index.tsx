@@ -8,6 +8,8 @@ import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'rea
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import { Colors } from '../../constants/theme';
+import Passport from '../../assets/images/passport.svg';
+import StandingUser from '../../assets/images/standing-user.svg';
 
 const ACTION_BUTTONS = [
     { title: 'Buy FX', icon: WalletAdd1, type: 'buy' },
@@ -36,7 +38,7 @@ const TRANSACTIONS = [
 export default function HomeScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
-    const [showBalance, setShowBalance] = useState(true);
+    const [showBalance, setShowBalance] = useState(false);
     const [selectedFilter, setSelectedFilter] = useState('All');
     const [transactionFilters, setTransactionFilters] = useState(['All', 'PTA', 'BTA', 'Medical']);
     const [selectedTxFilter, setSelectedTxFilter] = useState('All');
@@ -45,7 +47,6 @@ export default function HomeScreen() {
     const [selectedCurrency, setSelectedCurrency] = useState<CurrencyItem>({ id: '4', code: 'USD', flag: '🇺🇸' });
 
     const handleActionPress = (action: string) => {
-        // console.log('Selected action:', action);
         if (action === 'vacation') {
             setActionSheetType(null);
             router.push('/(buy-fx)/(pta)/create-pta');
@@ -107,7 +108,7 @@ export default function HomeScreen() {
                         { id: '3', title: 'Pay School Fees', subtitle: 'Pay tuition for undergraduate & postgraduate studies.', icon: <Teacher size={moderateScale(20)} color="#FF6B2C" variant="Bulk" />, onPress: () => handleActionPress('school') },
                         { id: '4', title: 'Seek Medical Treatment', subtitle: 'Pay for medical treatment or hospital bills abroad', icon: <Hospital size={moderateScale(20)} color="#FF6B2C" variant="Bulk" />, onPress: () => handleActionPress('medical') },
                         { id: '5', title: 'Pay a Professional Body', subtitle: 'E.g International membership fee', icon: <People size={moderateScale(24)} color="#FF6B2C" variant="Bulk" />, onPress: () => handleActionPress('professional') },
-                        { id: '6', title: 'I am Touring Nigeria', subtitle: 'Buy FX to cover your travel, accommodation', icon: <Map1 size={moderateScale(20)} color="#FF6B2C" variant="Bulk" />, onPress: () => handleActionPress('touring') },
+                        { id: '6', title: 'I am Touring Nigeria', subtitle: 'Buy FX to cover your travel, accommodation', icon: <Passport width={moderateScale(20)} height={moderateScale(20)} color="#FF6B2C" />, onPress: () => handleActionPress('touring') },
                     ]
                 };
             case 'sell':
@@ -115,8 +116,8 @@ export default function HomeScreen() {
                     title: 'Sell FX',
                     headerIcon: <WalletAdd1 size={moderateScale(24)} color="#FF6B2C" />,
                     actions: [
-                        { id: '1', title: 'Resident', subtitle: 'I have FX and want Naira', icon: <User size={moderateScale(20)} color="#FF6B2C" variant="Bulk" />, onPress: () => handleActionPress('resident') },
-                        { id: '2', title: 'I am Touring Nigeria', subtitle: 'I am touring Nigeria and want Naira', icon: <Map1 size={moderateScale(20)} color="#FF6B2C" variant="Bulk" />, onPress: () => handleActionPress('touring_inbound') },
+                        { id: '1', title: 'Resident', subtitle: 'I have FX and want Naira', icon: <StandingUser width={moderateScale(20)} height={moderateScale(20)} color="#FF6B2C" />, onPress: () => handleActionPress('resident') },
+                        { id: '2', title: 'I am Touring Nigeria', subtitle: 'I am touring Nigeria and want Naira', icon: <Passport width={moderateScale(20)} height={moderateScale(20)} color="#FF6B2C" />, onPress: () => handleActionPress('touring_inbound') },
                         { id: '3', title: 'Expatriate; I am a foreigner who works in Nigeria', subtitle: 'I am a foreigner living or working in Nigeria', icon: <Buildings size={moderateScale(20)} color="#FF6B2C" variant="Bulk" />, onPress: () => handleActionPress('expatriate') },
                     ]
                 };
@@ -125,7 +126,7 @@ export default function HomeScreen() {
                     title: 'Receive FX',
                     headerIcon: <WalletAdd1 size={moderateScale(24)} color="#FF6B2C" />,
                     actions: [
-                        { id: '1', title: 'Receive Money from Abroad', subtitle: 'Receive international transfer and fund money from relatives, business and associates', icon: <User size={moderateScale(20)} color="#FF6B2C" variant="Bulk" />, onPress: () => { setActionSheetType(null); router.push('/(receive-fx)/imto'); } },
+                        { id: '1', title: 'Receive Money from Abroad', subtitle: 'Receive international transfer and fund money from relatives, business and associates', icon: <StandingUser width={moderateScale(20)} height={moderateScale(20)} color="#FF6B2C" />, onPress: () => { setActionSheetType(null); router.push('/(receive-fx)/imto'); } },
                     ]
                 };
             default:
@@ -414,7 +415,7 @@ const styles = ScaledSheet.create({
     balanceRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: '8@s',
+        gap: '4@s',
     },
     currencyBadge: {
         width: '28@ms',
@@ -470,9 +471,9 @@ const styles = ScaledSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         width: '80%',
-        padding: '4@s',
+        // padding: '4@s',
         gap: '16@s',
-        marginBottom: '10@vs',
+        // marginBottom: '1@vs',
         marginHorizontal: '10@s',
     },
     divider: {
@@ -491,7 +492,7 @@ const styles = ScaledSheet.create({
         borderColor: '#E2E8F0',
     },
     actionIcon: {
-        marginBottom: '8@vs',
+        marginBottom: '10@vs',
     },
     actionText: {
         fontSize: '12@ms',
