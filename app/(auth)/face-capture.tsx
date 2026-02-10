@@ -1,17 +1,48 @@
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useRouter } from 'expo-router';
-import React from 'react';
-import { StatusBar, Text, TouchableOpacity, View } from 'react-native';
+import { Camera, ScanFaceIcon } from 'lucide-react-native';
+import React, { useRef, useState } from 'react';
+import { ActivityIndicator, Image, StatusBar, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import PrimaryButton from '../../components/PrimaryButton';
 import { Colors } from '../../constants/theme';
-import { ScanFaceIcon } from 'lucide-react-native';
 
 export default function FaceCaptureScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
+    const cameraRef = useRef<CameraView>(null);
+    const [permission, requestPermission] = useCameraPermissions();
+    const [capturedImage, setCapturedImage] = useState<string | null>(null);
+    const [isCapturing, setIsCapturing] = useState(false);
+
+    const handleCapture = async () => {
+        if (!cameraRef.current) return;
+
+        try {
+            setIsCapturing(true);
+            const photo = await cameraRef.current.takePictureAsync({
+                quality: 0.8,
+                base64: false,
+            });
+
+            if (photo) {
+                setCapturedImage(photo.uri);
+            }
+        } catch (error) {
+            console.error('Error capturing photo:', error);
+        } finally {
+            setIsCapturing(false);
+        }
+    };
+
+    const handleRetake = () => {
+        setCapturedImage(null);
+    };
 
     const handleContinue = () => {
+        // In a real app, you would upload the image here
+        console.log('Face captured:', capturedImage);
         router.push('/(tabs)');
     };
 
@@ -19,44 +50,113 @@ export default function FaceCaptureScreen() {
         router.back();
     };
 
+    // Permission not determined yet
+    if (!permission) {
+        return (
+            <View style={styles.container}>
+                <ActivityIndicator size="large" color={Colors.light.primary} />
+            </View>
+        );
+    }
+
+    // Permission denied
+    if (!permission.granted) {
+        return (
+            <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+                <View style={styles.permissionContainer}>
+                    <Camera size={moderateScale(64)} color={Colors.light.primary} />
+                    <Text style={styles.permissionTitle}>Camera Permission Required</Text>
+                    <Text style={styles.permissionText}>
+                        We need access to your camera to capture your face for biometric authentication.
+                    </Text>
+                    <PrimaryButton
+                        title="Grant Permission"
+                        onPress={requestPermission}
+                        style={styles.permissionButton}
+                    />
+                    <TouchableOpacity onPress={handleCancel}>
+                        <Text style={styles.cancelLinkText}>Cancel</Text>
+                    </TouchableOpacity>
+                </View>
+            </View>
+        );
+    }
+
+    // Show captured image preview
+    if (capturedImage) {
+        return (
+            <View style={styles.container}>
+                <StatusBar barStyle="light-content" />
+                <Image source={{ uri: capturedImage }} style={styles.previewImage} />
+
+                <View style={[styles.overlay, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+                    <View style={styles.previewHeader}>
+                        <Text style={styles.previewTitle}>Face Captured Successfully!</Text>
+                        <Text style={styles.previewSubtitle}>Review your photo below</Text>
+                    </View>
+
+                    <View style={styles.footer}>
+                        <PrimaryButton
+                            title="Continue"
+                            onPress={handleContinue}
+                            style={styles.continueButton}
+                            textStyle={{ color: '#FFFFFF' }}
+                        />
+
+                        <TouchableOpacity style={styles.retakeButton} onPress={handleRetake}>
+                            <Text style={styles.retakeText}>Retake Photo</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </View>
+        );
+    }
+
+    // Show camera view
     return (
         <View style={styles.container}>
             <StatusBar barStyle="light-content" />
 
-            <View style={[styles.overlay, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-                {/* Frame Overlay */}
-                <View style={styles.frameContainer}>
-                    {/* Top Left Corner */}
-                    <View style={[styles.corner, styles.topLeft]} />
-                    {/* Top Right Corner */}
-                    <View style={[styles.corner, styles.topRight]} />
-                    {/* Bottom Left Corner */}
-                    <View style={[styles.corner, styles.bottomLeft]} />
-                    {/* Bottom Right Corner */}
-                    <View style={[styles.corner, styles.bottomRight]} />
+            <CameraView
+                ref={cameraRef}
+                style={styles.camera}
+                facing="front"
+            >
+                <View style={[styles.overlay, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+                    {/* Frame Overlay */}
+                    <View style={styles.frameContainer}>
+                        {/* Top Left Corner */}
+                        <View style={[styles.corner, styles.topLeft]} />
+                        {/* Top Right Corner */}
+                        <View style={[styles.corner, styles.topRight]} />
+                        {/* Bottom Left Corner */}
+                        <View style={[styles.corner, styles.bottomLeft]} />
+                        {/* Bottom Right Corner */}
+                        <View style={[styles.corner, styles.bottomRight]} />
+                    </View>
+
+                    <View style={styles.instructionContainer}>
+                        <ScanFaceIcon size={moderateScale(32)} color="#FFFFFF" />
+                        <Text style={styles.instructionText}>
+                            Position your face within the frame
+                        </Text>
+                    </View>
+
+                    <View style={styles.footer}>
+                        <PrimaryButton
+                            title={isCapturing ? "Capturing..." : "Capture Face"}
+                            onPress={handleCapture}
+                            disabled={isCapturing}
+                            style={styles.continueButton}
+                            textStyle={{ color: '#FFFFFF' }}
+                        />
+
+                        <TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
+                            <Text style={styles.cancelText}>Cancel</Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
-
-                <View style={styles.instructionContainer}>
-                    <ScanFaceIcon size={moderateScale(32)} color="#FFFFFF" /> 
-
-                    <Text style={styles.instructionText}>
-                        Kindly position your face to your device camera for capturing.
-                    </Text>
-                </View>
-
-                <View style={styles.footer}>
-                    <PrimaryButton
-                        title="Continue"
-                        onPress={handleContinue}
-                        style={styles.continueButton}
-                        textStyle={{ color: '#FFFFFF' }}
-                    />
-
-                    <TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
-                        <Text style={styles.cancelText}>Cancel</Text>
-                    </TouchableOpacity>
-                </View>
-            </View>
+            </CameraView>
         </View>
     );
 }
@@ -66,9 +166,8 @@ const styles = ScaledSheet.create({
         flex: 1,
         backgroundColor: '#000000',
     },
-    cameraImage: {
-        width: '100%',
-        height: '100%',
+    camera: {
+        flex: 1,
     },
     overlay: {
         flex: 1,
@@ -123,18 +222,13 @@ const styles = ScaledSheet.create({
         borderLeftWidth: 0,
         borderTopWidth: 0,
     },
-    scanHint: {
-        // Optional inner content
-    },
     instructionContainer: {
         flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: '32@vs',
         paddingHorizontal: '20@s',
-    },
-    scanIcon: {
-        marginBottom: '16@vs',
+        gap: '12@s',
     },
     instructionText: {
         color: '#FFFFFF',
@@ -150,7 +244,7 @@ const styles = ScaledSheet.create({
         backgroundColor: Colors.light.primary,
     },
     cancelButton: {
-        height: '40@vs',
+        height: '45@vs',
         borderRadius: '28@ms',
         justifyContent: 'center',
         alignItems: 'center',
@@ -160,5 +254,70 @@ const styles = ScaledSheet.create({
         color: '#0F172A',
         fontSize: '14@ms',
         fontWeight: '500',
+    },
+    retakeButton: {
+        height: '45@vs',
+        borderRadius: '28@ms',
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'transparent',
+        borderWidth: 2,
+        borderColor: '#FFFFFF',
+    },
+    retakeText: {
+        color: '#FFFFFF',
+        fontSize: '14@ms',
+        fontWeight: '500',
+    },
+    permissionContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: '32@s',
+        gap: '16@vs',
+    },
+    permissionTitle: {
+        fontSize: '20@ms',
+        fontWeight: '600',
+        color: '#FFFFFF',
+        textAlign: 'center',
+        marginTop: '16@vs',
+    },
+    permissionText: {
+        fontSize: '14@ms',
+        color: '#CBD5E1',
+        textAlign: 'center',
+        lineHeight: '20@ms',
+    },
+    permissionButton: {
+        marginTop: '16@vs',
+        width: '100%',
+    },
+    cancelLinkText: {
+        fontSize: '14@ms',
+        color: Colors.light.primary,
+        fontWeight: '500',
+        textDecorationLine: 'underline',
+    },
+    previewImage: {
+        width: '100%',
+        height: '100%',
+        position: 'absolute',
+    },
+    previewHeader: {
+        alignItems: 'center',
+        marginTop: '40@vs',
+        gap: '8@vs',
+    },
+    previewTitle: {
+        fontSize: '20@ms',
+        fontWeight: '600',
+        color: '#FFFFFF',
+        textAlign: 'center',
+    },
+    previewSubtitle: {
+        fontSize: '14@ms',
+        color: '#CBD5E1',
+        textAlign: 'center',
     },
 });

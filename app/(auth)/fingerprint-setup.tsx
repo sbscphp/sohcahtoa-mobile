@@ -1,48 +1,95 @@
+import * as LocalAuthentication from 'expo-local-authentication';
 import { useRouter } from 'expo-router';
 import { Fingerprint } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
-import { Text, View } from 'react-native';
+import { Alert, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import AuthHeader from '../../components/AuthHeader';
 import PrimaryButton from '../../components/PrimaryButton';
 import { Colors } from '../../constants/theme';
 
-type Status = 'idle' | 'scanning' | 'success' | 'failure';
+type Status = 'idle' | 'scanning' | 'success' | 'failure' | 'unsupported';
 
 export default function FingerprintSetupScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const [status, setStatus] = useState<Status>('idle');
+    const [hasHardware, setHasHardware] = useState(false);
+    const [isEnrolled, setIsEnrolled] = useState(false);
 
-    // Reset status when component mounts
+    // Check biometric hardware availability on mount
     useEffect(() => {
-        setStatus('idle');
+        checkBiometricAvailability();
     }, []);
 
-    // Handle scanning logic
-    useEffect(() => {
-        let timeout: NodeJS.Timeout;
-        if (status === 'scanning') {
-            // Simulate scanning delay
-            timeout = setTimeout(() => {
-                // Randomly succeed or fail for demo purposes, or default to success
-                // For now, let's allow a retry flow by failing once maybe? 
-                // Or just straight to success for the happy path.
-                // Let's implement a simple toggle or just random:
-                const isSuccess = Math.random() > 0.3;
-                setStatus(isSuccess ? 'success' : 'failure');
-            }, 2000);
-        }
-        return () => clearTimeout(timeout);
-    }, [status]);
+    const checkBiometricAvailability = async () => {
+        try {
+            const compatible = await LocalAuthentication.hasHardwareAsync();
+            setHasHardware(compatible);
 
-    const handleStart = () => {
+            if (compatible) {
+                const enrolled = await LocalAuthentication.isEnrolledAsync();
+                setIsEnrolled(enrolled);
+
+                if (!enrolled) {
+                    setStatus('unsupported');
+                }
+            } else {
+                setStatus('unsupported');
+            }
+        } catch (error) {
+            console.error('Error checking biometric availability:', error);
+            setStatus('unsupported');
+        }
+    };
+
+    const handleStart = async () => {
+        if (!hasHardware) {
+            Alert.alert(
+                'Not Supported',
+                'Your device does not support biometric authentication.',
+                [{ text: 'OK' }]
+            );
+            return;
+        }
+
+        if (!isEnrolled) {
+            Alert.alert(
+                'No Biometrics Enrolled',
+                'Please enroll your fingerprint in your device settings first.',
+                [{ text: 'OK' }]
+            );
+            return;
+        }
+
         setStatus('scanning');
+
+        try {
+            const result = await LocalAuthentication.authenticateAsync({
+                promptMessage: 'Authenticate with your fingerprint',
+                fallbackLabel: 'Use passcode',
+                cancelLabel: 'Cancel',
+            });
+
+            if (result.success) {
+                setStatus('success');
+            } else {
+                // Authentication failed or was cancelled
+                if (result.error === 'user_cancel') {
+                    setStatus('idle');
+                } else {
+                    setStatus('failure');
+                }
+            }
+        } catch (error) {
+            console.error('Authentication error:', error);
+            setStatus('failure');
+        }
     };
 
     const handleRetry = () => {
-        setStatus('scanning');
+        handleStart();
     };
 
     const handleContinue = () => {
@@ -54,9 +101,9 @@ export default function FingerprintSetupScreen() {
         switch (status) {
             case 'scanning':
                 return {
-                    color: Colors.light.primary, // Keep primary but maybe animate?
+                    color: Colors.light.primary,
                     text: 'Scanning...',
-                    description: 'Please hold your finger on the sensor.',
+                    description: 'Please authenticate with your fingerprint.',
                     iconColor: '#FFFFFF',
                     borderColor: Colors.light.primary,
                     borderStyle: 'dashed' as const
@@ -65,7 +112,7 @@ export default function FingerprintSetupScreen() {
                 return {
                     color: '#22C55E', // Green-500
                     text: 'Verification Successful',
-                    description: 'Your fingerprints is now verified.',
+                    description: 'Your fingerprint is now verified.',
                     iconColor: '#15803D', // Green-700
                     borderColor: '#22C55E', // Green-500
                     borderStyle: 'dashed' as const
@@ -74,15 +121,26 @@ export default function FingerprintSetupScreen() {
                 return {
                     color: '#EF4444', // Red-500
                     text: 'Verification Failed',
-                    description: "We couldn't verify your finger print",
+                    description: "We couldn't verify your fingerprint. Please try again.",
                     iconColor: '#B91C1C', // Red-700
                     borderColor: '#EF4444', // Red-500
                     borderStyle: 'dashed' as const
                 };
+            case 'unsupported':
+                return {
+                    color: '#94A3B8', // Gray-400
+                    text: 'Not Available',
+                    description: hasHardware
+                        ? 'Please enroll your fingerprint in device settings first.'
+                        : 'Your device does not support fingerprint authentication.',
+                    iconColor: '#64748B', // Gray-500
+                    borderColor: '#94A3B8',
+                    borderStyle: 'solid' as const
+                };
             case 'idle':
             default:
                 return {
-                    color: Colors.light.primary, // Orange
+                    color: Colors.light.primary,
                     text: 'Fingerprint Setup',
                     description: 'Add a fingerprint recognition to make your account more secure.',
                     iconColor: '#FFFFFF',
@@ -107,9 +165,19 @@ export default function FingerprintSetupScreen() {
                 </View>
 
                 <View style={styles.graphicContainer}>
-                    {/* Background Circles - only show in idle or scanning maybe? Or change color based on state */}
-                    <View style={[styles.circleOuter, { backgroundColor: status === 'success' ? '#DCFCE7' : status === 'failure' ? '#FEE2E2' : Colors.light.primary }]} />
-                    <View style={[styles.circleMiddle, { backgroundColor: status === 'success' ? '#86EFAC' : status === 'failure' ? '#FCA5A5' : Colors.light.primary }]} />
+                    {/* Background Circles */}
+                    <View style={[styles.circleOuter, {
+                        backgroundColor: status === 'success' ? '#DCFCE7'
+                            : status === 'failure' ? '#FEE2E2'
+                                : status === 'unsupported' ? '#F1F5F9'
+                                    : Colors.light.primary
+                    }]} />
+                    <View style={[styles.circleMiddle, {
+                        backgroundColor: status === 'success' ? '#86EFAC'
+                            : status === 'failure' ? '#FCA5A5'
+                                : status === 'unsupported' ? '#CBD5E1'
+                                    : Colors.light.primary
+                    }]} />
 
                     {/* Ring Border for active states */}
                     {status !== 'idle' && (
@@ -126,11 +194,6 @@ export default function FingerprintSetupScreen() {
                         styles.circleInner,
                         {
                             backgroundColor: status === 'idle' ? Colors.light.primary : 'transparent',
-                            // For Success/Failure, inner might be transparent to show icon on middle circle or distinct?
-                            // Design shows:
-                            // Success: Light Green BG with Green Outline Icon
-                            // Failure: Light Red BG with Red Outline Icon
-                            // Idle: Solid Orange BG with White Filled/Outline Icon
                         }
                     ]}>
                         <Fingerprint
@@ -149,7 +212,7 @@ export default function FingerprintSetupScreen() {
                     )}
                     {status === 'scanning' && (
                         <PrimaryButton
-                            title="Scanning..."
+                            title="Authenticating..."
                             onPress={() => { }} // No-op
                             style={{ opacity: 0.7 }}
                         />
@@ -164,6 +227,13 @@ export default function FingerprintSetupScreen() {
                         <PrimaryButton
                             title="Retry"
                             onPress={handleRetry}
+                        />
+                    )}
+                    {status === 'unsupported' && (
+                        <PrimaryButton
+                            title="Skip for Now"
+                            onPress={handleContinue}
+                            style={{ backgroundColor: '#94A3B8' }}
                         />
                     )}
                 </View>
@@ -227,7 +297,7 @@ const styles = ScaledSheet.create({
     },
     dashedBorder: {
         position: 'absolute',
-        width: '300@ms', // Slightly larger than outer
+        width: '300@ms',
         height: '300@ms',
         borderRadius: '150@ms',
         borderWidth: 2,

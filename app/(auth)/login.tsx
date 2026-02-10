@@ -1,4 +1,5 @@
 import BiometricBottomSheet from '@/components/BiometricBottomSheet';
+import { LoginFormData, loginSchema } from '@/lib/validations/auth';
 import { useRouter } from 'expo-router';
 import { Lock, Sms } from 'iconsax-react-nativejs';
 import { ScanFaceIcon } from 'lucide-react-native';
@@ -6,6 +7,7 @@ import React, { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
+import { z } from 'zod';
 import UserSharing from '../../assets/icons/user-sharing.svg';
 import AuthHeader from '../../components/AuthHeader';
 import BiometricSelectionSheet from '../../components/BiometricSelectionSheet';
@@ -18,12 +20,38 @@ export default function LoginScreen() {
     const insets = useSafeAreaInsets();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [errors, setErrors] = useState<Partial<Record<keyof LoginFormData, string>>>({});
     const [showBiometricSheet, setShowBiometricSheet] = useState(false);
     const [showBiometricBottomSheet, setShowBiometricBottomSheet] = useState(false);
 
+    const validateField = (field: keyof LoginFormData, value: string) => {
+        try {
+            loginSchema.shape[field].parse(value);
+            setErrors(prev => ({ ...prev, [field]: undefined }));
+        } catch (error) {
+            if (error instanceof z.ZodError) {
+                setErrors(prev => ({ ...prev, [field]: error.issues[0]?.message }));
+            }
+        }
+    };
+
     const handleLogin = () => {
-        console.log('Login attempt:', { email, password });
-        router.push('/(tabs)');
+        try {
+            loginSchema.parse({ email, password });
+            setErrors({});
+            console.log('Login attempt:', { email, password });
+            router.push('/(tabs)');
+        } catch (error) {
+            if (error instanceof z.ZodError) {
+                const fieldErrors: Partial<Record<keyof LoginFormData, string>> = {};
+                error.issues.forEach((err: z.ZodIssue) => {
+                    if (err.path[0]) {
+                        fieldErrors[err.path[0] as keyof LoginFormData] = err.message;
+                    }
+                });
+                setErrors(fieldErrors);
+            }
+        }
     };
 
     const handleSignUp = () => {
@@ -59,10 +87,11 @@ export default function LoginScreen() {
                             icon={Sms}
                             value={email}
                             onChangeText={setEmail}
+                            onBlur={() => validateField('email', email)}
                             keyboardType="email-address"
                             autoCapitalize="none"
                             required
-                            disabled={!email}
+                            error={errors.email}
                         />
 
                         <InputField
@@ -71,9 +100,10 @@ export default function LoginScreen() {
                             icon={Lock}
                             value={password}
                             onChangeText={setPassword}
+                            onBlur={() => validateField('password', password)}
                             isPassword
                             required
-                            disabled={!password}
+                            error={errors.password}
                         />
 
                         <PrimaryButton

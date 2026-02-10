@@ -1,9 +1,11 @@
 import ProgressBar from '@/components/ProgressBar';
+import { bvnSchema } from '@/lib/validations/auth';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet } from 'react-native-size-matters';
+import { z } from 'zod';
 import AuthHeader from '../../components/AuthHeader';
 import InputField from '../../components/InputField';
 import OtpOptionSheet from '../../components/OtpOptionSheet';
@@ -13,11 +15,29 @@ export default function BvnVerificationScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const [bvn, setBvn] = useState('');
+    const [error, setError] = useState<string>();
     const [isSheetVisible, setIsSheetVisible] = useState(false);
 
+    const validateBvn = (value: string) => {
+        try {
+            bvnSchema.parse({ bvn: value });
+            setError(undefined);
+        } catch (err) {
+            if (err instanceof z.ZodError) {
+                setError(err.issues[0]?.message);
+            }
+        }
+    };
+
     const handleContinue = () => {
-        if (bvn.length === 11) {
+        try {
+            bvnSchema.parse({ bvn });
+            setError(undefined);
             setIsSheetVisible(true);
+        } catch (err) {
+            if (err instanceof z.ZodError) {
+                setError(err.issues[0]?.message);
+            }
         }
     };
 
@@ -51,10 +71,11 @@ export default function BvnVerificationScreen() {
                             placeholder="Enter your BVN"
                             value={bvn}
                             onChangeText={setBvn}
+                            onBlur={() => validateBvn(bvn)}
                             keyboardType="numeric"
                             maxLength={11}
                             required
-                            disabled={!bvn}
+                            error={error}
                         />
                     </View>
                 </ScrollView>

@@ -179,7 +179,7 @@ export default function CreateTouristScreen() {
 
     return (
         <TransactionLayout
-            title={currentStep === 0 ? "School Fees Payment" : "Tourist"}
+            title={"Tourist"}
             currentStep={currentStep}
             totalSteps={4}
             onBack={handleBack}
@@ -207,6 +207,7 @@ export default function CreateTouristScreen() {
                     rate={`1 ${currencySend.code} = 1500 ${currencyGet.code}`}
                     onAmountGetChange={setAmountGet}
                     onAmountSendChange={setAmountSend}
+                    allowedModes={['sell']}
                 />
             )}
 

@@ -109,7 +109,7 @@ export default function MoreScreen() {
                             onPress={() => {
                                 // Perform logout logic here
                                 router.push('/(auth)/welcome-back');
-                                // setLogoutModalVisible(false);
+                                setLogoutModalVisible(false);
                             }}
                             style={{ marginBottom: moderateScale(12) }}
                         />

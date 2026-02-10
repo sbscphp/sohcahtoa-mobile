@@ -67,6 +67,12 @@ export default function HomeScreen() {
         } else if (action === 'touring_inbound') {
             setActionSheetType(null);
             router.push('/(sell-fx)/(tourist)/create-tourist');
+        } else if (action === 'resident') {
+            setActionSheetType(null);
+            router.push('/(sell-fx)/(resident)/create-resident');
+        } else if (action === 'expatriate') {
+            setActionSheetType(null);
+            router.push('/(sell-fx)/(expatriate)/create-expatriate');
         } else {
             setActionSheetType(null);
         }

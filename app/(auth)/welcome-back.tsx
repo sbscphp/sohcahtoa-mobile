@@ -14,7 +14,7 @@ export default function WelcomeBackScreen() {
     const [error, setError] = useState(false);
 
     const PASSCODE_LENGTH = 6;
-    const CORRECT_PASSCODE = '123456'; 
+    const CORRECT_PASSCODE = '123456';
 
     useEffect(() => {
         if (passcode.length === PASSCODE_LENGTH) {
@@ -71,12 +71,11 @@ export default function WelcomeBackScreen() {
         <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
             <View style={styles.content}>
 
-                {/* User Info */}
                 <View style={styles.userSection}>
                     <View style={styles.avatarContainer}>
-                        {/* Placeholder for user image */}
+
                         <Image
-                            source={{ uri: 'https://i.pravatar.cc/300' }}
+                            source={require('../../assets/images/user-img-1.jpg')}
                             style={styles.avatar}
                         />
                     </View>

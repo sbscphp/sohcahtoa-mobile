@@ -12,6 +12,7 @@ interface InputFieldProps extends TextInputProps {
     disabled?: boolean;
     wrapperStyle?: any;
     height?: number | string;
+    error?: string;
 }
 
 const InputField: React.FC<InputFieldProps> = ({
@@ -23,6 +24,7 @@ const InputField: React.FC<InputFieldProps> = ({
     disabled,
     wrapperStyle,
     height,
+    error,
     ...props
 }) => {
     const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -35,7 +37,8 @@ const InputField: React.FC<InputFieldProps> = ({
             <View style={[
                 disabled ? styles.inputDisabledWrapper : styles.inputWrapper,
                 wrapperStyle,
-                height ? { height } : undefined
+                height ? { height } : undefined,
+                error ? styles.inputError : undefined
             ]}>
                 {icon && (
                     React.isValidElement(icon) ? (
@@ -69,6 +72,7 @@ const InputField: React.FC<InputFieldProps> = ({
                     <RightIconComponent size={moderateScale(20)} color="rgba(77, 75, 75, 1)" style={{ marginLeft: moderateScale(12) }} />
                 )}
             </View>
+            {error && <Text style={styles.errorText}>{error}</Text>}
         </View>
     );
 };
@@ -78,7 +82,7 @@ const styles = ScaledSheet.create({
         marginBottom: '16@vs',
     },
     label: {
-        fontSize: '12@ms',
+        fontSize: '12.5@ms',
         fontWeight: '400',
         color: '#475569',
         marginBottom: '8@vs',
@@ -117,6 +121,15 @@ const styles = ScaledSheet.create({
     },
     rightIcon: {
         padding: '6@ms',
+    },
+    inputError: {
+        borderColor: '#EF4444',
+    },
+    errorText: {
+        fontSize: '11@ms',
+        color: '#EF4444',
+        marginTop: '4@vs',
+        marginLeft: '14@s',
     },
 });
 

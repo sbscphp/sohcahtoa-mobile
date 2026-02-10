@@ -7,7 +7,7 @@ import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Text, TouchableOpacity } from 'react-native';
 
-export default function ViewTouristScreen() {
+export default function ViewExpatriateScreen() {
     const router = useRouter();
     const [activeTab, setActiveTab] = useState('overview');
 
@@ -15,10 +15,9 @@ export default function ViewTouristScreen() {
     const [status, setStatus] = useState<TransactionStatus>('pending');
 
     // Document States
-
-    const [passportFile, setPassportFile] = useState<string | null>('my-passport.jpg');
-    const [visaFile, setVisaFile] = useState<string | null>('my-visa.pdf');
-    const [ticketFile, setTicketFile] = useState<string | null>('my-return-ticket.pdf');
+    const [workPermitFile, setWorkPermitFile] = useState<string | null>('work_permit.pdf');
+    const [passportFile, setPassportFile] = useState<string | null>('passport.pdf');
+    const [utilityBillFile, setUtilityBillFile] = useState<string | null>('utility_bill.pdf');
 
     const handleBack = () => {
         router.back();
@@ -26,10 +25,10 @@ export default function ViewTouristScreen() {
 
     const handleProceed = () => {
         // Navigate to payment screen for approved transactions
-        router.push('/(sell-fx)/(tourist)/payment');
+        router.push('/(sell-fx)/(expatriate)/payment');
     };
 
-    const handleUpload = async (docType: 'passport' | 'visa' | 'ticket') => {
+    const handleUpload = async (docType: 'work_permit' | 'passport' | 'utility') => {
         try {
             const result = await getDocumentAsync({
                 type: ['application/pdf', 'image/*'],
@@ -40,15 +39,14 @@ export default function ViewTouristScreen() {
                 const file = result.assets[0];
                 const fileName = file.name;
 
-                if (docType === 'passport') setPassportFile(fileName);
-                else if (docType === 'visa') setVisaFile(fileName);
-                else if (docType === 'ticket') setTicketFile(fileName);
+                if (docType === 'work_permit') setWorkPermitFile(fileName);
+                else if (docType === 'passport') setPassportFile(fileName);
+                else if (docType === 'utility') setUtilityBillFile(fileName);
             }
         } catch (error) {
             console.error("Error picking document:", error);
         }
     };
-
 
     const toggleState = () => {
         if (status === 'pending') setStatus('approved');
@@ -65,35 +63,33 @@ export default function ViewTouristScreen() {
         { key: 'docs', label: 'Documentation' },
     ];
 
-
     const detailsItems = [
-        { label: 'Transaction ID', value: 'TOUR-994821' },
+        { label: 'Transaction ID', value: 'EXP-994821' },
         { label: 'Amount (₦)', value: '₦ 1,500,000' },
-        { label: 'Equivalent Amount (FX)', value: '$1,200' },
-        { label: 'Date Initiated', value: 'Feb 10 2026' },
-        { label: 'Pickup Point', value: 'Ikeja Application Center', isRightAligned: true },
+        { label: 'Equivalent Amount (FX)', value: '$1,000' },
+        { label: 'Date Initiated', value: 'Feb 9 2026' },
+        { label: 'Pickup Point', value: 'Femi Areola Street, Ikeja GRA.', isRightAligned: true },
     ];
 
     const detailsDocuments = [
-        { label: 'International Passport', fileName: 'my-passport.jpg' },
-        { label: 'Visa', fileName: 'my-visa.pdf' },
-        { label: 'Return Ticket', fileName: 'my-return-ticket.pdf' },
+        { label: 'Work Permit', fileName: 'work_permit.pdf' },
+        { label: 'International Passport', fileName: 'passport.pdf' },
+        { label: 'Utility Bill', fileName: 'utility_bill.pdf' },
     ];
 
     const docsItems = [
+        { label: 'Work Permit', fileName: workPermitFile, onUpload: () => handleUpload('work_permit'), required: true },
         { label: 'International Passport', fileName: passportFile, onUpload: () => handleUpload('passport'), required: true },
-        { label: 'Valid Visa', fileName: visaFile, onUpload: () => handleUpload('visa'), required: true },
-        { label: 'Return Ticket', fileName: ticketFile, onUpload: () => handleUpload('ticket'), required: true },
+        { label: 'Utility Bill (Not more than 3 months old)', fileName: utilityBillFile, onUpload: () => handleUpload('utility'), required: true },
     ];
-
 
     const getMessage = () => {
         if (status === 'approved' || status === 'awaiting_disbursement' || status === 'settled')
-            return "Congratulations! You application have been approved. Kindly proceed to make payment.";
+            return "Congratulations! Your application has been approved. Kindly proceed to complete the transaction.";
         if (status === 'rejected')
             return "Your request has been declined. Please check the requirements and try again.";
 
-        return "This is a message box that show the message from the SohCahToa Admin regarding the request for more information about this application. Admin noted that the documents are unclear.";
+        return "This is a message box that shows the message from the SohCahToa Admin regarding the request for more information about this application. Admin noted that the documents are unclear.";
     };
 
     return (
@@ -116,8 +112,8 @@ export default function ViewTouristScreen() {
                 <TransactionStatusView
                     status={status}
                     id="994821"
-                    date="10 Feb 2026"
-                    time="10:30 am"
+                    date="9 Feb 2026"
+                    time="9:15 pm"
                     message={getMessage()}
                 />
             )}

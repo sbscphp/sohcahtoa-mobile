@@ -259,8 +259,8 @@ const styles = ScaledSheet.create({
     },
     logoPlaceholder: {
         width: '100%',
-        height: '75@ms',
-        paddingLeft: '1@s',
+        height: '80@ms',
+        marginLeft: '-16@s',
         top: '-2@vs',
     },
     contentContainer: {
