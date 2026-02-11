@@ -1,3 +1,4 @@
+import { QueryProvider } from '@/components/QueryProvider';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -40,20 +41,22 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="index" options={{ headerShown: false }} />
-        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="(buy-fx)" options={{ headerShown: false }} />
-        <Stack.Screen name="(sell-fx)" options={{ headerShown: false }} />
-        <Stack.Screen name="all-transactions" options={{ headerShown: false }} />
-        <Stack.Screen name="security/change-password" options={{ headerShown: false }} />
-        <Stack.Screen name="(more)" options={{ headerShown: false }} />
-        <Stack.Screen name="(receive-fx)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    <QueryProvider>
+      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <Stack>
+          <Stack.Screen name="index" options={{ headerShown: false }} />
+          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="(buy-fx)" options={{ headerShown: false }} />
+          <Stack.Screen name="(sell-fx)" options={{ headerShown: false }} />
+          <Stack.Screen name="all-transactions" options={{ headerShown: false }} />
+          <Stack.Screen name="security/change-password" options={{ headerShown: false }} />
+          <Stack.Screen name="(more)" options={{ headerShown: false }} />
+          <Stack.Screen name="(receive-fx)" options={{ headerShown: false }} />
+          <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+        </Stack>
+        <StatusBar style="auto" />
+      </ThemeProvider>
+    </QueryProvider>
   );
 }
