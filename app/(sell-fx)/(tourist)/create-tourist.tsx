@@ -3,6 +3,7 @@ import DatePickerField from '@/components/DatePickerField';
 import InitiateTransactionSheet from '@/components/InitiateTransactionSheet';
 import InputField from '@/components/InputField';
 import { LocationItem } from '@/components/LocationSelectionSheet';
+import SourceOfFundsSheet from '@/components/SourceOfFundsSheet';
 import CredentialStep from '@/components/transaction-flow/CredentialStep';
 import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
@@ -79,8 +80,8 @@ export default function CreateTouristScreen() {
     // Transfer Details
     const [accountName, setAccountName] = useState('');
     const [bankName, setBankName] = useState('');
-
     const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
+    const [showSourceOfFundsSheet, setShowSourceOfFundsSheet] = useState(false);
 
     // Configuration for Step 0
     const credentialFields = [
@@ -208,6 +209,9 @@ export default function CreateTouristScreen() {
                     onAmountGetChange={setAmountGet}
                     onAmountSendChange={setAmountSend}
                     allowedModes={['sell']}
+                    showLimitWarning
+                    // ={parseFloat(amountSend.replace(/,/g, '')) > 10000}
+                    onLimitWarningPress={() => setShowSourceOfFundsSheet(true)}
                 />
             )}
 
@@ -298,6 +302,30 @@ export default function CreateTouristScreen() {
                         iconType: 'verify'
                     }
                 ]}
+            />
+
+            <SourceOfFundsSheet
+                visible={showSourceOfFundsSheet}
+                onClose={() => setShowSourceOfFundsSheet(false)}
+                onSubmit={() => {
+                    setShowSourceOfFundsSheet(false);
+                   
+                    console.log('Source of Funds Declaration Submitted');
+                }}
+                customerInfo={{
+                    fullName: 'Feubode Gesikeme', // Placeholder
+                    phoneNumber: '09042136679', // Placeholder
+                    email: 'kemef@gmail.com', // Placeholder
+                    bvn: '55544332278554', // Placeholder
+                    address: '16a Alexandre drive', // Placeholder
+                    passportNumber: passportNumberInput || '102234556777776'
+                }}
+                transactionDetails={{
+                    type: 'Tourist',
+                    currency: currencySend.currencyName,
+                    amount: `${currencySend.code} ${amountSend}`,
+                    purpose: 'Travel'
+                }}
             />
         </TransactionLayout>
     );

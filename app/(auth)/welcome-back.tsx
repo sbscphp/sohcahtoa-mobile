@@ -6,12 +6,16 @@ import { Image, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import { Colors } from '../../constants/theme';
+import BiometricBottomSheet from '@/components/BiometricBottomSheet';
+import BiometricSelectionSheet from '@/components/BiometricSelectionSheet';
 
 export default function WelcomeBackScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const [passcode, setPasscode] = useState<string[]>([]);
     const [error, setError] = useState(false);
+    const [showBiometricBottomSheet, setShowBiometricBottomSheet] = useState(false);
+    const [showBiometricSheet, setShowBiometricSheet] = useState(false);
 
     const PASSCODE_LENGTH = 6;
     const CORRECT_PASSCODE = '123456';
@@ -48,9 +52,7 @@ export default function WelcomeBackScreen() {
     };
 
     const handleBiometric = () => {
-        // Mock biometric auth
-        console.log("Biometric triggered");
-        // router.replace('/(tabs)');
+      setShowBiometricBottomSheet(true);
     };
 
     const handleSignUp = () => {
@@ -150,6 +152,26 @@ export default function WelcomeBackScreen() {
                 </View>
 
             </View>
+             <BiometricBottomSheet
+                visible={showBiometricBottomSheet}
+                onClose={() => setShowBiometricBottomSheet(false)}
+                onConfirm={() => {
+                    setShowBiometricSheet(true);
+                    setShowBiometricBottomSheet(false);
+                }}
+            />
+             <BiometricSelectionSheet
+                visible={showBiometricSheet}
+                onClose={() => setShowBiometricSheet(false)}
+                onSelectFace={() => {
+                    setShowBiometricSheet(false);
+                    router.push('/(auth)/biometrics-setup');
+                }}
+                onSelectFingerprint={() => {
+                    setShowBiometricSheet(false);
+                    router.push('/(auth)/fingerprint-setup');
+                }}
+            />
         </View>
     );
 }

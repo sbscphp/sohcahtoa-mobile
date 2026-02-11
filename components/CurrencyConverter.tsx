@@ -2,7 +2,7 @@ import CurrencySelectionSheet from '@/components/CurrencySelectionSheet';
 import InputField from '@/components/InputField';
 import { ArrowDown2 } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
-import { Image, Pressable, Text, View } from 'react-native';
+import { Image, Pressable, Text, TouchableOpacity, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import SwapIcons from '../assets/icons/coins-swap.svg';
 
@@ -30,6 +30,8 @@ export interface CurrencyConverterProps {
     allowedModes?: ('buy' | 'sell')[];
     onAmountGetChange?: (amount: string) => void;
     onAmountSendChange?: (amount: string) => void;
+    showLimitWarning?: boolean;
+    onLimitWarningPress?: () => void;
 }
 
 export default function CurrencyConverter({
@@ -44,7 +46,9 @@ export default function CurrencyConverter({
     rate,
     allowedModes = ['buy', 'sell'],
     onAmountGetChange,
-    onAmountSendChange
+    onAmountSendChange,
+    showLimitWarning = false,
+    onLimitWarningPress
 }: CurrencyConverterProps) {
     const [currencySheetVisible, setCurrencySheetVisible] = useState(false);
     const [activeCurrencyField, setActiveCurrencyField] = useState<'get' | 'send' | null>(null);
@@ -141,6 +145,16 @@ export default function CurrencyConverter({
                             }
                         />
                     </View>
+                    {showLimitWarning && (
+                        <TouchableOpacity
+                            style={{ backgroundColor: '#F1F1F1', padding: 10, borderRadius: 10 }}
+                            onPress={onLimitWarningPress}
+                        >
+                            <Text style={{ fontSize: moderateScale(12), color: 'rgba(217, 45, 32, 1)', fontWeight: '400' }}>
+                                Amount is higher than $ 10,000. Please <Text style={{ fontSize: moderateScale(12), color: 'rgba(217, 45, 32, 1)', fontWeight: '400', textDecorationLine: 'underline' }}>Upload a proof of fund</Text>
+                            </Text>
+                        </TouchableOpacity>
+                    )}
                 </View>
             </View>
 

@@ -100,9 +100,9 @@ export default function ViewResidentScreen() {
             onActionPress={handleProceed}
         >
 
-            <TouchableOpacity onPress={toggleState} style={{ marginLeft: 'auto', justifyContent: 'center', marginBottom: 10 }}>
+            {/* <TouchableOpacity onPress={toggleState} style={{ marginLeft: 'auto', justifyContent: 'center', marginBottom: 10 }}>
                 <Text style={{ fontSize: 10, color: '#ccc' }}>DEV: {status}</Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
 
             {activeTab === 'overview' && (
                 <TransactionStatusView

@@ -20,27 +20,21 @@ interface TransactionDocsViewProps {
 
 export default function TransactionDocsView({ status, documents }: TransactionDocsViewProps) {
 
-    const getDocStatus = (): 'approved' | 'pending' | 'error' => {
-        if (status === 'approved' || status === 'awaiting_disbursement' || status === 'settled' || status === 'more_info') return 'approved';
-        if (status === 'rejected') return 'error';
-        return 'pending';
+    const getDocStatus = (): 'approved' | 'error' => {
+        if (status === 'approved') return 'approved';
+        return 'error';
     };
 
     const StatusIndicator = () => {
         if (status === 'rejected') {
             return <CloseCircle size={moderateScale(16)} color="#EF4444" variant="Bold" />;
         }
-        return <TickCircle size={moderateScale(16)}
-            color={status === 'approved' || status === 'awaiting_disbursement' || status === 'settled' ? "#16A34A" : status === 'more_info' ? "#EF4444" : "rgba(221, 79, 5, 1)"}
-            variant="Bold"
-        />;
+        return <TickCircle size={moderateScale(16)} color="#16A34A" variant="Bold" />;
     };
 
     const getStatusText = () => {
-        if (status === 'approved' || status === 'awaiting_disbursement' || status === 'settled') return 'Approved';
-        if (status === 'rejected') return 'Rejected';
-        if (status === 'more_info') return 'Resubmission Required';
-        return 'Under Review';
+        if (status === 'approved') return 'Approved';
+        return 'Rejected';
     };
 
     return (
@@ -66,11 +60,9 @@ export default function TransactionDocsView({ status, documents }: TransactionDo
                             <View style={[styles.docStatusRow, { marginTop: 0 }]}>
                                 <StatusIndicator />
                                 <Text style={
-                                    status === 'approved' || status === 'awaiting_disbursement' || status === 'settled'
+                                    status === 'approved'
                                         ? styles.docStatusTextApproved
-                                        : status === 'more_info' || status === 'rejected'
-                                            ? styles.docStatusTextError
-                                            : styles.docStatusTextPending
+                                        : styles.docStatusTextError
                                 }>
                                     {getStatusText()}
                                 </Text>

@@ -27,6 +27,8 @@ interface ExchangeStepProps {
     allowedModes?: ('buy' | 'sell')[];
     onAmountGetChange?: (amount: string) => void;
     onAmountSendChange?: (amount: string) => void;
+    showLimitWarning?: boolean;
+    onLimitWarningPress?: () => void;
 }
 
 export default function ExchangeStep({
@@ -41,7 +43,9 @@ export default function ExchangeStep({
     rate,
     allowedModes,
     onAmountGetChange,
-    onAmountSendChange
+    onAmountSendChange,
+    showLimitWarning,
+    onLimitWarningPress
 }: ExchangeStepProps) {
 
 
@@ -62,6 +66,8 @@ export default function ExchangeStep({
                 allowedModes={allowedModes}
                 onAmountGetChange={onAmountGetChange}
                 onAmountSendChange={onAmountSendChange}
+                showLimitWarning={showLimitWarning}
+                onLimitWarningPress={onLimitWarningPress}
             />
         </View>
     );
@@ -77,5 +83,4 @@ const styles = ScaledSheet.create({
         color: '#0F172A',
         marginBottom: '16@vs',
     },
-    // Other styles removed as they are now in CurrencyConverter
 });
