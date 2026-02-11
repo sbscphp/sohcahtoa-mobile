@@ -1,8 +1,8 @@
 import FileUpload from '@/components/FileUpload';
 import PrimaryButton from '@/components/PrimaryButton';
-import { InfoCircle, Warning2 } from 'iconsax-react-nativejs';
+import { InfoCircle } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
-import { Modal, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 
 interface InfoRowProps {
@@ -47,9 +47,9 @@ export default function SourceOfFundsSheet({
     const [signatureFile, setSignatureFile] = useState<string | null>(null);
 
     const handleUploadSignature = () => {
-      
+
         console.log('Pick signature');
-        setSignatureFile('signature.png'); // Mock
+        setSignatureFile('signature.png');
     };
 
     return (
@@ -63,8 +63,6 @@ export default function SourceOfFundsSheet({
                 <TouchableOpacity style={styles.backdrop} onPress={onClose} activeOpacity={1} />
 
                 <View style={styles.sheetContainer}>
-                    {/* <View style={styles.indicator} /> */}
-
                     <ScrollView
                         showsVerticalScrollIndicator={false}
                         contentContainerStyle={styles.scrollContent}
@@ -137,26 +135,22 @@ const styles = ScaledSheet.create({
         justifyContent: 'flex-end',
     },
     backdrop: {
-        ...Platform.select({
-            android: {
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-            },
-        }),
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
     },
     sheetContainer: {
         backgroundColor: '#FFFFFF',
         borderRadius: '24@ms',
         maxHeight: '80%',
         paddingTop: '12@vs',
-        marginBottom: '20@vs',
+        marginBottom: '40@vs',
         marginHorizontal: '12@s',
     },
     scrollContent: {
-        paddingHorizontal: '20@ms',
+        paddingHorizontal: '16@ms',
         paddingBottom: '40@vs',
     },
     header: {
@@ -184,14 +178,15 @@ const styles = ScaledSheet.create({
         marginBottom: '16@vs',
     },
     title: {
-        fontSize: '14@ms',
+        fontSize: '17@ms',
         fontWeight: '600',
         color: '#0F172A',
         marginBottom: '8@vs',
         width: '80%',
+        lineHeight: '20@vs',
     },
     subtitle: {
-        fontSize: '12@ms',
+        fontSize: '13@ms',
         color: '#64748B',
     },
     section: {

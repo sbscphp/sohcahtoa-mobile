@@ -1,7 +1,7 @@
 import Header from '@/components/Header';
 import PrimaryButton from '@/components/PrimaryButton';
 import React, { useRef } from 'react';
-import { PanResponder, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { PanResponder, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 
@@ -35,27 +35,26 @@ export default function TransactionViewLayout({
 }: TransactionViewLayoutProps) {
     const insets = useSafeAreaInsets();
 
-    // Create pan responder for swipe gestures
-    const panResponder = useRef(
-        PanResponder.create({
-            onMoveShouldSetPanResponder: (_, gestureState) => {
+    // const panResponder = useRef(
+    //     PanResponder.create({
+    //         onMoveShouldSetPanResponder: (_, gestureState) => {
 
-                return Math.abs(gestureState.dx) > Math.abs(gestureState.dy) && Math.abs(gestureState.dx) > 20;
-            },
-            onPanResponderRelease: (_, gestureState) => {
-                const currentIndex = tabs.findIndex(tab => tab.key === activeTab);
+    //             return Math.abs(gestureState.dx) > Math.abs(gestureState.dy) && Math.abs(gestureState.dx) > 20;
+    //         },
+    //         onPanResponderRelease: (_, gestureState) => {
+    //             const currentIndex = tabs.findIndex(tab => tab.key === activeTab);
 
 
-                if (gestureState.dx < -50 && currentIndex < tabs.length - 1) {
-                    onTabChange(tabs[currentIndex + 1].key);
-                }
+    //             if (gestureState.dx < -50 && currentIndex < tabs.length - 1) {
+    //                 onTabChange(tabs[currentIndex + 1].key);
+    //             }
 
-                else if (gestureState.dx > 50 && currentIndex > 0) {
-                    onTabChange(tabs[currentIndex - 1].key);
-                }
-            },
-        })
-    ).current;
+    //             else if (gestureState.dx > 50 && currentIndex > 0) {
+    //                 onTabChange(tabs[currentIndex - 1].key);
+    //             }
+    //         },
+    //     })
+    // ).current;
 
     return (
         <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -63,7 +62,7 @@ export default function TransactionViewLayout({
 
             <View style={styles.tabBar}>
                 {tabs.map((tab) => (
-                    <TouchableOpacity
+                    <Pressable
                         key={tab.key}
                         style={styles.tabItem}
                         onPress={() => onTabChange(tab.key)}
@@ -72,11 +71,11 @@ export default function TransactionViewLayout({
                             {tab.label}
                         </Text>
                         {activeTab === tab.key && <View style={styles.activeTabIndicator} />}
-                    </TouchableOpacity>
+                    </Pressable>
                 ))}
             </View>
 
-            <View style={{ flex: 1 }} {...panResponder.panHandlers}>
+            <View style={{ flex: 1 }}>
                 <ScrollView
                     style={{ flex: 1 }}
                     contentContainerStyle={styles.scrollContent}
@@ -126,7 +125,7 @@ const styles = ScaledSheet.create({
         position: 'absolute',
         bottom: 0,
         height: 2,
-        width: '80%',
+        width: '90%',
         backgroundColor: 'rgba(221, 79, 5, 1)',
     },
     scrollContent: {

@@ -1,5 +1,5 @@
-import InputField from '@/components/InputField';
-import { Calendar, CloseCircle, TickSquare, WalletMinus } from 'iconsax-react-nativejs';
+import DatePickerField from '@/components/DatePickerField';
+import { CloseCircle, TickSquare, WalletMinus } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
@@ -15,8 +15,8 @@ const FilterBottomSheet: React.FC<FilterBottomSheetProps> = ({
     onClose,
     onFilter
 }) => {
-    const [startDate, setStartDate] = useState('Dec 1 2025');
-    const [endDate, setEndDate] = useState('Dec 9 2025');
+    const [startDate, setStartDate] = useState('01/12/2025');
+    const [endDate, setEndDate] = useState('09/12/2025');
     const [statusSelected, setStatusSelected] = useState(false);
     const [typeSelected, setTypeSelected] = useState(false);
 
@@ -54,21 +54,21 @@ const FilterBottomSheet: React.FC<FilterBottomSheetProps> = ({
                         <Text style={styles.sectionTitle}>Filter by Date</Text>
                         <View style={styles.dateRow}>
                             <View style={styles.dateInputContainer}>
-                                <InputField
+                                <DatePickerField
                                     label="Start Date"
                                     value={startDate}
-                                    onChangeText={setStartDate}
-                                    placeholder="MMM D YYYY"
-                                    rightIcon={Calendar}
+                                    onDateChange={setStartDate}
+                                    placeholder="DD/MM/YYYY"
+                                // rightIcon={Calendar} // DatePickerField handles icon
                                 />
                             </View>
                             <View style={styles.dateInputContainer}>
-                                <InputField
+                                <DatePickerField
                                     label="End Date"
                                     value={endDate}
-                                    onChangeText={setEndDate}
-                                    placeholder="MMM D YYYY"
-                                    rightIcon={Calendar}
+                                    onDateChange={setEndDate}
+                                    placeholder="DD/MM/YYYY"
+                                // rightIcon={Calendar}
                                 />
                             </View>
                         </View>

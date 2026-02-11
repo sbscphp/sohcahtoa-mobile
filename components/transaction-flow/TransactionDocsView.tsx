@@ -26,15 +26,20 @@ export default function TransactionDocsView({ status, documents }: TransactionDo
     };
 
     const StatusIndicator = () => {
-        if (status === 'rejected') {
-            return <CloseCircle size={moderateScale(16)} color="#EF4444" variant="Bold" />;
+        if (status === 'approved') {
+            return <TickCircle size={moderateScale(16)} color="#16A34A" variant="Bold" />;
         }
-        return <TickCircle size={moderateScale(16)} color="#16A34A" variant="Bold" />;
+        return <CloseCircle size={moderateScale(16)} color="#EF4444" variant="Bold" />;
     };
 
     const getStatusText = () => {
         if (status === 'approved') return 'Approved';
         return 'Rejected';
+    };
+
+    const getStatusTextStyle = () => {
+        if (status === 'approved') return styles.docStatusTextApproved;
+        return styles.docStatusTextError;
     };
 
     return (
@@ -59,11 +64,7 @@ export default function TransactionDocsView({ status, documents }: TransactionDo
                             />
                             <View style={[styles.docStatusRow, { marginTop: 0 }]}>
                                 <StatusIndicator />
-                                <Text style={
-                                    status === 'approved'
-                                        ? styles.docStatusTextApproved
-                                        : styles.docStatusTextError
-                                }>
+                                <Text style={getStatusTextStyle()}>
                                     {getStatusText()}
                                 </Text>
                             </View>

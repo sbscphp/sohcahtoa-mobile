@@ -48,6 +48,7 @@ export default function RootLayout() {
         <Stack.Screen name="(buy-fx)" options={{ headerShown: false }} />
         <Stack.Screen name="(sell-fx)" options={{ headerShown: false }} />
         <Stack.Screen name="all-transactions" options={{ headerShown: false }} />
+        <Stack.Screen name="security/change-password" options={{ headerShown: false }} />
         <Stack.Screen name="(more)" options={{ headerShown: false }} />
         <Stack.Screen name="(receive-fx)" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />

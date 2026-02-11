@@ -30,11 +30,13 @@ export default function MoreScreen() {
             icon: <ShieldSecurity size={moderateScale(18)} color="rgba(255, 104, 19, 1)" variant="Linear" />,
             title: 'Security',
             subtitle: 'Update password, keep your account secure.',
+            onPress: () => router.push('/security/change-password'),
         },
         {
             icon: <Cards size={moderateScale(18)} color="rgba(255, 104, 19, 1)" variant="Linear" />,
             title: 'Manage Cards',
             subtitle: 'Update or remove your payment cards',
+            onPress: () => router.push('/security/change-password'),
         },
         {
             icon: <Headphone size={moderateScale(18)} color="rgba(255, 104, 19, 1)" variant="Linear" />,
