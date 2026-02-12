@@ -6,6 +6,7 @@ import { useAuthStore } from '../../../stores/useAuthStore';
 
 export const useLoginMutation = () => {
     const setToken = useAuthStore((state) => state.setToken);
+    const setRefreshToken = useAuthStore((state) => state.setRefreshToken);
     const setUser = useAuthStore((state) => state.setUser);
     const showToast = useToastStore((state) => state.showToast);
 
@@ -14,7 +15,9 @@ export const useLoginMutation = () => {
         onSuccess: (response) => {
             if (response.success && response.data) {
                 setToken(response.data.accessToken);
+                setRefreshToken(response.data.refreshToken);
                 setUser(response.data.user);
+
                 showToast('Login Successful!', 'success');
             }
         },

@@ -134,6 +134,76 @@ export interface CreateTouristAccountResponse {
     };
 }
 
+export interface RefreshPayload {
+    refreshToken: string;
+}
+
+export interface RefreshResponse {
+    success: boolean;
+    data: {
+        accessToken: string;
+    };
+}
+
+export interface LogoutPayload {
+    refreshToken: string;
+}
+
+export interface LogoutResponse {
+    success: boolean;
+    data: {
+        message: string;
+    };
+}
+
+export interface VerifyKycPayload {
+    documentType: string;
+    documentNumber: string;
+}
+
+export interface VerifyKycResponse {
+    success: boolean;
+    data: {
+        verificationToken: string;
+        message: string;
+    };
+}
+
+export interface UploadPassportResponse {
+    success: boolean;
+    data: {
+        passportDocumentUrl: string;
+    };
+}
+
+export interface PassportStatusResponse {
+    success: boolean;
+    data: {
+        status: 'PENDING' | 'APPROVED' | 'REJECTED';
+    };
+}
+
+export interface ProfileResponse {
+    success: boolean;
+    data: {
+        user?: {
+            id: string;
+            name: string;
+            email: string;
+            phoneNumber?: string;
+            nationality?: string;
+            isVerified: boolean;
+        };
+    };
+}
+
+
+
+
+
+
+
+
 
 
 

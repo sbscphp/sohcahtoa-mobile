@@ -1,4 +1,4 @@
-import { CreateAccountPayload, CreateAccountResponse, CreateTouristAccountPayload, CreateTouristAccountResponse, LoginPayload, LoginResponse, SendOtpPayload, SendOtpResponse, SendTouristOtpPayload, SendTouristOtpResponse, ValidateOtpPayload, ValidateOtpResponse, ValidateTouristOtpPayload, ValidateTouristOtpResponse, VerifyBvnPayload, VerifyBvnResponse, VerifyPassportPayload, VerifyPassportResponse } from '@/types/api/auth';
+import { CreateAccountPayload, CreateAccountResponse, CreateTouristAccountPayload, CreateTouristAccountResponse, LoginPayload, LoginResponse, LogoutPayload, LogoutResponse, PassportStatusResponse, ProfileResponse, RefreshPayload, RefreshResponse, SendOtpPayload, SendOtpResponse, SendTouristOtpPayload, SendTouristOtpResponse, UploadPassportResponse, ValidateOtpPayload, ValidateOtpResponse, ValidateTouristOtpPayload, ValidateTouristOtpResponse, VerifyBvnPayload, VerifyBvnResponse, VerifyKycPayload, VerifyKycResponse, VerifyPassportPayload, VerifyPassportResponse } from '@/types/api/auth';
 import api from './api';
 
 export const loginUser = async (credentials: LoginPayload): Promise<LoginResponse> => {
@@ -43,5 +43,39 @@ export const validateTouristOtp = async (payload: ValidateTouristOtpPayload): Pr
 
 export const createTouristAccount = async (payload: CreateTouristAccountPayload): Promise<CreateTouristAccountResponse> => {
     const response = await api.post('/auth/signup/tourist/create-account', payload);
+    return response.data;
+};
+
+export const refreshTokens = async (payload: RefreshPayload): Promise<RefreshResponse> => {
+    const response = await api.post('/auth/refresh', payload);
+    return response.data;
+};
+
+export const logoutUser = async (payload: LogoutPayload): Promise<LogoutResponse> => {
+    const response = await api.post('/auth/logout', payload);
+    return response.data;
+};
+
+export const verifyKyc = async (payload: VerifyKycPayload): Promise<VerifyKycResponse> => {
+    const response = await api.post('/auth/kyc/verify', payload);
+    return response.data;
+};
+
+export const uploadPassport = async (formData: FormData): Promise<UploadPassportResponse> => {
+    const response = await api.post('/auth/signup/tourist/upload-passport', formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        },
+    });
+    return response.data;
+};
+
+export const getPassportStatus = async (): Promise<PassportStatusResponse> => {
+    const response = await api.get('/auth/kyc/passport/status');
+    return response.data;
+};
+
+export const getUserProfile = async (): Promise<ProfileResponse> => {
+    const response = await api.get('/auth/profile');
     return response.data;
 };
