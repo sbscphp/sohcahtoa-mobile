@@ -83,7 +83,7 @@ export default function LocationStep({
             <View style={{ flexDirection: 'row', gap: moderateScale(12) }}>
                 <View style={{ flex: 1 }}>
                     <DatePickerField
-                        label='Pick-up Date'
+                        label='Pickup Date'
                         value={pickupDate}
                         onDateChange={onPickupDateChange}
                         required
@@ -92,7 +92,7 @@ export default function LocationStep({
                 </View>
                 <View style={{ flex: 1 }}>
                     <TimePickerField
-                        label='Pick-up Time'
+                        label='Pickup Time'
                         value={pickupTime}
                         onTimeChange={onPickupTimeChange}
                         required

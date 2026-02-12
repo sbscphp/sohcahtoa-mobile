@@ -98,7 +98,7 @@ const styles = ScaledSheet.create({
         borderColor: 'rgba(143, 139, 139, 1)',
         borderRadius: '28@ms',
         paddingHorizontal: '14@s',
-        height: '45@vs',
+        height: '40@vs',
     },
     inputDisabledWrapper: {
         flexDirection: 'row',
@@ -108,7 +108,7 @@ const styles = ScaledSheet.create({
         borderColor: 'rgba(204, 202, 202, 1)',
         borderRadius: '28@ms',
         paddingHorizontal: '14@s',
-        height: '45@vs',
+        height: '40@vs',
     },
     leftIcon: {
         marginRight: '12@s',

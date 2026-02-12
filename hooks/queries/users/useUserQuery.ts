@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { fetchUser } from '../../services/users';
+import { fetchUser } from '../../../services/users';
 
 // Custom Hook
 export const useUserQuery = (userId: string) => {

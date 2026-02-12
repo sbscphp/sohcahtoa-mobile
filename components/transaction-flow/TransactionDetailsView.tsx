@@ -193,14 +193,14 @@ const styles = ScaledSheet.create({
         alignItems: 'center',
     },
     detailLabel: {
-        fontSize: '13.5@ms',
+        fontSize: '13@ms',
         color: 'rgba(84, 83, 83, 1)',
         fontWeight: '500',
         flexShrink: 0,
         maxWidth: '60%',
     },
     detailValue: {
-        fontSize: '14@ms',
+        fontSize: '13@ms',
         color: 'rgba(108, 105, 105, 1)',
         fontWeight: '400',
         textAlign: 'right',

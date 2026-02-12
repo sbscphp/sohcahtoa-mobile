@@ -3,7 +3,7 @@ import axios from 'axios';
 
 
 const api = axios.create({
-    baseURL: 'https://api.example.com', 
+    baseURL: 'https://sohcahtoa-dev.clocksurewise.com/api', 
     headers: {
         'Content-Type': 'application/json',
     },
