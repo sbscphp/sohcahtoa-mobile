@@ -19,10 +19,12 @@ export const useSendOtpMutation = () => {
                 });
                 showToast(response.data.message || 'OTP Sent Successfully', 'success');
             }
+            console.log(response, "response");
         },
         onError: (error: any) => {
             const message = error.response?.data?.message || error.message || 'Send OTP Failed';
             showToast(message, 'error');
+            console.log(error, "error");
         },
     });
 };

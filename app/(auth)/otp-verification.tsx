@@ -1,4 +1,6 @@
 import ProgressBar from '@/components/ProgressBar';
+import { useValidateOtpMutation } from '@/hooks/queries/auth/useValidateOtpMutation';
+import { useAuthStore } from '@/stores/useAuthStore';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -9,13 +11,21 @@ import PrimaryButton from '../../components/PrimaryButton';
 
 export default function OtpVerificationScreen() {
     const router = useRouter();
-    const { context, target, type, userType } = useLocalSearchParams<{ context: 'bvn' | 'email'; target: 'phone' | 'email'; type?: string; userType?: string }>();
+    const { context, target, type, userType, contactInfo } = useLocalSearchParams<{
+        context: 'bvn' | 'email';
+        target: 'phone' | 'email';
+        type?: string;
+        userType?: string;
+        contactInfo?: string;
+    }>();
     const insets = useSafeAreaInsets();
     const [otp, setOtp] = useState(['', '', '', '', '', '']);
     const inputs = useRef<TextInput[]>([]);
-    const [timer, setTimer] = useState(900); // 15:00 in seconds
+    const [timer, setTimer] = useState(900);
 
-    // ... existing timer logic ... 
+    const { mutate: validateOtp, isPending } = useValidateOtpMutation();
+
+
     useEffect(() => {
         const interval = setInterval(() => {
             setTimer((prev) => (prev > 0 ? prev - 1 : 0));
@@ -46,28 +56,55 @@ export default function OtpVerificationScreen() {
     };
 
     const handleValidate = () => {
-        if (otp.join('').length === 6) {
-            if (context === 'bvn') {
-                router.push('/(auth)/bvn-confirmation');
-            } else {
-                router.push({
-                    pathname: '/(auth)/secure-account',
-                    params: {
-                        type: type,
-                        userType: userType || undefined
+        const verificationToken = useAuthStore.getState().verificationToken;
+        
+        if (otp.join('').length === 6 && verificationToken) {
+            validateOtp(
+                {
+                    verificationToken,
+                    otp: otp.join('')
+                },
+                {
+                    onSuccess: () => {
+                        if (context === 'bvn') {
+                            router.push('/(auth)/bvn-confirmation');
+                        } else {
+                            router.push({
+                                pathname: '/(auth)/secure-account',
+                                params: {
+                                    type: type,
+                                    userType: userType || undefined
+                                }
+                            });
+                        }
                     }
-                });
-            }
+                }
+            );
         }
     };
 
     const isEmailTarget = target === 'email';
     const isResetPassword = type === 'reset-password';
 
+    const maskContactInfo = (info: string | undefined, type: 'phone' | 'email') => {
+        if (!info) return type === 'email' ? 'your email' : 'your phone number';
+
+        if (type === 'email') {
+            const [username, domain] = info.split('@');
+            if (!username || !domain) return info;
+            const maskedUsername = username.slice(0, 3) + '*****';
+            return `${maskedUsername}@${domain}`;
+        } else {
+            if (info.length < 6) return info;
+            const masked = info.slice(0, 3) + '*****' + info.slice(-3);
+            return masked;
+        }
+    };
+
     let title = context === 'email' ? 'Enter OTP to Verify your Email Address' : 'Enter OTP to Verify your BVN';
     let subtitle = isEmailTarget
-        ? 'A six (6) digit OTP has been sent to your mail linked to BVN feu*****gmail.com. Enter to verify'
-        : 'A six (6) digit OTP has been sent to your phone number linked to BVN 713*****598. Enter to verify';
+        ? `A six (6) digit OTP has been sent to your mail linked to BVN ${maskContactInfo(contactInfo, 'email')}. Enter to verify`
+        : `A six (6) digit OTP has been sent to your phone number linked to BVN ${maskContactInfo(contactInfo, 'phone')}. Enter to verify`;
 
     let headerTitle = 'Sign up';
 
@@ -133,6 +170,7 @@ export default function OtpVerificationScreen() {
                         title="Validate OTP"
                         onPress={handleValidate}
                         disabled={otp.join('').length !== 6}
+                        loading={isPending}
                         style={{ backgroundColor: otp.join('').length === 6 ? '#FF7A45' : '#FFCCB4' }}
                     />
                 </View>

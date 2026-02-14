@@ -8,15 +8,16 @@ interface OtpOptionSheetProps {
     isVisible: boolean;
     onClose: () => void;
     onSelect: (option: 'phone' | 'email') => void;
+    loading: boolean;
 }
 
-const OtpOptionSheet: React.FC<OtpOptionSheetProps> = ({ isVisible, onClose, onSelect }) => {
+const OtpOptionSheet: React.FC<OtpOptionSheetProps> = ({ isVisible, onClose, onSelect, loading }) => {
     const [selectedOption, setSelectedOption] = useState<'phone' | 'email' | null>(null);
 
     const handleSelect = () => {
         if (selectedOption) {
             onSelect(selectedOption);
-            setSelectedOption(null); // Reset for next time
+            setSelectedOption(null);
         }
     };
 
@@ -72,6 +73,7 @@ const OtpOptionSheet: React.FC<OtpOptionSheetProps> = ({ isVisible, onClose, onS
                             onPress={handleSelect}
                             disabled={!selectedOption}
                             style={styles.primaryButton}
+                            loading={loading}
                         />
 
                         <TouchableOpacity

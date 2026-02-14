@@ -1,5 +1,8 @@
 import ProgressBar from '@/components/ProgressBar';
+import { useSendOtpMutation } from '@/hooks/queries/auth/useSendOtpMutation';
+import { useVerifyBvnMutation } from '@/hooks/queries/auth/useVerifyBvnMutation';
 import { bvnSchema } from '@/lib/validations/auth';
+import { useAuthStore } from '@/stores/useAuthStore';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
@@ -18,6 +21,11 @@ export default function BvnVerificationScreen() {
     const [error, setError] = useState<string>();
     const [isSheetVisible, setIsSheetVisible] = useState(false);
 
+    const { mutate: verifyBvn, isPending } = useVerifyBvnMutation();
+    const { mutate: sendOtp, isPending: isSendingOtp } = useSendOtpMutation();
+
+
+
     const validateBvn = (value: string) => {
         try {
             bvnSchema.parse({ bvn: value });
@@ -33,7 +41,12 @@ export default function BvnVerificationScreen() {
         try {
             bvnSchema.parse({ bvn });
             setError(undefined);
-            setIsSheetVisible(true);
+
+            verifyBvn({ bvn }, {
+                onSuccess: () => {
+                    setIsSheetVisible(true);
+                }
+            });
         } catch (err) {
             if (err instanceof z.ZodError) {
                 setError(err.issues[0]?.message);
@@ -42,12 +55,33 @@ export default function BvnVerificationScreen() {
     };
 
     const handleOptionSelect = (option: 'phone' | 'email') => {
-        setIsSheetVisible(false);
-        router.push({
-            pathname: '/(auth)/otp-verification',
-            params: { context: 'bvn', target: option }
-        });
+        const verificationToken = useAuthStore.getState().verificationToken;
+
+        if (!verificationToken) {
+            return;
+        }
+
+        sendOtp(
+            {
+                verificationToken,
+                verificationType: option
+            },
+            {
+                onSuccess: (response) => {
+                    setIsSheetVisible(false);
+                    router.push({
+                        pathname: '/(auth)/otp-verification',
+                        params: {
+                            context: 'bvn',
+                            target: option,
+                            contactInfo: option === 'email' ? response.data.email : response.data.phoneNumber
+                        }
+                    });
+                }
+            }
+        );
     };
+
 
     return (
         <SafeAreaView style={styles.container}>
@@ -70,7 +104,10 @@ export default function BvnVerificationScreen() {
                             label="BVN"
                             placeholder="Enter your BVN"
                             value={bvn}
-                            onChangeText={setBvn}
+                            onChangeText={(text) => {
+                                setBvn(text);
+                                if (error) validateBvn(text);
+                            }}
                             onBlur={() => validateBvn(bvn)}
                             keyboardType="numeric"
                             maxLength={11}
@@ -85,12 +122,15 @@ export default function BvnVerificationScreen() {
                         title="Continue"
                         onPress={handleContinue}
                         disabled={bvn.length !== 11}
+                        loading={isPending}
                     />
                 </View>
+
                 <OtpOptionSheet
                     isVisible={isSheetVisible}
                     onClose={() => setIsSheetVisible(false)}
                     onSelect={handleOptionSelect}
+                    loading={isSendingOtp}
                 />
             </KeyboardAvoidingView>
         </SafeAreaView>

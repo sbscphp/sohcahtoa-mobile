@@ -44,8 +44,11 @@ export interface SendOtpResponse {
         dateOfBirth: string;
         gender: string;
         otp: string;
+        phoneNumber?: string;
+        email?: string;
     };
 }
+
 
 export interface ValidateOtpPayload {
     verificationToken: string;

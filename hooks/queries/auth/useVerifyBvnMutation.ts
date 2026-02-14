@@ -14,10 +14,12 @@ export const useVerifyBvnMutation = () => {
                 setVerificationToken(response.data.verificationToken);
                 showToast(response.data.message || 'BVN Verified Successfully', 'success');
             }
+            console.log(response, "response");
         },
         onError: (error: any) => {
             const message = error.response?.data?.message || error.message || 'BVN Verification Failed';
             showToast(message, 'error');
+            console.log(error, "error");
         },
     });
 };

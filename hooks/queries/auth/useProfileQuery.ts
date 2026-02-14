@@ -11,7 +11,7 @@ export const useProfileQuery = () => {
         queryKey: ['userProfile'],
         queryFn: getUserProfile,
         enabled: isAuthenticated,
-        select: (response) => response.data.user, // Isolate the user object
+        select: (response) => response.data.user, 
     });
 
     const user = query.data;

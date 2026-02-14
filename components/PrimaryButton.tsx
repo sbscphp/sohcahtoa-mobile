@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, StyleProp, Text, TextStyle, ViewStyle } from 'react-native';
+import { ActivityIndicator, Pressable, StyleProp, Text, TextStyle, ViewStyle } from 'react-native';
 import { ScaledSheet } from 'react-native-size-matters';
 import { Colors } from '../constants/theme';
 
@@ -7,6 +7,7 @@ interface PrimaryButtonProps {
     title: string;
     onPress: () => void;
     disabled?: boolean;
+    loading?: boolean;
     style?: StyleProp<ViewStyle>;
     textStyle?: StyleProp<TextStyle>;
     accessible?: boolean;
@@ -17,6 +18,7 @@ const PrimaryButton: React.FC<PrimaryButtonProps> = ({
     title,
     onPress,
     disabled,
+    loading,
     style,
     textStyle,
     accessible = true,
@@ -25,10 +27,10 @@ const PrimaryButton: React.FC<PrimaryButtonProps> = ({
     return (
         <Pressable
             onPress={onPress}
-            disabled={disabled}
+            disabled={disabled || loading}
             style={({ pressed }) => [
                 styles.button,
-                disabled && styles.disabledButton,
+                (disabled || loading) && styles.disabledButton,
                 pressed && { opacity: 0.8 },
                 style
             ]}
@@ -36,10 +38,15 @@ const PrimaryButton: React.FC<PrimaryButtonProps> = ({
             accessibilityLabel={accessibilityLabel || title}
             accessibilityRole="button"
         >
-            <Text style={[styles.text, textStyle]}>{title}</Text>
+            {loading ? (
+                <ActivityIndicator color="#FFFFFF" />
+            ) : (
+                <Text style={[styles.text, textStyle]}>{title}</Text>
+            )}
         </Pressable>
     );
 };
+
 
 const styles = ScaledSheet.create({
     button: {
