@@ -1,4 +1,6 @@
 import ProgressBar from '@/components/ProgressBar';
+import { useSendOtpMutation } from '@/hooks/queries/auth/useSendOtpMutation';
+import { useSendTouristOtpMutation } from '@/hooks/queries/auth/useSendTouristOtpMutation';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { InfoCircle } from 'iconsax-react-nativejs';
 import React from 'react';
@@ -11,17 +13,32 @@ import PrimaryButton from '../../components/PrimaryButton';
 export default function BvnConfirmationScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
-    const { userType } = useLocalSearchParams<{ userType?: string }>();
+    const { userType, verificationToken } = useLocalSearchParams<{ userType?: string, verificationToken?: string }>();
+    const { mutate: sendOtp, isPending: isSendingOtp } = useSendOtpMutation();
+    const { mutate: sendTouristOtp, isPending: isSendingTouristOtp } = useSendTouristOtpMutation();
 
     const handleSendOtp = () => {
-        router.push({
-            pathname: '/(auth)/otp-verification',
-            params: {
-                context: 'email',
-                target: 'email',
-                userType: userType || undefined
-            }
-        });
+        const payload = {
+            verificationToken: verificationToken || '',
+            verificationType: 'email' as const
+        };
+
+        const onSuccess = () => {
+            router.push({
+                pathname: '/(auth)/otp-verification',
+                params: {
+                    context: 'email',
+                    target: 'email',
+                    userType: userType || undefined
+                }
+            });
+        };
+
+        if (userType === 'tourist') {
+            sendTouristOtp(payload, { onSuccess });
+        } else {
+            sendOtp(payload, { onSuccess });
+        }
     };
 
     const InfoRow = ({ label, value }: { label: string; value: string }) => (
@@ -59,7 +76,9 @@ export default function BvnConfirmationScreen() {
                             <InfoCircle size={24} color="#FF7A45" variant="Bold" />
                         </View>
                         <Text style={styles.infoBoxText}>
-                            Details above can't be changed because they are pulled directly from your BVN.
+                            {userType === 'citizen'
+                                ? "Details above can't be changed because they are pulled directly from your BVN."
+                                : "The details above are sourced from your passport and are therefore uneditable."}
                         </Text>
                     </View>
                 </View>
@@ -69,6 +88,8 @@ export default function BvnConfirmationScreen() {
                 <PrimaryButton
                     title="Send OTP"
                     onPress={handleSendOtp}
+                    loading={isSendingOtp || isSendingTouristOtp}
+                    disabled={isSendingOtp || isSendingTouristOtp}
                 />
             </View>
         </SafeAreaView>

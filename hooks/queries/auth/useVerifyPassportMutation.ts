@@ -16,7 +16,7 @@ export const useVerifyPassportMutation = () => {
             }
         },
         onError: (error: any) => {
-            const message = error.response?.data?.message || error.message || 'Passport Verification Failed';
+            const message = error.response?.data?.error?.message || error.message || 'Passport Verification Failed';
             showToast(message, 'error');
         },
     });

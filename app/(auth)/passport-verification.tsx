@@ -7,9 +7,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet } from 'react-native-size-matters';
 import AuthHeader from '../../components/AuthHeader';
 import FileUpload from '../../components/FileUpload';
+import LoadingBackdrop from '../../components/LoadingBackdrop';
 import PrimaryButton from '../../components/PrimaryButton';
 import Toast from '../../components/Toast';
 
+import { useUploadPassportMutation } from '@/hooks/queries/auth/useUploadPassportMutation';
+import { useVerifyPassportMutation } from '@/hooks/queries/auth/useVerifyPassportMutation';
 import * as DocumentPicker from 'expo-document-picker';
 
 export default function PassportVerificationScreen() {
@@ -20,6 +23,7 @@ export default function PassportVerificationScreen() {
 
     // International Passport
     const [passportFile, setPassportFile] = useState<string | null>(null);
+    const [uploadedPassportUrl, setUploadedPassportUrl] = useState<string | null>(null);
     const [passportNumber, setPassportNumber] = useState('');
     const [passportIssueDate, setPassportIssueDate] = useState('');
     const [passportExpiryDate, setPassportExpiryDate] = useState('');
@@ -36,6 +40,9 @@ export default function PassportVerificationScreen() {
     const [bvnFile, setBvnFile] = useState<string | null>(null);
     const [bvnNumber, setBvnNumber] = useState('');
 
+    const { mutate: uploadPassport, isPending: isUploading } = useUploadPassportMutation();
+    const { mutate: verifyPassport, isPending: isVerifying } = useVerifyPassportMutation();
+
     const handleFileUpload = async (docType: 'passport' | 'workPermit' | 'tin' | 'bvn') => {
         try {
             const result = await DocumentPicker.getDocumentAsync({
@@ -49,33 +56,60 @@ export default function PassportVerificationScreen() {
 
             const asset = result.assets[0];
 
-            switch (docType) {
-                case 'passport':
-                    setPassportFile(asset.name);
-                    break;
-                case 'workPermit':
-                    setWorkPermitFile(asset.name);
-                    break;
-                case 'tin':
-                    setTinFile(asset.name);
-                    break;
-                case 'bvn':
-                    setBvnFile(asset.name);
-                    break;
+            if (docType === 'passport') {
+                const formData = new FormData();
+                formData.append('passport', {
+                    uri: asset.uri,
+                    name: asset.name,
+                    type: asset.mimeType || 'image/jpeg',
+                } as any);
+
+                uploadPassport(formData, {
+                    onSuccess: (response) => {
+                        if (response.success) {
+                            setPassportFile(asset.name);
+                            setUploadedPassportUrl(response.data.passportDocumentUrl);
+                        }
+                    },
+                });
+            } else {
+                switch (docType) {
+                    case 'workPermit':
+                        setWorkPermitFile(asset.name);
+                        break;
+                    case 'tin':
+                        setTinFile(asset.name);
+                        break;
+                    case 'bvn':
+                        setBvnFile(asset.name);
+                        break;
+                }
+                setShowToast(true);
             }
-
-            setShowToast(true);
-
         } catch (error) {
             console.log("Error picking document:", error);
         }
     };
 
     const handleVerifyPassport = () => {
-        console.log('Verifying passport...');
-        router.push({
-            pathname: '/(auth)/bvn-confirmation',
-            params: { userType: userType || 'expatriate' }
+        if (!uploadedPassportUrl) {
+            console.log('Passport not uploaded yet');
+            return;
+        }
+
+        verifyPassport({ passportDocumentUrl: uploadedPassportUrl }, {
+            onSuccess: (response) => {
+                console.log("Passport verified successfully", response);
+                if (response.success) {
+                    router.push({
+                        pathname: '/(auth)/bvn-confirmation',
+                        params: {
+                            userType: userType || '',
+                            verificationToken: response.data.verificationToken
+                        }
+                    });
+                }
+            }
         });
     };
 
@@ -84,6 +118,11 @@ export default function PassportVerificationScreen() {
     return (
         <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
             <AuthHeader title="Sign up" />
+
+            <LoadingBackdrop
+                visible={isUploading}
+                message={isUploading && "Uploading Passport..."}
+            />
 
             <ScrollView contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
                 <Text style={styles.title}>
@@ -195,6 +234,8 @@ export default function PassportVerificationScreen() {
                 <PrimaryButton
                     title="Verify Passport"
                     onPress={handleVerifyPassport}
+                    loading={isVerifying}
+                    disabled={isVerifying || !passportFile || !passportNumber || (isTourist ? false : (!passportIssueDate || !passportExpiryDate))}
                 />
             </View>
 

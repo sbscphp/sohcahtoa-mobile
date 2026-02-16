@@ -5,12 +5,16 @@ import { useAuthStore } from '../../../stores/useAuthStore';
 
 export const useSendTouristOtpMutation = () => {
     const setUser = useAuthStore((state) => state.setUser);
+    const setVerificationToken = useAuthStore((state) => state.setVerificationToken);
     const showToast = useToastStore((state) => state.showToast);
 
     return useMutation({
         mutationFn: sendTouristOtp,
         onSuccess: (response) => {
             if (response.success && response.data) {
+                if ((response.data as any).verificationToken) {
+                    setVerificationToken((response.data as any).verificationToken);
+                }
                 setUser({
                     firstName: response.data.firstName,
                     lastName: response.data.lastName,
@@ -21,7 +25,7 @@ export const useSendTouristOtpMutation = () => {
             }
         },
         onError: (error: any) => {
-            const message = error.response?.data?.message || error.message || 'Send OTP Failed';
+            const message = error.response?.data?.error?.message || error.message || 'Send OTP Failed';
             showToast(message, 'error');
         },
     });

@@ -13,11 +13,13 @@ interface MenuItem {
     isLogout?: boolean;
 }
 
+import { useLogoutMutation } from '@/hooks/queries/auth/useLogoutMutation';
 import { useRouter } from 'expo-router';
 
 export default function MoreScreen() {
     const router = useRouter();
     const [logoutModalVisible, setLogoutModalVisible] = useState(false);
+    const { mutate: logout, isPending } = useLogoutMutation();
 
     const menuItems: MenuItem[] = [
         {
@@ -108,10 +110,17 @@ export default function MoreScreen() {
 
                         <PrimaryButton
                             title="Yes, Log out"
+                            loading={isPending}
                             onPress={() => {
-                                // Perform logout logic here
-                                router.push('/(auth)/welcome-back');
-                                setLogoutModalVisible(false);
+                                logout(undefined, {
+                                    onSuccess: () => {
+                                        setLogoutModalVisible(false);
+                                        router.replace('/(auth)/welcome-back');
+                                    },
+                                    onError: () => {
+                                        setLogoutModalVisible(false);
+                                    }
+                                });
                             }}
                             style={{ marginBottom: moderateScale(12) }}
                         />

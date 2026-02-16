@@ -62,7 +62,7 @@ export const verifyKyc = async (payload: VerifyKycPayload): Promise<VerifyKycRes
 };
 
 export const uploadPassport = async (formData: FormData): Promise<UploadPassportResponse> => {
-    const response = await api.post('/auth/signup/tourist/upload-passport', formData, {
+    const response = await api.post('/auth/kyc/passport/upload', formData, {
         headers: {
             'Content-Type': 'multipart/form-data',
         },

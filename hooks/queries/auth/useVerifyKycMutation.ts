@@ -16,7 +16,7 @@ export const useVerifyKycMutation = () => {
             }
         },
         onError: (error: any) => {
-            const message = error.response?.data?.message || error.message || 'KYC Verification Failed';
+            const message = error.response?.data?.error?.message || error.message || 'KYC Verification Failed';
             showToast(message, 'error');
         },
     });

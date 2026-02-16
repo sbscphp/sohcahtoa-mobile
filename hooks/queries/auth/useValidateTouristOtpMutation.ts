@@ -21,7 +21,7 @@ export const useValidateTouristOtpMutation = () => {
             }
         },
         onError: (error: any) => {
-            const message = error.response?.data?.message || error.message || 'Validate OTP Failed';
+            const message = error.response?.data?.error?.message || error.message || 'Validate OTP Failed';
             showToast(message, 'error');
         },
     });

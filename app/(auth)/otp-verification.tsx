@@ -1,5 +1,6 @@
 import ProgressBar from '@/components/ProgressBar';
 import { useValidateOtpMutation } from '@/hooks/queries/auth/useValidateOtpMutation';
+import { useValidateTouristOtpMutation } from '@/hooks/queries/auth/useValidateTouristOtpMutation';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
@@ -23,7 +24,10 @@ export default function OtpVerificationScreen() {
     const inputs = useRef<TextInput[]>([]);
     const [timer, setTimer] = useState(900);
 
-    const { mutate: validateOtp, isPending } = useValidateOtpMutation();
+    const { mutate: validateOtp, isPending: isValidatingNigerian } = useValidateOtpMutation();
+    const { mutate: validateTouristOtp, isPending: isValidatingTourist } = useValidateTouristOtpMutation();
+
+    const isPending = isValidatingNigerian || isValidatingTourist;
 
 
     useEffect(() => {
@@ -57,29 +61,32 @@ export default function OtpVerificationScreen() {
 
     const handleValidate = () => {
         const verificationToken = useAuthStore.getState().verificationToken;
-        
+
         if (otp.join('').length === 6 && verificationToken) {
-            validateOtp(
-                {
-                    verificationToken,
-                    otp: otp.join('')
-                },
-                {
-                    onSuccess: () => {
-                        if (context === 'bvn') {
-                            router.push('/(auth)/bvn-confirmation');
-                        } else {
-                            router.push({
-                                pathname: '/(auth)/secure-account',
-                                params: {
-                                    type: type,
-                                    userType: userType || undefined
-                                }
-                            });
+            const payload = {
+                verificationToken,
+                otp: otp.join('')
+            };
+
+            const onSuccess = () => {
+                if (context === 'bvn') {
+                    router.push('/(auth)/bvn-confirmation');
+                } else {
+                    router.push({
+                        pathname: '/(auth)/secure-account',
+                        params: {
+                            type: type,
+                            userType: userType || undefined
                         }
-                    }
+                    });
                 }
-            );
+            };
+
+            if (userType === 'tourist') {
+                validateTouristOtp(payload, { onSuccess });
+            } else {
+                validateOtp(payload, { onSuccess });
+            }
         }
     };
 

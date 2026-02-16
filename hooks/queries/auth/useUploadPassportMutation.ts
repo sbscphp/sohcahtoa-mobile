@@ -13,7 +13,7 @@ export const useUploadPassportMutation = () => {
             }
         },
         onError: (error: any) => {
-            const message = error.response?.data?.message || error.message || 'Passport Upload Failed';
+            const message = error.response?.data?.error?.message || error.message || 'Passport Upload Failed';
             showToast(message, 'error');
         },
     });

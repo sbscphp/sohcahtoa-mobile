@@ -13,7 +13,7 @@ export const useCreateTouristAccountMutation = () => {
             }
         },
         onError: (error: any) => {
-            const message = error.response?.data?.message || error.message || 'Account Creation Failed';
+            const message = error.response?.data?.error?.message || error.message || 'Account Creation Failed';
             showToast(message, 'error');
         },
     });

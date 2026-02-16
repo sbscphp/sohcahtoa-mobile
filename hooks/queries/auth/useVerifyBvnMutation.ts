@@ -17,7 +17,7 @@ export const useVerifyBvnMutation = () => {
             console.log(response, "response");
         },
         onError: (error: any) => {
-            const message = error.response?.data?.message || error.message || 'BVN Verification Failed';
+            const message = error.response?.data?.error?.message || error.message || 'BVN Verification Failed';
             showToast(message, 'error');
             console.log(error, "error");
         },
