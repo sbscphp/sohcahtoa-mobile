@@ -67,13 +67,21 @@ export default function BvnVerificationScreen() {
                 verificationType: option
             },
             {
-                onSuccess: (response) => {
+                onSuccess: (response: any) => {
+                    useAuthStore.getState().setTempUserInfo({
+                        firstName: response.data.firstName || '',
+                        lastName: response.data.lastName || '',
+                        phoneNumber: response.data.phoneNumber || '',
+                        email: response.data.email || '',
+                        address: response.data.address || '',
+                    });
                     setIsSheetVisible(false);
                     router.push({
                         pathname: '/(auth)/otp-verification',
                         params: {
                             context: 'bvn',
                             target: option,
+                            userType: 'citizen',
                             contactInfo: option === 'email' ? response.data.email : response.data.phoneNumber
                         }
                     });

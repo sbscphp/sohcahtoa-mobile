@@ -83,6 +83,11 @@ export interface VerifyPassportPayload {
     passportDocumentUrl: string;
 }
 
+export interface VerifyExpatriatePassportPayload {
+    passportDocumentUrl: string;
+    passportNumber: string;
+}
+
 export interface VerifyPassportResponse {
     success: boolean;
     data: {
@@ -186,21 +191,100 @@ export interface PassportStatusResponse {
     };
 }
 
-export interface ProfileResponse {
+export interface SendNigerianEmailOtpPayload {
+    verificationToken: string;
+}
+
+export interface SendEmailOtpResponse {
     success: boolean;
     data: {
-        user?: {
-            id: string;
-            name: string;
-            email: string;
-            phoneNumber?: string;
-            nationality?: string;
-            isVerified: boolean;
-        };
+        message: string;
+        email: string;
+        otp: string;
     };
 }
 
 
+export interface ProfileResponse {
+    success: boolean;
+    message: string;
+    data: {
+        id: string;
+        email: string;
+        phoneNumber: string;
+        role: string;
+        customerType: string;
+        isActive: boolean;
+        emailVerified: boolean;
+        phoneVerified: boolean;
+        createdAt: string;
+        updatedAt: string;
+        profile: {
+            firstName: string;
+            lastName: string;
+            dateOfBirth: string;
+            address: string;
+            city: string;
+            state: string;
+            country: string;
+            postalCode: string;
+            avatar: string;
+        };
+        kyc: {
+            status: string;
+            bvn: string;
+            tin: string;
+            passportNumber: string;
+            passportDocumentUrl: string;
+            bvnVerified: boolean;
+            tinVerified: boolean;
+            passportVerified: boolean;
+            verifiedAt: string;
+            rejectedAt: string;
+            rejectionReason: string;
+        };
+        permissions: string[];
+        activeSessions: Array<{
+            id: string;
+            userAgent: string;
+            ipAddress: string;
+            createdAt: string;
+            expiresAt: string;
+        }>;
+    };
+}
+
+export interface ForgotPasswordPayload {
+    email: string;
+}
+
+export interface ForgotPasswordResponse {
+    success: boolean;
+    data: {
+        message: string;
+        otp: string;
+        verificationToken?: string;
+    };
+}
+
+export interface ValidateForgotPasswordOtpPayload {
+    email: string;
+    otp: string;
+}
+
+export interface ValidateForgotPasswordOtpResponse {
+    success: boolean;
+    data: {
+        message: string;
+        resetToken?: string;
+        verificationToken?: string;
+    };
+}
+
+export interface ResetPasswordPayload {
+    resetToken: string;
+    newPassword: string;
+}
 
 
 

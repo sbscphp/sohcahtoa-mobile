@@ -28,7 +28,7 @@ export const useSendOtpMutation = () => {
         onError: (error: any) => {
             const message = error.response?.data?.error?.message || error.message || 'Send OTP Failed';
             showToast(message, 'error');
-            console.log(error, "error");
+            console.log(error.response?.data, "error");
         },
     });
 };

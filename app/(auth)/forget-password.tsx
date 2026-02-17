@@ -1,3 +1,4 @@
+import { useForgotPasswordMutation } from '@/hooks/queries/auth/useForgotPasswordMutation';
 import { forgetPasswordSchema } from '@/lib/validations/auth';
 import { useRouter } from 'expo-router';
 import { Sms } from 'iconsax-react-nativejs';
@@ -17,6 +18,8 @@ export default function ForgotPasswordScreen() {
     const [email, setEmail] = useState('');
     const [error, setError] = useState<string>();
 
+    const { mutate: forgotPassword, isPending } = useForgotPasswordMutation();
+
     const validateEmail = (value: string) => {
         try {
             forgetPasswordSchema.parse({ email: value });
@@ -32,9 +35,19 @@ export default function ForgotPasswordScreen() {
         try {
             forgetPasswordSchema.parse({ email });
             setError(undefined);
-            router.push({
-                pathname: '/(auth)/otp-verification',
-                params: { type: 'reset-password', email },
+
+            forgotPassword({ email }, {
+                onSuccess: () => {
+                    router.push({
+                        pathname: '/(auth)/otp-verification',
+                        params: {
+                            type: 'reset-password',
+                            email,
+                            contactInfo: email,
+                            target: 'email'
+                        },
+                    });
+                }
             });
         } catch (err) {
             if (err instanceof z.ZodError) {
@@ -77,7 +90,8 @@ export default function ForgotPasswordScreen() {
                     <PrimaryButton
                         title="Continue"
                         onPress={handleContinue}
-                        disabled={!email}
+                        disabled={!email || isPending}
+                        loading={isPending}
                     />
                 </View>
             </View>

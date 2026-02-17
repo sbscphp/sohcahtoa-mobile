@@ -18,7 +18,7 @@ const LoadingBackdrop: React.FC<LoadingBackdropProps> = ({ visible, message = 'P
             <View style={styles.container}>
                 <View style={styles.content}>
                     <ActivityIndicator size="large" color={Colors.light.primary} />
-                    {message && <Text style={styles.message}>{message}</Text>}
+                    {/* {message && <Text style={styles.message}>{message}</Text>} */}
                 </View>
             </View>
         </Modal>
@@ -33,7 +33,7 @@ const styles = ScaledSheet.create({
         alignItems: 'center',
     },
     content: {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
         padding: '32@ms',
         borderRadius: '16@ms',
         alignItems: 'center',

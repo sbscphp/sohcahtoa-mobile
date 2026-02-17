@@ -1,3 +1,6 @@
+import BiometricBottomSheet from '@/components/BiometricBottomSheet';
+import BiometricSelectionSheet from '@/components/BiometricSelectionSheet';
+import { useAuthStore } from '@/stores/useAuthStore';
 import { useRouter } from 'expo-router';
 import { Lock } from 'iconsax-react-nativejs';
 import { Delete, ScanFace } from 'lucide-react-native';
@@ -6,17 +9,18 @@ import { Image, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import { Colors } from '../../constants/theme';
-import BiometricBottomSheet from '@/components/BiometricBottomSheet';
-import BiometricSelectionSheet from '@/components/BiometricSelectionSheet';
 
 export default function WelcomeBackScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
+    const user = useAuthStore((state) => state.user);
     const [passcode, setPasscode] = useState<string[]>([]);
     const [error, setError] = useState(false);
     const [showBiometricBottomSheet, setShowBiometricBottomSheet] = useState(false);
     const [showBiometricSheet, setShowBiometricSheet] = useState(false);
 
+    const userName = user?.profile ? `${user.profile.firstName} ${user.profile.lastName}` : 'User';
+    console.log('userName', user);
     const PASSCODE_LENGTH = 6;
     const CORRECT_PASSCODE = '123456';
 
@@ -52,7 +56,7 @@ export default function WelcomeBackScreen() {
     };
 
     const handleBiometric = () => {
-      setShowBiometricBottomSheet(true);
+        setShowBiometricBottomSheet(true);
     };
 
     const handleSignUp = () => {
@@ -83,7 +87,7 @@ export default function WelcomeBackScreen() {
                     </View>
                     <View style={styles.userInfo}>
                         <Text style={styles.welcomeText}>Welcome Back</Text>
-                        <Text style={styles.userName}>Emmanuel Isreal</Text>
+                        <Text style={styles.userName}>{userName}</Text>
                     </View>
                 </View>
 
@@ -144,7 +148,7 @@ export default function WelcomeBackScreen() {
                     </TouchableOpacity>
 
                     <View style={styles.signupContainer}>
-                        <Text style={styles.notUserText}>Not Emmanuel Isreal ? </Text>
+                        <Text style={styles.notUserText}>Not {userName}? </Text>
                         <TouchableOpacity onPress={handleSignUp}>
                             <Text style={styles.signupText}>Sign Up</Text>
                         </TouchableOpacity>
@@ -152,7 +156,7 @@ export default function WelcomeBackScreen() {
                 </View>
 
             </View>
-             <BiometricBottomSheet
+            <BiometricBottomSheet
                 visible={showBiometricBottomSheet}
                 onClose={() => setShowBiometricBottomSheet(false)}
                 onConfirm={() => {
@@ -160,7 +164,7 @@ export default function WelcomeBackScreen() {
                     setShowBiometricBottomSheet(false);
                 }}
             />
-             <BiometricSelectionSheet
+            <BiometricSelectionSheet
                 visible={showBiometricSheet}
                 onClose={() => setShowBiometricSheet(false)}
                 onSelectFace={() => {

@@ -11,7 +11,7 @@ export const useProfileQuery = () => {
         queryKey: ['userProfile'],
         queryFn: getUserProfile,
         enabled: isAuthenticated,
-        select: (response) => response.data.user, 
+        select: (response) => response.data,
     });
 
     const user = query.data;
@@ -24,5 +24,3 @@ export const useProfileQuery = () => {
 
     return query;
 };
-
-

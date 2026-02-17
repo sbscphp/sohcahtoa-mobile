@@ -12,7 +12,9 @@ import PrimaryButton from '../../components/PrimaryButton';
 import Toast from '../../components/Toast';
 
 import { useUploadPassportMutation } from '@/hooks/queries/auth/useUploadPassportMutation';
+import { useVerifyExpatriatePassportMutation } from '@/hooks/queries/auth/useVerifyExpatriatePassportMutation';
 import { useVerifyPassportMutation } from '@/hooks/queries/auth/useVerifyPassportMutation';
+import { useAuthStore } from '@/stores/useAuthStore';
 import * as DocumentPicker from 'expo-document-picker';
 
 export default function PassportVerificationScreen() {
@@ -41,7 +43,10 @@ export default function PassportVerificationScreen() {
     const [bvnNumber, setBvnNumber] = useState('');
 
     const { mutate: uploadPassport, isPending: isUploading } = useUploadPassportMutation();
-    const { mutate: verifyPassport, isPending: isVerifying } = useVerifyPassportMutation();
+    const { mutate: verifyPassport, isPending: isVerifyingTourist } = useVerifyPassportMutation();
+    const { mutate: verifyExpatriatePassport, isPending: isVerifyingExpatriate } = useVerifyExpatriatePassportMutation();
+
+    const isVerifying = isVerifyingTourist || isVerifyingExpatriate;
 
     const handleFileUpload = async (docType: 'passport' | 'workPermit' | 'tin' | 'bvn') => {
         try {
@@ -97,20 +102,40 @@ export default function PassportVerificationScreen() {
             return;
         }
 
-        verifyPassport({ passportDocumentUrl: uploadedPassportUrl }, {
-            onSuccess: (response) => {
-                console.log("Passport verified successfully", response);
-                if (response.success) {
-                    router.push({
-                        pathname: '/(auth)/bvn-confirmation',
-                        params: {
-                            userType: userType || '',
-                            verificationToken: response.data.verificationToken
-                        }
-                    });
-                }
+        const onSuccess = (response: any) => {
+            if (response.success) {
+                // Expatriate response might not have user details, only verificationToken
+                useAuthStore.getState().setTempUserInfo({
+                    firstName: response.data.firstName || '',
+                    lastName: response.data.lastName || '',
+                    phoneNumber: response.data.phoneNumber || '',
+                    email: response.data.email || '',
+                    address: response.data.address || response.data.nationality || '',
+                });
+                router.push({
+                    pathname: '/(auth)/bvn-confirmation',
+                    params: {
+                        userType: userType || 'expatriate',
+                        verificationToken: response.data.verificationToken,
+                        firstName: response.data.firstName || '',
+                        lastName: response.data.lastName || '',
+                        phoneNumber: response.data.phoneNumber || '',
+                        email: response.data.email || '',
+                        address: response.data.address || response.data.nationality || '',
+                        flowContext: 'passport'
+                    }
+                });
             }
-        });
+        };
+
+        if (userType === 'expatriate') {
+            verifyExpatriatePassport({
+                passportDocumentUrl: uploadedPassportUrl,
+                passportNumber: passportNumber
+            }, { onSuccess });
+        } else {
+            verifyPassport({ passportDocumentUrl: uploadedPassportUrl }, { onSuccess });
+        }
     };
 
     const isTourist = userType === 'tourist';

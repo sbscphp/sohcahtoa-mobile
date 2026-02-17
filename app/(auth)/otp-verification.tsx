@@ -1,4 +1,11 @@
 import ProgressBar from '@/components/ProgressBar';
+import { useForgotPasswordMutation } from '@/hooks/queries/auth/useForgotPasswordMutation';
+import { useSendExpatriateOtpMutation } from '@/hooks/queries/auth/useSendExpatriateOtpMutation';
+import { useSendNigerianEmailOtpMutation } from '@/hooks/queries/auth/useSendNigerianEmailOtpMutation';
+import { useSendOtpMutation } from '@/hooks/queries/auth/useSendOtpMutation';
+import { useSendTouristOtpMutation } from '@/hooks/queries/auth/useSendTouristOtpMutation';
+import { useValidateExpatriateOtpMutation } from '@/hooks/queries/auth/useValidateExpatriateOtpMutation';
+import { useValidateForgotPasswordOtpMutation } from '@/hooks/queries/auth/useValidateForgotPasswordOtpMutation';
 import { useValidateOtpMutation } from '@/hooks/queries/auth/useValidateOtpMutation';
 import { useValidateTouristOtpMutation } from '@/hooks/queries/auth/useValidateTouristOtpMutation';
 import { useAuthStore } from '@/stores/useAuthStore';
@@ -12,8 +19,8 @@ import PrimaryButton from '../../components/PrimaryButton';
 
 export default function OtpVerificationScreen() {
     const router = useRouter();
-    const { context, target, type, userType, contactInfo } = useLocalSearchParams<{
-        context: 'bvn' | 'email';
+    const { flowContext, target, type, userType, contactInfo } = useLocalSearchParams<{
+        flowContext: 'bvn' | 'email';
         target: 'phone' | 'email';
         type?: string;
         userType?: string;
@@ -26,9 +33,25 @@ export default function OtpVerificationScreen() {
 
     const { mutate: validateOtp, isPending: isValidatingNigerian } = useValidateOtpMutation();
     const { mutate: validateTouristOtp, isPending: isValidatingTourist } = useValidateTouristOtpMutation();
+    const { mutate: validateExpatriateOtp, isPending: isValidatingExpatriate } = useValidateExpatriateOtpMutation();
+    const { mutate: validateForgotPasswordOtp, isPending: isValidatingForgot } = useValidateForgotPasswordOtpMutation();
 
-    const isPending = isValidatingNigerian || isValidatingTourist;
+    const { mutate: sendOtp, isPending: isResendingNigerian } = useSendOtpMutation();
+    const { mutate: sendTouristOtp, isPending: isResendingTourist } = useSendTouristOtpMutation();
+    const { mutate: sendExpatriateOtp, isPending: isResendingExpatriate } = useSendExpatriateOtpMutation();
+    const { mutate: forgotPassword, isPending: isResendingForgot } = useForgotPasswordMutation();
+    const { mutate: sendNigerianEmailOtp, isPending: isResendingNigerianEmail } = useSendNigerianEmailOtpMutation();
 
+    const isPending =
+        isValidatingNigerian ||
+        isValidatingTourist ||
+        isValidatingExpatriate ||
+        isValidatingForgot ||
+        isResendingNigerian ||
+        isResendingTourist ||
+        isResendingExpatriate ||
+        isResendingForgot ||
+        isResendingNigerianEmail;
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -61,31 +84,80 @@ export default function OtpVerificationScreen() {
 
     const handleValidate = () => {
         const verificationToken = useAuthStore.getState().verificationToken;
+        const currentOtp = otp.join('');
 
-        if (otp.join('').length === 6 && verificationToken) {
-            const payload = {
-                verificationToken,
-                otp: otp.join('')
-            };
-
-            const onSuccess = () => {
-                if (context === 'bvn') {
-                    router.push('/(auth)/bvn-confirmation');
+        if (currentOtp.length === 6) {
+            const onSuccess = (response: any) => {
+                if (flowContext === 'bvn') {
+                    router.push({
+                        pathname: '/(auth)/bvn-confirmation',
+                        params: {
+                            userType: userType || 'citizen',
+                            verificationToken: response?.data?.verificationToken,
+                            firstName: response?.data?.firstName || '',
+                            lastName: response?.data?.lastName || '',
+                            phoneNumber: response?.data?.phoneNumber || '',
+                            email: response?.data?.email || '',
+                            address: response?.data?.address || '',
+                            flowContext: 'bvn'
+                        },
+                    });
                 } else {
                     router.push({
                         pathname: '/(auth)/secure-account',
                         params: {
                             type: type,
-                            userType: userType || undefined
-                        }
+                            userType: userType || undefined,
+                            email: type === 'reset-password' ? contactInfo : undefined,
+                            otp: type === 'reset-password' ? currentOtp : undefined,
+                            resetToken: response?.data?.resetToken,
+                        },
                     });
                 }
             };
 
+            if (type === 'reset-password' && contactInfo) {
+                validateForgotPasswordOtp({ email: contactInfo, otp: currentOtp }, { onSuccess });
+            } else if (verificationToken) {
+                const payload = {
+                    verificationToken,
+                    otp: currentOtp,
+                };
+
+                if (userType === 'tourist') {
+                    validateTouristOtp(payload, { onSuccess });
+                } else if (userType === 'expatriate') {
+                    validateExpatriateOtp(payload, { onSuccess });
+                } else {
+                    validateOtp(payload, { onSuccess });
+                }
+            }
+        }
+    };
+
+    const handleResendOtp = () => {
+        const verificationToken = useAuthStore.getState().verificationToken;
+
+        const onSuccess = () => {
+            setTimer(900);
+        };
+
+        if (type === 'reset-password' && contactInfo) {
+            forgotPassword({ email: contactInfo }, { onSuccess });
+        } else if (verificationToken) {
+            const payload = {
+                verificationToken,
+                verificationType: target as 'phone' | 'email',
+            };
+
             if (userType === 'tourist') {
-                validateTouristOtp(payload, { onSuccess });
+                sendTouristOtp(payload, { onSuccess });
+            } else if (userType === 'expatriate') {
+                sendExpatriateOtp(payload, { onSuccess });
+            } else if (flowContext === 'email') {
+                sendNigerianEmailOtp({ verificationToken }, { onSuccess });
             } else {
-                validateOtp(payload, { onSuccess });
+                sendOtp(payload, { onSuccess });
             }
         }
     };
@@ -108,7 +180,7 @@ export default function OtpVerificationScreen() {
         }
     };
 
-    let title = context === 'email' ? 'Enter OTP to Verify your Email Address' : 'Enter OTP to Verify your BVN';
+    let title = flowContext === 'email' ? 'Enter OTP to Verify your Email Address' : 'Enter OTP to Verify your BVN';
     let subtitle = isEmailTarget
         ? `A six (6) digit OTP has been sent to your mail linked to BVN ${maskContactInfo(contactInfo, 'email')}. Enter to verify`
         : `A six (6) digit OTP has been sent to your phone number linked to BVN ${maskContactInfo(contactInfo, 'phone')}. Enter to verify`;
@@ -133,8 +205,8 @@ export default function OtpVerificationScreen() {
                     contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 80 }]}
                     showsVerticalScrollIndicator={false}
                 >
-                    {context === 'bvn' && userType !== 'expatriate' && <ProgressBar step={1} totalSteps={3} />}
-                    {context === 'email' && userType !== 'expatriate' && <ProgressBar step={2} totalSteps={3} />}
+                    {flowContext === 'bvn' && userType !== 'expatriate' && <ProgressBar step={1} totalSteps={3} />}
+                    {flowContext === 'email' && userType !== 'expatriate' && <ProgressBar step={2} totalSteps={3} />}
                     {isResetPassword && <ProgressBar step={1} totalSteps={2} />}
 
                     <View style={styles.content}>
@@ -165,8 +237,18 @@ export default function OtpVerificationScreen() {
 
                         <View style={styles.resendContainer}>
                             <Text style={styles.resendText}>Didn't Receive Code? </Text>
-                            <TouchableOpacity>
-                                <Text style={styles.resendLink}>Resend OTP</Text>
+                            <TouchableOpacity
+                                onPress={handleResendOtp}
+                                disabled={isPending || timer > 0}
+                            >
+                                <Text
+                                    style={[
+                                        styles.resendLink,
+                                        (isPending || timer > 0) && { color: '#CBD5E1', textDecorationLine: 'none' },
+                                    ]}
+                                >
+                                    Resend OTP
+                                </Text>
                             </TouchableOpacity>
                         </View>
                     </View>

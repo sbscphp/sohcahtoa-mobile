@@ -20,11 +20,13 @@ export const useLoginMutation = () => {
 
                 showToast('Login Successful!', 'success');
             }
+            console.log(response,"LOGIN");
         },
 
         onError: (error: any) => {
             const message = error.response?.data?.error?.message || error.message || 'Login Failed';
             showToast(message, 'error');
+            console.log(error.response.data.error.message);
         },
     });
 };

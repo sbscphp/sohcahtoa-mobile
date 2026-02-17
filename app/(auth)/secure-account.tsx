@@ -1,5 +1,10 @@
 import PasswordStrengthValidator, { validatePassword } from '@/components/PasswordStrengthValidator';
 import ProgressBar from '@/components/ProgressBar';
+import { useCreateAccountMutation } from '@/hooks/queries/auth/useCreateAccountMutation';
+import { useCreateExpatriateAccountMutation } from '@/hooks/queries/auth/useCreateExpatriateAccountMutation';
+import { useCreateTouristAccountMutation } from '@/hooks/queries/auth/useCreateTouristAccountMutation';
+import { useResetPasswordMutation } from '@/hooks/queries/auth/useResetPasswordMutation';
+import { useAuthStore } from '@/stores/useAuthStore';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Lock } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
@@ -13,15 +18,62 @@ import { Colors } from '../../constants/theme';
 
 export default function SecureAccountScreen() {
     const router = useRouter();
-    const { type, userType } = useLocalSearchParams<{ type?: string; userType?: string }>();
+    const { type, userType, resetToken } = useLocalSearchParams<{ type?: string; userType?: string; resetToken?: string }>();
     const insets = useSafeAreaInsets();
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
 
+    const { mutate: createAccount, isPending: isCreatingNigerian } = useCreateAccountMutation();
+    const { mutate: createTouristAccount, isPending: isCreatingTourist } = useCreateTouristAccountMutation();
+    const { mutate: createExpatriateAccount, isPending: isCreatingExpatriate } = useCreateExpatriateAccountMutation();
+
+    const { mutate: resetPassword, isPending: isResetting } = useResetPasswordMutation();
+
+    const isPending = isCreatingNigerian || isCreatingTourist || isCreatingExpatriate || isResetting;
+
     const handleCreatePassword = () => {
         if (password && password === confirmPassword) {
-            console.log('Password created');
-            router.replace('/(auth)/login');
+            if (type === 'reset-password') {
+                if (resetToken) {
+                    resetPassword({ resetToken, newPassword: password }, {
+                        onSuccess: () => {
+                            router.replace('/(auth)/login');
+                        }
+                    });
+                }
+                return;
+            }
+
+            const verificationToken = useAuthStore.getState().verificationToken;
+            if (!verificationToken) return;
+
+            const payload = {
+                verificationToken,
+                password
+            };
+
+            const onSuccess = () => {
+                useAuthStore.getState().setTempUserInfo(null);
+                router.replace('/(auth)/login');
+            };
+
+            const onError = (error: any) => {
+                const errorMessage = error.response?.data?.error?.message || error.message;
+                if (errorMessage === "Passport verification session expired. Please verify your passport again.") {
+                    router.replace({
+                        pathname: '/(auth)/passport-verification',
+                        params: { userType }
+                    });
+                }
+            };
+
+            if (userType === 'tourist') {
+                createTouristAccount(payload, { onSuccess, onError });
+            } else if (userType === 'expatriate') {
+                createExpatriateAccount(payload, { onSuccess, onError });
+            } else if (userType === 'citizen' || !userType) {
+                createAccount(payload, { onSuccess });
+            }
         }
     };
 
@@ -57,24 +109,7 @@ export default function SecureAccountScreen() {
                             isPassword
                             icon={Lock}
                             required
-                            disabled={!password} // Wait, why disable input if !password? Ah, maybe based on previous fields? But this is first field. I should remove disabled here or clarify. Original code had disabled={!password}, which means if password is empty, it is disabled? No, disabled={!password} means enabled if password is truthy? This logic seems weird in original code. If password is empty string, !password is true, so disabled is true. So you can't type?
-                        // Checking original code Step 782 line 82: disabled={!password}
-                        // This looks like a bug in original code or I misread it.
-                        // If I type, onChangeText updates. But if disabled prop blocks typing...
-                        // Ah, InputField disabled prop usually blocks interaction.
-                        // If it starts empty, distinct from placeholder?
-                        // Maybe InputField implementation handles it differently?
-                        // I will stick to original code logic for now, or fix it if it's obviously broken.
-                        // BUT, wait. If disabled={true}, user CANNOT type. So if password starts empty, user cannot type.
-                        // Original code line 82: `disabled={!password}` on "New Password" input.
-                        // Wait, maybe `disabled` prop is for the EYE icon (secure text entry toggle)?
-                        // I'll check InputField implementation later. For now I will reproduce original.
-                        // Actually, I'll remove `disabled={!password}` as it looks suspicious and might block typing.
-                        // Wait, looking at line 101: `disabled={!confirmPassword}` for confirm field.
-                        // If InputField disabled prop controls the *toggle visibility* button being active, then it makes sense.
-                        // But usually disabled controls the whole input.
-                        // I'll leave it out for safety or check InputField if I can.
-                        // Given I'm rewriting, I'll omit `disabled` for now to be safe, as standard behavior is input should be enabled.
+                            disabled={!password}
                         />
 
                         <PasswordStrengthValidator password={password} />
@@ -96,7 +131,8 @@ export default function SecureAccountScreen() {
                     <PrimaryButton
                         title="Create Password"
                         onPress={handleCreatePassword}
-                        disabled={!isPasswordValid || password !== confirmPassword}
+                        disabled={!isPasswordValid || password !== confirmPassword || isPending}
+                        loading={isPending}
                         style={{ backgroundColor: (isPasswordValid && password === confirmPassword) ? Colors.light.primary : '#FFCCB4' }}
                     />
                 </View>

@@ -1,15 +1,17 @@
 import ActionSelectionSheet from '@/components/ActionSelectionSheet';
 import CurrencyDropdown, { CurrencyItem } from '@/components/CurrencyDropdown';
 import VirtualCard from '@/components/VirtualCard';
+import { useProfileQuery } from '@/hooks/queries/auth/useProfileQuery';
+import { useAuthStore } from '@/stores/useAuthStore';
 import { useRouter } from 'expo-router';
-import { Add, ArrowDown2, Bank, Buildings, Eye, EyeSlash, Hospital, ImportCircle, Map1, Notification, People, Refresh, Teacher, User, WalletAdd1, WalletMinus } from 'iconsax-react-nativejs';
+import { Add, ArrowDown2, Bank, Buildings, Eye, EyeSlash, Hospital, ImportCircle, Notification, People, Refresh, Teacher, User, WalletAdd1, WalletMinus } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
 import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
-import { Colors } from '../../constants/theme';
 import Passport from '../../assets/images/passport.svg';
 import StandingUser from '../../assets/images/standing-user.svg';
+import { Colors } from '../../constants/theme';
 
 const ACTION_BUTTONS = [
     { title: 'Buy FX', icon: WalletAdd1, type: 'buy' },
@@ -35,9 +37,18 @@ const TRANSACTIONS = [
     { id: '5', title: 'Medical Allowance', date: 'Dec 8 2025 • 11 am', amount: '$1,000', status: 'Pending', type: 'debit' },
 ];
 
+const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning 🌤️';
+    if (hour < 17) return 'Good afternoon ☀️';
+    return 'Good evening 🌙';
+};
+
 export default function HomeScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
+    const user = useAuthStore((state) => state.user);
+    useProfileQuery(); 
     const [showBalance, setShowBalance] = useState(false);
     const [selectedFilter, setSelectedFilter] = useState('All');
     const [transactionFilters, setTransactionFilters] = useState(['All', 'PTA', 'BTA', 'Medical']);
@@ -148,8 +159,8 @@ export default function HomeScreen() {
                         style={styles.avatar}
                     />
                     <View>
-                        <Text style={styles.greeting}>Good morning 🌤️</Text>
-                        <Text style={styles.username}>Emmanuel Israel</Text>
+                        <Text style={styles.greeting}>{getGreeting()}</Text>
+                        <Text style={styles.username}>{user?.profile ? `${user.profile.firstName} ${user.profile.lastName}` : 'User'}</Text>
                     </View>
                 </View>
                 <TouchableOpacity style={styles.notificationBtn}>
@@ -258,7 +269,7 @@ export default function HomeScreen() {
 
                         <View style={styles.card}>
                             <VirtualCard
-                                name="Emmanuel Israel"
+                                name={user?.profile ? `${user.profile.firstName} ${user.profile.lastName}` : 'User'}
                                 last4Digits="7093"
                                 expiry="08/27"
                             />

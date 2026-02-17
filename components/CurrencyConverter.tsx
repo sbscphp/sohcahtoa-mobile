@@ -116,7 +116,7 @@ export default function CurrencyConverter({
 
                 <View style={styles.exchangeCard}>
                     <View style={styles.exchangeRow}>
-                        <Text style={styles.exchangeLabel}>You Get Exactly</Text>
+                        <Text style={styles.exchangeLabel}>You send</Text>
                         <Pressable
                             style={({ pressed }) => [
                                 styles.currencyPill,

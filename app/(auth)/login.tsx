@@ -1,4 +1,5 @@
 import BiometricBottomSheet from '@/components/BiometricBottomSheet';
+import { useLoginMutation } from '@/hooks/queries/auth/useLoginMutation';
 import { LoginFormData, loginSchema } from '@/lib/validations/auth';
 import { useRouter } from 'expo-router';
 import { Lock, Sms } from 'iconsax-react-nativejs';
@@ -24,6 +25,8 @@ export default function LoginScreen() {
     const [showBiometricSheet, setShowBiometricSheet] = useState(false);
     const [showBiometricBottomSheet, setShowBiometricBottomSheet] = useState(false);
 
+    const { mutate: login, isPending } = useLoginMutation();
+
     const validateField = (field: keyof LoginFormData, value: string) => {
         try {
             loginSchema.shape[field].parse(value);
@@ -39,8 +42,14 @@ export default function LoginScreen() {
         try {
             loginSchema.parse({ email, password });
             setErrors({});
-            console.log('Login attempt:', { email, password });
-            router.push('/(tabs)');
+
+            login({ email, password }, {
+                onSuccess: (response) => {
+                    if (response.success) {
+                        router.push('/(tabs)');
+                    }
+                }
+            });
         } catch (error) {
             if (error instanceof z.ZodError) {
                 const fieldErrors: Partial<Record<keyof LoginFormData, string>> = {};
@@ -110,7 +119,8 @@ export default function LoginScreen() {
                             title="Login"
                             onPress={handleLogin}
                             style={styles.loginButton}
-                            disabled={!email || !password}
+                            disabled={!email || !password || isPending}
+                            loading={isPending}
                         />
 
                         <TouchableOpacity

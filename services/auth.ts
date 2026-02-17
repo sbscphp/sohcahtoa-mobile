@@ -1,4 +1,4 @@
-import { CreateAccountPayload, CreateAccountResponse, CreateTouristAccountPayload, CreateTouristAccountResponse, LoginPayload, LoginResponse, LogoutPayload, LogoutResponse, PassportStatusResponse, ProfileResponse, RefreshPayload, RefreshResponse, SendOtpPayload, SendOtpResponse, SendTouristOtpPayload, SendTouristOtpResponse, UploadPassportResponse, ValidateOtpPayload, ValidateOtpResponse, ValidateTouristOtpPayload, ValidateTouristOtpResponse, VerifyBvnPayload, VerifyBvnResponse, VerifyKycPayload, VerifyKycResponse, VerifyPassportPayload, VerifyPassportResponse } from '@/types/api/auth';
+import { CreateAccountPayload, CreateAccountResponse, CreateTouristAccountPayload, CreateTouristAccountResponse, ForgotPasswordPayload, ForgotPasswordResponse, LoginPayload, LoginResponse, LogoutPayload, LogoutResponse, PassportStatusResponse, ProfileResponse, RefreshPayload, RefreshResponse, ResetPasswordPayload, SendEmailOtpResponse, SendNigerianEmailOtpPayload, SendOtpPayload, SendOtpResponse, SendTouristOtpPayload, SendTouristOtpResponse, UploadPassportResponse, ValidateForgotPasswordOtpPayload, ValidateForgotPasswordOtpResponse, ValidateOtpPayload, ValidateOtpResponse, ValidateTouristOtpPayload, ValidateTouristOtpResponse, VerifyBvnPayload, VerifyBvnResponse, VerifyExpatriatePassportPayload, VerifyKycPayload, VerifyKycResponse, VerifyPassportPayload, VerifyPassportResponse } from '@/types/api/auth';
 import api from './api';
 
 export const loginUser = async (credentials: LoginPayload): Promise<LoginResponse> => {
@@ -13,6 +13,11 @@ export const verifyBvn = async (payload: VerifyBvnPayload): Promise<VerifyBvnRes
 
 export const sendOtp = async (payload: SendOtpPayload): Promise<SendOtpResponse> => {
     const response = await api.post('/auth/signup/nigerian/send-otp', payload);
+    return response.data;
+};
+
+export const sendNigerianEmailOtp = async (payload: SendNigerianEmailOtpPayload): Promise<SendEmailOtpResponse> => {
+    const response = await api.post('/auth/signup/nigerian/send-email-otp', payload);
     return response.data;
 };
 
@@ -31,8 +36,18 @@ export const verifyPassport = async (payload: VerifyPassportPayload): Promise<Ve
     return response.data;
 };
 
+export const verifyExpatriatePassport = async (payload: VerifyExpatriatePassportPayload): Promise<VerifyPassportResponse> => {
+    const response = await api.post('/auth/signup/expatriate/verify-passport', payload);
+    return response.data;
+};
+
 export const sendTouristOtp = async (payload: SendTouristOtpPayload): Promise<SendTouristOtpResponse> => {
     const response = await api.post('/auth/signup/tourist/send-otp', payload);
+    return response.data;
+};
+
+export const sendExpatriateOtp = async (payload: SendTouristOtpPayload): Promise<SendTouristOtpResponse> => {
+    const response = await api.post('/auth/signup/expatriate/send-otp', payload);
     return response.data;
 };
 
@@ -41,8 +56,18 @@ export const validateTouristOtp = async (payload: ValidateTouristOtpPayload): Pr
     return response.data;
 };
 
+export const validateExpatriateOtp = async (payload: ValidateTouristOtpPayload): Promise<ValidateTouristOtpResponse> => {
+    const response = await api.post('/auth/signup/expatriate/validate-otp', payload);
+    return response.data;
+};
+
 export const createTouristAccount = async (payload: CreateTouristAccountPayload): Promise<CreateTouristAccountResponse> => {
     const response = await api.post('/auth/signup/tourist/create-account', payload);
+    return response.data;
+};
+
+export const createExpatriateAccount = async (payload: CreateTouristAccountPayload): Promise<CreateTouristAccountResponse> => {
+    const response = await api.post('/auth/signup/expatriate/create-account', payload);
     return response.data;
 };
 
@@ -77,5 +102,20 @@ export const getPassportStatus = async (): Promise<PassportStatusResponse> => {
 
 export const getUserProfile = async (): Promise<ProfileResponse> => {
     const response = await api.get('/auth/profile');
+    return response.data;
+};
+
+export const forgotPassword = async (payload: ForgotPasswordPayload): Promise<ForgotPasswordResponse> => {
+    const response = await api.post('/auth/forgot-password', payload);
+    return response.data;
+};
+
+export const validateForgotPasswordOtp = async (payload: ValidateForgotPasswordOtpPayload): Promise<ValidateForgotPasswordOtpResponse> => {
+    const response = await api.post('/auth/verify-reset-otp', payload);
+    return response.data;
+};
+
+export const resetPassword = async (payload: ResetPasswordPayload): Promise<any> => {
+    const response = await api.post('/auth/reset-password', payload);
     return response.data;
 };
