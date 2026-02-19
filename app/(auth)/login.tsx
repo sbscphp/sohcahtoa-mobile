@@ -69,7 +69,7 @@ export default function LoginScreen() {
 
     return (
         <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-            <AuthHeader title="Login" />
+            <AuthHeader title="Login" disableBackButton={true} />
 
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}

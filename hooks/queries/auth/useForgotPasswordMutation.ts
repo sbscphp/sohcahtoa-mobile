@@ -17,12 +17,12 @@ export const useForgotPasswordMutation = () => {
                 }
                 showToast(response.data.message || 'Password reset OTP has been sent', 'success');
             }
-            console.log(response);
+            // console.log(response);
         },
         onError: (error: any) => {
             const message = error.response?.data?.error?.message || error.message || 'An error occurred';
             showToast(message, 'error');
-            console.log(error.response?.data?.error?.message);
+            // console.log(error.response?.data?.error?.message);
         },
     });
 };

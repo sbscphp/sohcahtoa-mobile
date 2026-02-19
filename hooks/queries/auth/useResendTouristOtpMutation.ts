@@ -18,14 +18,14 @@ export const useResendTouristOtpMutation = (options?: UseResendTouristOtpMutatio
                 showToast(data.data.message || 'OTP resent successfully', 'success');
                 options?.onSuccess?.(data);
             }
-            console.log(data, "RESEND TOURIST OTP SUCCESS");
+            // console.log(data, "RESEND TOURIST OTP SUCCESS");
 
         },
         onError: (error: any) => {
             const message = error.response?.data?.error?.message || 'Failed to resend OTP';
             showToast(message, 'error');
             options?.onError?.(error);
-            console.log(error.response?.data?.error?.message, "RESEND TOURIST OTP ERROR");
+            // console.log(error.response?.data?.error?.message, "RESEND TOURIST OTP ERROR");
         },
     });
 };

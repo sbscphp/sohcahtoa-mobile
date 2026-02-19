@@ -16,12 +16,12 @@ export const useValidateNigerianEmailOtpMutation = () => {
                 });
                 showToast(response.data.message || 'Email OTP Validated Successfully', 'success');
             }
-            console.log(response, 'Response');
+            // console.log(response, 'Response');
         },
         onError: (error: any) => {
             const message = error.response?.data?.error?.message || error.message || 'Validate Email OTP Failed';
             showToast(message, 'error');
-            console.log(error.response?.data.error.message, 'MessageError');
+            // console.log(error.response?.data.error.message, 'MessageError');
         },
     });
 };

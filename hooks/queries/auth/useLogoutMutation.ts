@@ -12,7 +12,7 @@ export const useLogoutMutation = () => {
         mutationFn: () => logoutUser({ refreshToken: refreshToken || '' }),
         onSuccess: (response) => {
             if (response.success) {
-                logout();
+                // logout();
                 showToast(response.data.message || 'Logged out successfully', 'success');
             }
         },
@@ -20,7 +20,7 @@ export const useLogoutMutation = () => {
             const message = error.response?.data?.error?.message || error.message || 'Logout Failed';
             showToast(message, 'error');
             // Proactive state clearing even on failure to ensure user is logged out locally
-            logout();
+            // logout();
         },
     });
 };

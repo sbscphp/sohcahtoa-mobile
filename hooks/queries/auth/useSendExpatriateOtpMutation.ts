@@ -23,12 +23,12 @@ export const useSendExpatriateOtpMutation = () => {
                 });
                 showToast(response.data.message || 'OTP Sent Successfully', 'success');
             }
-            console.log(response, "response");
+            // console.log(response, "response");
         },
         onError: (error: any) => {
             const message = error.response?.data?.error?.message || error.message || 'Send OTP Failed';
             showToast(message, 'error');
-            console.log(error.response?.data?.error?.message, "error");
+            // console.log(error.response?.data?.error?.message, "error");
         },
     });
 };

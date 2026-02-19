@@ -198,7 +198,7 @@ export default function OtpVerificationScreen() {
 
     if (isResetPassword) {
         title = 'Enter OTP to Reset Password';
-        subtitle = 'A six (6) digit OTP has been sent to your email address. Enter it below to verify your identity.';
+        subtitle = `A six (6) digit OTP has been sent to your email address ${maskContactInfo(contactInfo, 'email')}. Enter it below to verify your identity.`;
         headerTitle = 'Forget Password';
     }
 

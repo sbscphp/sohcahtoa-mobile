@@ -45,6 +45,7 @@ export default function ForgotPasswordScreen() {
                             email,
                             contactInfo: email,
                             target: 'email'
+                            
                         },
                     });
                 }

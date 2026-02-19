@@ -17,12 +17,12 @@ export const useValidateForgotPasswordOtpMutation = () => {
                 }
                 showToast(response.data.message || 'OTP validated successfully', 'success');
             }
-            console.log(response);
+            // console.log(response);
         },
         onError: (error: any) => {
             const message = error.response?.data?.error?.message || error.message || 'OTP validation failed';
             showToast(message, 'error');
-            console.log(error.response?.data?.error?.message);
+            // console.log(error.response?.data?.error?.message);
         },
     });
 };

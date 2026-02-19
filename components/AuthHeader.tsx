@@ -6,27 +6,36 @@ import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 
 interface AuthHeaderProps {
     title: string;
+    showBackButton?: boolean;
+    disableBackButton?: boolean;
 }
 
-const AuthHeader: React.FC<AuthHeaderProps> = ({ title }) => {
+const AuthHeader: React.FC<AuthHeaderProps> = ({ title, showBackButton = true, disableBackButton = false }) => {
     const router = useRouter();
 
     return (
         <View style={styles.header}>
-            <TouchableOpacity
-                onPress={() => router.back()}
-                style={styles.backButton}
-                accessible={true}
-                accessibilityLabel="Go back"
-                accessibilityRole="button"
-            >
-                <ArrowCircleLeft2 size={moderateScale(28)} color="#94A3B8" />
-            </TouchableOpacity>
+            {showBackButton ? (
+                <TouchableOpacity
+                    onPress={() => router.back()}
+                    style={[styles.backButton, disableBackButton && { opacity: 0.5 }]}
+                    accessible={true}
+                    accessibilityLabel="Go back"
+                    accessibilityRole="button"
+                    disabled={disableBackButton}
+                >
+                    <ArrowCircleLeft2 size={moderateScale(28)} color="#94A3B8" />
+                </TouchableOpacity>
+            ) : (
+                <View style={{ width: moderateScale(28) }} />
+            )}
             <Text style={styles.headerTitle}>{title}</Text>
             <View style={{ width: moderateScale(28) }} />
         </View>
     );
 };
+
+
 
 const styles = ScaledSheet.create({
     header: {

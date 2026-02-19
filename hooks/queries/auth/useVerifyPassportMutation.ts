@@ -14,7 +14,7 @@ export const useVerifyPassportMutation = () => {
                 setVerificationToken(response.data.verificationToken);
                 showToast(response.data.message || 'Passport Verified Successfully', 'success');
             }
-            console.log(response, 'Response');
+            // console.log(response, 'Response');
         },
         onError: (error: any) => {
             const message = error.response?.data?.error?.message || error.message || 'Passport Verification Failed';

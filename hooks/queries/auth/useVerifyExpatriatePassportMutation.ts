@@ -14,12 +14,12 @@ export const useVerifyExpatriatePassportMutation = () => {
                 setVerificationToken(response.data.verificationToken);
                 showToast(response.data.message || 'Passport Verified Successfully', 'success');
             }
-            console.log(response, "response");
+            // console.log(response, "response");
         },
         onError: (error: any) => {
             const message = error.response?.data?.error?.message || error.message || 'Passport Verification Failed';
             showToast(message, 'error');
-            console.log(error.response?.data?.error?.message, "error");
+            // console.log(error.response?.data?.error?.message, "error");
         },
     });
 };

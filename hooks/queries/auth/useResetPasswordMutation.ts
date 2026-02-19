@@ -11,12 +11,12 @@ export const useResetPasswordMutation = () => {
             if (response.success) {
                 showToast(response.data.message || 'Password reset successful', 'success');
             }
-            console.log(response);
+            // console.log(response);
         },
         onError: (error: any) => {
             const message = error.response?.data?.error?.message || error.message || 'Password reset failed';
             showToast(message, 'error');
-            console.log(error.response?.data?.error?.message);
+            // console.log(error.response?.data?.error?.message);
         },
     });
 };

@@ -18,14 +18,14 @@ export const useResendEmailOtpMutation = (options?: UseResendEmailOtpMutationOpt
                 showToast(data.data.message || 'Email OTP resent successfully', 'success');
                 options?.onSuccess?.(data);
             }
-            console.log(data, "RESEND EMAIL OTP SUCCESS");
+            // console.log(data, "RESEND EMAIL OTP SUCCESS");
 
         },
         onError: (error: any) => {
             const message = error.response?.data?.error?.message || 'Failed to resend Email OTP';
             showToast(message, 'error');
             options?.onError?.(error);
-            console.log(error.response?.data?.error?.message, "RESEND EMAIL OTP ERROR");
+            // console.log(error.response?.data?.error?.message, "RESEND EMAIL OTP ERROR");
         },
     });
 };
