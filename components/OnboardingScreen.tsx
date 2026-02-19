@@ -11,6 +11,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet } from 'react-native-size-matters';
 import PrimaryButton from './PrimaryButton';
+import { StatusBar } from 'expo-status-bar';
 
 
 const { width } = Dimensions.get('window');
@@ -194,6 +195,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onSignUp, onLogin }
 
     return (
         <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+            <StatusBar style="dark" hidden={true} />
             <View style={styles.contentContainer}>
                 <FlatList
                     ref={flatListRef}

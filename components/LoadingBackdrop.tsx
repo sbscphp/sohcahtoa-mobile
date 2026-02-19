@@ -1,14 +1,13 @@
 import React from 'react';
-import { ActivityIndicator, Modal, Text, View } from 'react-native';
+import { ActivityIndicator, Modal,View } from 'react-native';
 import { ScaledSheet } from 'react-native-size-matters';
 import { Colors } from '../constants/theme';
 
 interface LoadingBackdropProps {
     visible: boolean;
-    message?: any;
 }
 
-const LoadingBackdrop: React.FC<LoadingBackdropProps> = ({ visible, message = 'Please wait...' }) => {
+const LoadingBackdrop: React.FC<LoadingBackdropProps> = ({ visible }) => {
     return (
         <Modal
             transparent
@@ -18,7 +17,6 @@ const LoadingBackdrop: React.FC<LoadingBackdropProps> = ({ visible, message = 'P
             <View style={styles.container}>
                 <View style={styles.content}>
                     <ActivityIndicator size="large" color={Colors.light.primary} />
-                    {/* {message && <Text style={styles.message}>{message}</Text>} */}
                 </View>
             </View>
         </Modal>
@@ -38,14 +36,6 @@ const styles = ScaledSheet.create({
         borderRadius: '16@ms',
         alignItems: 'center',
         gap: '16@vs',
-        shadowColor: "#000",
-        shadowOffset: {
-            width: 0,
-            height: 2,
-        },
-        shadowOpacity: 0.25,
-        shadowRadius: 3.84,
-        elevation: 5,
     },
     message: {
         fontSize: '14@ms',
