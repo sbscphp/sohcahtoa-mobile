@@ -4,8 +4,6 @@ import { useResendEmailOtpMutation } from '@/hooks/queries/auth/useResendEmailOt
 import { useResendExpatriateOtpMutation } from '@/hooks/queries/auth/useResendExpatriateOtpMutation';
 import { useResendOtpMutation } from '@/hooks/queries/auth/useResendOtpMutation';
 import { useResendTouristOtpMutation } from '@/hooks/queries/auth/useResendTouristOtpMutation';
-// import { useSendExpatriateOtpMutation } from '@/hooks/queries/auth/useSendExpatriateOtpMutation';
-// import { useSendTouristOtpMutation } from '@/hooks/queries/auth/useSendTouristOtpMutation';
 import { useValidateExpatriateOtpMutation } from '@/hooks/queries/auth/useValidateExpatriateOtpMutation';
 import { useValidateForgotPasswordOtpMutation } from '@/hooks/queries/auth/useValidateForgotPasswordOtpMutation';
 import { useValidateNigerianEmailOtpMutation } from '@/hooks/queries/auth/useValidateNigerianEmailOtpMutation';
@@ -41,8 +39,6 @@ export default function OtpVerificationScreen() {
     const { mutate: validateForgotPasswordOtp, isPending: isValidatingForgot } = useValidateForgotPasswordOtpMutation();
 
     const { mutate: forgotPassword, isPending: isResendingForgot } = useForgotPasswordMutation();
-    // const { mutate: sendTouristOtp } = useSendTouristOtpMutation();
-    // const { mutate: sendExpatriateOtp } = useSendExpatriateOtpMutation();
     const { mutate: resendOtp, isPending: isResendingOtp } = useResendOtpMutation();
     const { mutate: resendEmailOtp, isPending: isResendingEmailOtp } = useResendEmailOtpMutation();
     const { mutate: resendTouristOtp, isPending: isResendingTourist } = useResendTouristOtpMutation();
