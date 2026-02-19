@@ -1,6 +1,6 @@
 import { Eye, EyeSlash, Icon } from 'iconsax-react-nativejs';
 import React, { ReactNode, useState } from 'react';
-import { Text, TextInput, TextInputProps, TouchableOpacity, View } from 'react-native';
+import { Platform, Text, TextInput, TextInputProps, TouchableOpacity, View } from 'react-native';
 import { moderateScale, ScaledSheet } from 'react-native-size-matters';
 
 interface InputFieldProps extends TextInputProps {
@@ -98,7 +98,7 @@ const styles = ScaledSheet.create({
         borderColor: 'rgba(143, 139, 139, 1)',
         borderRadius: '28@ms',
         paddingHorizontal: '14@s',
-        height: '40@vs',
+        height: Platform.OS === 'android' ? '49@vs' : '40@vs',
     },
     inputDisabledWrapper: {
         flexDirection: 'row',
@@ -108,7 +108,7 @@ const styles = ScaledSheet.create({
         borderColor: 'rgba(204, 202, 202, 1)',
         borderRadius: '28@ms',
         paddingHorizontal: '14@s',
-        height: '40@vs',
+        height: Platform.OS === 'android' ? '49@vs' : '40@vs',
     },
     leftIcon: {
         marginRight: '12@s',

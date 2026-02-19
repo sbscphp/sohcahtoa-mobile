@@ -6,11 +6,11 @@ import {
     Image,
     ImageSourcePropType,
     Text,
-    TouchableOpacity,
     View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet } from 'react-native-size-matters';
+import PrimaryButton from './PrimaryButton';
 
 
 const { width } = Dimensions.get('window');
@@ -70,7 +70,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onSignUp, onLogin }
     const [activeIndex, setActiveIndex] = useState(0);
     const insets = useSafeAreaInsets();
 
-    
+
     useEffect(() => {
         const timer = setInterval(() => {
             if (activeIndex < ONBOARDING_DATA.length - 1) {
@@ -84,7 +84,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onSignUp, onLogin }
                     animated: true,
                 });
             }
-        }, 5000); 
+        }, 5000);
 
         return () => clearInterval(timer);
     }, [activeIndex]);
@@ -135,13 +135,13 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onSignUp, onLogin }
                     </View>
                     <Animated.View style={[styles.imageContainer, { opacity, transform: [{ scale }] }]}>
 
-                       
+
                         <View style={styles.titleOverlay}>
                             <Text style={styles.title}>{item.title}</Text>
                             <Text style={styles.subtitle}>{item.subtitle}</Text>
                         </View>
 
-                        
+
                         <View style={styles.testimonialCard}>
                             <Text style={styles.testimonialText} numberOfLines={4}>{item.testimonial}</Text>
                             <View style={styles.authorContainer}>
@@ -216,25 +216,18 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onSignUp, onLogin }
             {/* Sticky Footer */}
             <View style={styles.footer}>
                 <View style={styles.buttonContainer}>
-                    <TouchableOpacity
-                        style={styles.signUpButton}
+                    <PrimaryButton
+                        title="Sign Up"
                         onPress={onSignUp}
-                        accessible={true}
-                        accessibilityLabel="Sign Up"
-                        accessibilityRole="button"
-                    >
-                        <Text style={styles.signUpButtonText}>Sign Up</Text>
-                    </TouchableOpacity>
+                        style={styles.signUpButton}
+                    />
 
-                    <TouchableOpacity
-                        style={styles.loginButton}
+                    <PrimaryButton
+                        title="Log in"
                         onPress={onLogin}
-                        accessible={true}
-                        accessibilityLabel="Log in"
-                        accessibilityRole="button"
-                    >
-                        <Text style={styles.loginButtonText}>Log in</Text>
-                    </TouchableOpacity>
+                        style={styles.loginButton}
+                        textStyle={styles.loginButtonText}
+                    />
                 </View>
 
                 {/* License */}
@@ -375,29 +368,13 @@ const styles = ScaledSheet.create({
     },
     signUpButton: {
         flex: 1,
-        backgroundColor: '#FF6B2C',
-        height: '42@vs',
-        borderRadius: '50@ms',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    signUpButtonText: {
-        color: '#FFFFFF',
-        fontSize: '14@ms',
-        fontWeight: '500',
     },
     loginButton: {
         flex: 1,
         backgroundColor: 'rgba(243, 243, 243, 1)',
-        height: '42@vs',
-        borderRadius: '50@ms',
-        justifyContent: 'center',
-        alignItems: 'center',
     },
     loginButtonText: {
         color: '#1E293B',
-        fontSize: '14@ms',
-        fontWeight: '500',
     },
     licenseContainer: {
         flexDirection: 'row',

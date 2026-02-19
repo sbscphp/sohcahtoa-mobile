@@ -1,5 +1,5 @@
 import React from 'react';
-import { ActivityIndicator, Pressable, StyleProp, Text, TextStyle, ViewStyle } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, StyleProp, Text, TextStyle, ViewStyle } from 'react-native';
 import { ScaledSheet } from 'react-native-size-matters';
 import { Colors } from '../constants/theme';
 
@@ -51,7 +51,7 @@ const PrimaryButton: React.FC<PrimaryButtonProps> = ({
 const styles = ScaledSheet.create({
     button: {
         backgroundColor: Colors.light.primary,
-        height: '42@vs',
+        height: Platform.OS === 'android' ? '50@vs' : '42@vs',
         borderRadius: '28@ms',
         justifyContent: 'center',
         alignItems: 'center',
