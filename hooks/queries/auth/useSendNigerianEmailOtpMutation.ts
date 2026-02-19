@@ -12,12 +12,12 @@ export const useSendNigerianEmailOtpMutation = () => {
             if (response.success && response.data) {
                 showToast(response.data.message || 'OTP sent successfully to your email', 'success');
             }
-            console.log(response);
+            console.log(response, "NIGERIAN");
         },
         onError: (error: any) => {
             const message = error.response?.data?.error?.message || error.message || 'Failed to send OTP';
             showToast(message, 'error');
-            console.log(error.response?.data?.error?.message);
+            console.log(error.response?.data, "NIGERIAN ERROR");
         },
     });
 };

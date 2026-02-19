@@ -19,7 +19,8 @@
         "monochromeImage": "./assets/images/s-logo.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.iamkennis.sohcahtoa"
     },
     "web": {
       "output": "static",
@@ -44,6 +45,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "873973f2-099b-440f-abd1-99c46a171491"
+      }
     }
   }
 }

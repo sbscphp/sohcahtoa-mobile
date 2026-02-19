@@ -1,11 +1,14 @@
 import ProgressBar from '@/components/ProgressBar';
 import { useForgotPasswordMutation } from '@/hooks/queries/auth/useForgotPasswordMutation';
-import { useSendExpatriateOtpMutation } from '@/hooks/queries/auth/useSendExpatriateOtpMutation';
-import { useSendNigerianEmailOtpMutation } from '@/hooks/queries/auth/useSendNigerianEmailOtpMutation';
-import { useSendOtpMutation } from '@/hooks/queries/auth/useSendOtpMutation';
-import { useSendTouristOtpMutation } from '@/hooks/queries/auth/useSendTouristOtpMutation';
+import { useResendEmailOtpMutation } from '@/hooks/queries/auth/useResendEmailOtpMutation';
+import { useResendExpatriateOtpMutation } from '@/hooks/queries/auth/useResendExpatriateOtpMutation';
+import { useResendOtpMutation } from '@/hooks/queries/auth/useResendOtpMutation';
+import { useResendTouristOtpMutation } from '@/hooks/queries/auth/useResendTouristOtpMutation';
+// import { useSendExpatriateOtpMutation } from '@/hooks/queries/auth/useSendExpatriateOtpMutation';
+// import { useSendTouristOtpMutation } from '@/hooks/queries/auth/useSendTouristOtpMutation';
 import { useValidateExpatriateOtpMutation } from '@/hooks/queries/auth/useValidateExpatriateOtpMutation';
 import { useValidateForgotPasswordOtpMutation } from '@/hooks/queries/auth/useValidateForgotPasswordOtpMutation';
+import { useValidateNigerianEmailOtpMutation } from '@/hooks/queries/auth/useValidateNigerianEmailOtpMutation';
 import { useValidateOtpMutation } from '@/hooks/queries/auth/useValidateOtpMutation';
 import { useValidateTouristOtpMutation } from '@/hooks/queries/auth/useValidateTouristOtpMutation';
 import { useAuthStore } from '@/stores/useAuthStore';
@@ -32,26 +35,31 @@ export default function OtpVerificationScreen() {
     const [timer, setTimer] = useState(900);
 
     const { mutate: validateOtp, isPending: isValidatingNigerian } = useValidateOtpMutation();
+    const { mutate: validateNigerianEmailOtp, isPending: isValidatingNigerianEmail } = useValidateNigerianEmailOtpMutation();
     const { mutate: validateTouristOtp, isPending: isValidatingTourist } = useValidateTouristOtpMutation();
     const { mutate: validateExpatriateOtp, isPending: isValidatingExpatriate } = useValidateExpatriateOtpMutation();
     const { mutate: validateForgotPasswordOtp, isPending: isValidatingForgot } = useValidateForgotPasswordOtpMutation();
 
-    const { mutate: sendOtp, isPending: isResendingNigerian } = useSendOtpMutation();
-    const { mutate: sendTouristOtp, isPending: isResendingTourist } = useSendTouristOtpMutation();
-    const { mutate: sendExpatriateOtp, isPending: isResendingExpatriate } = useSendExpatriateOtpMutation();
     const { mutate: forgotPassword, isPending: isResendingForgot } = useForgotPasswordMutation();
-    const { mutate: sendNigerianEmailOtp, isPending: isResendingNigerianEmail } = useSendNigerianEmailOtpMutation();
+    // const { mutate: sendTouristOtp } = useSendTouristOtpMutation();
+    // const { mutate: sendExpatriateOtp } = useSendExpatriateOtpMutation();
+    const { mutate: resendOtp, isPending: isResendingOtp } = useResendOtpMutation();
+    const { mutate: resendEmailOtp, isPending: isResendingEmailOtp } = useResendEmailOtpMutation();
+    const { mutate: resendTouristOtp, isPending: isResendingTourist } = useResendTouristOtpMutation();
+    const { mutate: resendExpatriateOtp, isPending: isResendingExpatriate } = useResendExpatriateOtpMutation();
 
     const isPending =
         isValidatingNigerian ||
+        isValidatingNigerianEmail ||
         isValidatingTourist ||
         isValidatingExpatriate ||
         isValidatingForgot ||
-        isResendingNigerian ||
+        isValidatingForgot ||
+        isResendingOtp ||
         isResendingTourist ||
         isResendingExpatriate ||
         isResendingForgot ||
-        isResendingNigerianEmail;
+        isResendingEmailOtp;
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -88,21 +96,22 @@ export default function OtpVerificationScreen() {
 
         if (currentOtp.length === 6) {
             const onSuccess = (response: any) => {
-                if (flowContext === 'bvn') {
-                    router.push({
-                        pathname: '/(auth)/bvn-confirmation',
-                        params: {
-                            userType: userType || 'citizen',
-                            verificationToken: response?.data?.verificationToken,
-                            firstName: response?.data?.firstName || '',
-                            lastName: response?.data?.lastName || '',
-                            phoneNumber: response?.data?.phoneNumber || '',
-                            email: response?.data?.email || '',
-                            address: response?.data?.address || '',
-                            flowContext: 'bvn'
-                        },
-                    });
-                } else {
+                // console.log(response, "OTP-response");
+
+                router.push({
+                    pathname: '/(auth)/bvn-confirmation',
+                    params: {
+                        userType: userType,
+                        verificationToken: response?.data?.verificationToken,
+                        firstName: response?.data?.firstName || '',
+                        lastName: response?.data?.lastName || '',
+                        phoneNumber: response?.data?.phoneNumber || '',
+                        email: response?.data?.email || '',
+                        address: response?.data?.address || '',
+                        flowContext: 'email'
+                    },
+                });
+                if (userType === 'tourist' || userType === 'expatriate' || type === 'reset-password') {
                     router.push({
                         pathname: '/(auth)/secure-account',
                         params: {
@@ -128,8 +137,12 @@ export default function OtpVerificationScreen() {
                     validateTouristOtp(payload, { onSuccess });
                 } else if (userType === 'expatriate') {
                     validateExpatriateOtp(payload, { onSuccess });
-                } else {
-                    validateOtp(payload, { onSuccess });
+                } else if (userType === 'citizen') {
+                    if (flowContext === 'email') {
+                        validateNigerianEmailOtp(payload);
+                    } else {
+                        validateOtp(payload, { onSuccess });
+                    }
                 }
             }
         }
@@ -151,13 +164,13 @@ export default function OtpVerificationScreen() {
             };
 
             if (userType === 'tourist') {
-                sendTouristOtp(payload, { onSuccess });
+                resendTouristOtp(payload, { onSuccess });
             } else if (userType === 'expatriate') {
-                sendExpatriateOtp(payload, { onSuccess });
+                resendExpatriateOtp(payload, { onSuccess });
             } else if (flowContext === 'email') {
-                sendNigerianEmailOtp({ verificationToken }, { onSuccess });
+                resendEmailOtp({ verificationToken }, { onSuccess });
             } else {
-                sendOtp(payload, { onSuccess });
+                resendOtp({ ...payload, verificationType: 'phone' }, { onSuccess });
             }
         }
     };
@@ -205,8 +218,8 @@ export default function OtpVerificationScreen() {
                     contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 80 }]}
                     showsVerticalScrollIndicator={false}
                 >
-                    {flowContext === 'bvn' && userType !== 'expatriate' && <ProgressBar step={1} totalSteps={3} />}
-                    {flowContext === 'email' && userType !== 'expatriate' && <ProgressBar step={2} totalSteps={3} />}
+                    {flowContext === 'bvn' && userType === 'citizen' && <ProgressBar step={1} totalSteps={3} />}
+                    {flowContext === 'email' && userType === 'citizen' && <ProgressBar step={2} totalSteps={3} />}
                     {isResetPassword && <ProgressBar step={1} totalSteps={2} />}
 
                     <View style={styles.content}>

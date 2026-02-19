@@ -297,3 +297,48 @@ export interface ResetPasswordPayload {
 
 
 
+export interface ResendOtpPayload {
+    verificationToken: string;
+    verificationType: 'phone';
+}
+
+export interface ResendOtpResponse {
+    success: boolean;
+    data: {
+        message: string;
+        otp: string;
+    };
+}
+
+export interface ResendEmailOtpPayload {
+    verificationToken: string;
+}
+
+export interface ResendEmailOtpResponse {
+    success: boolean;
+    data: {
+        message: string;
+        email: string;
+        otp: string;
+    };
+}
+
+export interface ResendTouristOtpResponse {
+    success: boolean;
+    data: {
+        message: string;
+        otp: string;
+    };
+}
+
+export interface ValidateNigerianEmailOtpPayload {
+    verificationToken: string;
+    otp: string;
+}
+
+export interface ValidateNigerianEmailOtpResponse {
+    success: boolean;
+    data: {
+        message: string;
+    };
+}

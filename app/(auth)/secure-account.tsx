@@ -92,12 +92,12 @@ export default function SecureAccountScreen() {
                 <ScrollView
                     contentContainerStyle={[
                         styles.scrollContent,
-                        { paddingBottom: insets.bottom + 100 } // Increased padding for footer
+                        { paddingBottom: insets.bottom + 100 }
                     ]}
                     showsVerticalScrollIndicator={false}
                 >
 
-                    {type === 'reset-password' ? null : userType !== 'expatriate' && <ProgressBar step={3} totalSteps={3} />}
+                    {type === 'reset-password' ? null : userType === 'citizen' && <ProgressBar step={3} totalSteps={3} />}
                     <View style={styles.content}>
                         <Text style={styles.title}>Create a Password to Secure your Account</Text>
 

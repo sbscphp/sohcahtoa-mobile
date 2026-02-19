@@ -1,4 +1,4 @@
-import { CreateAccountPayload, CreateAccountResponse, CreateTouristAccountPayload, CreateTouristAccountResponse, ForgotPasswordPayload, ForgotPasswordResponse, LoginPayload, LoginResponse, LogoutPayload, LogoutResponse, PassportStatusResponse, ProfileResponse, RefreshPayload, RefreshResponse, ResetPasswordPayload, SendEmailOtpResponse, SendNigerianEmailOtpPayload, SendOtpPayload, SendOtpResponse, SendTouristOtpPayload, SendTouristOtpResponse, UploadPassportResponse, ValidateForgotPasswordOtpPayload, ValidateForgotPasswordOtpResponse, ValidateOtpPayload, ValidateOtpResponse, ValidateTouristOtpPayload, ValidateTouristOtpResponse, VerifyBvnPayload, VerifyBvnResponse, VerifyExpatriatePassportPayload, VerifyKycPayload, VerifyKycResponse, VerifyPassportPayload, VerifyPassportResponse } from '@/types/api/auth';
+import { CreateAccountPayload, CreateAccountResponse, CreateTouristAccountPayload, CreateTouristAccountResponse, ForgotPasswordPayload, ForgotPasswordResponse, LoginPayload, LoginResponse, LogoutPayload, LogoutResponse, PassportStatusResponse, ProfileResponse, RefreshPayload, RefreshResponse, ResendEmailOtpPayload, ResendEmailOtpResponse, ResendOtpPayload, ResendOtpResponse, ResendTouristOtpResponse, ResetPasswordPayload, SendEmailOtpResponse, SendNigerianEmailOtpPayload, SendOtpPayload, SendOtpResponse, SendTouristOtpPayload, SendTouristOtpResponse, UploadPassportResponse, ValidateForgotPasswordOtpPayload, ValidateForgotPasswordOtpResponse, ValidateNigerianEmailOtpPayload, ValidateNigerianEmailOtpResponse, ValidateOtpPayload, ValidateOtpResponse, ValidateTouristOtpPayload, ValidateTouristOtpResponse, VerifyBvnPayload, VerifyBvnResponse, VerifyExpatriatePassportPayload, VerifyKycPayload, VerifyKycResponse, VerifyPassportPayload, VerifyPassportResponse } from '@/types/api/auth';
 import api from './api';
 
 export const loginUser = async (credentials: LoginPayload): Promise<LoginResponse> => {
@@ -119,3 +119,28 @@ export const resetPassword = async (payload: ResetPasswordPayload): Promise<any>
     const response = await api.post('/auth/reset-password', payload);
     return response.data;
 };
+export const resendOtp = async (payload: ResendOtpPayload): Promise<ResendOtpResponse> => {
+    const response = await api.post('/auth/signup/nigerian/resend-otp', payload);
+    return response.data;
+};
+
+export const resendEmailOtp = async (payload: ResendEmailOtpPayload): Promise<ResendEmailOtpResponse> => {
+    const response = await api.post('/auth/signup/nigerian/resend-email-otp', payload);
+    return response.data;
+};
+
+export const resendTouristOtp = async (payload: SendTouristOtpPayload): Promise<ResendTouristOtpResponse> => {
+    const response = await api.post('/auth/signup/tourist/resend-otp', payload);
+    return response.data;
+};
+
+export const resendExpatriateOtp = async (payload: SendTouristOtpPayload): Promise<ResendTouristOtpResponse> => {
+    const response = await api.post('/auth/signup/expatriate/resend-otp', payload);
+    return response.data;
+};
+
+export const validateNigerianEmailOtp = async (payload: ValidateNigerianEmailOtpPayload): Promise<ValidateNigerianEmailOtpResponse> => {
+    const response = await api.post('/auth/signup/nigerian/validate-email-otp', payload);
+    return response.data;
+};
+

@@ -37,13 +37,12 @@ export default function BvnConfirmationScreen() {
         email?: string,
         address?: string
     }>();
-
+    console.log(verificationToken, "Verification Token");
     const firstName = tempUserInfo?.firstName || paramFirstName || '';
     const lastName = tempUserInfo?.lastName || paramLastName || '';
     const phoneNumber = tempUserInfo?.phoneNumber || paramPhoneNumber || '';
     const email = tempUserInfo?.email || paramEmail || '';
     const address = tempUserInfo?.address || paramAddress || '';
-    const { mutate: sendOtp, isPending: isSendingOtp } = useSendOtpMutation();
     const { mutate: sendNigerianEmailOtp, isPending: isSendingNigerianEmailOtp } = useSendNigerianEmailOtpMutation();
     const { mutate: sendTouristOtp, isPending: isSendingTouristOtp } = useSendTouristOtpMutation();
     const { mutate: sendExpatriateOtp, isPending: isSendingExpatriateOtp } = useSendExpatriateOtpMutation();
@@ -77,12 +76,8 @@ export default function BvnConfirmationScreen() {
             sendTouristOtp(payload, { onSuccess });
         } else if (userType === 'expatriate') {
             sendExpatriateOtp(payload, { onSuccess });
-        } else if (userType === 'citizen' || !userType) {
-            if (flowContext === 'bvn') {
-                sendOtp(payload, { onSuccess, onError });
-            } else {
-                sendNigerianEmailOtp({ verificationToken: verificationToken || '' }, { onSuccess, onError });
-            }
+        } else if (userType === 'citizen') {
+            sendNigerianEmailOtp({ verificationToken: verificationToken || '' }, { onSuccess, onError });
         }
     };
 
@@ -104,7 +99,7 @@ export default function BvnConfirmationScreen() {
                 contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 100 }]}
                 showsVerticalScrollIndicator={false}
             >
-                {userType !== 'expatriate' && <ProgressBar step={1} totalSteps={3} />}
+                {userType === 'citizen' && <ProgressBar step={1} totalSteps={3} />}
 
                 <View style={styles.content}>
                     <Text style={styles.title}>Final Step Ahead</Text>
@@ -136,8 +131,8 @@ export default function BvnConfirmationScreen() {
                 <PrimaryButton
                     title="Send OTP"
                     onPress={handleSendOtp}
-                    loading={isSendingOtp || isSendingTouristOtp || isSendingExpatriateOtp || isSendingNigerianEmailOtp}
-                    disabled={isSendingOtp || isSendingTouristOtp || isSendingExpatriateOtp || isSendingNigerianEmailOtp}
+                    loading={ isSendingTouristOtp || isSendingExpatriateOtp || isSendingNigerianEmailOtp}
+                    disabled={ isSendingTouristOtp || isSendingExpatriateOtp || isSendingNigerianEmailOtp}
                 />
             </View>
         </SafeAreaView >
