@@ -67,6 +67,8 @@ export interface GetTransactionsParams {
     limit?: number;
 }
 
+export type ExportTransactionsParams = Omit<GetTransactionsParams, 'page' | 'limit'>;
+
 export interface TransactionDocument {
     id: string;
     documentType: string;
@@ -113,4 +115,139 @@ export interface GetTransactionsResponse {
     success: boolean;
     data: Transaction[];
     pagination: PaginationMeta;
+}
+
+export type TransactionDocumentType =
+    | 'PASSPORT'
+    | 'VISA'
+    | 'RETURN_TICKET'
+    | 'BVN'
+    | 'NIN'
+    | 'TIN'
+    | 'FORM_A_DOCUMENT'
+    | 'CORPORATE_BODY_LETTER'
+    | 'PARTNER_INVITATION_LETTER'
+    | 'SCHOOL_ADMISSION'
+    | 'MEDICAL_LETTER'
+    | 'OVERSEAS_MEDICAL_LETTER'
+    | 'PROFESSIONAL_BODY_LETTER'
+    | 'MEMBERSHIP_CARD'
+    | 'INVOICE'
+    | 'RECEIPT';
+
+export interface UploadTransactionDocumentPayload {
+    transactionId: string;
+    documentType: TransactionDocumentType | string;
+    documents: string[];
+}
+
+export interface UploadTransactionDocumentResponse {
+    success: boolean;
+    data: {
+        message: string;
+        requiredDocuments: {
+            type: string;
+            uploaded?: {
+                id: string;
+                fileName: string;
+                fileUrl: string;
+                status: string;
+                rejectionNotes?: string;
+                uploadedAt: string;
+                verifiedAt?: string;
+            };
+        }[];
+    };
+}
+
+export interface GetExchangeRatesParams {
+    fromCurrency?: string;
+    toCurrency?: string;
+}
+
+export interface ExchangeRate {
+    id: string;
+    fromCurrency: string;
+    toCurrency: string;
+    rate: number;
+    buyRate: number;
+    sellRate: number;
+    isActive: boolean;
+    updatedAt: string;
+}
+
+export interface GetExchangeRatesResponse {
+    success: boolean;
+    data: ExchangeRate[];
+}
+
+export interface CalculateExchangeRatePayload {
+    fromCurrency: string;
+    toCurrency: string;
+    amount: number;
+}
+
+export interface CalculateExchangeRateResponse {
+    success: boolean;
+    data: {
+        fromCurrency: string;
+        toCurrency: string;
+        amount: number;
+        sellRate: number;
+        buyRate: number;
+        convertedAmount: number;
+        rateValidUntil: string;
+    };
+}
+
+export interface PickupPoint {
+    id: string;
+    name: string;
+    location: string;
+    address: string;
+    branch: string;
+}
+
+export interface GetPickupPointsResponse {
+    success: boolean;
+    data: PickupPoint[];
+}
+
+export interface GetTransactionByIdResponse {
+    success: boolean;
+    data: {
+        transactionId: string;
+        referenceNumber: string;
+        type: string;
+        status: string;
+        currentStep: string;
+        purpose: string;
+        destinationCountry: string;
+        currency: string;
+        foreignAmount: number;
+        nairaEquivalent: number;
+        exchangeRate: number;
+        disbursementMethod: string;
+        rejection?: {
+            reason: string;
+            rejectedAt: string;
+        };
+        requiredDocuments: {
+            type: string;
+            uploaded?: {
+                id: string;
+                fileName: string;
+                fileUrl: string;
+                status: string;
+                rejectionNotes?: string;
+                uploadedAt: string;
+                verifiedAt?: string;
+            };
+        }[];
+        cashPickup?: any;
+        prepaidCard?: any;
+        steps?: any[];
+        createdAt: string;
+        updatedAt: string;
+    };
 }
