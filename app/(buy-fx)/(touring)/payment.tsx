@@ -3,7 +3,7 @@ import PrimaryButton from '@/components/PrimaryButton';
 import { useRouter } from 'expo-router';
 import { Copy, InfoCircle } from 'iconsax-react-nativejs';
 import React, { useEffect, useState } from 'react';
-import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { Image, KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 
@@ -37,66 +37,71 @@ export default function PaymentScreen() {
         <View style={[styles.container, { paddingTop: insets.top }]}>
             <Header title="Payment" onBackPress={handleBack} />
 
-            <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                style={{ flex: 1 }}
+            >
+                <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
-                {/* Amount Section */}
-                <View style={styles.amountContainer}>
-                    <View style={styles.amountHeader}>
-                        <Text style={styles.amountLabel}>Amount to Send</Text>
-                        <View style={styles.currencyBadge}>
-                            <Image
-                                source={{ uri: 'https://flagcdn.com/w40/ng.png' }}
-                                style={styles.flag}
-                            />
-                            <Text style={styles.currencyText}>Naira (₦)</Text>
+                    {/* Amount Section */}
+                    <View style={styles.amountContainer}>
+                        <View style={styles.amountHeader}>
+                            <Text style={styles.amountLabel}>Amount to Send</Text>
+                            <View style={styles.currencyBadge}>
+                                <Image
+                                    source={{ uri: 'https://flagcdn.com/w40/ng.png' }}
+                                    style={styles.flag}
+                                />
+                                <Text style={styles.currencyText}>Naira (₦)</Text>
+                            </View>
                         </View>
+                        <Text style={styles.amountValue}>₦ 2,866,156.00</Text>
                     </View>
-                    <Text style={styles.amountValue}>₦ 2,866,156.00</Text>
-                </View>
 
-                {/* Account Details */}
-                <Text style={styles.sectionTitle}>Account Details</Text>
+                    {/* Account Details */}
+                    <Text style={styles.sectionTitle}>Account Details</Text>
 
-                <View style={styles.detailsContainer}>
-                    <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Account Number</Text>
-                        <View style={styles.copyRow}>
-                            <Text style={styles.detailValue}>0069000592</Text>
-                            <TouchableOpacity>
-                                <Copy size={moderateScale(16)} color="#64748B" variant="Linear" />
-                            </TouchableOpacity>
+                    <View style={styles.detailsContainer}>
+                        <View style={styles.detailRow}>
+                            <Text style={styles.detailLabel}>Account Number</Text>
+                            <View style={styles.copyRow}>
+                                <Text style={styles.detailValue}>0069000592</Text>
+                                <TouchableOpacity>
+                                    <Copy size={moderateScale(16)} color="#64748B" variant="Linear" />
+                                </TouchableOpacity>
+                            </View>
                         </View>
+                        <View style={styles.separator} />
+
+                        <View style={styles.detailRow}>
+                            <Text style={styles.detailLabel}>Bank Name</Text>
+                            <Text style={styles.detailValue}>Access bank PLC</Text>
+                        </View>
+                        <View style={styles.separator} />
+
+                        <View style={styles.detailRow}>
+                            <Text style={styles.detailLabel}>Account Name</Text>
+                            <Text style={styles.detailValue}>SOHCAHTOA BDC LTD</Text>
+                        </View>
+                        <View style={styles.separator} />
                     </View>
-                    <View style={styles.separator} />
 
-                    <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Bank Name</Text>
-                        <Text style={styles.detailValue}>Access bank PLC</Text>
+                    {/* Timer */}
+                    <View style={styles.timerContainer}>
+                        <Text style={styles.timerLabel}>Account Expires in</Text>
+                        <Text style={styles.timerValue}>{formatTime(timeLeft)}</Text>
                     </View>
-                    <View style={styles.separator} />
 
-                    <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Account Name</Text>
-                        <Text style={styles.detailValue}>SOHCAHTOA BDC LTD</Text>
+                    {/* Info Box */}
+                    <View style={styles.infoBox}>
+                        <InfoCircle size={moderateScale(20)} color="rgba(221, 79, 5, 1)" variant="Bold" style={{ marginTop: 2 }} />
+                        <Text style={styles.infoText}>
+                            Once approved, 75% of your funds will be sent to your bank account or prepaid card, while the remaining 25% will be available for cash pickup at the nearest branch (passport endorsement required)
+                        </Text>
                     </View>
-                    <View style={styles.separator} />
-                </View>
 
-                {/* Timer */}
-                <View style={styles.timerContainer}>
-                    <Text style={styles.timerLabel}>Account Expires in</Text>
-                    <Text style={styles.timerValue}>{formatTime(timeLeft)}</Text>
-                </View>
-
-                {/* Info Box */}
-                <View style={styles.infoBox}>
-                    <InfoCircle size={moderateScale(20)} color="#FF6813" variant="Bold" style={{ marginTop: 2 }} />
-                    <Text style={styles.infoText}>
-                        Once approved, 75% of your funds will be sent to your bank account or prepaid card, while the remaining 25% will be available for cash pickup at the nearest branch (passport endorsement required)
-                    </Text>
-                </View>
-
-            </ScrollView>
+                </ScrollView>
+            </KeyboardAvoidingView>
 
             {/* Footer */}
             <View style={[styles.footer, { paddingBottom: insets.bottom + moderateScale(10) }]}>
@@ -200,7 +205,7 @@ const styles = ScaledSheet.create({
     },
     timerValue: {
         fontSize: '18@ms',
-        color: '#EF4444', 
+        color: '#EF4444',
         fontWeight: '700',
     },
     infoBox: {

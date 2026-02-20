@@ -92,7 +92,7 @@ const styles = ScaledSheet.create({
         paddingHorizontal: '12@s',
         paddingTop: '12@vs',
         paddingBottom: '30@vs',
-        maxHeight: '80%', 
+        maxHeight: '100%', 
         marginBottom: '40@vs',
         marginHorizontal: '12@s',
     },
@@ -150,13 +150,12 @@ const styles = ScaledSheet.create({
         marginBottom: '4@vs',
     },
     itemSubtitle: {
-        fontSize: '13@ms',
+        fontSize: '12@ms',
         color: 'rgba(102, 102, 102, 1)',
         lineHeight: '18@ms',
     },
     separator: {
         height: 1,
-        // backgroundColor: '#E2E8F0', // Optional separator line
         marginVertical: '4@vs',
     },
 });

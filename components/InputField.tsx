@@ -1,24 +1,30 @@
 import { Eye, EyeSlash, Icon } from 'iconsax-react-nativejs';
-import React, { useState } from 'react';
-import { Text, TextInput, TextInputProps, TouchableOpacity, View } from 'react-native';
-import { ScaledSheet, moderateScale } from 'react-native-size-matters';
+import React, { ReactNode, useState } from 'react';
+import { Platform, Text, TextInput, TextInputProps, TouchableOpacity, View } from 'react-native';
+import { moderateScale, ScaledSheet } from 'react-native-size-matters';
 
 interface InputFieldProps extends TextInputProps {
     label: string;
-    icon?: Icon;
+    icon?: Icon | ReactNode;
     rightIcon?: Icon;
     isPassword?: boolean;
     required?: boolean;
     disabled?: boolean;
+    wrapperStyle?: any;
+    height?: number | string;
+    error?: string;
 }
 
 const InputField: React.FC<InputFieldProps> = ({
     label,
-    icon: IconComponent,
+    icon,
     rightIcon: RightIconComponent,
     isPassword,
     required,
     disabled,
+    wrapperStyle,
+    height,
+    error,
     ...props
 }) => {
     const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -28,12 +34,24 @@ const InputField: React.FC<InputFieldProps> = ({
             <Text style={styles.label}>
                 {label} {required && <Text style={styles.required}>*</Text>}
             </Text>
-            <View style={disabled ? styles.inputDisabledWrapper : styles.inputWrapper}>
-                {IconComponent && (
-                    <IconComponent size={moderateScale(20)} color="rgba(77, 75, 75, 1)" style={styles.leftIcon} />
+            <View style={[
+                disabled ? styles.inputDisabledWrapper : styles.inputWrapper,
+                wrapperStyle,
+                height ? { height } : undefined,
+                error ? styles.inputError : undefined
+            ]}>
+                {icon && (
+                    React.isValidElement(icon) ? (
+                        <View style={styles.leftIcon}>{icon}</View>
+                    ) : (
+                        (() => {
+                            const IconComponent = icon as Icon;
+                            return <IconComponent size={moderateScale(20)} color="rgba(77, 75, 75, 1)" style={styles.leftIcon} />;
+                        })()
+                    )
                 )}
                 <TextInput
-                    style={styles.input}
+                    style={[styles.input, props.style]}
                     secureTextEntry={isPassword && !isPasswordVisible}
                     placeholderTextColor="#94A3B8"
                     {...props}
@@ -54,6 +72,7 @@ const InputField: React.FC<InputFieldProps> = ({
                     <RightIconComponent size={moderateScale(20)} color="rgba(77, 75, 75, 1)" style={{ marginLeft: moderateScale(12) }} />
                 )}
             </View>
+            {error && <Text style={styles.errorText}>{error}</Text>}
         </View>
     );
 };
@@ -63,7 +82,7 @@ const styles = ScaledSheet.create({
         marginBottom: '16@vs',
     },
     label: {
-        fontSize: '15@ms',
+        fontSize: '12.5@ms',
         fontWeight: '400',
         color: '#475569',
         marginBottom: '8@vs',
@@ -79,7 +98,7 @@ const styles = ScaledSheet.create({
         borderColor: 'rgba(143, 139, 139, 1)',
         borderRadius: '28@ms',
         paddingHorizontal: '14@s',
-        height: '45@vs',
+        height: Platform.OS === 'android' ? '49@vs' : '40@vs',
     },
     inputDisabledWrapper: {
         flexDirection: 'row',
@@ -89,19 +108,28 @@ const styles = ScaledSheet.create({
         borderColor: 'rgba(204, 202, 202, 1)',
         borderRadius: '28@ms',
         paddingHorizontal: '14@s',
-        height: '45@vs',
+        height: Platform.OS === 'android' ? '49@vs' : '40@vs',
     },
     leftIcon: {
         marginRight: '12@s',
     },
     input: {
         flex: 1,
-        fontSize: '15@ms',
+        fontSize: '14@ms',
         color: '#0F172A',
         height: '100%',
     },
     rightIcon: {
         padding: '6@ms',
+    },
+    inputError: {
+        borderColor: '#EF4444',
+    },
+    errorText: {
+        fontSize: '11@ms',
+        color: '#EF4444',
+        marginTop: '4@vs',
+        marginLeft: '14@s',
     },
 });
 

@@ -1,12 +1,7 @@
-/**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
- */
-
 import { Platform } from 'react-native';
 
 const palette = {
-  primary: '#FF6B2C',
+  primary: 'rgba(255, 104, 19, 1)',
   primaryLight: '#FF8A5C',
   primaryDark: '#E55A1F',
   secondary: '#FF6B2C',
@@ -15,24 +10,24 @@ const palette = {
   background: '#FAFAFA',
   backgroundDark: '#0F172A',
   surface: '#FFFFFF',
-  surfaceDark: '#1E293B', // Slate-800 for dark surface
+  surfaceDark: '#1E293B',
 };
 
 export const Colors = {
   light: {
-    text: '#111827', // Gray-900
+    text: '#111827',
     background: palette.background,
     surface: palette.surface,
     primary: palette.primary,
     secondary: palette.secondary,
     tint: palette.primary,
-    icon: '#6B7280', // Gray-500
-    tabIconDefault: '#9CA3AF', // Gray-400
+    icon: '#6B7280',
+    tabIconDefault: '#9CA3AF',
     tabIconSelected: palette.primary,
-    border: '#E5E7EB', // Gray-200
+    border: '#E5E7EB',
   },
   dark: {
-    text: '#F9FAFB', // Gray-50
+    text: '#F9FAFB',
     background: palette.backgroundDark,
     surface: palette.surfaceDark,
     primary: palette.primary,
@@ -41,19 +36,15 @@ export const Colors = {
     icon: '#9CA3AF',
     tabIconDefault: '#6B7280',
     tabIconSelected: palette.primaryLight,
-    border: '#334155', // Slate-700
+    border: '#334155',
   },
 };
 
 export const Fonts = Platform.select({
   ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
     sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
     serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
     rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
     mono: 'ui-monospace',
   },
   default: {

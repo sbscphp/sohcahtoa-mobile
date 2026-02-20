@@ -83,9 +83,10 @@ const styles = ScaledSheet.create({
         flex: 1,
     },
     scrollContent: {
-        paddingHorizontal: '20@ms',
+        paddingHorizontal: '10@ms',
         paddingBottom: '40@vs',
         gap: '24@vs',
+        marginTop: '20@vs',
     },
     otherRatesContainer: {
         gap: '12@vs',

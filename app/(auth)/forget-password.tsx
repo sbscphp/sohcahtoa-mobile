@@ -1,9 +1,12 @@
+import { useForgotPasswordMutation } from '@/hooks/queries/auth/useForgotPasswordMutation';
+import { forgetPasswordSchema } from '@/lib/validations/auth';
 import { useRouter } from 'expo-router';
 import { Sms } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet } from 'react-native-size-matters';
+import { z } from 'zod';
 import AuthHeader from '../../components/AuthHeader';
 import InputField from '../../components/InputField';
 import PrimaryButton from '../../components/PrimaryButton';
@@ -13,14 +16,45 @@ export default function ForgotPasswordScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const [email, setEmail] = useState('');
+    const [error, setError] = useState<string>();
+
+    const { mutate: forgotPassword, isPending } = useForgotPasswordMutation();
+
+    const validateEmail = (value: string) => {
+        try {
+            forgetPasswordSchema.parse({ email: value });
+            setError(undefined);
+        } catch (err) {
+            if (err instanceof z.ZodError) {
+                setError(err.issues[0]?.message);
+            }
+        }
+    };
 
     const handleContinue = () => {
-        // Navigate to OTP verification (reusing existing OTP screen or creating new flow?)
-        // Assuming reusing OTP for now, or maybe a specific reset-password-otp
-        router.push({
-            pathname: '/(auth)/otp-verification',
-            params: { type: 'reset-password', email },
-        });
+        try {
+            forgetPasswordSchema.parse({ email });
+            setError(undefined);
+
+            forgotPassword({ email }, {
+                onSuccess: () => {
+                    router.push({
+                        pathname: '/(auth)/otp-verification',
+                        params: {
+                            type: 'reset-password',
+                            email,
+                            contactInfo: email,
+                            target: 'email'
+                            
+                        },
+                    });
+                }
+            });
+        } catch (err) {
+            if (err instanceof z.ZodError) {
+                setError(err.issues[0]?.message);
+            }
+        }
     };
 
     return (
@@ -31,27 +65,34 @@ export default function ForgotPasswordScreen() {
 
                 <ProgressBar progress={0.5} totalSteps={2} />
 
-                <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-                    <Text style={styles.title}>Enter your Email Address to Continue</Text>
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    style={{ flex: 1 }}
+                >
+                    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+                        <Text style={styles.title}>Enter your Email Address to Continue</Text>
 
-                    <InputField
-                        label="Email Address"
-                        placeholder="Enter your email address"
-                        icon={Sms}
-                        value={email}
-                        onChangeText={setEmail}
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                        required
-                        disabled={!email}
-                    />
-                </ScrollView>
+                        <InputField
+                            label="Email Address"
+                            placeholder="Enter your email address"
+                            icon={Sms}
+                            value={email}
+                            onChangeText={setEmail}
+                            onBlur={() => validateEmail(email)}
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                            required
+                            error={error}
+                        />
+                    </ScrollView>
+                </KeyboardAvoidingView>
 
                 <View style={styles.footer}>
                     <PrimaryButton
                         title="Continue"
                         onPress={handleContinue}
-                        disabled={!email}
+                        disabled={!email || isPending}
+                        loading={isPending}
                     />
                 </View>
             </View>

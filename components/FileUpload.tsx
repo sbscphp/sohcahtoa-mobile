@@ -31,7 +31,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
     const getPreviewBorderColor = () => {
         switch (status) {
             case 'approved': return '#86EFAC';
-            case 'pending': return '#7c807eff'; // Keep default for pending preview unless specified
+            case 'pending': return '#7c807eff'; 
             case 'error': return '#FCA5A5';
             default: return '#7c807eff';
         }

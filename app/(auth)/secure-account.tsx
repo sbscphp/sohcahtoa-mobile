@@ -1,10 +1,16 @@
+import PasswordStrengthValidator, { validatePassword } from '@/components/PasswordStrengthValidator';
 import ProgressBar from '@/components/ProgressBar';
+import { useCreateAccountMutation } from '@/hooks/queries/auth/useCreateAccountMutation';
+import { useCreateExpatriateAccountMutation } from '@/hooks/queries/auth/useCreateExpatriateAccountMutation';
+import { useCreateTouristAccountMutation } from '@/hooks/queries/auth/useCreateTouristAccountMutation';
+import { useResetPasswordMutation } from '@/hooks/queries/auth/useResetPasswordMutation';
+import { useAuthStore } from '@/stores/useAuthStore';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Lock, TickCircle } from 'iconsax-react-nativejs';
+import { Lock } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { moderateScale, ScaledSheet } from 'react-native-size-matters';
+import { ScaledSheet } from 'react-native-size-matters';
 import AuthHeader from '../../components/AuthHeader';
 import InputField from '../../components/InputField';
 import PrimaryButton from '../../components/PrimaryButton';
@@ -12,60 +18,86 @@ import { Colors } from '../../constants/theme';
 
 export default function SecureAccountScreen() {
     const router = useRouter();
-    const { type } = useLocalSearchParams<{ type?: string }>();
+    const { type, userType, resetToken } = useLocalSearchParams<{ type?: string; userType?: string; resetToken?: string }>();
     const insets = useSafeAreaInsets();
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
 
+    const { mutate: createAccount, isPending: isCreatingNigerian } = useCreateAccountMutation();
+    const { mutate: createTouristAccount, isPending: isCreatingTourist } = useCreateTouristAccountMutation();
+    const { mutate: createExpatriateAccount, isPending: isCreatingExpatriate } = useCreateExpatriateAccountMutation();
+
+    const { mutate: resetPassword, isPending: isResetting } = useResetPasswordMutation();
+
+    const isPending = isCreatingNigerian || isCreatingTourist || isCreatingExpatriate || isResetting;
+
     const handleCreatePassword = () => {
         if (password && password === confirmPassword) {
-            console.log('Password created');
-            router.replace('/(auth)/login');
+            if (type === 'reset-password') {
+                if (resetToken) {
+                    resetPassword({ resetToken, newPassword: password }, {
+                        onSuccess: () => {
+                            router.replace('/(auth)/login');
+                        }
+                    });
+                }
+                return;
+            }
+
+            const verificationToken = useAuthStore.getState().verificationToken;
+            if (!verificationToken) return;
+
+            const payload = {
+                verificationToken,
+                password
+            };
+
+            const onSuccess = () => {
+                useAuthStore.getState().setTempUserInfo(null);
+                router.replace('/(auth)/login');
+            };
+
+            const onError = (error: any) => {
+                const errorMessage = error.response?.data?.error?.message || error.message;
+                if (errorMessage === "Passport verification session expired. Please verify your passport again.") {
+                    router.replace({
+                        pathname: '/(auth)/passport-verification',
+                        params: { userType }
+                    });
+                }
+            };
+
+            if (userType === 'tourist') {
+                createTouristAccount(payload, { onSuccess, onError });
+            } else if (userType === 'expatriate') {
+                createExpatriateAccount(payload, { onSuccess, onError });
+            } else if (userType === 'citizen' || !userType) {
+                createAccount(payload, { onSuccess });
+            }
         }
     };
 
-    // Password validation logic
-    const validatePassword = (pass: string) => ({
-        hasMinLength: pass.length >= 8,
-        hasUppercase: /[A-Z]/.test(pass),
-        hasLowercase: /[a-z]/.test(pass),
-        hasNumber: /[0-9]/.test(pass),
-        hasSpecialChar: /[!@#$%^&*+\-?]/.test(pass),
-    });
-
     const validations = validatePassword(password);
     const isPasswordValid = Object.values(validations).every(Boolean);
-
-    const ValidationItem = ({ label, isValid }: { label: string; isValid: boolean }) => (
-        <View style={styles.validationRow}>
-            <TickCircle
-                size={moderateScale(18)}
-                color={isValid ? '#10B981' : 'rgba(77, 75, 75, 1)'}
-                variant={isValid ? "Bold" : "Outline"}
-                style={styles.validationIcon}
-            />
-            <Text style={[styles.validationText, isValid && styles.validationTextValid]}>
-                {label}
-            </Text>
-        </View>
-    );
 
     const title = type === 'reset-password' ? 'Create New Password' : 'Secure Account';
 
     return (
         <SafeAreaView style={styles.container}>
+            <AuthHeader title={title} />
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                style={styles.container}
+                style={{ flex: 1 }}
             >
-                <AuthHeader title={title} />
-
                 <ScrollView
-                    contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 80 }]}
+                    contentContainerStyle={[
+                        styles.scrollContent,
+                        { paddingBottom: insets.bottom + 100 }
+                    ]}
                     showsVerticalScrollIndicator={false}
                 >
 
-                    {type === 'reset-password' ? null : <ProgressBar step={3} totalSteps={3} />}
+                    {type === 'reset-password' ? null : userType === 'citizen' && <ProgressBar step={3} totalSteps={3} />}
                     <View style={styles.content}>
                         <Text style={styles.title}>Create a Password to Secure your Account</Text>
 
@@ -80,13 +112,7 @@ export default function SecureAccountScreen() {
                             disabled={!password}
                         />
 
-                        <View style={styles.validationBox}>
-                            <ValidationItem label="Minimum 8 of character long" isValid={validations.hasMinLength} />
-                            <ValidationItem label="One uppercase letter" isValid={validations.hasUppercase} />
-                            <ValidationItem label="One lowercase letter" isValid={validations.hasLowercase} />
-                            <ValidationItem label="One number 0-9" isValid={validations.hasNumber} />
-                            <ValidationItem label="One special charater (!@#$%^&*+-?)" isValid={validations.hasSpecialChar} />
-                        </View>
+                        <PasswordStrengthValidator password={password} />
 
                         <InputField
                             label="Confirm new Password"
@@ -96,7 +122,7 @@ export default function SecureAccountScreen() {
                             isPassword
                             icon={Lock}
                             required
-                            disabled={!confirmPassword}
+                        // disabled={!confirmPassword}
                         />
                     </View>
                 </ScrollView>
@@ -105,7 +131,8 @@ export default function SecureAccountScreen() {
                     <PrimaryButton
                         title="Create Password"
                         onPress={handleCreatePassword}
-                        disabled={!isPasswordValid || password !== confirmPassword}
+                        disabled={!isPasswordValid || password !== confirmPassword || isPending}
+                        loading={isPending}
                         style={{ backgroundColor: (isPasswordValid && password === confirmPassword) ? Colors.light.primary : '#FFCCB4' }}
                     />
                 </View>
@@ -130,27 +157,6 @@ const styles = ScaledSheet.create({
         fontWeight: '500',
         color: '#1E293B',
         marginBottom: '24@vs',
-    },
-    validationBox: {
-        backgroundColor: '#FFFFFF',
-        padding: '10@ms',
-        marginBottom: '20@vs',
-        gap: '14@vs',
-    },
-    validationRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    validationIcon: {
-        marginRight: '12@s',
-    },
-    validationText: {
-        fontSize: '13@ms',
-        color: 'rgba(77, 75, 75, 1)',
-        fontWeight: '400',
-    },
-    validationTextValid: {
-        color: '#111827',
     },
     footer: {
         position: 'absolute',

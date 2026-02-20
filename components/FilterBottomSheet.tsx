@@ -1,6 +1,7 @@
-import { Calendar, CloseCircle, TickSquare, WalletMinus } from 'iconsax-react-nativejs';
+import DatePickerField from '@/components/DatePickerField';
+import { CloseCircle, TickSquare, WalletMinus } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
-import { Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 
 interface FilterBottomSheetProps {
@@ -14,8 +15,8 @@ const FilterBottomSheet: React.FC<FilterBottomSheetProps> = ({
     onClose,
     onFilter
 }) => {
-    const [startDate, setStartDate] = useState('Dec 1 2025');
-    const [endDate, setEndDate] = useState('Dec 9 2025');
+    const [startDate, setStartDate] = useState('01/12/2025');
+    const [endDate, setEndDate] = useState('09/12/2025');
     const [statusSelected, setStatusSelected] = useState(false);
     const [typeSelected, setTypeSelected] = useState(false);
 
@@ -53,30 +54,22 @@ const FilterBottomSheet: React.FC<FilterBottomSheetProps> = ({
                         <Text style={styles.sectionTitle}>Filter by Date</Text>
                         <View style={styles.dateRow}>
                             <View style={styles.dateInputContainer}>
-                                <Text style={styles.label}>Start Date</Text>
-                                <View style={styles.inputWrapper}>
-                                    <TextInput
-                                        style={styles.inputText}
-                                        value={startDate}
-                                        onChangeText={setStartDate}
-                                        placeholder="MMM D YYYY"
-                                        placeholderTextColor="#64748B"
-                                    />
-                                    <Calendar size={moderateScale(20)} color="#64748B" />
-                                </View>
+                                <DatePickerField
+                                    label="Start Date"
+                                    value={startDate}
+                                    onDateChange={setStartDate}
+                                    placeholder="DD/MM/YYYY"
+                                // rightIcon={Calendar} // DatePickerField handles icon
+                                />
                             </View>
                             <View style={styles.dateInputContainer}>
-                                <Text style={styles.label}>End Date</Text>
-                                <View style={styles.inputWrapper}>
-                                    <TextInput
-                                        style={styles.inputText}
-                                        value={endDate}
-                                        onChangeText={setEndDate}
-                                        placeholder="MMM D YYYY"
-                                        placeholderTextColor="#64748B"
-                                    />
-                                    <Calendar size={moderateScale(20)} color="#64748B" />
-                                </View>
+                                <DatePickerField
+                                    label="End Date"
+                                    value={endDate}
+                                    onDateChange={setEndDate}
+                                    placeholder="DD/MM/YYYY"
+                                // rightIcon={Calendar}
+                                />
                             </View>
                         </View>
                     </View>
@@ -142,7 +135,7 @@ const styles = ScaledSheet.create({
         paddingHorizontal: '20@s',
         paddingTop: '10@vs',
         paddingBottom: '24@vs',
-        // marginHorizontal: '16@s',
+        marginHorizontal: '12@s',
         marginBottom: '40@vs',
     },
     header: {
@@ -190,28 +183,6 @@ const styles = ScaledSheet.create({
     },
     dateInputContainer: {
         flex: 1,
-    },
-    label: {
-        fontSize: '13@ms',
-        color: '#64748B',
-        marginBottom: '6@vs',
-    },
-    inputWrapper: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        borderWidth: 1,
-        borderColor: '#E2E8F0',
-        borderRadius: '24@ms',
-        paddingHorizontal: '16@s',
-        paddingVertical: '10@vs',
-        height: '48@vs',
-    },
-    inputText: {
-        fontSize: '14@ms',
-        color: '#0F172A',
-        flex: 1, // Ensure text input takes available space
-        marginRight: '8@s',
     },
     othersRow: {
         flexDirection: 'row',

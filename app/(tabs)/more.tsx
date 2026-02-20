@@ -13,12 +13,13 @@ interface MenuItem {
     isLogout?: boolean;
 }
 
+import { useLogoutMutation } from '@/hooks/queries/auth/useLogoutMutation';
 import { useRouter } from 'expo-router';
-import { Info } from 'lucide-react-native';
 
 export default function MoreScreen() {
     const router = useRouter();
     const [logoutModalVisible, setLogoutModalVisible] = useState(false);
+    const { mutate: logout, isPending } = useLogoutMutation();
 
     const menuItems: MenuItem[] = [
         {
@@ -31,16 +32,19 @@ export default function MoreScreen() {
             icon: <ShieldSecurity size={moderateScale(18)} color="rgba(255, 104, 19, 1)" variant="Linear" />,
             title: 'Security',
             subtitle: 'Update password, keep your account secure.',
+            onPress: () => router.push('/security/change-password'),
         },
         {
             icon: <Cards size={moderateScale(18)} color="rgba(255, 104, 19, 1)" variant="Linear" />,
             title: 'Manage Cards',
             subtitle: 'Update or remove your payment cards',
+            onPress: () => router.push('/security/change-password'),
         },
         {
             icon: <Headphone size={moderateScale(18)} color="rgba(255, 104, 19, 1)" variant="Linear" />,
             title: 'Support',
             subtitle: 'Get help with app issues',
+            onPress: () => router.push('/support'),
         },
         {
             icon: <Judge size={moderateScale(18)} color="rgba(255, 104, 19, 1)" variant="Linear" />,
@@ -51,6 +55,7 @@ export default function MoreScreen() {
             icon: <MessageQuestion size={moderateScale(18)} color="rgba(255, 104, 19, 1)" variant="Linear" />,
             title: 'FAQs',
             subtitle: 'Get quick app answers about App',
+            onPress: () => router.push('/faqs'),
         },
         {
             icon: <LogoutCurve size={moderateScale(18)} color="rgba(255, 104, 19, 1)" variant="Linear" />,
@@ -105,9 +110,17 @@ export default function MoreScreen() {
 
                         <PrimaryButton
                             title="Yes, Log out"
+                            loading={isPending}
                             onPress={() => {
-                                // Perform logout logic here
-                                setLogoutModalVisible(false);
+                                logout(undefined, {
+                                    onSuccess: () => {
+                                        setLogoutModalVisible(false);
+                                        router.replace('/(auth)/welcome-back');
+                                    },
+                                    onError: () => {
+                                        setLogoutModalVisible(false);
+                                    }
+                                });
                             }}
                             style={{ marginBottom: moderateScale(12) }}
                         />
@@ -175,7 +188,7 @@ const styles = ScaledSheet.create({
         textAlign: 'center',
         marginTop: '20@vs',
         color: '#94A3B8',
-        fontSize: '14@ms',
+        fontSize: '13@ms',
     },
     modalOverlay: {
         flex: 1,

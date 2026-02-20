@@ -37,11 +37,18 @@ export default function TransactionLayout({
                 <ProgressBar progress={(currentStep + 1) / totalSteps} totalSteps={totalSteps} />
             </View>
 
-            <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-                <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                style={{ flex: 1 }}
+            >
+                <ScrollView
+                    style={{ flex: 1 }}
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={false}
+                >
                     {children}
-                </KeyboardAvoidingView>
-            </ScrollView>
+                </ScrollView>
+            </KeyboardAvoidingView>
 
             <View style={[styles.footer, { paddingBottom: insets.bottom + moderateScale(10) }]}>
                 <PrimaryButton
@@ -60,7 +67,7 @@ const styles = ScaledSheet.create({
         backgroundColor: '#FFFFFF',
     },
     scrollContent: {
-        paddingHorizontal: '20@s',
+        paddingHorizontal: '16@s',
         paddingBottom: '100@vs',
         paddingTop: '10@vs',
     },

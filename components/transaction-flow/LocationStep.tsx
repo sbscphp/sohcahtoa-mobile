@@ -1,6 +1,7 @@
-import InputField from '@/components/InputField';
+import DatePickerField from '@/components/DatePickerField';
 import LocationSelectionSheet, { LocationItem } from '@/components/LocationSelectionSheet';
-import { ArrowDown2, Calendar, Clock, Edit2 } from 'iconsax-react-nativejs';
+import TimePickerField from '@/components/TimePickerField';
+import { ArrowDown2, Edit2 } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
@@ -19,6 +20,13 @@ interface LocationStepProps {
 
     selectedLocation: LocationItem | null;
     onSelectLocation: (location: LocationItem) => void;
+
+    pickupDate?: string;
+    onPickupDateChange?: (date: string) => void;
+
+    pickupTime?: string;
+    onPickupTimeChange?: (time: string) => void;
+
     title?: string;
 }
 
@@ -32,6 +40,10 @@ export default function LocationStep({
     onSelectCity,
     selectedLocation,
     onSelectLocation,
+    pickupDate = '',
+    onPickupDateChange = () => { },
+    pickupTime = '',
+    onPickupTimeChange = () => { },
     title = "Where would you like to pick up your card and cash?"
 }: LocationStepProps) {
     const [stateSheetVisible, setStateSheetVisible] = useState(false);
@@ -70,10 +82,21 @@ export default function LocationStep({
 
             <View style={{ flexDirection: 'row', gap: moderateScale(12) }}>
                 <View style={{ flex: 1 }}>
-                    <InputField label='Pick-up Date' required placeholder='dd/mm/yyyy' rightIcon={Calendar} />
+                    <DatePickerField
+                        label='Pickup Date'
+                        value={pickupDate}
+                        onDateChange={onPickupDateChange}
+                        required
+                        minimumDate={new Date()}
+                    />
                 </View>
                 <View style={{ flex: 1 }}>
-                    <InputField label='Pick-up Time' required placeholder='hh:mm:ss' rightIcon={Clock} />
+                    <TimePickerField
+                        label='Pickup Time'
+                        value={pickupTime}
+                        onTimeChange={onPickupTimeChange}
+                        required
+                    />
                 </View>
             </View>
 
@@ -178,7 +201,7 @@ const styles = ScaledSheet.create({
         gap: '6@vs',
     },
     label: {
-        fontSize: '15@ms',
+        fontSize: '13@ms',
         color: '#475569',
         marginBottom: '6@vs',
     },
@@ -210,7 +233,7 @@ const styles = ScaledSheet.create({
         padding: '22@ms',
         alignItems: 'center',
         gap: '8@vs',
-        height: '100@vs',
+        minHeight: '100@vs',
         justifyContent: 'center',
         marginTop: '12@vs',
     },
@@ -220,7 +243,7 @@ const styles = ScaledSheet.create({
         color: '#0F172A',
     },
     emptyStateText: {
-        fontSize: '13@ms',
+        fontSize: '12@ms',
         color: '#64748B',
     },
     iconCircle: {

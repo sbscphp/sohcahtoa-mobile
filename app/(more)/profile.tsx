@@ -1,26 +1,28 @@
 import Header from '@/components/Header';
-import { ArrowDown2, Edit, Edit2 } from 'iconsax-react-nativejs';
+import { useAuthStore } from '@/stores/useAuthStore';
+import { ArrowDown2, Edit2 } from 'iconsax-react-nativejs';
 import { SquarePen } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { moderateScale, ScaledSheet } from 'react-native-size-matters';
+import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 
 export default function MyProfileScreen() {
     const insets = useSafeAreaInsets();
-    const userImage = require('@/assets/images/user-img-1.jpg');
+    const user = useAuthStore((state) => state.user);
+    const userImage = user?.profile?.avatar ? { uri: user.profile.avatar } : require('@/assets/images/user-img-1.jpg');
     const [expanded, setExpanded] = useState(true);
 
     const basicDetails = [
-        { label: 'Full name', value: 'Emmanuel Isreal' },
-        { label: 'Gender', value: 'Male' },
-        { label: 'Date of Birth', value: 'April 27 2005' },
-        { label: 'BVN', value: '46**************333' },
-        { label: 'NIN', value: '48**************555' },
-        { label: 'Phone Number', value: '+234 90 4747 2791' },
-        { label: 'Email Address', value: 'olamidesoc@gmail.com' },
-        { label: 'Date Joined', value: 'December 1, 2025' },
-        { label: 'Last Active', value: 'Dec 9, 2025 ; 11:00 am' },
+        { label: 'Full name', value: user?.profile ? `${user.profile.firstName} ${user.profile.lastName}` : 'N/A' },
+        { label: 'Gender', value: 'N/A' },
+        { label: 'Date of Birth', value: user?.profile?.dateOfBirth ? new Date(user.profile.dateOfBirth).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A' },
+        { label: 'BVN', value: user?.kyc?.bvn || 'N/A' },
+        { label: 'NIN', value: 'N/A' },
+        { label: 'Phone Number', value: user?.phoneNumber || 'N/A' },
+        { label: 'Email Address', value: user?.email || 'N/A' },
+        { label: 'Date Joined', value: user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A' },
+        { label: 'Last Active', value: 'Active Now' },
     ];
 
     return (
@@ -37,8 +39,8 @@ export default function MyProfileScreen() {
                             </View>
                         </View>
                         <View style={styles.nameContainer}>
-                            <Text style={styles.profileName}>Emmanuel Isreal</Text>
-                            <Text style={styles.profileHandle}>Display Name</Text>
+                            <Text style={styles.profileName}>{user?.profile ? `${user.profile.firstName} ${user.profile.lastName}` : 'User'}</Text>
+                            <Text style={styles.profileHandle}>@{user?.profile?.firstName?.toLowerCase() || 'user'}</Text>
                         </View>
                         <TouchableOpacity style={styles.editBtn}>
                             <Edit2 size={moderateScale(18)} color="#FF8A65" variant="Linear" />

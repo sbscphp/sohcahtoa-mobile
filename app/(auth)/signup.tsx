@@ -16,7 +16,10 @@ export default function SignupScreen() {
 
     const handleContinue = () => {
         if (selectedType === 'tourist' || selectedType === 'expatriate') {
-            router.push('/(auth)/passport-verification');
+            router.push({
+                pathname: '/(auth)/passport-verification',
+                params: { userType: selectedType }
+            });
         } else if (selectedType === 'citizen') {
             router.push('/(auth)/bvn-verification');
         }

@@ -1,3 +1,4 @@
+import DatePickerField from '@/components/DatePickerField';
 import GenericSelectionSheet, { SelectionItem } from '@/components/GenericSelectionSheet';
 import InitiateTransactionSheet from '@/components/InitiateTransactionSheet';
 import InputField from '@/components/InputField';
@@ -8,7 +9,7 @@ import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
 import { useRouter } from 'expo-router';
-import { ArrowDown2, Calendar, Teacher } from 'iconsax-react-nativejs';
+import { ArrowDown2, Teacher } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
 import { View } from 'react-native';
 
@@ -51,6 +52,8 @@ export default function SchoolFeesScreen() {
     const [nin, setNin] = useState('');
     const [formAId, setFormAId] = useState('');
     const [passportNumber, setPassportNumber] = useState('');
+    const [passportIssueDate, setPassportIssueDate] = useState('');
+    const [passportExpiryDate, setPassportExpiryDate] = useState('');
     const [admissionType, setAdmissionType] = useState('');
 
     // Step 2: Exchange State
@@ -105,7 +108,7 @@ export default function SchoolFeesScreen() {
         },
     ];
 
-   
+
     const undergraduateDocuments = [
         {
             label: 'Evidence of Admission',
@@ -139,23 +142,23 @@ export default function SchoolFeesScreen() {
     ];
 
     const postgraduateDocuments = [
-            
-            {
-                label: 'International Passport',
-                onUpload: () => console.log('Upload Passport'),
-                required: true,
-                associatedInputs: (
-                    <View style={{ flexDirection: 'row', gap: 12 }}>
-                        <View style={{ flex: 1 }}>
-                            <InputField label='Passport Issue Date' required placeholder='dd/mm/yyyy' rightIcon={Calendar} />
-                        </View>
-                        <View style={{ flex: 1 }}>
-                            <InputField label='Passport Expiry Date' required placeholder='dd/mm/yyyy' rightIcon={Calendar} />
-                        </View>
+
+        {
+            label: 'International Passport',
+            onUpload: () => console.log('Upload Passport'),
+            required: true,
+            associatedInputs: (
+                <View style={{ flexDirection: 'row', gap: 12 }}>
+                    <View style={{ flex: 1 }}>
+                        <DatePickerField label='Passport Issue Date' value={passportIssueDate} onDateChange={setPassportIssueDate} required maximumDate={new Date()} />
                     </View>
-                )
-            },
-            {
+                    <View style={{ flex: 1 }}>
+                        <DatePickerField label='Passport Expiry Date' value={passportExpiryDate} onDateChange={setPassportExpiryDate} required minimumDate={new Date()} />
+                    </View>
+                </View>
+            )
+        },
+        {
             label: 'School Invoice',
             onUpload: () => console.log('Upload Invoice'),
             required: true,
@@ -184,9 +187,9 @@ export default function SchoolFeesScreen() {
             onUpload: () => console.log('Upload First Degree Certificate'),
             required: true,
         },
-        ]
-       
-     const documentFields = admissionType === 'Post-Graduate' ? postgraduateDocuments : undergraduateDocuments;
+    ]
+
+    const documentFields = admissionType === 'Post-Graduate' ? postgraduateDocuments : undergraduateDocuments;
 
     // --- Handlers ---
 
@@ -239,6 +242,8 @@ export default function SchoolFeesScreen() {
                     amountGet={amountGet}
                     amountSend={amountSend}
                     rate={`1 ${currencyGet.code} = 1500 ${currencySend.code}`}
+                    onAmountGetChange={setAmountGet}
+                    onAmountSendChange={setAmountSend}
                 />
             )}
 
@@ -293,7 +298,7 @@ export default function SchoolFeesScreen() {
                 subtitle="Select an option below"
                 headerIcon={Teacher}
                 headerIconBg="#FFF7ED"
-                headerIconColor="#FF6813"
+                headerIconColor="rgba(221, 79, 5, 1)"
                 items={ADMISSION_TYPES}
                 selectedItem={admissionType}
                 onSelect={(item) => setAdmissionType(item.value)}

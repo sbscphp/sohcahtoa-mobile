@@ -1,9 +1,14 @@
 import ProgressBar from '@/components/ProgressBar';
+import { useSendOtpMutation } from '@/hooks/queries/auth/useSendOtpMutation';
+import { useVerifyBvnMutation } from '@/hooks/queries/auth/useVerifyBvnMutation';
+import { bvnSchema } from '@/lib/validations/auth';
+import { useAuthStore } from '@/stores/useAuthStore';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet } from 'react-native-size-matters';
+import { z } from 'zod';
 import AuthHeader from '../../components/AuthHeader';
 import InputField from '../../components/InputField';
 import OtpOptionSheet from '../../components/OtpOptionSheet';
@@ -13,21 +18,78 @@ export default function BvnVerificationScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const [bvn, setBvn] = useState('');
+    const [error, setError] = useState<string>();
     const [isSheetVisible, setIsSheetVisible] = useState(false);
 
+    const { mutate: verifyBvn, isPending } = useVerifyBvnMutation();
+    const { mutate: sendOtp, isPending: isSendingOtp } = useSendOtpMutation();
+
+
+
+    const validateBvn = (value: string) => {
+        try {
+            bvnSchema.parse({ bvn: value });
+            setError(undefined);
+        } catch (err) {
+            if (err instanceof z.ZodError) {
+                setError(err.issues[0]?.message);
+            }
+        }
+    };
+
     const handleContinue = () => {
-        if (bvn.length === 11) {
-            setIsSheetVisible(true);
+        try {
+            bvnSchema.parse({ bvn });
+            setError(undefined);
+
+            verifyBvn({ bvn }, {
+                onSuccess: () => {
+                    setIsSheetVisible(true);
+                }
+            });
+        } catch (err) {
+            if (err instanceof z.ZodError) {
+                setError(err.issues[0]?.message);
+            }
         }
     };
 
     const handleOptionSelect = (option: 'phone' | 'email') => {
-        setIsSheetVisible(false);
-        router.push({
-            pathname: '/(auth)/otp-verification',
-            params: { context: 'bvn', target: option }
-        });
+        const verificationToken = useAuthStore.getState().verificationToken;
+
+        if (!verificationToken) {
+            return;
+        }
+
+        sendOtp(
+            {
+                verificationToken,
+                verificationType: option
+            },
+            {
+                onSuccess: (response: any) => {
+                    useAuthStore.getState().setTempUserInfo({
+                        firstName: response.data.firstName || '',
+                        lastName: response.data.lastName || '',
+                        phoneNumber: response.data.phoneNumber || '',
+                        email: response.data.email || '',
+                        address: response.data.address || '',
+                    });
+                    setIsSheetVisible(false);
+                    router.push({
+                        pathname: '/(auth)/otp-verification',
+                        params: {
+                            context: 'bvn',
+                            target: option,
+                            userType: 'citizen',
+                            contactInfo: option === 'email' ? response.data.email : response.data.phoneNumber
+                        }
+                    });
+                }
+            }
+        );
     };
+
 
     return (
         <SafeAreaView style={styles.container}>
@@ -50,11 +112,15 @@ export default function BvnVerificationScreen() {
                             label="BVN"
                             placeholder="Enter your BVN"
                             value={bvn}
-                            onChangeText={setBvn}
+                            onChangeText={(text) => {
+                                setBvn(text);
+                                if (error) validateBvn(text);
+                            }}
+                            onBlur={() => validateBvn(bvn)}
                             keyboardType="numeric"
                             maxLength={11}
                             required
-                            disabled={!bvn}
+                            error={error}
                         />
                     </View>
                 </ScrollView>
@@ -64,12 +130,15 @@ export default function BvnVerificationScreen() {
                         title="Continue"
                         onPress={handleContinue}
                         disabled={bvn.length !== 11}
+                        loading={isPending}
                     />
                 </View>
+
                 <OtpOptionSheet
                     isVisible={isSheetVisible}
                     onClose={() => setIsSheetVisible(false)}
                     onSelect={handleOptionSelect}
+                    loading={isSendingOtp}
                 />
             </KeyboardAvoidingView>
         </SafeAreaView>

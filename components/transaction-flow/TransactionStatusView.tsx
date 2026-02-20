@@ -2,7 +2,7 @@ import { Calendar, Clock, SearchStatus } from 'iconsax-react-nativejs';
 import React from 'react';
 import { Text, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
-import EmptyState from '../../assets/icons/empty-state.svg';
+import EmptyState from '../../assets/icons/no-search-found.svg';
 
 export type TransactionStatus = 'pending' | 'approved' | 'more_info' | 'rejected' | 'awaiting_disbursement' | 'settled';
 
@@ -31,7 +31,7 @@ export default function TransactionStatusView({ status, id, date, time, message 
 
     return (
         <View style={styles.tabContent}>
-            {/* Status Card */}
+            
             <View style={[
                 styles.statusCard,
                 status === 'more_info' && styles.statusCardMoreInfo,
@@ -188,6 +188,7 @@ const styles = ScaledSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
+        marginTop: '40@vs',
     },
     txStatusLabel: {
         fontSize: '13@ms',
@@ -226,21 +227,21 @@ const styles = ScaledSheet.create({
 
     pendingContainer: {
         alignItems: 'center',
-        paddingVertical: '40@vs',
+        paddingVertical: '10@vs',
         paddingHorizontal: '20@s',
     },
     pendingIconContainer: {
-        marginBottom: '24@vs',
+        marginBottom: '14@vs',
     },
     pendingTitle: {
-        fontSize: '18@ms',
+        fontSize: '16@ms',
         fontWeight: '600',
         color: '#334155',
         marginBottom: '12@vs',
         textAlign: 'center',
     },
     pendingDesc: {
-        fontSize: '14@ms',
+        fontSize: '12@ms',
         color: '#64748B',
         textAlign: 'center',
         lineHeight: '22@ms',

@@ -20,27 +20,26 @@ interface TransactionDocsViewProps {
 
 export default function TransactionDocsView({ status, documents }: TransactionDocsViewProps) {
 
-    const getDocStatus = (): 'approved' | 'pending' | 'error' => {
-        if (status === 'approved' || status === 'awaiting_disbursement' || status === 'settled' || status === 'more_info') return 'approved';
-        if (status === 'rejected') return 'error';
-        return 'pending';
+    const getDocStatus = (): 'approved' | 'error' => {
+        if (status === 'approved') return 'approved';
+        return 'error';
     };
 
     const StatusIndicator = () => {
-        if (status === 'rejected') {
-            return <CloseCircle size={moderateScale(16)} color="#EF4444" variant="Bold" />;
+        if (status === 'approved') {
+            return <TickCircle size={moderateScale(16)} color="#16A34A" variant="Bold" />;
         }
-        return <TickCircle size={moderateScale(16)}
-            color={status === 'approved' || status === 'awaiting_disbursement' || status === 'settled' ? "#16A34A" : status === 'more_info' ? "#EF4444" : "#FF6813"}
-            variant="Bold"
-        />;
+        return <CloseCircle size={moderateScale(16)} color="#EF4444" variant="Bold" />;
     };
 
     const getStatusText = () => {
-        if (status === 'approved' || status === 'awaiting_disbursement' || status === 'settled') return 'Approved';
-        if (status === 'rejected') return 'Rejected';
-        if (status === 'more_info') return 'Resubmission Required';
-        return 'Under Review';
+        if (status === 'approved') return 'Approved';
+        return 'Rejected';
+    };
+
+    const getStatusTextStyle = () => {
+        if (status === 'approved') return styles.docStatusTextApproved;
+        return styles.docStatusTextError;
     };
 
     return (
@@ -65,13 +64,7 @@ export default function TransactionDocsView({ status, documents }: TransactionDo
                             />
                             <View style={[styles.docStatusRow, { marginTop: 0 }]}>
                                 <StatusIndicator />
-                                <Text style={
-                                    status === 'approved' || status === 'awaiting_disbursement' || status === 'settled'
-                                        ? styles.docStatusTextApproved
-                                        : status === 'more_info' || status === 'rejected'
-                                            ? styles.docStatusTextError
-                                            : styles.docStatusTextPending
-                                }>
+                                <Text style={getStatusTextStyle()}>
                                     {getStatusText()}
                                 </Text>
                             </View>
@@ -114,7 +107,7 @@ const styles = ScaledSheet.create({
     },
     docStatusTextPending: {
         fontSize: '12@ms',
-        color: '#FF6813',
+        color: 'rgba(221, 79, 5, 1)',
         fontWeight: '500',
     },
     docStatusTextError: {
@@ -129,7 +122,7 @@ const styles = ScaledSheet.create({
         alignItems: 'center',
         paddingVertical: '8@vs',
         borderBottomWidth: 1,
-        borderBottomColor: '#F1F5F9', 
+        borderBottomColor: '#F1F5F9',
     },
     detailLabel: {
         fontSize: '13@ms',

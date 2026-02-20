@@ -51,7 +51,7 @@ const styles = ScaledSheet.create({
         gap: '6@vs',
     },
     sectionTitle: {
-        fontSize: '14@ms',
+        fontSize: '13@ms',
         fontWeight: '600',
         color: '#0F172A',
         marginBottom: '8@vs',
@@ -60,7 +60,7 @@ const styles = ScaledSheet.create({
         gap: '6@vs',
     },
     label: {
-        fontSize: '15@ms',
+        fontSize: '12.5@ms',
         color: '#475569',
     },
     required: {

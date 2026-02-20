@@ -11,10 +11,9 @@ export default function ViewMedicalPaymentScreen() {
     const router = useRouter();
     const [activeTab, setActiveTab] = useState('overview');
 
-    // In a real app, this status would come from a backend or global state
+    
     const [status, setStatus] = useState<TransactionStatus>('pending');
 
-    // Document States
     const [passportFile, setPassportFile] = useState<string | null>('my-passport.jpg');
     const [formAFile, setFormAFile] = useState<string | null>('form-a.pdf');
     const [returnTicketFile, setReturnTicketFile] = useState<string | null>('return-ticket.pdf');

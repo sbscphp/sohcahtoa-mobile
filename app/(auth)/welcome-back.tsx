@@ -1,3 +1,6 @@
+import BiometricBottomSheet from '@/components/BiometricBottomSheet';
+import BiometricSelectionSheet from '@/components/BiometricSelectionSheet';
+import { useAuthStore } from '@/stores/useAuthStore';
 import { useRouter } from 'expo-router';
 import { Lock } from 'iconsax-react-nativejs';
 import { Delete, ScanFace } from 'lucide-react-native';
@@ -10,11 +13,16 @@ import { Colors } from '../../constants/theme';
 export default function WelcomeBackScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
+    const user = useAuthStore((state) => state.user);
     const [passcode, setPasscode] = useState<string[]>([]);
     const [error, setError] = useState(false);
+    const [showBiometricBottomSheet, setShowBiometricBottomSheet] = useState(false);
+    const [showBiometricSheet, setShowBiometricSheet] = useState(false);
 
+    const userName = user?.profile ? `${user.profile.firstName} ${user.profile.lastName}` : 'User';
+    console.log('userName', user);
     const PASSCODE_LENGTH = 6;
-    const CORRECT_PASSCODE = '123456'; 
+    const CORRECT_PASSCODE = '123456';
 
     useEffect(() => {
         if (passcode.length === PASSCODE_LENGTH) {
@@ -48,9 +56,7 @@ export default function WelcomeBackScreen() {
     };
 
     const handleBiometric = () => {
-        // Mock biometric auth
-        console.log("Biometric triggered");
-        // router.replace('/(tabs)');
+        setShowBiometricBottomSheet(true);
     };
 
     const handleSignUp = () => {
@@ -71,18 +77,17 @@ export default function WelcomeBackScreen() {
         <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
             <View style={styles.content}>
 
-                {/* User Info */}
                 <View style={styles.userSection}>
                     <View style={styles.avatarContainer}>
-                        {/* Placeholder for user image */}
+
                         <Image
-                            source={{ uri: 'https://i.pravatar.cc/300' }}
+                            source={require('../../assets/images/user-img-1.jpg')}
                             style={styles.avatar}
                         />
                     </View>
                     <View style={styles.userInfo}>
                         <Text style={styles.welcomeText}>Welcome Back</Text>
-                        <Text style={styles.userName}>Emmanuel Isreal</Text>
+                        <Text style={styles.userName}>{userName}</Text>
                     </View>
                 </View>
 
@@ -143,7 +148,7 @@ export default function WelcomeBackScreen() {
                     </TouchableOpacity>
 
                     <View style={styles.signupContainer}>
-                        <Text style={styles.notUserText}>Not Emmanuel Isreal ? </Text>
+                        <Text style={styles.notUserText}>Not {userName}? </Text>
                         <TouchableOpacity onPress={handleSignUp}>
                             <Text style={styles.signupText}>Sign Up</Text>
                         </TouchableOpacity>
@@ -151,6 +156,26 @@ export default function WelcomeBackScreen() {
                 </View>
 
             </View>
+            <BiometricBottomSheet
+                visible={showBiometricBottomSheet}
+                onClose={() => setShowBiometricBottomSheet(false)}
+                onConfirm={() => {
+                    setShowBiometricSheet(true);
+                    setShowBiometricBottomSheet(false);
+                }}
+            />
+            <BiometricSelectionSheet
+                visible={showBiometricSheet}
+                onClose={() => setShowBiometricSheet(false)}
+                onSelectFace={() => {
+                    setShowBiometricSheet(false);
+                    router.push('/(auth)/biometrics-setup');
+                }}
+                onSelectFingerprint={() => {
+                    setShowBiometricSheet(false);
+                    router.push('/(auth)/fingerprint-setup');
+                }}
+            />
         </View>
     );
 }

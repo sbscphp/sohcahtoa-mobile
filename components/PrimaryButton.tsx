@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleProp, Text, TextStyle, TouchableOpacity, ViewStyle } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, StyleProp, Text, TextStyle, ViewStyle } from 'react-native';
 import { ScaledSheet } from 'react-native-size-matters';
 import { Colors } from '../constants/theme';
 
@@ -7,6 +7,7 @@ interface PrimaryButtonProps {
     title: string;
     onPress: () => void;
     disabled?: boolean;
+    loading?: boolean;
     style?: StyleProp<ViewStyle>;
     textStyle?: StyleProp<TextStyle>;
     accessible?: boolean;
@@ -17,30 +18,40 @@ const PrimaryButton: React.FC<PrimaryButtonProps> = ({
     title,
     onPress,
     disabled,
+    loading,
     style,
     textStyle,
     accessible = true,
     accessibilityLabel,
 }) => {
     return (
-        <TouchableOpacity
-            activeOpacity={0.8}
+        <Pressable
             onPress={onPress}
-            disabled={disabled}
-            style={[styles.button, disabled && styles.disabledButton, style]}
+            disabled={disabled || loading}
+            style={({ pressed }) => [
+                styles.button,
+                (disabled || loading) && styles.disabledButton,
+                pressed && { opacity: 0.8 },
+                style
+            ]}
             accessible={accessible}
             accessibilityLabel={accessibilityLabel || title}
             accessibilityRole="button"
         >
-            <Text style={[styles.text, textStyle]}>{title}</Text>
-        </TouchableOpacity>
+            {loading ? (
+                <ActivityIndicator color="#FFFFFF" />
+            ) : (
+                <Text style={[styles.text, textStyle]}>{title}</Text>
+            )}
+        </Pressable>
     );
 };
+
 
 const styles = ScaledSheet.create({
     button: {
         backgroundColor: Colors.light.primary,
-        height: '45@vs',
+        height: Platform.OS === 'android' ? '50@vs' : '42@vs',
         borderRadius: '28@ms',
         justifyContent: 'center',
         alignItems: 'center',

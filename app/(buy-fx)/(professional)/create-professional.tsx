@@ -1,6 +1,5 @@
 import InitiateTransactionSheet from '@/components/InitiateTransactionSheet';
 import InputField from '@/components/InputField';
-import { LocationItem } from '@/components/LocationSelectionSheet';
 import BankDetailsStep from '@/components/transaction-flow/BankDetailsStep';
 import CredentialStep from '@/components/transaction-flow/CredentialStep';
 import DocumentStep from '@/components/transaction-flow/DocumentStep';
@@ -135,6 +134,8 @@ export default function ProfessionalScreen() {
                     amountGet={amountGet}
                     amountSend={amountSend}
                     rate={`1 ${currencyGet.code} = 1500 ${currencySend.code}`}
+                    onAmountGetChange={setAmountGet}
+                    onAmountSendChange={setAmountSend}
                 />
             )}
 

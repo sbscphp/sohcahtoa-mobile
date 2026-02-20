@@ -32,7 +32,7 @@ const GenericSelectionSheet: React.FC<GenericSelectionSheetProps> = ({
     title,
     subtitle = "Select an option below",
     headerIcon: HeaderIcon,
-    headerIconColor = "#FF6813",
+    headerIconColor = "rgba(221, 79, 5, 1)",
     headerIconBg = "#FFF7ED",
     items,
     selectedItem,
@@ -101,7 +101,7 @@ const GenericSelectionSheet: React.FC<GenericSelectionSheetProps> = ({
                                         {ItemIcon && (
                                             <ItemIcon
                                                 size={moderateScale(20)}
-                                                color={isSelected ? "#FF6813" : "#64748B"}
+                                                color={isSelected ? "rgba(221, 79, 5, 1)" : "#64748B"}
                                                 variant={isSelected ? "Linear" : "Linear"}
                                                 style={styles.itemIcon}
                                             />
@@ -187,8 +187,8 @@ const styles = ScaledSheet.create({
         backgroundColor: '#FFFFFF',
     },
     selectedItem: {
-        borderColor: '#FF6813',
-        backgroundColor: '#FFFFFF', 
+        borderColor: 'rgba(221, 79, 5, 1)',
+        backgroundColor: '#FFFFFF',
         borderWidth: 1,
     },
     itemContent: {
