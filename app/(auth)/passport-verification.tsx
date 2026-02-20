@@ -146,7 +146,7 @@ export default function PassportVerificationScreen() {
 
             <LoadingBackdrop
                 visible={isUploading}
-                message={isUploading && "Uploading Passport..."}
+        
             />
 
             <ScrollView contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>

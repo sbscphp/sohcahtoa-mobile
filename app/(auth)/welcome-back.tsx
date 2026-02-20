@@ -20,7 +20,7 @@ export default function WelcomeBackScreen() {
     const [showBiometricSheet, setShowBiometricSheet] = useState(false);
 
     const userName = user?.profile ? `${user.profile.firstName} ${user.profile.lastName}` : 'User';
-    console.log('userName', user);
+    // console.log('userName', user);
     const PASSCODE_LENGTH = 6;
     const CORRECT_PASSCODE = '123456';
 
