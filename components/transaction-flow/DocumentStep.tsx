@@ -11,6 +11,7 @@ interface DocumentField {
 
     // Optional associated inputs (e.g. Passport Number, Expiry Date) below the upload
     associatedInputs?: React.ReactNode;
+    error?: string;
 }
 
 interface DocumentStepProps {
@@ -33,6 +34,7 @@ export default function DocumentStep({ title = "Upload Relevant Documents", docu
                         onUpload={doc.onUpload}
                         fileName={doc.fileName}
                         title={`Upload or change here.`}
+                        error={doc.error}
                     />
 
                     {doc.associatedInputs && (

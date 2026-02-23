@@ -20,8 +20,22 @@ export const exportTransactions = async (params?: ExportTransactionsParams): Pro
 };
 
 export const uploadTransactionDocument = async (payload: UploadTransactionDocumentPayload): Promise<UploadTransactionDocumentResponse> => {
-    const { transactionId, ...rest } = payload;
-    const response = await api.post(`/customer/transactions/${transactionId}/documents`, rest);
+    const formData = new FormData();
+    formData.append('document', payload.document);
+    formData.append('userId', payload.userId);
+    formData.append('documentType', payload.documentType);
+    if (payload.transactionId) {
+        formData.append('transactionId', payload.transactionId);
+    }
+    if (payload.metadata) {
+        formData.append('metadata', payload.metadata);
+    }
+
+    const response = await api.post('/documents/upload', formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        },
+    });
     return response.data;
 };
 

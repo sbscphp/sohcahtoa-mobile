@@ -15,6 +15,7 @@ interface CredentialField {
     onPress?: () => void;
     rightIcon?: any;
     type?: 'text' | 'select';
+    error?: string;
 }
 
 interface CredentialStepProps {
@@ -38,6 +39,7 @@ export default function CredentialStep({ title = "Enter all required credentials
                             onPress={field.onPress || (() => { })}
                             required={field.required}
                             rightIcon={field.rightIcon}
+                            error={field.error}
                         />
                     );
                 }
@@ -52,6 +54,7 @@ export default function CredentialStep({ title = "Enter all required credentials
                         keyboardType={field.keyboardType}
                         secureTextEntry={field.secureTextEntry}
                         rightIcon={field.rightIcon}
+                        error={field.error}
                     />
                 );
             })}

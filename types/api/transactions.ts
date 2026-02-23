@@ -25,8 +25,8 @@ export interface CreateTransactionPayload {
         id: string;
         name: string;
         address: string;
-        recipientName: string;
-        recipientPhone: string;
+        recipientName?: string;
+        recipientPhone?: string;
     };
 }
 
@@ -136,27 +136,25 @@ export type TransactionDocumentType =
     | 'RECEIPT';
 
 export interface UploadTransactionDocumentPayload {
-    transactionId: string;
+    userId: string;
+    transactionId?: string;
     documentType: TransactionDocumentType | string;
-    documents: string[];
+    document: any; // This will be the file for FormData
+    metadata?: string;
 }
 
 export interface UploadTransactionDocumentResponse {
     success: boolean;
+    message: string;
     data: {
-        message: string;
-        requiredDocuments: {
-            type: string;
-            uploaded?: {
-                id: string;
-                fileName: string;
-                fileUrl: string;
-                status: string;
-                rejectionNotes?: string;
-                uploadedAt: string;
-                verifiedAt?: string;
-            };
-        }[];
+        id: string;
+        documentType: string;
+        fileUrl: string;
+        fileName: string;
+        fileSize: number;
+        verificationStatus: string;
+        uploadedAt: string;
+        metadata: any;
     };
 }
 

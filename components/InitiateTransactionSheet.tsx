@@ -20,6 +20,7 @@ interface InitiateTransactionSheetProps {
     subtitle?: string;
     confirmText?: string;
     items?: InfoItemProps[];
+    loading?: boolean;
 }
 
 const InitiateTransactionSheet: React.FC<InitiateTransactionSheetProps> = ({
@@ -29,6 +30,7 @@ const InitiateTransactionSheet: React.FC<InitiateTransactionSheetProps> = ({
     title = "Initiate Transaction Request?",
     subtitle = "Kindly note the following",
     confirmText = "Yes Initiate Request",
+    loading,
     items = [
         {
             title: "Verification before approval",
@@ -104,6 +106,7 @@ const InitiateTransactionSheet: React.FC<InitiateTransactionSheetProps> = ({
                         <PrimaryButton
                             title={confirmText}
                             onPress={onConfirm}
+                            loading={loading}
                         />
                         <TouchableOpacity style={styles.secondaryBtn} onPress={onClose}>
                             <Text style={styles.secondaryBtnText}>No, Close</Text>

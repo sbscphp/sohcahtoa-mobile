@@ -32,6 +32,7 @@ export interface CurrencyConverterProps {
     onAmountSendChange?: (amount: string) => void;
     showLimitWarning?: boolean;
     onLimitWarningPress?: () => void;
+    error?: string;
 }
 
 export default function CurrencyConverter({
@@ -48,7 +49,8 @@ export default function CurrencyConverter({
     onAmountGetChange,
     onAmountSendChange,
     showLimitWarning = false,
-    onLimitWarningPress
+    onLimitWarningPress,
+    error
 }: CurrencyConverterProps) {
     const [currencySheetVisible, setCurrencySheetVisible] = useState(false);
     const [activeCurrencyField, setActiveCurrencyField] = useState<'get' | 'send' | null>(null);
@@ -143,6 +145,7 @@ export default function CurrencyConverter({
                                     {getCurrencySymbol(currencyGet.code)}
                                 </Text>
                             }
+                            error={error}
                         />
                     </View>
                     {showLimitWarning && (

@@ -11,7 +11,7 @@ export const useUploadTransactionDocumentMutation = () => {
         mutationFn: uploadTransactionDocument,
         onSuccess: (response, variables) => {
             if (response.success && response.data) {
-                showToast(response.data.message || 'Document uploaded successfully', 'success');
+                showToast(response.message || 'Document uploaded successfully', 'success');
                 queryClient.invalidateQueries({ queryKey: ['transaction', variables.transactionId] });
             }
             console.log(response, "response");

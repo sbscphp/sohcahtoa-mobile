@@ -13,8 +13,11 @@ export const useCreateTransactionMutation = () => {
             }
         },
         onError: (error: any) => {
-            const errorMessage = error.response?.data?.message || 'Failed to initiate transaction';
-            showToast(errorMessage, 'error');
+            const message = error.response?.data?.error?.message || 'Failed to initiate transaction';
+            showToast(message, 'error');
+
+            console.log(error.response?.data)
+
         },
     });
 };

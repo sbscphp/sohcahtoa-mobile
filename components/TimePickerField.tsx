@@ -11,6 +11,7 @@ interface TimePickerFieldProps {
     onTimeChange: (time: string) => void;
     placeholder?: string;
     required?: boolean;
+    error?: string;
 }
 
 const TimePickerField: React.FC<TimePickerFieldProps> = ({
@@ -19,6 +20,7 @@ const TimePickerField: React.FC<TimePickerFieldProps> = ({
     onTimeChange,
     placeholder = 'hh:mm',
     required = false,
+    error
 }) => {
     const [showPicker, setShowPicker] = useState(false);
     const [selectedTime, setSelectedTime] = useState<Date | undefined>(
@@ -92,7 +94,10 @@ const TimePickerField: React.FC<TimePickerFieldProps> = ({
                 {label} {required && <Text style={styles.required}>*</Text>}
             </Text>
             <TouchableOpacity
-                style={styles.inputWrapper}
+                style={[
+                    styles.inputWrapper,
+                    error ? styles.inputError : undefined
+                ]}
                 onPress={handlePress}
                 activeOpacity={0.7}
             >
@@ -105,6 +110,7 @@ const TimePickerField: React.FC<TimePickerFieldProps> = ({
                     style={styles.icon}
                 />
             </TouchableOpacity>
+            {error && <Text style={styles.errorText}>{error}</Text>}
 
             {/* Bottom Sheet Modal for iOS, Native Dialog for Android */}
             {Platform.OS === 'ios' && showPicker && (
@@ -199,6 +205,15 @@ const styles = ScaledSheet.create({
     },
     icon: {
         marginLeft: '12@s',
+    },
+    inputError: {
+        borderColor: '#EF4444',
+    },
+    errorText: {
+        fontSize: '11@ms',
+        color: '#EF4444',
+        marginTop: '4@vs',
+        marginLeft: '4@s',
     },
     // Bottom Sheet Styles
     overlay: {
