@@ -1,11 +1,76 @@
+import { useGetTransactionsQuery } from '@/hooks/queries/transactions/useGetTransactionsQuery';
+import { Transaction } from '@/types/api/transactions';
 import { useRouter } from 'expo-router';
-import { Notification, Refresh, SearchNormal1 } from 'iconsax-react-nativejs';
-import React, { useState } from 'react';
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { Notification, Refresh } from 'iconsax-react-nativejs';
+import React, { useMemo, useState } from 'react';
+import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
+import SearchEmpty from '../../assets/icons/empty-state.svg';
 import Header from '../../components/Header';
-import SearchEmpty from '../../assets/icons/empty-state.svg'
+
+const FILTER_TO_GROUP: Record<string, string | undefined> = {
+    'All': undefined,
+    'Buy FX': 'BUY',
+    'Sell FX': 'SELL',
+    'Receive FX': 'RECEIVE',
+};
+
+const formatDate = (dateStr: string): string => {
+    const d = new Date(dateStr);
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${months[d.getMonth()]} ${d.getDate()} ${d.getFullYear()}`;
+};
+
+const formatTime = (dateStr: string): string => {
+    const d = new Date(dateStr);
+    let hours = d.getHours();
+    const minutes = d.getMinutes();
+    const ampm = hours >= 12 ? 'pm' : 'am';
+    hours = hours % 12 || 12;
+    return `${hours}${minutes > 0 ? ':' + String(minutes).padStart(2, '0') : ''} ${ampm}`;
+};
+
+const formatAmount = (amount: number, currency: string): string => {
+    const symbol = currency === 'USD' ? '$' : currency === 'GBP' ? '£' : currency === 'EUR' ? '€' : currency === 'NGN' ? '₦' : currency;
+    return `${symbol}${amount.toLocaleString()}`;
+};
+
+const getStatusLabel = (status: string): string => {
+    const map: Record<string, string> = {
+        'DRAFT': 'Draft',
+        'AWAITING_VERIFICATION': 'Pending',
+        'VERIFICATION_IN_PROGRESS': 'In Progress',
+        'VERIFICATION_COMPLETED': 'In Progress',
+        'AWAITING_DEPOSIT': 'Pending',
+        'DEPOSIT_PENDING': 'Pending',
+        'DEPOSIT_CONFIRMED': 'In Progress',
+        'COMPLIANCE_REVIEW': 'In Progress',
+        'ADMIN_APPROVAL_PENDING': 'Pending',
+        'APPROVED': 'Approved',
+        'DISBURSEMENT_IN_PROGRESS': 'In Progress',
+        'COMPLETED': 'Settled',
+        'REJECTED': 'Declined',
+        'CANCELLED': 'Declined',
+    };
+    return map[status] || status;
+};
+
+const getTransactionRoute = (type: string): string => {
+    const routes: Record<string, string> = {
+        'PTA': '/(buy-fx)/(pta)/view-pta',
+        'BTA': '/(buy-fx)/(bta)/view-bta',
+        'MEDICAL': '/(buy-fx)/(medical)/view-medical',
+        'SCHOOL': '/(buy-fx)/(school)/view-school',
+        'PROFESSIONAL': '/(buy-fx)/(professional)/view-professional',
+        'TOURING': '/(buy-fx)/(touring)/view-touring',
+        'EXPATRIATE': '/(sell-fx)/(expatriate)/view-expatriate',
+        'RESIDENT': '/(sell-fx)/(resident)/view-resident',
+        'TOURIST': '/(sell-fx)/(tourist)/view-tourist',
+        'RECEIVE_FX': '/(receive-fx)/view-receive-fx',
+    };
+    return routes[type] || '/(buy-fx)/(pta)/view-pta';
+};
 
 export default function TransactionScreen() {
     const router = useRouter();
@@ -14,86 +79,25 @@ export default function TransactionScreen() {
 
     const filters = ['All', 'Buy FX', 'Sell FX', 'Receive FX'];
 
-    // Dummy Data
-    const transactions = [
-        {
-            id: '1',
-            title: 'FX purchase request subm....',
-            date: 'Dec 8 2025',
-            time: '11 am',
-            amount: '$200',
-            status: 'Pending',
-            type: 'buy',
-        },
-        {
-            id: '2',
-            title: 'Foreign currency sale initia....',
-            date: 'Dec 8 2025',
-            time: '11 am',
-            amount: '$1,000',
-            status: 'More Info',
-            type: 'sell',
-        },
-        {
-            id: '3',
-            title: 'FX purchase request subm....',
-            date: 'Dec 8 2025',
-            time: '11 am',
-            amount: '$500',
-            status: 'Declined',
-            type: 'buy',
-        },
-        {
-            id: '4',
-            title: 'Foreign currency purchase....',
-            date: 'Dec 8 2025',
-            time: '11 am',
-            amount: '$1,500',
-            status: 'Approved',
-            type: 'buy',
-        },
-        {
-            id: '5',
-            title: 'Foreign currency sale initia....',
-            date: 'Dec 8 2025',
-            time: '11 am',
-            amount: '$300',
-            status: 'More Info',
-            type: 'sell',
-        },
-        {
-            id: '6',
-            title: 'Foreign currency purchase....',
-            date: 'Dec 8 2025',
-            time: '11 am',
-            amount: '$3,000',
-            status: 'Settled',
-            type: 'buy',
-        },
-        {
-            id: '7',
-            title: 'Received funds from Abroad',
-            date: 'Dec 9 2025',
-            time: '2 pm',
-            amount: '$500',
-            status: 'Settled',
-            type: 'receive',
-        },
-        {
-            id: '8',
-            title: 'Funds received from John',
-            date: 'Dec 10 2025',
-            time: '4 pm',
-            amount: '$1,200',
-            status: 'Pending',
-            type: 'receive',
-        },
-    ];
+    const group = FILTER_TO_GROUP[activeFilter];
+    const { data: transactionsData, isLoading } = useGetTransactionsQuery(
+        group ? { group } : undefined
+    );
+
+    const transactions: Transaction[] = transactionsData?.data || [];
+    const totalCount = transactions.length;
+
+    const statusCounts = useMemo(() => {
+        const completed = transactions.filter(t => ['COMPLETED', 'APPROVED'].includes(t.status)).length;
+        const declined = transactions.filter(t => ['REJECTED', 'CANCELLED'].includes(t.status)).length;
+        const pending = transactions.filter(t => ['DRAFT', 'AWAITING_VERIFICATION', 'VERIFICATION_IN_PROGRESS', 'VERIFICATION_COMPLETED', 'AWAITING_DEPOSIT', 'DEPOSIT_PENDING', 'DEPOSIT_CONFIRMED', 'COMPLIANCE_REVIEW', 'ADMIN_APPROVAL_PENDING', 'DISBURSEMENT_IN_PROGRESS'].includes(t.status)).length;
+        return { completed, declined, pending };
+    }, [transactions]);
 
     const renderEmpty = () => (
         <View style={styles.emptyState}>
             <View style={styles.emptyIconContainer}>
-                <SearchEmpty width={moderateScale(150)} height={moderateScale(120)}/>
+                <SearchEmpty width={moderateScale(150)} height={moderateScale(120)} />
             </View>
             <Text style={styles.emptyTitle}>No Transaction Yet</Text>
             <Text style={styles.emptyDesc}>
@@ -106,28 +110,34 @@ export default function TransactionScreen() {
         <View style={[styles.container, { paddingTop: insets.top }]}>
             <Header
                 title="Transaction"
-                rightIcon={<Notification size={moderateScale(28)} color="rgba(143, 139, 139, 1)" variant="Linear" />}
+                rightIcon={
+                    <View>
+                        <Notification size={moderateScale(24)} color="rgba(143, 139, 139, 1)" variant="Linear" />
+                        <View style={styles.notificationDot} />
+                    </View>
+                }
+                onRightPress={() => router.push('/notifications')}
             />
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
                 <View style={styles.totalSection}>
                     <Text style={styles.totalLabel}>Total Transactions</Text>
-                    <Text style={styles.totalCount}>14</Text>
+                    <Text style={styles.totalCount}>{totalCount}</Text>
                 </View>
 
 
                 <View style={styles.statusCardsContainer}>
                     <View style={[styles.statusCard, styles.cardCompleted]}>
                         <Text style={styles.cardLabel}>Completed</Text>
-                        <Text style={[styles.cardCount, styles.textCompleted]}>10</Text>
+                        <Text style={[styles.cardCount, styles.textCompleted]}>{statusCounts.completed}</Text>
                     </View>
                     <View style={[styles.statusCard, styles.cardDeclined]}>
                         <Text style={styles.cardLabel}>Declined</Text>
-                        <Text style={[styles.cardCount, styles.textDeclined]}>2</Text>
+                        <Text style={[styles.cardCount, styles.textDeclined]}>{statusCounts.declined}</Text>
                     </View>
                     <View style={[styles.statusCard, styles.cardPending]}>
                         <Text style={styles.cardLabel}>Pending</Text>
-                        <Text style={[styles.cardCount, styles.textPending]}>2</Text>
+                        <Text style={[styles.cardCount, styles.textPending]}>{statusCounts.pending}</Text>
                     </View>
                 </View>
 
@@ -164,54 +174,53 @@ export default function TransactionScreen() {
                     ))}
                 </ScrollView>
 
-                {(activeFilter === 'All' ? transactions : transactions.filter(t =>
-                    activeFilter === 'Buy FX' ? t.type === 'buy' :
-                        activeFilter === 'Sell FX' ? t.type === 'sell' :
-                            activeFilter === 'Receive FX' ? t.type === 'receive' : true
-                )).length > 0 ? (
+                {isLoading ? (
+                    <View style={{ paddingVertical: moderateScale(40), alignItems: 'center' }}>
+                        <ActivityIndicator size="large" color="#FF6B2C" />
+                    </View>
+                ) : transactions.length > 0 ? (
                     <View style={styles.transactionListContainer}>
-                        {(activeFilter === 'All' ? transactions : transactions.filter(t =>
-                            activeFilter === 'Buy FX' ? t.type === 'buy' :
-                                activeFilter === 'Sell FX' ? t.type === 'sell' :
-                                    activeFilter === 'Receive FX' ? t.type === 'receive' : true
-                        )).map((item) => (
-                            <TouchableOpacity key={item.id} style={styles.transactionItem}>
-                                <View style={styles.iconContainer}>
-                                    <Refresh size={moderateScale(18)} color="#94A3B8" />
-                                </View>
-                                <View style={styles.itemContent}>
-                                    <Text style={styles.itemTitle}>{item.title}</Text>
-                                    <Text style={styles.itemDate}>{item.date} • {item.time}</Text>
-                                </View>
-                                <View style={styles.itemRight}>
-                                    <Text style={styles.itemAmount}>{item.amount}</Text>
-                                    <View style={[
-                                        styles.statusBadge,
-                                        item.status === 'Pending' && styles.badgePending,
-                                        item.status === 'More Info' && styles.badgeMoreInfo,
-                                        item.status === 'Declined' && styles.badgeDeclined,
-                                        item.status === 'Approved' && styles.badgeApproved,
-                                        item.status === 'Settled' && styles.badgeSettled,
-                                    ]}>
-                                        <Text style={[
-                                            styles.statusText,
-                                            item.status === 'Pending' && styles.textStatusPending,
-                                            item.status === 'More Info' && styles.textStatusMoreInfo,
-                                            item.status === 'Declined' && styles.textStatusDeclined,
-                                            item.status === 'Approved' && styles.textStatusApproved,
-                                            item.status === 'Settled' && styles.textStatusSettled,
-                                        ]}>
-                                            {item.status}
-                                        </Text>
+                        {transactions.map((item) => {
+                            const statusLabel = getStatusLabel(item.status);
+                            return (
+                                <TouchableOpacity key={item.id} style={styles.transactionItem} onPress={() => router.push({ pathname: getTransactionRoute(item.type) as any, params: { transactionId: item.id } })}>
+                                    <View style={styles.iconContainer}>
+                                        <Refresh size={moderateScale(18)} color="#94A3B8" />
                                     </View>
-                                </View>
-                            </TouchableOpacity>
-                        ))}
+                                    <View style={styles.itemContent}>
+                                        <Text style={styles.itemTitle} numberOfLines={1}>{item.purpose || item.type}</Text>
+                                        <Text style={styles.itemDate}>{formatDate(item.createdAt)} • {formatTime(item.createdAt)}</Text>
+                                    </View>
+                                    <View style={styles.itemRight}>
+                                        <Text style={styles.itemAmount}>{formatAmount(item.foreignAmount, item.currency)}</Text>
+                                        <View style={[
+                                            styles.statusBadge,
+                                            statusLabel === 'Pending' && styles.badgePending,
+                                            statusLabel === 'More Info' && styles.badgeMoreInfo,
+                                            statusLabel === 'Declined' && styles.badgeDeclined,
+                                            statusLabel === 'Approved' && styles.badgeApproved,
+                                            statusLabel === 'Settled' && styles.badgeSettled,
+                                        ]}>
+                                            <Text style={[
+                                                styles.statusText,
+                                                statusLabel === 'Pending' && styles.textStatusPending,
+                                                statusLabel === 'More Info' && styles.textStatusMoreInfo,
+                                                statusLabel === 'Declined' && styles.textStatusDeclined,
+                                                statusLabel === 'Approved' && styles.textStatusApproved,
+                                                statusLabel === 'Settled' && styles.textStatusSettled,
+                                            ]}>
+                                                {statusLabel}
+                                            </Text>
+                                        </View>
+                                    </View>
+                                </TouchableOpacity>
+                            );
+                        })}
                     </View>
                 ) : (
-                  <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
-                    {renderEmpty()}
-                  </View>
+                    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                        {renderEmpty()}
+                    </View>
                 )}
             </ScrollView>
         </View>
@@ -332,7 +341,7 @@ const styles = ScaledSheet.create({
         fontWeight: '500',
     },
     transactionListContainer: {
-        backgroundColor: 'rgba(241, 241, 241, 1)',
+        backgroundColor: 'rgba(247, 247, 247, 1)',
         borderRadius: '12@ms',
         marginHorizontal: '13@s',
         paddingVertical: '8@vs',
@@ -437,5 +446,16 @@ const styles = ScaledSheet.create({
         color: '#64748B',
         textAlign: 'center',
         maxWidth: '250@s',
+    },
+    notificationDot: {
+        position: 'absolute',
+        top: 0,
+        right: 0,
+        width: '8@ms',
+        height: '8@ms',
+        borderRadius: '4@ms',
+        backgroundColor: '#FF6B2C',
+        borderWidth: 1.5,
+        borderColor: '#FFFFFF',
     },
 });

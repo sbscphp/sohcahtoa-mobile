@@ -133,6 +133,7 @@ const styles = ScaledSheet.create({
         alignSelf: 'flex-end',
         flexDirection: 'row',
         alignItems: 'center',
+        gap:8
     },
     browseText: {
         fontSize: '13@ms',

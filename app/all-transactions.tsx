@@ -2,159 +2,187 @@ import SearchEmpty from '@/assets/icons/empty-state.svg';
 import FilterMailSquare from '@/assets/images/filter-mail-square.svg';
 import FilterBottomSheet from '@/components/FilterBottomSheet';
 import Header from '@/components/Header';
+import { useGetTransactionsQuery } from '@/hooks/queries/transactions/useGetTransactionsQuery';
+import { Transaction } from '@/types/api/transactions';
+import { useRouter } from 'expo-router';
 import { Refresh } from 'iconsax-react-nativejs';
-import React, { useState } from 'react';
-import { SectionList, Text, TouchableOpacity, View } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { ActivityIndicator, SectionList, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 
-interface Transaction {
-    id: string;
-    title: string;
-    date: string;
-    amount: string;
-    status: 'Pending' | 'More Info' | 'Declined' | 'Approved' | 'Settled';
-    type: 'debit' | 'credit';
-}
+// ── Helpers ──────────────────────────────────────────────────────────
+const formatDate = (dateStr: string): string => {
+    const d = new Date(dateStr);
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${months[d.getMonth()]} ${d.getDate()} ${d.getFullYear()}`;
+};
 
-const DATA = [
-    {
-        title: 'Today',
-        data: [
-            { id: '1', title: 'FX purchase request subm...', date: 'Dec 8 2025 • 11 am', amount: '$200', status: 'Pending', type: 'debit' },
-            { id: '2', title: 'Foreign currency sale initia...', date: 'Dec 8 2025 • 11 am', amount: '$1,000', status: 'More Info', type: 'credit' },
-            { id: '3', title: 'FX purchase request subm...', date: 'Dec 8 2025 • 11 am', amount: '$500', status: 'Declined', type: 'debit' },
-            { id: '4', title: 'Foreign currency purchase...', date: 'Dec 8 2025 • 11 am', amount: '$1,500', status: 'Approved', type: 'debit' },
-            { id: '5', title: 'Foreign currency sale initia...', date: 'Dec 8 2025 • 11 am', amount: '$300', status: 'More Info', type: 'credit' },
-            { id: '6', title: 'Foreign currency purchase...', date: 'Dec 8 2025 • 11 am', amount: '$3,000', status: 'Settled', type: 'debit' },
-        ]
-    },
-    {
-        title: 'December 8, 2025',
-        data: [
-            { id: '7', title: 'Foreign currency purchase...', date: 'Dec 8 2025 • 11 am', amount: '$10,243.44', status: 'Settled', type: 'debit' },
-            { id: '8', title: 'FX purchase request subm...', date: 'Dec 8 2025 • 11 am', amount: '$3,000', status: 'Declined', type: 'debit' },
-        ]
-    },
-    {
-        title: 'December 7, 2025',
-        data: [
-            { id: '9', title: 'Foreign currency purchase...', date: 'Dec 8 2025 • 11 am', amount: '$10,243.44', status: 'Settled', type: 'debit' },
-            { id: '10', title: 'FX purchase request subm...', date: 'Dec 8 2025 • 11 am', amount: '$3,000', status: 'Declined', type: 'debit' },
-        ]
-    },
-    {
-        title: 'December 6, 2025',
-        data: [
-            { id: '11', title: 'Foreign currency purchase...', date: 'Dec 8 2025 • 11 am', amount: '$10,243.44', status: 'Settled', type: 'debit' },
-            { id: '12', title: 'FX purchase request subm...', date: 'Dec 8 2025 • 11 am', amount: '$3,000', status: 'Declined', type: 'debit' },
-        ]
-    },
-    {
-        title: 'December 5, 2025',
-        data: [
-            { id: '13', title: 'Foreign currency purchase...', date: 'Dec 8 2025 • 11 am', amount: '$10,243.44', status: 'Settled', type: 'debit' },
-            { id: '14', title: 'FX purchase request subm...', date: 'Dec 8 2025 • 11 am', amount: '$3,000', status: 'Declined', type: 'debit' },
-        ]
-    },
-];
+const formatTime = (dateStr: string): string => {
+    const d = new Date(dateStr);
+    let hours = d.getHours();
+    const minutes = d.getMinutes();
+    const ampm = hours >= 12 ? 'pm' : 'am';
+    hours = hours % 12 || 12;
+    return `${hours}${minutes > 0 ? ':' + String(minutes).padStart(2, '0') : ''} ${ampm}`;
+};
 
+const formatAmount = (amount: number, currency: string): string => {
+    const symbol = currency === 'USD' ? '$' : currency === 'GBP' ? '£' : currency === 'EUR' ? '€' : currency === 'NGN' ? '₦' : currency;
+    return `${symbol}${amount.toLocaleString()}`;
+};
+
+const getStatusLabel = (status: string): string => {
+    const map: Record<string, string> = {
+        'DRAFT': 'Draft',
+        'AWAITING_VERIFICATION': 'Pending',
+        'VERIFICATION_IN_PROGRESS': 'In Progress',
+        'VERIFICATION_COMPLETED': 'In Progress',
+        'AWAITING_DEPOSIT': 'Pending',
+        'DEPOSIT_PENDING': 'Pending',
+        'DEPOSIT_CONFIRMED': 'In Progress',
+        'COMPLIANCE_REVIEW': 'In Progress',
+        'ADMIN_APPROVAL_PENDING': 'Pending',
+        'APPROVED': 'Approved',
+        'DISBURSEMENT_IN_PROGRESS': 'In Progress',
+        'COMPLETED': 'Settled',
+        'REJECTED': 'Declined',
+        'CANCELLED': 'Declined',
+    };
+    return map[status] || status;
+};
+
+const getSectionTitle = (dateStr: string): string => {
+    const d = new Date(dateStr);
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+
+    if (d.toDateString() === today.toDateString()) return 'Today';
+    if (d.toDateString() === yesterday.toDateString()) return 'Yesterday';
+
+    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+};
+
+const groupTransactionsByDate = (transactions: Transaction[]) => {
+    const groups: Record<string, Transaction[]> = {};
+    transactions.forEach((tx) => {
+        const dateKey = new Date(tx.createdAt).toDateString();
+        if (!groups[dateKey]) groups[dateKey] = [];
+        groups[dateKey].push(tx);
+    });
+    return Object.entries(groups).map(([_, data]) => ({
+        title: getSectionTitle(data[0].createdAt),
+        data,
+    }));
+};
+
+const getStatusStyle = (status: string) => {
+    switch (status) {
+        case 'Pending':
+            return { color: '#B54708', bg: '#FFFAEB' };
+        case 'In Progress':
+            return { color: '#3538CD', bg: '#EEF4FF' };
+        case 'Declined':
+            return { color: '#B42318', bg: '#FEF3F2' };
+        case 'Approved':
+        case 'Settled':
+            return { color: '#027A48', bg: '#ECFDF3' };
+        case 'Draft':
+            return { color: '#344054', bg: '#F2F4F7' };
+        default:
+            return { color: '#344054', bg: '#F2F4F7' };
+    }
+};
+
+// ── Route Mapping ────────────────────────────────────────────────────
+const getTransactionRoute = (type: string): string => {
+    const routes: Record<string, string> = {
+        'PTA': '/(buy-fx)/(pta)/view-pta',
+        'BTA': '/(buy-fx)/(bta)/view-bta',
+        'MEDICAL': '/(buy-fx)/(medical)/view-medical',
+        'SCHOOL': '/(buy-fx)/(school)/view-school',
+        'PROFESSIONAL': '/(buy-fx)/(professional)/view-professional',
+        'TOURING': '/(buy-fx)/(touring)/view-touring',
+        'EXPATRIATE': '/(sell-fx)/(expatriate)/view-expatriate',
+        'RESIDENT': '/(sell-fx)/(resident)/view-resident',
+        'TOURIST': '/(sell-fx)/(tourist)/view-tourist',
+        'RECEIVE_FX': '/(receive-fx)/view-receive-fx',
+    };
+    return routes[type] || '/(buy-fx)/(pta)/view-pta';
+};
+
+// ── Component ────────────────────────────────────────────────────────
 export default function AllTransactionsScreen() {
+    const router = useRouter();
     const insets = useSafeAreaInsets();
     const [filterVisible, setFilterVisible] = useState(false);
-    const [filteredData, setFilteredData] = useState(DATA);
+    const [queryParams, setQueryParams] = useState<Record<string, string | undefined>>({});
 
-    const parseDate = (dateStr: string) => {
+    const { data: transactionsData, isLoading } = useGetTransactionsQuery(queryParams);
 
-        const cleanDate = dateStr.split('•')[0].trim();
-        return new Date(cleanDate);
-    };
+    const transactions: Transaction[] = transactionsData?.data || [];
+    const sections = useMemo(() => groupTransactionsByDate(transactions), [transactions]);
 
-    const handleFilter = (filters: { startDate: string; endDate: string; statusSelected: boolean; typeSelected: boolean }) => {
-        const start = new Date(filters.startDate);
-        const end = new Date(filters.endDate);
+    const handleFilter = (filters: { startDate: string; endDate: string; status: string; type: string; group: string; currency: string }) => {
+        console.log('📋 Filter input:', JSON.stringify(filters, null, 2));
+        const params: Record<string, string | undefined> = {};
 
-        // Adjust end date to end of day
-        end.setHours(23, 59, 59, 999);
+        // Convert dd/mm/yyyy → ISO 8601 datetime
+        if (filters.startDate) {
+            const [d, m, y] = filters.startDate.split('/');
+            params.startDate = new Date(`${y}-${m}-${d}T00:00:00.000Z`).toISOString();
+        }
+        if (filters.endDate) {
+            const [d, m, y] = filters.endDate.split('/');
+            params.endDate = new Date(`${y}-${m}-${d}T23:59:59.999Z`).toISOString();
+        }
 
-        const newData = DATA.map(section => {
-            const date = new Date(section.title);
+        if (filters.status) params.status = filters.status;
+        if (filters.type) params.type = filters.type;
+        if (filters.group) params.group = filters.group;
+        if (filters.currency) params.currency = filters.currency;
 
-
-            const filteredItems = section.data.filter(item => {
-                const itemDate = parseDate(item.date);
-                const dateInRange = itemDate >= start && itemDate <= end;
-
-                let matchesStatus = true;
-                if (filters.statusSelected) {
-                    matchesStatus = item.status === 'Pending';
-                }
-
-                let matchesType = true;
-                if (filters.typeSelected) {
-                    matchesType = item.type === 'debit';
-                }
-
-                return dateInRange && matchesStatus && matchesType;
-            });
-
-            return {
-                ...section,
-                data: filteredItems
-            };
-        }).filter(section => section.data.length > 0);
-
-        setFilteredData(newData);
+        console.log('🚀 Query params:', JSON.stringify(params, null, 2));
+        setQueryParams(params);
         setFilterVisible(false);
     };
 
-    const getStatusStyle = (status: string) => {
-        switch (status) {
-            case 'Pending':
-                return { color: '#B54708', bg: '#FFFAEB' };
-            case 'More Info':
-                return { color: '#3538CD', bg: '#EEF4FF' };
-            case 'Declined':
-                return { color: '#B42318', bg: '#FEF3F2' };
-            case 'Approved':
-            case 'Settled':
-                return { color: '#027A48', bg: '#ECFDF3' };
-            default:
-                return { color: '#344054', bg: '#F2F4F7' };
-        }
-    };
-
-    const renderItem = ({ item, index, section }: { item: any; index: number; section: any }) => {
-        const style = getStatusStyle(item.status);
+    const renderItem = ({ item, index, section }: { item: Transaction; index: number; section: any }) => {
+        const statusLabel = getStatusLabel(item.status);
+        const style = getStatusStyle(statusLabel);
         const isFirst = index === 0;
         const isLast = index === section.data.length - 1;
 
         return (
-            <View style={[
-                styles.transactionWrapper,
-                isFirst && styles.topRadius,
-                isLast && styles.bottomRadius,
-                isLast && { marginBottom: moderateScale(20) },
-                !isLast && { marginBottom: 0 }
-            ]}>
+            <TouchableOpacity
+                onPress={() => router.push({ pathname: getTransactionRoute(item.type) as any, params: { transactionId: item.id } })}
+                style={[
+                    styles.transactionWrapper,
+                    isFirst && styles.topRadius,
+                    isLast && styles.bottomRadius,
+                    isLast && { marginBottom: moderateScale(20) },
+                    !isLast && { marginBottom: 0 }
+                ]}>
                 <View style={styles.itemContainer}>
                     <View style={styles.iconContainer}>
                         <Refresh size={moderateScale(16)} color="#64748B" />
                     </View>
                     <View style={styles.itemContent}>
                         <View style={styles.itemTopRow}>
-                            <Text style={styles.itemTitle} numberOfLines={1}>{item.title}</Text>
-                            <Text style={styles.itemAmount}>{item.amount}</Text>
+                            <Text style={styles.itemTitle} numberOfLines={1}>{item.purpose || item.type}</Text>
+                            <Text style={styles.itemAmount}>{formatAmount(item.foreignAmount, item.currency)}</Text>
                         </View>
                         <View style={styles.itemBottomRow}>
-                            <Text style={styles.itemDate}>{item.date}</Text>
+                            <Text style={styles.itemDate}>{formatDate(item.createdAt)} • {formatTime(item.createdAt)}</Text>
                             <View style={[styles.statusBadge, { backgroundColor: style.bg }]}>
-                                <Text style={[styles.statusText, { color: style.color }]}>{item.status}</Text>
+                                <Text style={[styles.statusText, { color: style.color }]}>{statusLabel}</Text>
                             </View>
                         </View>
                     </View>
                 </View>
-            </View>
+            </TouchableOpacity>
         );
     };
 
@@ -166,9 +194,13 @@ export default function AllTransactionsScreen() {
                 onRightPress={() => setFilterVisible(true)}
             />
 
-            {filteredData.length > 0 ? (
+            {isLoading ? (
+                <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                    <ActivityIndicator size="large" color="#FF6B2C" />
+                </View>
+            ) : sections.length > 0 ? (
                 <SectionList
-                    sections={filteredData}
+                    sections={sections}
                     keyExtractor={(item) => item.id}
                     renderItem={renderItem}
                     renderSectionHeader={({ section: { title } }) => (
@@ -230,7 +262,7 @@ const styles = ScaledSheet.create({
         alignItems: 'center',
     },
     transactionWrapper: {
-        backgroundColor: 'rgba(245, 245, 245, 1)',
+        backgroundColor: 'rgba(247, 247, 247, 1)',
         marginHorizontal: '4@s',
         padding: '12@ms',
     },
@@ -321,7 +353,7 @@ const styles = ScaledSheet.create({
         gap: '16@vs',
     },
     buyButton: {
-        backgroundColor: '#FF6B00', // Orange color from design
+        backgroundColor: '#FF6B00',
         paddingVertical: '16@vs',
         borderRadius: '30@ms',
         alignItems: 'center',
@@ -333,7 +365,7 @@ const styles = ScaledSheet.create({
         fontWeight: '600',
     },
     sellButton: {
-        backgroundColor: '#F8FAFC', // Light background
+        backgroundColor: '#F8FAFC',
         paddingVertical: '16@vs',
         borderRadius: '30@ms',
         alignItems: 'center',

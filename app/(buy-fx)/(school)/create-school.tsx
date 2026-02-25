@@ -8,35 +8,17 @@ import CredentialStep from '@/components/transaction-flow/CredentialStep';
 import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
+import { schoolStep0Schema, schoolStep2Schema, schoolStep3Schema } from '@/utils/validations/school';
 import { useRouter } from 'expo-router';
 import { ArrowDown2, Teacher } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
 import { View } from 'react-native';
+import { z } from 'zod';
 
-const STATES: LocationItem[] = [
-    { id: '1', title: 'Lagos State' },
-    { id: '2', title: 'Ogun State' },
-    { id: '3', title: 'Rivers State' },
-    { id: '4', title: 'Kaduna State' },
-    { id: '5', title: 'Enugu State' },
-    { id: '6', title: 'Kano State' },
-];
+interface ValidationErrors {
+    [key: string]: string | undefined;
+}
 
-const CITIES: LocationItem[] = [
-    { id: '1', title: 'Ajeromi Local Government' },
-    { id: '2', title: 'Agege Local Government' },
-    { id: '3', title: 'Alimosho Local Government' },
-    { id: '4', title: 'Amuwo Odofin Local Government' },
-    { id: '5', title: 'Apapa Local Government' },
-    { id: '6', title: 'Badagry Local Government' },
-];
-
-const LOCATIONS: LocationItem[] = [
-    { id: '1', title: 'Ajeromi Local Government', subtitle: 'Femi Areola Street, Ikeja GRA.' },
-    { id: '2', title: 'Agege Local Government', subtitle: 'Femi Areola Street, Ikeja GRA.' },
-    { id: '3', title: 'Ikorodu Local Government', subtitle: '23 T.O.S Benson Avenue, Ikorodu.' },
-    { id: '4', title: 'Festac Local Government', subtitle: '1st Avenue, Festac Town.' },
-];
 
 const ADMISSION_TYPES: SelectionItem[] = [
     { id: '1', label: 'Undergraduate', value: 'Undergraduate', icon: Teacher },
@@ -87,15 +69,22 @@ export default function SchoolFeesScreen() {
 
     const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
     const [admissionSheetVisible, setAdmissionSheetVisible] = useState(false);
+    const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
+
+    const clearError = (field: string) => {
+        if (validationErrors[field]) {
+            setValidationErrors(prev => ({ ...prev, [field]: undefined }));
+        }
+    };
 
     // --- Configuration ---
 
     // Fields for Step 0
     const credentialFields = [
-        { label: 'Bank Verification Number (BVN)', placeholder: 'Enter your BVN', value: bvn, onChangeText: setBvn, required: true, keyboardType: 'numeric' as const },
-        { label: 'National Identification Number (NIN)', placeholder: 'Enter your NIN', value: nin, onChangeText: setNin, required: true, keyboardType: 'numeric' as const },
-        { label: 'Form A ID', placeholder: 'Enter Form A ID', value: formAId, onChangeText: setFormAId, required: true },
-        { label: 'International Passport', placeholder: 'Enter international passport', value: passportNumber, onChangeText: setPassportNumber, required: true },
+        { label: 'Bank Verification Number (BVN)', placeholder: 'Enter your BVN', value: bvn, onChangeText: (v: string) => { setBvn(v); clearError('bvn'); }, required: true, keyboardType: 'numeric' as const, error: validationErrors.bvn },
+        { label: 'National Identification Number (NIN)', placeholder: 'Enter your NIN', value: nin, onChangeText: (v: string) => { setNin(v); clearError('nin'); }, required: true, keyboardType: 'numeric' as const, error: validationErrors.nin },
+        { label: 'Form A ID', placeholder: 'Enter Form A ID', value: formAId, onChangeText: (v: string) => { setFormAId(v); clearError('formAId'); }, required: true, error: validationErrors.formAId },
+        { label: 'International Passport', placeholder: 'Enter international passport', value: passportNumber, onChangeText: (v: string) => { setPassportNumber(v); clearError('passportNumber'); }, required: true, error: validationErrors.passportNumber },
         {
             label: 'Admission Type',
             placeholder: 'Select Admission Type',
@@ -104,7 +93,8 @@ export default function SchoolFeesScreen() {
             required: true,
             onPress: () => setAdmissionSheetVisible(true),
             rightIcon: ArrowDown2,
-            type: 'select' as const
+            type: 'select' as const,
+            error: validationErrors.admissionType,
         },
     ];
 
@@ -194,6 +184,44 @@ export default function SchoolFeesScreen() {
     // --- Handlers ---
 
     const handleNext = () => {
+        const errors: ValidationErrors = {};
+
+        if (currentStep === 0) {
+            const result = schoolStep0Schema.safeParse({ bvn, nin, formAId, passportNumber, admissionType });
+            if (!result.success) {
+                result.error.issues.forEach((e: z.ZodIssue) => {
+                    const key = e.path[0] as string;
+                    if (!errors[key]) errors[key] = e.message;
+                });
+            }
+        }
+
+        if (currentStep === 2) {
+            const isPostGrad = admissionType === 'Post-Graduate';
+            const result = schoolStep2Schema(isPostGrad).safeParse({ amount: parseFloat(amountGet.replace(/,/g, '')) });
+            if (!result.success) {
+                result.error.issues.forEach((e: z.ZodIssue) => {
+                    if (!errors.amount) errors.amount = e.message;
+                });
+            }
+        }
+
+        if (currentStep === 3) {
+            const result = schoolStep3Schema.safeParse({ bankName, accountNumber, accountName });
+            if (!result.success) {
+                result.error.issues.forEach((e: z.ZodIssue) => {
+                    const key = e.path[0] as string;
+                    if (!errors[key]) errors[key] = e.message;
+                });
+            }
+        }
+
+        if (Object.keys(errors).length > 0) {
+            setValidationErrors(errors);
+            return;
+        }
+
+        setValidationErrors({});
         if (currentStep < 3) {
             setCurrentStep(currentStep + 1);
         } else {

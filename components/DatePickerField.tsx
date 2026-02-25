@@ -193,11 +193,11 @@ const styles = ScaledSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        height: '48@vs',
+        height: '45@vs',
         borderWidth: 1,
         borderColor: '#E2E8F0',
         borderRadius: '30@ms',
-        paddingHorizontal: '16@s',
+        paddingHorizontal: '14@s',
         backgroundColor: '#FFFFFF',
     },
     input: {
@@ -208,6 +208,8 @@ const styles = ScaledSheet.create({
     },
     placeholder: {
         color: '#94A3B8',
+        fontWeight: '400',
+        fontSize: '13@ms',
     },
     icon: {
         marginLeft: '12@s',

@@ -10,14 +10,16 @@ import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
 import { useCalculateExchangeRateMutation } from '@/hooks/queries/transactions/useCalculateExchangeRateMutation';
 import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
 import { useGetExchangeRatesQuery } from '@/hooks/queries/transactions/useGetExchangeRatesQuery';
-import { useUploadTransactionDocumentMutation } from '@/hooks/queries/transactions/useUploadTransactionDocumentMutation';
+import { useGetPickupPointsQuery } from '@/hooks/queries/transactions/useGetPickupPointsQuery';
+import { useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useToastStore } from '@/stores/useToastStore';
 import { useTransactionStore } from '@/stores/useTransactionStore';
-import * as DocumentPicker from 'expo-document-picker';
+import { ptaStep0Schema, ptaStep2Schema, ptaStep3Schema } from '@/utils/validations/pta';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { View } from 'react-native';
+import { z } from 'zod';
 
 const STATES: LocationItem[] = [
     { id: '1', title: 'Lagos State' },
@@ -48,6 +50,7 @@ interface ValidationErrors {
     [key: string]: string | undefined;
 }
 
+
 export default function PersonalTravelAllowanceScreen() {
     const router = useRouter();
     const [currentStep, setCurrentStep] = useState(0);
@@ -55,13 +58,59 @@ export default function PersonalTravelAllowanceScreen() {
     const { ptaData, setPtaData, resetPtaData } = useTransactionStore();
     const user = useAuthStore((state) => state.user);
     const createTransaction = useCreateTransactionMutation();
-    const uploadDocument = useUploadTransactionDocumentMutation();
     const calculateExchangeRate = useCalculateExchangeRateMutation();
+
+    const { upload: uploadFile, isPending: isUploading } = useDocumentUpload({
+        onSuccess: (documentType, { file, metadata, response }) => {
+            if (documentType === 'VISA') {
+                setPtaData({ visaFile: file, visaMetadata: metadata, visaUploadResponse: response });
+                clearError('visaFile');
+            } else {
+                setPtaData({ ticketFile: file, ticketMetadata: metadata, ticketUploadResponse: response });
+                clearError('ticketFile');
+            }
+        },
+    });
 
     const { data: exchangeRates } = useGetExchangeRatesQuery({
         fromCurrency: ptaData.currencyGet.code,
         toCurrency: ptaData.currencySend.code
     });
+
+    const { data: pickupPointsData } = useGetPickupPointsQuery();
+
+    // // Derive States from API data
+    // const STATES: LocationItem[] = Array.from(
+    //     new Set(pickupPointsData?.data?.map((p) => p.location))
+    // ).map((location, index) => ({
+    //     id: (index + 1).toString(),
+    //     title: location,
+    // })).filter(state => state.title);
+
+    // // Derive Cities based on selected State
+    // const CITIES: LocationItem[] = Array.from(
+    //     new Set(
+    //         pickupPointsData?.data
+    //             ?.filter((p) => p.location === ptaData.selectedState?.title)
+    //             .map((p) => p.branch)
+    //     )
+    // ).map((branch, index) => ({
+    //     id: (index + 1).toString(),
+    //     title: branch,
+    // })).filter(city => city.title);
+
+    // // Derive Locations based on selected State and City
+    // const LOCATIONS: LocationItem[] = (pickupPointsData?.data || [])
+    //     .filter(
+    //         (p) =>
+    //             p.location === ptaData.selectedState?.title &&
+    //             p.branch === ptaData.selectedCity?.title
+    //     )
+    //     .map((p) => ({
+    //         id: p.id,
+    //         title: p.name,
+    //         subtitle: p.address,
+    //     }));
 
     React.useEffect(() => {
         if (exchangeRates?.data?.[0]?.sellRate) {
@@ -88,72 +137,6 @@ export default function PersonalTravelAllowanceScreen() {
 
     // console.log('ptaData', ptaData);
 
-    const handleFileUpload = async (type: 'VISA' | 'RETURN_TICKET') => {
-        try {
-            const result = await DocumentPicker.getDocumentAsync({
-                type: ['application/pdf', 'image/*'],
-                copyToCacheDirectory: true,
-            });
-
-            if (result.canceled || !result.assets || result.assets.length === 0) return;
-
-            const asset = result.assets[0];
-
-            if (!user?.id) {
-                console.error('User ID not found');
-                return;
-            }
-
-            uploadDocument.mutate({
-                userId: user?.id,
-                documentType: type,
-                document: {
-                    uri: asset.uri,
-                    name: asset.name,
-                    type: asset.mimeType || 'application/octet-stream'
-                }
-            }, {
-                onSuccess: (response) => {
-                    const uploaded = response.data;
-                    console.log('uploaded', uploaded);
-                    if (uploaded) {
-                        const file = {
-                            uri: asset.uri,
-                            name: asset.name,
-                            type: asset.mimeType || 'application/octet-stream',
-                            size: asset.size || 0
-                        };
-
-                        const metadata = {
-                            documentType: type,
-                            fileUrl: uploaded.fileUrl,
-                            fileName: uploaded.fileName,
-                            fileSize: uploaded.fileSize || asset.size || 0
-                        };
-
-                        if (type === 'VISA') {
-                            setPtaData({
-                                visaFile: file,
-                                visaMetadata: metadata,
-                                visaUploadResponse: response
-                            });
-                            clearError('visaFile');
-                        } else {
-                            setPtaData({
-                                ticketFile: file,
-                                ticketMetadata: metadata,
-                                ticketUploadResponse: response
-                            });
-                            clearError('ticketFile');
-                        }
-                    }
-                }
-            });
-
-        } catch (error) {
-            console.error('Error picking document:', error);
-        }
-    };
 
     const handleAmountGetChange = (amount: string) => {
         const cleanAmount = amount.replace(/,/g, '');
@@ -215,7 +198,7 @@ export default function PersonalTravelAllowanceScreen() {
     const documentFields = [
         {
             label: 'Valid Visa',
-            onUpload: () => handleFileUpload('VISA'),
+            onUpload: () => uploadFile('VISA'),
             fileName: ptaData.visaFile?.name,
             required: true,
             error: validationErrors.visaFile,
@@ -232,7 +215,7 @@ export default function PersonalTravelAllowanceScreen() {
         },
         {
             label: 'Return Ticket',
-            onUpload: () => handleFileUpload('RETURN_TICKET'),
+            onUpload: () => uploadFile('RETURN_TICKET'),
             fileName: ptaData.ticketFile?.name,
             required: true,
             error: validationErrors.ticketFile,
@@ -255,54 +238,52 @@ export default function PersonalTravelAllowanceScreen() {
         const errors: ValidationErrors = {};
 
         if (currentStep === 0) {
-            if (!ptaData.bvn || ptaData.bvn.length !== 11) {
-                errors.bvn = 'Please enter a valid 11-digit BVN';
-            }
-            if (!ptaData.nin || ptaData.nin.length !== 11) {
-                errors.nin = 'Please enter a valid 11-digit NIN';
-            }
-            if (!ptaData.formAId) {
-                errors.formAId = 'Please enter your Form A ID';
-            }
-            if (!ptaData.passportNumber) {
-                errors.passportNumber = 'Please enter your International Passport Number';
+            const result = ptaStep0Schema.safeParse({
+                bvn: ptaData.bvn,
+                nin: ptaData.nin,
+                formAId: ptaData.formAId,
+                passportNumber: ptaData.passportNumber,
+            });
+            if (!result.success) {
+                result.error.issues.forEach((e: z.ZodIssue) => {
+                    const key = e.path[0] as string;
+                    if (!errors[key]) errors[key] = e.message;
+                });
             }
         }
 
         if (currentStep === 1) {
-            if (uploadDocument.isPending) {
+            if (isUploading) {
                 showToast('Please wait for files to finish uploading', 'warning');
                 return;
             }
-            // if (!ptaData.visaMetadata) {
-            //     errors.visaFile = 'Please upload a valid Visa';
-            // }
-            // if (!ptaData.visaNumber) {
-            //     errors.visaNumber = 'Please enter your Visa Number';
-            // }
-            // if (!ptaData.ticketMetadata) {
-            //     errors.ticketFile = 'Please upload your Return Ticket';
-            // }
-            // if (!ptaData.ticketNumber) {
-            //     errors.ticketNumber = 'Please enter your Return Ticket Number';
-            // }
         }
 
         if (currentStep === 2) {
-            const amount = parseFloat(ptaData.amountGet.replace(/,/g, ''));
-            if (!amount || amount <= 0) {
-                errors.amount = 'Please enter a valid amount';
-            } else if (amount > 4000) {
-                errors.amount = 'Maximum amount for PTA is $4,000 per quarter';
+            const result = ptaStep2Schema.safeParse({
+                amount: parseFloat(ptaData.amountGet.replace(/,/g, '')),
+            });
+            if (!result.success) {
+                result.error.issues.forEach((e: z.ZodIssue) => {
+                    if (!errors.amount) errors.amount = e.message;
+                });
             }
         }
 
         if (currentStep === 3) {
-            if (!ptaData.selectedState) errors.state = 'Please select a state';
-            if (!ptaData.selectedCity) errors.city = 'Please select a city';
-            if (!ptaData.selectedLocation) errors.location = 'Please select a pickup location';
-            if (!ptaData.pickupDate) errors.pickupDate = 'Please select a pickup date';
-            if (!ptaData.pickupTime) errors.pickupTime = 'Please select a pickup time';
+            const result = ptaStep3Schema.safeParse({
+                selectedState: ptaData.selectedState,
+                selectedCity: ptaData.selectedCity,
+                selectedLocation: ptaData.selectedLocation,
+                pickupDate: ptaData.pickupDate,
+                pickupTime: ptaData.pickupTime,
+            });
+            if (!result.success) {
+                result.error.issues.forEach((e: z.ZodIssue) => {
+                    const key = e.path[0] as string;
+                    if (!errors[key]) errors[key] = e.message;
+                });
+            }
         }
 
         if (Object.keys(errors).length > 0) {
@@ -327,6 +308,16 @@ export default function PersonalTravelAllowanceScreen() {
     };
 
     const handleConfirmInitiate = () => {
+        // Convert dd/mm/yyyy to yyyy-MM-dd for the API
+        const formatDateForApi = (dateStr: string): string => {
+            if (!dateStr) return '';
+            const parts = dateStr.split('/');
+            if (parts.length === 3) {
+                return `${parts[2]}-${parts[1]}-${parts[0]}`;
+            }
+            return dateStr;
+        };
+
         const payload = {
             type: 'PTA',
             currency: ptaData.currencyGet.code,
@@ -341,10 +332,10 @@ export default function PersonalTravelAllowanceScreen() {
                 ...(ptaData.ticketMetadata ? [ptaData.ticketMetadata] : [])
             ],
             pickupLocation: ptaData.selectedLocation ? {
-                id: ptaData.selectedLocation.id,
                 name: ptaData.selectedLocation.title,
                 address: ptaData.selectedLocation.subtitle || '',
-
+                state: ptaData.selectedState?.title || '',
+                city: ptaData.selectedCity?.title || '',
             } : undefined
         };
 
@@ -361,7 +352,7 @@ export default function PersonalTravelAllowanceScreen() {
 
     return (
         <View style={{ flex: 1 }}>
-            <LoadingBackdrop visible={uploadDocument.isPending} />
+            <LoadingBackdrop visible={isUploading} />
             <TransactionLayout
                 title="Personal Travel Allowance"
                 currentStep={currentStep}
@@ -401,9 +392,22 @@ export default function PersonalTravelAllowanceScreen() {
                         cities={CITIES}
                         locations={LOCATIONS}
                         selectedState={ptaData.selectedState}
-                        onSelectState={(v) => { setPtaData({ selectedState: v }); clearError('state'); }}
+                        onSelectState={(v) => {
+                            setPtaData({
+                                selectedState: v,
+                                selectedCity: null,
+                                selectedLocation: null
+                            });
+                            clearError('state');
+                        }}
                         selectedCity={ptaData.selectedCity}
-                        onSelectCity={(v) => { setPtaData({ selectedCity: v }); clearError('city'); }}
+                        onSelectCity={(v) => {
+                            setPtaData({
+                                selectedCity: v,
+                                selectedLocation: null
+                            });
+                            clearError('city');
+                        }}
                         selectedLocation={ptaData.selectedLocation}
                         onSelectLocation={(v) => { setPtaData({ selectedLocation: v }); clearError('location'); }}
                         pickupDate={ptaData.pickupDate}

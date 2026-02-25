@@ -5,9 +5,15 @@ import CredentialStep from '@/components/transaction-flow/CredentialStep';
 import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
+import { professionalStep0Schema, professionalStep2Schema, professionalStep3Schema } from '@/utils/validations/professional';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { View } from 'react-native';
+import { z } from 'zod';
+
+interface ValidationErrors {
+    [key: string]: string | undefined;
+}
 
 
 
@@ -48,15 +54,22 @@ export default function ProfessionalScreen() {
     const [iban, setIban] = useState('');
 
     const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
+    const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
+
+    const clearError = (field: string) => {
+        if (validationErrors[field]) {
+            setValidationErrors(prev => ({ ...prev, [field]: undefined }));
+        }
+    };
 
     // --- Configuration ---
 
     // Fields for Step 0
     const credentialFields = [
-        { label: 'Bank Verification Number (BVN)', placeholder: 'Enter your BVN', value: bvn, onChangeText: setBvn, required: true, keyboardType: 'numeric' as const },
-        { label: 'National Identification Number (NIN)', placeholder: 'Enter your NIN', value: nin, onChangeText: setNin, required: true, keyboardType: 'numeric' as const },
-        { label: 'Form A ID', placeholder: 'Enter Form A ID', value: formAId, onChangeText: setFormAId, required: true },
-        { label: 'International Passport Number', placeholder: 'Enter international passport', value: passportNumber, onChangeText: setPassportNumber, required: true },
+        { label: 'Bank Verification Number (BVN)', placeholder: 'Enter your BVN', value: bvn, onChangeText: (v: string) => { setBvn(v); clearError('bvn'); }, required: true, keyboardType: 'numeric' as const, error: validationErrors.bvn },
+        { label: 'National Identification Number (NIN)', placeholder: 'Enter your NIN', value: nin, onChangeText: (v: string) => { setNin(v); clearError('nin'); }, required: true, keyboardType: 'numeric' as const, error: validationErrors.nin },
+        { label: 'Form A ID', placeholder: 'Enter Form A ID', value: formAId, onChangeText: (v: string) => { setFormAId(v); clearError('formAId'); }, required: true, error: validationErrors.formAId },
+        { label: 'International Passport Number', placeholder: 'Enter international passport', value: passportNumber, onChangeText: (v: string) => { setPassportNumber(v); clearError('passportNumber'); }, required: true, error: validationErrors.passportNumber },
     ];
 
     // Documents for Step 1
@@ -86,6 +99,43 @@ export default function ProfessionalScreen() {
     // --- Handlers ---
 
     const handleNext = () => {
+        const errors: ValidationErrors = {};
+
+        if (currentStep === 0) {
+            const result = professionalStep0Schema.safeParse({ bvn, nin, formAId, passportNumber });
+            if (!result.success) {
+                result.error.issues.forEach((e: z.ZodIssue) => {
+                    const key = e.path[0] as string;
+                    if (!errors[key]) errors[key] = e.message;
+                });
+            }
+        }
+
+        if (currentStep === 2) {
+            const result = professionalStep2Schema.safeParse({ amount: parseFloat(amountGet.replace(/,/g, '')) });
+            if (!result.success) {
+                result.error.issues.forEach((e: z.ZodIssue) => {
+                    if (!errors.amount) errors.amount = e.message;
+                });
+            }
+        }
+
+        if (currentStep === 3) {
+            const result = professionalStep3Schema.safeParse({ bankName, accountNumber, accountName });
+            if (!result.success) {
+                result.error.issues.forEach((e: z.ZodIssue) => {
+                    const key = e.path[0] as string;
+                    if (!errors[key]) errors[key] = e.message;
+                });
+            }
+        }
+
+        if (Object.keys(errors).length > 0) {
+            setValidationErrors(errors);
+            return;
+        }
+
+        setValidationErrors({});
         if (currentStep < 3) {
             setCurrentStep(currentStep + 1);
         } else {

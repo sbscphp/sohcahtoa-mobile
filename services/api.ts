@@ -1,5 +1,6 @@
 import { useAuthStore } from '@/stores/useAuthStore';
 import axios from 'axios';
+import { router } from 'expo-router';
 
 
 const api = axios.create({
@@ -14,7 +15,7 @@ const api = axios.create({
 api.interceptors.request.use(
     async (config) => {
         const token = useAuthStore.getState().token;
-        // console.log('token', token);
+        console.log('token', token);
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
@@ -33,6 +34,7 @@ api.interceptors.response.use(
             console.log('401 Unauthorized - Logging out');
             const logout = useAuthStore.getState().logout;
             logout();
+            router.replace('/(auth)/login');
         }
         return Promise.reject(error);
     }

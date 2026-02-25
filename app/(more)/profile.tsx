@@ -3,26 +3,30 @@ import { useAuthStore } from '@/stores/useAuthStore';
 import { ArrowDown2, Edit2 } from 'iconsax-react-nativejs';
 import { SquarePen } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 
 export default function MyProfileScreen() {
     const insets = useSafeAreaInsets();
     const user = useAuthStore((state) => state.user);
-    const userImage = user?.profile?.avatar ? { uri: user.profile.avatar } : require('@/assets/images/user-img-1.jpg');
+    const initials = user?.profile
+        ? `${user.profile.firstName?.charAt(0) ?? ''}${user.profile.lastName?.charAt(0) ?? ''}`.toUpperCase() || '?'
+        : '?';
     const [expanded, setExpanded] = useState(true);
+
+    console.log('User:', JSON.stringify(user, null, 2));
 
     const basicDetails = [
         { label: 'Full name', value: user?.profile ? `${user.profile.firstName} ${user.profile.lastName}` : 'N/A' },
         { label: 'Gender', value: 'N/A' },
         { label: 'Date of Birth', value: user?.profile?.dateOfBirth ? new Date(user.profile.dateOfBirth).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A' },
         { label: 'BVN', value: user?.kyc?.bvn || 'N/A' },
-        { label: 'NIN', value: 'N/A' },
+        { label: 'TIN', value: user?.kyc?.tin || 'N/A' },
         { label: 'Phone Number', value: user?.phoneNumber || 'N/A' },
         { label: 'Email Address', value: user?.email || 'N/A' },
-        { label: 'Date Joined', value: user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A' },
-        { label: 'Last Active', value: 'Active Now' },
+        { label: 'Date Joined', value: user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'N/A' },
+        { label: 'Last Active', value: user?.activeSessions?.length ? (() => { const lastSession = user.activeSessions[user.activeSessions.length - 1]; const d = new Date(lastSession.createdAt); const date = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase(); return `${date} ; ${time}`; })() : 'N/A' },
     ];
 
     return (
@@ -33,14 +37,16 @@ export default function MyProfileScreen() {
                 <View style={styles.profileCard}>
                     <View style={styles.profileHeader}>
                         <View style={styles.avatarContainer}>
-                            <Image source={userImage} style={styles.avatar} />
+                            <View style={styles.avatarCircle}>
+                                <Text style={styles.avatarInitials}>{initials}</Text>
+                            </View>
                             <View style={styles.editIconOverlay}>
-                                <SquarePen size={moderateScale(18)} color="#FFFFFF" />
+                                <SquarePen size={moderateScale(18)} color="#FF8A65" />
                             </View>
                         </View>
                         <View style={styles.nameContainer}>
                             <Text style={styles.profileName}>{user?.profile ? `${user.profile.firstName} ${user.profile.lastName}` : 'User'}</Text>
-                            <Text style={styles.profileHandle}>@{user?.profile?.firstName?.toLowerCase() || 'user'}</Text>
+                            <Text style={styles.profileHandle}>{user?.role}</Text>
                         </View>
                         <TouchableOpacity style={styles.editBtn}>
                             <Edit2 size={moderateScale(18)} color="#FF8A65" variant="Linear" />
@@ -109,10 +115,19 @@ const styles = ScaledSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
-    avatar: {
+    avatarCircle: {
         width: '100%',
         height: '100%',
         borderRadius: '28@ms',
+        backgroundColor: '#FFF7ED',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    avatarInitials: {
+        fontSize: '20@ms',
+        fontWeight: '700',
+        color: '#FFFFFF',
+        letterSpacing: 1,
     },
     editIconOverlay: {
         position: 'absolute',
@@ -135,6 +150,7 @@ const styles = ScaledSheet.create({
     profileHandle: {
         fontSize: '13@ms',
         color: '#64748B',
+        marginTop: '5@ms',
     },
     editBtn: {
         width: '32@ms',

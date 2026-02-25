@@ -2,22 +2,65 @@ import TransactionDetailsView from '@/components/transaction-flow/TransactionDet
 import TransactionDocsView from '@/components/transaction-flow/TransactionDocsView';
 import TransactionStatusView, { TransactionStatus } from '@/components/transaction-flow/TransactionStatusView';
 import TransactionViewLayout from '@/components/transaction-flow/TransactionViewLayout';
+import { useGetTransactionByIdQuery } from '@/hooks/queries/transactions/useGetTransactionByIdQuery';
 import { getDocumentAsync } from 'expo-document-picker';
-import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import { Text, TouchableOpacity } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useMemo, useState } from 'react';
+import { ActivityIndicator, View } from 'react-native';
 
+// ── Status Mapping ───────────────────────────────────────────────────
+const mapApiStatusToViewStatus = (status: string): TransactionStatus => {
+    const map: Record<string, TransactionStatus> = {
+        'DRAFT': 'pending',
+        'AWAITING_VERIFICATION': 'pending',
+        'VERIFICATION_IN_PROGRESS': 'pending',
+        'VERIFICATION_COMPLETED': 'pending',
+        'AWAITING_DEPOSIT': 'awaiting_disbursement',
+        'DEPOSIT_PENDING': 'awaiting_disbursement',
+        'DEPOSIT_CONFIRMED': 'awaiting_disbursement',
+        'COMPLIANCE_REVIEW': 'pending',
+        'ADMIN_APPROVAL_PENDING': 'pending',
+        'APPROVED': 'approved',
+        'DISBURSEMENT_IN_PROGRESS': 'awaiting_disbursement',
+        'COMPLETED': 'settled',
+        'REJECTED': 'rejected',
+        'CANCELLED': 'rejected',
+    };
+    return map[status] || 'pending';
+};
+
+const formatDate = (dateStr: string): string => {
+    const d = new Date(dateStr);
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+};
+
+const formatTime = (dateStr: string): string => {
+    const d = new Date(dateStr);
+    let hours = d.getHours();
+    const minutes = d.getMinutes();
+    const ampm = hours >= 12 ? 'pm' : 'am';
+    hours = hours % 12 || 12;
+    return `${hours}:${String(minutes).padStart(2, '0')} ${ampm}`;
+};
+
+const formatCurrency = (amount: number | null | undefined, prefix: string = '₦'): string => {
+    if (amount == null) return `${prefix} 0`;
+    return `${prefix} ${amount.toLocaleString()}`;
+};
+
+// ── Component ────────────────────────────────────────────────────────
 export default function ViewPtaScreen() {
     const router = useRouter();
+    const { transactionId } = useLocalSearchParams<{ transactionId: string }>();
     const [activeTab, setActiveTab] = useState('overview');
 
-    // In a real app, this status would come from a backend or global state
-    const [status, setStatus] = useState<TransactionStatus>('pending');
+    const { data: txResponse, isLoading } = useGetTransactionByIdQuery(transactionId || '');
+    const tx = txResponse?.data;
 
-    // Document States
-    const [formAFile, setFormAFile] = useState<string | null>('form-a-doc.pdf');
-    const [passportFile, setPassportFile] = useState<string | null>('my-passport.jpg');
-    const [visaFile, setVisaFile] = useState<string | null>('my-visa.pdf');
+    console.log('Transaction:', tx);
+
+    const status: TransactionStatus = tx ? mapApiStatusToViewStatus(tx.status) : 'pending';
 
     const handleBack = () => {
         router.back();
@@ -27,7 +70,7 @@ export default function ViewPtaScreen() {
         router.push('/(buy-fx)/(pta)/payment');
     };
 
-    const handleUpload = async (docType: 'forma' | 'passport' | 'visa') => {
+    const handleUpload = async (docType: string) => {
         try {
             const result = await getDocumentAsync({
                 type: ['application/pdf', 'image/*'],
@@ -35,26 +78,12 @@ export default function ViewPtaScreen() {
             });
 
             if (result.assets && result.assets.length > 0) {
-                const file = result.assets[0];
-                const fileName = file.name;
-
-                if (docType === 'forma') setFormAFile(fileName);
-                else if (docType === 'passport') setPassportFile(fileName);
-                else if (docType === 'visa') setVisaFile(fileName);
+                // TODO: call upload mutation with file
+                console.log('Selected file:', result.assets[0].name, 'for', docType);
             }
         } catch (error) {
             console.error("Error picking document:", error);
         }
-    };
-
-
-    const toggleState = () => {
-        if (status === 'pending') setStatus('approved');
-        else if (status === 'approved') setStatus('more_info');
-        else if (status === 'more_info') setStatus('rejected');
-        else if (status === 'rejected') setStatus('awaiting_disbursement');
-        else if (status === 'awaiting_disbursement') setStatus('settled');
-        else setStatus('pending');
     };
 
     const tabs = [
@@ -63,40 +92,55 @@ export default function ViewPtaScreen() {
         { key: 'docs', label: 'Documentation' },
     ];
 
+    const detailsItems = useMemo(() => {
+        if (!tx) return [];
+        return [
+            { label: 'Transaction ID', value: tx.referenceNumber },
+            { label: 'Amount (₦)', value: formatCurrency(tx.nairaEquivalent) },
+            { label: 'Equivalent Amount (FX)', value: formatCurrency(tx.foreignAmount, tx.currency === 'USD' ? '$' : tx.currency === 'GBP' ? '£' : tx.currency === 'EUR' ? '€' : tx.currency) },
+            { label: 'Exchange Rate', value: tx.exchangeRate ? `₦${tx.exchangeRate.toLocaleString()}/$1` : 'N/A' },
+            { label: 'Date Initiated', value: formatDate(tx.createdAt) },
+            ...(tx.cashPickup ? [{ label: 'Pickup Address', value: tx.cashPickup.address || 'N/A', isRightAligned: true }] : []),
+        ];
+    }, [tx]);
 
-    const detailsItems = [
-        { label: 'Transaction ID', value: '674AGHA6773' },
-        { label: 'Amount (₦)', value: '₦ 1,500,000' },
-        { label: 'Equivalent Amount (FX)', value: '$1,000' },
-        { label: 'Date Initiated', value: 'Dec 8 2025' },
-        { label: 'Pickup Address', value: '3, Adeola Odeku, VI, Lagos', isRightAligned: true },
-    ];
+    const detailsDocuments = useMemo(() => {
+        if (!tx) return [];
+        return tx.requiredDocuments
+            .filter((doc) => doc.uploaded)
+            .map((doc) => ({
+                label: doc.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
+                fileName: doc.uploaded!.fileName,
+            }));
+    }, [tx]);
 
-    const detailsDocuments = [
-        { label: 'BVN Number', value: '744 ********* 373' },
-        { label: 'TIN', value: '673***********344' },
-        { label: 'Form A ID', value: '47743GA' },
-        { label: 'Form A Document', fileName: 'form-a-doc.pdf' },
-        { label: 'Visa', fileName: 'my-visa.pdf' },
-        { label: 'Return Ticket', fileName: 'my-return-ticket.pdf' },
-        { label: 'Return Ticket', fileName: 'my-return-ticket.pdf' },
-    ];
+    const docsItems = useMemo(() => {
+        if (!tx) return [];
+        return tx.requiredDocuments.map((doc) => ({
+            label: doc.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
+            fileName: doc.uploaded?.fileName || null,
+            docStatus: doc.uploaded?.status || undefined,
+            onUpload: () => handleUpload(doc.type),
+            required: true,
+        }));
+    }, [tx]);
 
-    const docsItems = [
-        { label: 'Form A', fileName: formAFile, onUpload: () => handleUpload('forma'), required: true },
-        { label: 'International Passport', fileName: passportFile, onUpload: () => handleUpload('passport'), required: true },
-        { label: 'Valid Visa', fileName: visaFile, onUpload: () => handleUpload('visa'), required: true },
-    ];
-
-   
     const getMessage = () => {
+        if (!tx) return '';
         if (status === 'approved' || status === 'awaiting_disbursement' || status === 'settled')
-            return "Congratulations! You application have been approved. Kindly proceed to make payment.";
+            return "Congratulations! Your application has been approved. Kindly proceed to make payment.";
         if (status === 'rejected')
-            return "Your quarterly limit has been used. Please try again next quarter.";
-
-        return "This is a message box that show the message from the SohCahToa Admin regarding the request for more information about this application from the client. For this use-case, admin noted that customer should re-upload one of their documentation as it not clear.";
+            return tx.rejection?.reason || "Your application has been declined.";
+        return `Your transaction is currently ${tx.status.replace(/_/g, ' ').toLowerCase()}. Please check back for updates.`;
     };
+
+    if (isLoading) {
+        return (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
+                <ActivityIndicator size="large" color="#FF6B2C" />
+            </View>
+        );
+    }
 
     return (
         <TransactionViewLayout
@@ -109,17 +153,12 @@ export default function ViewPtaScreen() {
             actionButtonTitle={status === 'approved' || status === 'awaiting_disbursement' ? "Proceed to Payment" : "Resubmit Transaction Request"}
             onActionPress={handleProceed}
         >
-        
-            <TouchableOpacity onPress={toggleState} style={{ marginLeft: 'auto', justifyContent: 'center', marginBottom: 10 }}>
-                <Text style={{ fontSize: 10, color: '#ccc' }}>DEV: {status}</Text>
-            </TouchableOpacity>
-
             {activeTab === 'overview' && (
                 <TransactionStatusView
                     status={status}
-                    id="8833"
-                    date="16 Nov 2025"
-                    time="11:00 am"
+                    id={tx?.referenceNumber?.slice(-6) || ''}
+                    date={tx ? formatDate(tx.createdAt) : ''}
+                    time={tx ? formatTime(tx.createdAt) : ''}
                     message={getMessage()}
                 />
             )}
@@ -137,7 +176,6 @@ export default function ViewPtaScreen() {
                     documents={docsItems}
                 />
             )}
-
         </TransactionViewLayout>
     );
 }

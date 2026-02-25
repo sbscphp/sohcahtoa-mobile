@@ -6,7 +6,7 @@ import { useAuthStore } from '@/stores/useAuthStore';
 import { useRouter } from 'expo-router';
 import { Add, ArrowDown2, Bank, Buildings, Eye, EyeSlash, Hospital, ImportCircle, Notification, People, Refresh, Teacher, User, WalletAdd1, WalletMinus } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
-import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import Passport from '../../assets/images/passport.svg';
@@ -48,7 +48,7 @@ export default function HomeScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const user = useAuthStore((state) => state.user);
-    useProfileQuery(); 
+    useProfileQuery();
     const [showBalance, setShowBalance] = useState(false);
     const [selectedFilter, setSelectedFilter] = useState('All');
     const [transactionFilters, setTransactionFilters] = useState(['All', 'PTA', 'BTA', 'Medical']);
@@ -154,17 +154,21 @@ export default function HomeScreen() {
         <View style={[styles.container, { paddingTop: insets.top }]}>
             <View style={styles.header}>
                 <View style={styles.headerLeft}>
-                    <Image
-                        source={require('../../assets/images/user-img-1.jpg')}
-                        style={styles.avatar}
-                    />
+                    <View style={styles.avatar}>
+                        <Text style={styles.avatarText}>
+                            {user?.profile ? `${user.profile.firstName?.[0] ?? ''}${user.profile.lastName?.[0] ?? ''}`.toUpperCase() : 'U'}
+                        </Text>
+                    </View>
                     <View>
                         <Text style={styles.greeting}>{getGreeting()}</Text>
                         <Text style={styles.username}>{user?.profile ? `${user.profile.firstName} ${user.profile.lastName}` : 'User'}</Text>
                     </View>
                 </View>
-                <TouchableOpacity style={styles.notificationBtn}>
-                    <Notification size={moderateScale(24)} color="#1E293B" variant="Linear" />
+                <TouchableOpacity style={styles.notificationBtn} onPress={() => router.push('/notifications')}>
+                    <View>
+                        <Notification size={moderateScale(24)} color="#1E293B" variant="Linear" />
+                        <View style={styles.notificationDot} />
+                    </View>
                 </TouchableOpacity>
             </View>
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
@@ -366,7 +370,14 @@ const styles = ScaledSheet.create({
         width: '40@ms',
         height: '40@ms',
         borderRadius: '20@ms',
-        backgroundColor: '#E2E8F0',
+        backgroundColor: '#FFF7ED',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    avatarText: {
+        fontSize: '14@ms',
+        fontWeight: '600',
+        color: '#FF6B2C',
     },
     greeting: {
         fontSize: '12@ms',
@@ -379,6 +390,17 @@ const styles = ScaledSheet.create({
     },
     notificationBtn: {
         padding: '4@ms',
+    },
+    notificationDot: {
+        position: 'absolute',
+        top: 0,
+        right: 0,
+        width: '8@ms',
+        height: '8@ms',
+        borderRadius: '4@ms',
+        backgroundColor: '#FF6B2C',
+        borderWidth: 1.5,
+        borderColor: '#FFFFFF',
     },
     filterContainer: {
         paddingHorizontal: '10@s',

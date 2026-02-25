@@ -22,7 +22,7 @@ export interface CreateTransactionPayload {
         fileSize: number;
     }[];
     pickupLocation?: {
-        id: string;
+        id?: string;
         name: string;
         address: string;
         recipientName?: string;
