@@ -1,12 +1,16 @@
 import DatePickerField from '@/components/DatePickerField';
 import InitiateTransactionSheet from '@/components/InitiateTransactionSheet';
 import InputField from '@/components/InputField';
+import LoadingBackdrop from '@/components/LoadingBackdrop';
 import { LocationItem } from '@/components/LocationSelectionSheet';
 import CredentialStep from '@/components/transaction-flow/CredentialStep';
 import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import LocationStep from '@/components/transaction-flow/LocationStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
+import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
+import { UploadedFile, useDocumentUpload } from '@/hooks/useDocumentUpload';
+import { useToastStore } from '@/stores/useToastStore';
 import { touringStep0Schema, touringStep1Schema, touringStep2Schema, touringStep3Schema } from '@/utils/validations/touring';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
@@ -45,6 +49,7 @@ const LOCATIONS: LocationItem[] = [
 export default function TouringScreen() {
     const router = useRouter();
     const [currentStep, setCurrentStep] = useState(0);
+    const createTransaction = useCreateTransactionMutation();
 
     // Step 0: Credentials State
     const [bvn, setBvn] = useState('');
@@ -88,6 +93,24 @@ export default function TouringScreen() {
         }
     };
 
+    // Document upload files
+    const [passportFile, setPassportFile] = useState<UploadedFile | null>(null);
+    const [passportMeta, setPassportMeta] = useState<import('@/hooks/useDocumentUpload').UploadedMetadata | null>(null);
+    const [visaFile, setVisaFile] = useState<UploadedFile | null>(null);
+    const [visaMeta, setVisaMeta] = useState<import('@/hooks/useDocumentUpload').UploadedMetadata | null>(null);
+    const [ticketFile, setTicketFile] = useState<UploadedFile | null>(null);
+    const [ticketMeta, setTicketMeta] = useState<import('@/hooks/useDocumentUpload').UploadedMetadata | null>(null);
+
+    const showToast = useToastStore(s => s.showToast);
+    const { upload: uploadFile, isPending: isUploading } = useDocumentUpload({
+        onSuccess: (documentType, { file, metadata }) => {
+            if (documentType === 'PASSPORT') { setPassportFile(file); setPassportMeta(metadata); }
+            else if (documentType === 'VISA') { setVisaFile(file); setVisaMeta(metadata); }
+            else if (documentType === 'RETURN_TICKET') { setTicketFile(file); setTicketMeta(metadata); }
+        },
+        onError: () => showToast('Failed to upload document. Please try again.', 'error'),
+    });
+
     // --- Configuration ---
 
     // Fields for Step 0
@@ -102,7 +125,8 @@ export default function TouringScreen() {
     const documentFields = [
         {
             label: 'International Passport',
-            onUpload: () => console.log('Upload Passport'),
+            onUpload: () => uploadFile('PASSPORT'),
+            fileName: passportFile?.name,
             required: true,
             associatedInputs: (
                 <View>
@@ -119,7 +143,8 @@ export default function TouringScreen() {
         },
         {
             label: 'Valid Visa',
-            onUpload: () => console.log('Upload Visa'),
+            onUpload: () => uploadFile('VISA'),
+            fileName: visaFile?.name,
             required: true,
             associatedInputs: (
                 <InputField label="Valid Visa Number" placeholder="Enter valid visa number" required />
@@ -127,7 +152,8 @@ export default function TouringScreen() {
         },
         {
             label: 'Return Ticket',
-            onUpload: () => console.log('Upload Ticket'),
+            onUpload: () => uploadFile('RETURN_TICKET'),
+            fileName: ticketFile?.name,
             required: true,
             associatedInputs: (
                 <InputField label="Return Ticket Number" placeholder="Enter return ticket number" required />
@@ -138,6 +164,10 @@ export default function TouringScreen() {
     // --- Handlers ---
 
     const handleNext = () => {
+        if (isUploading) {
+            showToast('Please wait for files to finish uploading', 'warning');
+            return;
+        }
         const errors: ValidationErrors = {};
 
         if (currentStep === 0) {
@@ -200,88 +230,124 @@ export default function TouringScreen() {
     };
 
     const handleConfirmInitiate = () => {
-        setInitiateSheetVisible(false);
-        router.push('/(buy-fx)/(touring)/request-initiated-success');
+        const formatDateForApi = (dateStr: string): string => {
+            if (!dateStr) return '';
+            const parts = dateStr.split('/');
+            if (parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}`;
+            return dateStr;
+        };
+
+        const payload = {
+            type: 'TOURING',
+            currency: currencyGet.code,
+            amount: parseFloat(amountGet.replace(/,/g, '')),
+            purpose: 'Touring',
+            destinationCountry: currencyGet.country,
+            bvn,
+            nin,
+            formAId,
+            documents: [
+                ...(passportMeta ? [passportMeta] : []),
+                ...(visaMeta ? [visaMeta] : []),
+                ...(ticketMeta ? [ticketMeta] : []),
+            ],
+            pickupLocation: selectedLocation ? {
+                name: selectedLocation.title,
+                address: selectedLocation.subtitle || '',
+            } : undefined,
+        };
+
+        createTransaction.mutate(payload, {
+            onSuccess: (response) => {
+                if (response.success) {
+                    setInitiateSheetVisible(false);
+                    router.push('/(buy-fx)/(touring)/request-initiated-success');
+                }
+            },
+        });
     };
 
     return (
-        <TransactionLayout
-            title="Tourist"
-            currentStep={currentStep}
-            totalSteps={4}
-            onBack={handleBack}
-            onNext={handleNext}
-            nextLabel={currentStep === 3 ? (selectedState && selectedCity ? "Initiate Transaction Request" : "Continue") : "Continue"}
-        >
-            {currentStep === 0 && (
-                <CredentialStep fields={credentialFields} />
-            )}
+        <>
+            <LoadingBackdrop visible={isUploading || createTransaction.isPending} />
+            <TransactionLayout
+                title="Tourist"
+                currentStep={currentStep}
+                totalSteps={4}
+                onBack={handleBack}
+                onNext={handleNext}
+                nextLabel={currentStep === 3 ? (selectedState && selectedCity ? "Initiate Transaction Request" : "Continue") : "Continue"}
+            >
+                {currentStep === 0 && (
+                    <CredentialStep fields={credentialFields} />
+                )}
 
-            {currentStep === 1 && (
-                <DocumentStep documents={documentFields} />
-            )}
+                {currentStep === 1 && (
+                    <DocumentStep documents={documentFields} />
+                )}
 
-            {currentStep === 2 && (
-                <ExchangeStep
-                    transactionType={transactionType}
-                    onTransactionTypeChange={setTransactionType}
-                    currencyGet={currencyGet}
-                    onCurrencyGetChange={setCurrencyGet}
-                    currencySend={currencySend}
-                    onCurrencySendChange={setCurrencySend}
-                    amountGet={amountGet}
-                    amountSend={amountSend}
-                    rate={`1 ${currencyGet.code} = 1500 ${currencySend.code}`}
-                    onAmountGetChange={setAmountGet}
-                    onAmountSendChange={setAmountSend}
-                    allowedModes={['buy']}
+                {currentStep === 2 && (
+                    <ExchangeStep
+                        transactionType={transactionType}
+                        onTransactionTypeChange={setTransactionType}
+                        currencyGet={currencyGet}
+                        onCurrencyGetChange={setCurrencyGet}
+                        currencySend={currencySend}
+                        onCurrencySendChange={setCurrencySend}
+                        amountGet={amountGet}
+                        amountSend={amountSend}
+                        rate={`1 ${currencyGet.code} = 1500 ${currencySend.code}`}
+                        onAmountGetChange={setAmountGet}
+                        onAmountSendChange={setAmountSend}
+                        allowedModes={['buy']}
+                    />
+                )}
+
+                {currentStep === 3 && (
+                    <LocationStep
+                        states={STATES}
+                        cities={CITIES}
+                        locations={LOCATIONS}
+                        selectedState={selectedState}
+                        onSelectState={(item) => {
+                            setSelectedState(item);
+                            setSelectedCity(null);
+                            setSelectedLocation(null);
+                        }}
+                        selectedCity={selectedCity}
+                        onSelectCity={(item) => {
+                            setSelectedCity(item);
+                            setSelectedLocation(null);
+                        }}
+                        selectedLocation={selectedLocation}
+                        onSelectLocation={setSelectedLocation}
+                        title="Select Pick Up Point"
+                        pickupDate={pickupDate}
+                        onPickupDateChange={setPickupDate}
+                        pickupTime={pickupTime}
+                        onPickupTimeChange={setPickupTime}
+                    />
+                )}
+
+                <InitiateTransactionSheet
+                    visible={initiateSheetVisible}
+                    onClose={() => setInitiateSheetVisible(false)}
+                    onConfirm={handleConfirmInitiate}
+                    title="Initiate Tourist Transaction request?"
+                    items={[
+                        {
+                            title: "Verification before approval",
+                            description: "Your travel documents (passport, visa, and return ticket) must be verified before your tourist FX request can be approved.",
+                            iconType: 'verify'
+                        },
+                        {
+                            title: "Maximum of $4,000 per quarter",
+                            description: "The maximum you can transact is $4,000 per quarter.",
+                            iconType: 'limit'
+                        }
+                    ]}
                 />
-            )}
-
-            {currentStep === 3 && (
-                <LocationStep
-                    states={STATES}
-                    cities={CITIES}
-                    locations={LOCATIONS}
-                    selectedState={selectedState}
-                    onSelectState={(item) => {
-                        setSelectedState(item);
-                        setSelectedCity(null);
-                        setSelectedLocation(null);
-                    }}
-                    selectedCity={selectedCity}
-                    onSelectCity={(item) => {
-                        setSelectedCity(item);
-                        setSelectedLocation(null);
-                    }}
-                    selectedLocation={selectedLocation}
-                    onSelectLocation={setSelectedLocation}
-                    title="Select Pick Up Point"
-                    pickupDate={pickupDate}
-                    onPickupDateChange={setPickupDate}
-                    pickupTime={pickupTime}
-                    onPickupTimeChange={setPickupTime}
-                />
-            )}
-
-            <InitiateTransactionSheet
-                visible={initiateSheetVisible}
-                onClose={() => setInitiateSheetVisible(false)}
-                onConfirm={handleConfirmInitiate}
-                title="Initiate Tourist Transaction request?"
-                items={[
-                    {
-                        title: "Verification before approval",
-                        description: "Your travel documents (passport, visa, and return ticket) must be verified before your tourist FX request can be approved.",
-                        iconType: 'verify'
-                    },
-                    {
-                        title: "Maximum of $4,000 per quarter",
-                        description: "The maximum you can transact is $4,000 per quarter.",
-                        iconType: 'limit'
-                    }
-                ]}
-            />
-        </TransactionLayout>
+            </TransactionLayout>
+        </>
     );
 }

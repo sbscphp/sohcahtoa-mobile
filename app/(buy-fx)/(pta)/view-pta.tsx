@@ -116,13 +116,14 @@ export default function ViewPtaScreen() {
 
     const docsItems = useMemo(() => {
         if (!tx) return [];
-        return tx.requiredDocuments.map((doc) => ({
-            label: doc.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
-            fileName: doc.uploaded?.fileName || null,
-            docStatus: doc.uploaded?.status || undefined,
-            onUpload: () => handleUpload(doc.type),
-            required: true,
-        }));
+        return tx.requiredDocuments
+            .filter((doc) => !!doc.uploaded)
+            .map((doc) => ({
+                label: doc.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
+                fileName: doc.uploaded!.fileName,
+                docStatus: doc.uploaded!.status,
+                required: true,
+            }));
     }, [tx]);
 
     const getMessage = () => {

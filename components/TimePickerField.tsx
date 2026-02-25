@@ -1,7 +1,7 @@
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Clock } from 'iconsax-react-nativejs';
-import React, { useState } from 'react';
-import { Modal, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { moderateScale, ScaledSheet } from 'react-native-size-matters';
 import PrimaryButton from './PrimaryButton';
 
@@ -14,77 +14,77 @@ interface TimePickerFieldProps {
     error?: string;
 }
 
+/** "HH:mm" → Date (today's date, hours/minutes filled in). */
+function parseTime(timeString: string): Date {
+    const d = new Date();
+    const parts = timeString.split(':');
+    if (parts.length >= 2) {
+        d.setHours(parseInt(parts[0], 10), parseInt(parts[1], 10), 0, 0);
+    }
+    return d;
+}
+
+/** Date → "HH:mm" */
+function formatTime(date: Date): string {
+    return [
+        String(date.getHours()).padStart(2, '0'),
+        String(date.getMinutes()).padStart(2, '0'),
+    ].join(':');
+}
+
 const TimePickerField: React.FC<TimePickerFieldProps> = ({
     label,
     value,
     onTimeChange,
     placeholder = 'hh:mm',
     required = false,
-    error
+    error,
 }) => {
     const [showPicker, setShowPicker] = useState(false);
-    const [selectedTime, setSelectedTime] = useState<Date | undefined>(
-        value ? parseTime(value) : undefined
-    );
-    const [tempTime, setTempTime] = useState<Date | undefined>(
-        value ? parseTime(value) : new Date()
-    );
 
-    // Parse hh:mm to Date
-    function parseTime(timeString: string): Date | undefined {
-        if (!timeString) return undefined;
-        const parts = timeString.split(':');
-        if (parts.length >= 2) {
-            const hours = parseInt(parts[0], 10);
-            const minutes = parseInt(parts[1], 10);
-            const date = new Date();
-            date.setHours(hours);
-            date.setMinutes(minutes);
-            date.setSeconds(0);
-            return date;
+    /**
+     * tempTime is what the spinner currently shows. We keep it in a ref so
+     * mutations inside onChange don't cause unnecessary re-renders, and we
+     * read the final value in handleConfirm via the ref.
+     */
+    const tempTimeRef = useRef<Date>(value ? parseTime(value) : new Date());
+    // A separate state just for forcing a re-render of the spinner with the
+    // correct key when the picker opens.
+    const [pickerKey, setPickerKey] = useState(0);
+
+    /**
+     * Keep tempTimeRef in sync with the committed `value` prop whenever the
+     * picker is closed. This means when the picker opens it always starts at
+     * the right position without relying on batched setState.
+     */
+    useEffect(() => {
+        if (!showPicker) {
+            tempTimeRef.current = value ? parseTime(value) : new Date();
         }
-        return undefined;
-    }
+    }, [value, showPicker]);
 
-    // Format Date to hh:mm
-    function formatTime(date: Date): string {
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
-        return `${hours}:${minutes}`;
-    }
-
-    const handleTimeChange = (event: any, time?: Date) => {
-        if (Platform.OS === 'android') {
-            setShowPicker(false);
-            // event.type can be 'set' (confirmed) or 'dismissed' (cancelled)
-            if (event.type === 'set' && time) {
-                setSelectedTime(time);
-                setTempTime(time);
-                onTimeChange(formatTime(time));
-            }
-        } else {
-            // iOS — always update temp time as user scrolls
-            if (time) {
-                setTempTime(time);
-            }
-        }
-    };
-
-    const handlePress = () => {
+    const handleOpen = () => {
+        // Sync ref to current value one last time before opening
+        tempTimeRef.current = value ? parseTime(value) : new Date();
+        // Increment key → forces DateTimePicker to remount with the correct
+        // initial value (avoids Android reusing stale native spinner state)
+        setPickerKey(k => k + 1);
         setShowPicker(true);
     };
 
-    const handleCancel = () => {
-        setTempTime(selectedTime || new Date());
-        setShowPicker(false);
+    const handleChange = (_event: any, date?: Date) => {
+        // Update ref as user scrolls the spinner (no re-render needed)
+        if (date) {
+            tempTimeRef.current = date;
+        }
     };
 
     const handleConfirm = () => {
-        if (tempTime) {
-            setSelectedTime(tempTime);
-            const formattedTime = formatTime(tempTime);
-            onTimeChange(formattedTime);
-        }
+        onTimeChange(formatTime(tempTimeRef.current));
+        setShowPicker(false);
+    };
+
+    const handleCancel = () => {
         setShowPicker(false);
     };
 
@@ -93,12 +93,10 @@ const TimePickerField: React.FC<TimePickerFieldProps> = ({
             <Text style={styles.label}>
                 {label} {required && <Text style={styles.required}>*</Text>}
             </Text>
+
             <TouchableOpacity
-                style={[
-                    styles.inputWrapper,
-                    error ? styles.inputError : undefined
-                ]}
-                onPress={handlePress}
+                style={[styles.inputWrapper, error ? styles.inputError : undefined]}
+                onPress={handleOpen}
                 activeOpacity={0.7}
             >
                 <Text style={[styles.input, !value && styles.placeholder]}>
@@ -110,62 +108,51 @@ const TimePickerField: React.FC<TimePickerFieldProps> = ({
                     style={styles.icon}
                 />
             </TouchableOpacity>
+
             {error && <Text style={styles.errorText}>{error}</Text>}
 
-            {/* Bottom Sheet Modal for iOS, Native Dialog for Android */}
-            {Platform.OS === 'ios' && showPicker && (
-                <Modal
-                    animationType="slide"
-                    transparent={true}
-                    visible={showPicker}
-                    onRequestClose={handleCancel}
-                >
-                    <View style={styles.overlay}>
-                        <TouchableOpacity
-                            style={styles.backdrop}
-                            onPress={handleCancel}
-                            activeOpacity={1}
+            <Modal
+                animationType="slide"
+                transparent
+                visible={showPicker}
+                onRequestClose={handleCancel}
+            >
+                <View style={styles.overlay}>
+                    <TouchableOpacity
+                        style={styles.backdrop}
+                        onPress={handleCancel}
+                        activeOpacity={1}
+                    />
+
+                    <View style={styles.sheetContent}>
+                        <View style={styles.sheetHeader}>
+                            <Text style={styles.sheetTitle}>{label}</Text>
+                        </View>
+
+                        {/*
+                         * key={pickerKey} forces a clean remount each time the
+                         * picker opens → Android native spinner resets to
+                         * tempTimeRef.current instead of reusing stale state.
+                         */}
+                        <DateTimePicker
+                            key={pickerKey}
+                            value={tempTimeRef.current}
+                            mode="time"
+                            display="spinner"
+                            onChange={handleChange}
+                            textColor="#0F172A"
+                            style={{ width: '100%' }}
                         />
 
-                        <View style={styles.sheetContent}>
-                            <View style={styles.sheetHeader}>
-                                <Text style={styles.sheetTitle}>{label}</Text>
-                            </View>
-
-                            <DateTimePicker
-                                value={tempTime || new Date()}
-                                mode="time"
-                                display="spinner"
-                                onChange={handleTimeChange}
-                                textColor="#0F172A"
-                            />
-
-                            <View style={styles.buttonContainer}>
-                                <PrimaryButton
-                                    title="Confirm"
-                                    onPress={handleConfirm}
-                                />
-                                <TouchableOpacity
-                                    style={styles.cancelButton}
-                                    onPress={handleCancel}
-                                >
-                                    <Text style={styles.cancelButtonText}>Cancel</Text>
-                                </TouchableOpacity>
-                            </View>
+                        <View style={styles.buttonContainer}>
+                            <PrimaryButton title="Confirm" onPress={handleConfirm} />
+                            <TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
+                                <Text style={styles.cancelButtonText}>Cancel</Text>
+                            </TouchableOpacity>
                         </View>
                     </View>
-                </Modal>
-            )}
-
-            {/* Android Native Picker */}
-            {Platform.OS === 'android' && showPicker && (
-                <DateTimePicker
-                    value={tempTime || new Date()}
-                    mode="time"
-                    display="spinner"
-                    onChange={handleTimeChange}
-                />
-            )}
+                </View>
+            </Modal>
         </View>
     );
 };
@@ -215,7 +202,6 @@ const styles = ScaledSheet.create({
         marginTop: '4@vs',
         marginLeft: '4@s',
     },
-    // Bottom Sheet Styles
     overlay: {
         flex: 1,
         backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -233,7 +219,7 @@ const styles = ScaledSheet.create({
         paddingBottom: '40@vs',
     },
     sheetHeader: {
-        marginBottom: '16@vs',
+        marginBottom: '4@vs',
         alignItems: 'center',
     },
     sheetTitle: {

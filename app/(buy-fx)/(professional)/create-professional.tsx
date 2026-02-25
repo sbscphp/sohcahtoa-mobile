@@ -1,10 +1,14 @@
 import InitiateTransactionSheet from '@/components/InitiateTransactionSheet';
 import InputField from '@/components/InputField';
+import LoadingBackdrop from '@/components/LoadingBackdrop';
 import BankDetailsStep from '@/components/transaction-flow/BankDetailsStep';
 import CredentialStep from '@/components/transaction-flow/CredentialStep';
 import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
+import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
+import { UploadedFile, useDocumentUpload } from '@/hooks/useDocumentUpload';
+import { useToastStore } from '@/stores/useToastStore';
 import { professionalStep0Schema, professionalStep1Schema, professionalStep2Schema, professionalStep3Schema } from '@/utils/validations/professional';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
@@ -20,6 +24,7 @@ interface ValidationErrors {
 export default function ProfessionalScreen() {
     const router = useRouter();
     const [currentStep, setCurrentStep] = useState(0);
+    const createTransaction = useCreateTransactionMutation();
 
     // Step 0: Credentials State
     const [bvn, setBvn] = useState('');
@@ -62,6 +67,21 @@ export default function ProfessionalScreen() {
         }
     };
 
+    // Document upload files
+    const [membershipFile, setMembershipFile] = useState<UploadedFile | null>(null);
+    const [membershipMeta, setMembershipMeta] = useState<import('@/hooks/useDocumentUpload').UploadedMetadata | null>(null);
+    const [invoiceFile, setInvoiceFile] = useState<UploadedFile | null>(null);
+    const [invoiceMeta, setInvoiceMeta] = useState<import('@/hooks/useDocumentUpload').UploadedMetadata | null>(null);
+
+    const showToast = useToastStore(s => s.showToast);
+    const { upload: uploadFile, isPending: isUploading } = useDocumentUpload({
+        onSuccess: (documentType, { file, metadata }) => {
+            if (documentType === 'MEMBERSHIP_CARD') { setMembershipFile(file); setMembershipMeta(metadata); }
+            else if (documentType === 'INVOICE') { setInvoiceFile(file); setInvoiceMeta(metadata); }
+        },
+        onError: () => showToast('Failed to upload document. Please try again.', 'error'),
+    });
+
     // --- Configuration ---
 
     // Fields for Step 0
@@ -76,7 +96,8 @@ export default function ProfessionalScreen() {
     const documentFields = [
         {
             label: 'Evidence of Membership',
-            onUpload: () => console.log('Upload Invoice'),
+            onUpload: () => uploadFile('MEMBERSHIP_CARD'),
+            fileName: membershipFile?.name,
             required: true,
             associatedInputs: (
                 <View style={{ marginBottom: 16 }}>
@@ -86,7 +107,8 @@ export default function ProfessionalScreen() {
         },
         {
             label: 'Invoice from Professional Body',
-            onUpload: () => console.log('Upload Passport'),
+            onUpload: () => uploadFile('INVOICE'),
+            fileName: invoiceFile?.name,
             required: true,
             associatedInputs: (
                 <View style={{ marginBottom: 16 }}>
@@ -99,6 +121,10 @@ export default function ProfessionalScreen() {
     // --- Handlers ---
 
     const handleNext = () => {
+        if (isUploading) {
+            showToast('Please wait for files to finish uploading', 'warning');
+            return;
+        }
         const errors: ValidationErrors = {};
 
         if (currentStep === 0) {
@@ -161,75 +187,106 @@ export default function ProfessionalScreen() {
     };
 
     const handleConfirmInitiate = () => {
-        setInitiateSheetVisible(false);
-        router.push('/(buy-fx)/(professional)/request-initiated-success');
+        const payload = {
+            type: 'PROFESSIONAL',
+            currency: currencyGet.code,
+            amount: parseFloat(amountGet.replace(/,/g, '')),
+            purpose: 'Professional Fees Payment',
+            destinationCountry: currencyGet.country,
+            bvn,
+            nin,
+            formAId,
+            documents: [
+                ...(membershipMeta ? [membershipMeta] : []),
+                ...(invoiceMeta ? [invoiceMeta] : []),
+            ],
+            beneficiaryDetails: {
+                name: accountName,
+                accountNumber,
+                accountName,
+                bankName,
+                iban,
+            },
+        };
+
+        createTransaction.mutate(payload, {
+            onSuccess: (response) => {
+                if (response.success) {
+                    setInitiateSheetVisible(false);
+                    router.push('/(buy-fx)/(professional)/request-initiated-success');
+                }
+            },
+        });
     };
 
     return (
-        <TransactionLayout
-            title="Professional"
-            currentStep={currentStep}
-            totalSteps={4}
-            onBack={handleBack}
-            onNext={handleNext}
-            nextLabel={currentStep === 3 ? (bankName && accountNumber ? "Initiate Transaction Request" : "Continue") : "Continue"}
-        >
-            {currentStep === 0 && (
-                <CredentialStep fields={credentialFields} />
-            )}
+        <>
+            <LoadingBackdrop visible={isUploading || createTransaction.isPending} />
+            <TransactionLayout
+                title="Professional"
+                currentStep={currentStep}
+                totalSteps={4}
+                onBack={handleBack}
+                onNext={handleNext}
+                nextLabel={currentStep === 3 ? (bankName && accountNumber ? "Initiate Transaction Request" : "Continue") : "Continue"}
+            >
+                {currentStep === 0 && (
+                    <CredentialStep fields={credentialFields} />
+                )}
 
-            {currentStep === 1 && (
-                <DocumentStep documents={documentFields} />
-            )}
+                {currentStep === 1 && (
+                    <DocumentStep documents={documentFields} />
+                )}
 
-            {currentStep === 2 && (
-                <ExchangeStep
-                    transactionType={transactionType}
-                    onTransactionTypeChange={setTransactionType}
-                    currencyGet={currencyGet}
-                    onCurrencyGetChange={setCurrencyGet}
-                    currencySend={currencySend}
-                    onCurrencySendChange={setCurrencySend}
-                    amountGet={amountGet}
-                    amountSend={amountSend}
-                    rate={`1 ${currencyGet.code} = 1500 ${currencySend.code}`}
-                    onAmountGetChange={setAmountGet}
-                    onAmountSendChange={setAmountSend}
-                    allowedModes={['buy']}
+                {currentStep === 2 && (
+                    <ExchangeStep
+                        transactionType={transactionType}
+                        onTransactionTypeChange={setTransactionType}
+                        currencyGet={currencyGet}
+                        onCurrencyGetChange={setCurrencyGet}
+                        currencySend={currencySend}
+                        onCurrencySendChange={setCurrencySend}
+                        amountGet={amountGet}
+                        amountSend={amountSend}
+                        rate={`1 ${currencyGet.code} = 1500 ${currencySend.code}`}
+                        onAmountGetChange={setAmountGet}
+                        onAmountSendChange={setAmountSend}
+                        allowedModes={['buy']}
+                    />
+                )}
+
+                {currentStep === 3 && (
+                    <BankDetailsStep
+                        bankName={bankName}
+                        setBankName={setBankName}
+                        accountNumber={accountNumber}
+                        setAccountNumber={setAccountNumber}
+                        accountName={accountName}
+                        setAccountName={setAccountName}
+                        iban={iban}
+                        setIban={setIban}
+                    />
+                )}
+
+                <InitiateTransactionSheet
+                    visible={initiateSheetVisible}
+                    onClose={() => setInitiateSheetVisible(false)}
+                    onConfirm={handleConfirmInitiate}
+                    title="Initiate Professional Transaction request?"
+                    items={[
+                        {
+                            title: "Verification before approval",
+                            description: "Your supporting documents (exam registration, training invoice, or admission letter) must be verified before your request can be processed.",
+                            iconType: 'verify'
+                        },
+                        {
+                            title: "Maximum of $2,000 per quarter",
+                            description: "The maximum amount allowed for professional exams or training fees is $2,000 per year, according to CBN guidelines.",
+                            iconType: 'limit'
+                        }
+                    ]}
                 />
-            )}
-
-            {currentStep === 3 && (
-                <BankDetailsStep
-                    bankName={bankName}
-                    setBankName={setBankName}
-                    accountNumber={accountNumber}
-                    setAccountNumber={setAccountNumber}
-                    accountName={accountName}
-                    setAccountName={setAccountName}
-                    iban={iban}
-                    setIban={setIban}
-                />
-            )}
-
-            <InitiateTransactionSheet
-                visible={initiateSheetVisible}
-                onClose={() => setInitiateSheetVisible(false)}
-                onConfirm={handleConfirmInitiate}
-                title="Initiate Professional Transaction request?"
-                items={[
-                    {
-                        title: "Verification before approval",
-                        description: "Your supporting documents (exam registration, training invoice, or admission letter) must be verified before your request can be processed.",
-                        iconType: 'verify'
-                    },
-                    {
-                        title: "Maximum of $2,000 per quarter",
-                        description: "The maximum amount allowed for professional exams or training fees is $2,000 per year, according to CBN guidelines.",
-                        iconType: 'limit'
-                    }
-                ]}
-            />
-        </TransactionLayout>
+            </TransactionLayout>
+        </>
     );
 }

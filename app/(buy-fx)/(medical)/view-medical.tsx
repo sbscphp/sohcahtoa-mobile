@@ -2,121 +2,104 @@ import TransactionDetailsView from '@/components/transaction-flow/TransactionDet
 import TransactionDocsView from '@/components/transaction-flow/TransactionDocsView';
 import TransactionStatusView, { TransactionStatus } from '@/components/transaction-flow/TransactionStatusView';
 import TransactionViewLayout from '@/components/transaction-flow/TransactionViewLayout';
-import { getDocumentAsync } from 'expo-document-picker';
-import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import { Text, TouchableOpacity } from 'react-native';
+import { useGetTransactionByIdQuery } from '@/hooks/queries/transactions/useGetTransactionByIdQuery';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useMemo, useState } from 'react';
+import { ActivityIndicator, View } from 'react-native';
 
 export default function ViewMedicalPaymentScreen() {
     const router = useRouter();
+    const { transactionId } = useLocalSearchParams<{ transactionId: string }>();
     const [activeTab, setActiveTab] = useState('overview');
 
-    
-    const [status, setStatus] = useState<TransactionStatus>('pending');
+    const { data: txResponse, isLoading } = useGetTransactionByIdQuery(transactionId || '');
+    const tx = txResponse?.data;
 
-    const [passportFile, setPassportFile] = useState<string | null>('my-passport.jpg');
-    const [formAFile, setFormAFile] = useState<string | null>('form-a.pdf');
-    const [returnTicketFile, setReturnTicketFile] = useState<string | null>('return-ticket.pdf');
-
-    const handleBack = () => {
-        router.back();
+    const mapApiStatusToViewStatus = (s: string): TransactionStatus => {
+        const map: Record<string, TransactionStatus> = {
+            'DRAFT': 'pending', 'AWAITING_VERIFICATION': 'pending', 'VERIFICATION_IN_PROGRESS': 'pending',
+            'VERIFICATION_COMPLETED': 'pending', 'AWAITING_DEPOSIT': 'awaiting_disbursement',
+            'DEPOSIT_PENDING': 'awaiting_disbursement', 'DEPOSIT_CONFIRMED': 'awaiting_disbursement',
+            'COMPLIANCE_REVIEW': 'pending', 'ADMIN_APPROVAL_PENDING': 'pending', 'APPROVED': 'approved',
+            'DISBURSEMENT_IN_PROGRESS': 'awaiting_disbursement', 'COMPLETED': 'settled',
+            'REJECTED': 'rejected', 'CANCELLED': 'rejected',
+        };
+        return map[s] || 'pending';
     };
 
-    const handleProceed = () => {
-        router.push('/(buy-fx)/(medical)/payment');
-    };
+    const status: TransactionStatus = tx ? mapApiStatusToViewStatus(tx.status) : 'pending';
 
-    const handleUpload = async (docType: 'formA' | 'returnTicket' | 'passport') => {
-        try {
-            const result = await getDocumentAsync({
-                type: ['application/pdf', 'image/*'],
-                copyToCacheDirectory: true,
-            });
+    const handleBack = () => { router.back(); };
+    const handleProceed = () => { router.push('/(buy-fx)/(medical)/payment'); };
 
-            if (result.assets && result.assets.length > 0) {
-                const file = result.assets[0];
-                const fileName = file.name;
+    const formatDate = (d: string) => { const dt = new Date(d); const m = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']; return `${dt.getDate()} ${m[dt.getMonth()]} ${dt.getFullYear()}`; };
+    const formatTime = (d: string) => { const dt = new Date(d); let h = dt.getHours(); const min = dt.getMinutes(); const ap = h >= 12 ? 'pm' : 'am'; h = h % 12 || 12; return `${h}:${String(min).padStart(2, '0')} ${ap}`; };
+    const fmtCur = (n: number | null | undefined, p = '₦') => n == null ? `${p} 0` : `${p} ${n.toLocaleString()}`;
 
-                if (docType === 'formA') setFormAFile(fileName);
-                else if (docType === 'returnTicket') setReturnTicketFile(fileName);
-                else if (docType === 'passport') setPassportFile(fileName);
-            }
-        } catch (error) {
-            console.error("Error picking document:", error);
-        }
-    };
+    const detailsItems = useMemo(() => {
+        if (!tx) return [];
+        return [
+            { label: 'Transaction ID', value: tx.referenceNumber },
+            { label: 'Amount (₦)', value: fmtCur(tx.nairaEquivalent) },
+            { label: 'Equivalent Amount (FX)', value: fmtCur(tx.foreignAmount, tx.currency === 'USD' ? '$' : tx.currency === 'GBP' ? '£' : tx.currency === 'EUR' ? '€' : tx.currency) },
+            { label: 'Date Initiated', value: formatDate(tx.createdAt) },
+        ];
+    }, [tx]);
 
+    const detailsDocuments = useMemo(() => {
+        if (!tx) return [];
+        return tx.requiredDocuments.filter(d => !!d.uploaded).map(d => ({ label: d.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()), fileName: d.uploaded!.fileName }));
+    }, [tx]);
 
-    const toggleState = () => {
-        if (status === 'pending') setStatus('approved');
-        else if (status === 'approved') setStatus('more_info');
-        else if (status === 'more_info') setStatus('rejected');
-        else if (status === 'rejected') setStatus('awaiting_disbursement');
-        else if (status === 'awaiting_disbursement') setStatus('settled');
-        else setStatus('pending');
-    };
-
-    const tabs = [
-        { key: 'overview', label: 'Overview' },
-        { key: 'details', label: 'Transaction Details' },
-        { key: 'docs', label: 'Documentation' },
-    ];
-
-
-    const detailsItems = [
-        { label: 'Transaction ID', value: 'MED-773829' },
-        { label: 'Amount (₦)', value: '₦ 8,500,000' },
-        { label: 'Equivalent Amount (FX)', value: '$8,000' },
-        { label: 'Date Initiated', value: 'Feb 2 2026' },
-
-    ];
-
-    const detailsDocuments = [
-        { label: 'Hospital Name', value: 'St. Mary Hospital' },
-        { label: 'Patient Name', value: 'John Doe' },
-        { label: 'Medical Bill', fileName: 'medical-bill.pdf' },
-        { label: 'Medical Report', fileName: 'medical-report.pdf' },
-        { label: 'International Passport', fileName: 'my-passport.jpg' },
-    ];
-
-    const docsItems = [
-        { label: 'Form A', fileName: formAFile, onUpload: () => handleUpload('formA'), required: true },
-        { label: 'International Passport', fileName: passportFile, onUpload: () => handleUpload('passport'), required: true },
-        { label: 'Return Ticket', fileName: returnTicketFile, onUpload: () => handleUpload('returnTicket'), required: true },
-    ];
-
+    const docsItems = useMemo(() => {
+        if (!tx) return [];
+        return tx.requiredDocuments
+            .filter((doc) => !!doc.uploaded)
+            .map((doc) => ({
+                label: doc.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
+                fileName: doc.uploaded!.fileName,
+                docStatus: doc.uploaded!.status,
+                required: true,
+            }));
+    }, [tx]);
 
     const getMessage = () => {
+        if (!tx) return '';
         if (status === 'approved' || status === 'awaiting_disbursement' || status === 'settled')
             return "Congratulations! Your medical payment request has been approved. Please proceed to payment.";
-        if (status === 'rejected')
-            return "Request rejected. Please verify the hospital details and try again.";
-
-        return "This is a message box that show the message from the SohCahToa Admin. Admin noted that the medical report is not certified.";
+        if (status === 'rejected') return tx.rejection?.reason || "Your application has been declined.";
+        return `Your transaction is currently ${tx.status.replace(/_/g, ' ').toLowerCase()}. Please check back for updates.`;
     };
+
+    if (isLoading) {
+        return (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
+                <ActivityIndicator size="large" color="#FF6B2C" />
+            </View>
+        );
+    }
 
     return (
         <TransactionViewLayout
             title="Transaction"
             activeTab={activeTab}
             onTabChange={setActiveTab}
-            tabs={tabs}
+            tabs={[
+                { key: 'overview', label: 'Overview' },
+                { key: 'details', label: 'Transaction Details' },
+                { key: 'docs', label: 'Documentation' },
+            ]}
             onBack={handleBack}
             showActionButton={status !== 'pending' && status !== 'rejected' && status !== 'settled'}
             actionButtonTitle={status === 'approved' || status === 'awaiting_disbursement' ? "Proceed to Payment" : "Resubmit Request"}
             onActionPress={handleProceed}
         >
-
-            <TouchableOpacity onPress={toggleState} style={{ marginLeft: 'auto', justifyContent: 'center', marginBottom: 10 }}>
-                <Text style={{ fontSize: 10, color: '#ccc' }}>DEV: {status}</Text>
-            </TouchableOpacity>
-
             {activeTab === 'overview' && (
                 <TransactionStatusView
                     status={status}
-                    id="773829"
-                    date="02 Feb 2026"
-                    time="02:30 pm"
+                    id={tx?.referenceNumber?.slice(-6) || ''}
+                    date={tx ? formatDate(tx.createdAt) : ''}
+                    time={tx ? formatTime(tx.createdAt) : ''}
                     message={getMessage()}
                 />
             )}
@@ -125,15 +108,6 @@ export default function ViewMedicalPaymentScreen() {
                 <TransactionDetailsView
                     details={detailsItems}
                     documents={detailsDocuments}
-                    beneficiaryDetails={[
-                        { label: 'Account Name', value: 'Finance International', isRightAligned: true },
-                        { label: 'Account Number', value: '23456786543', isRightAligned: true },
-                        { label: 'Sort Code', value: '27833987444', isRightAligned: true },
-                    ]}
-                    paymentDetails={[
-                        { label: 'Transaction ID', value: '674AGHA6773', isRightAligned: true },
-                        { label: 'Transaction Date', value: '17 Nov 2025', isRightAligned: true },
-                    ]}
                 />
             )}
 
@@ -143,7 +117,6 @@ export default function ViewMedicalPaymentScreen() {
                     documents={docsItems}
                 />
             )}
-
         </TransactionViewLayout>
     );
 }

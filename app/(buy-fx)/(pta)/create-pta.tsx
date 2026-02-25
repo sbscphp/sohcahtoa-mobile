@@ -22,28 +22,28 @@ import { View } from 'react-native';
 import { z } from 'zod';
 
 const STATES: LocationItem[] = [
-    { id: '1', title: 'Lagos State' },
-    { id: '2', title: 'Ogun State' },
-    { id: '3', title: 'Rivers State' },
-    { id: '4', title: 'Kaduna State' },
-    { id: '5', title: 'Enugu State' },
-    { id: '6', title: 'Kano State' },
+    { id: '1', title: 'Lagos' },
+    { id: '2', title: 'Ogun' },
+    { id: '3', title: 'Rivers' },
+    { id: '4', title: 'Kaduna' },
+    { id: '5', title: 'Enugu' },
+    { id: '6', title: 'Kano' },
 ];
 
 const CITIES: LocationItem[] = [
-    { id: '1', title: 'Ajeromi Local Government' },
-    { id: '2', title: 'Agege Local Government' },
-    { id: '3', title: 'Alimosho Local Government' },
-    { id: '4', title: 'Amuwo Odofin Local Government' },
-    { id: '5', title: 'Apapa Local Government' },
-    { id: '6', title: 'Badagry Local Government' },
+    { id: '1', title: 'Ajeromi' },
+    { id: '2', title: 'Agege' },
+    { id: '3', title: 'Alimosho' },
+    { id: '4', title: 'Amuwo Odofin' },
+    { id: '5', title: 'Apapa' },
+    { id: '6', title: 'Badagry' },
 ];
 
 const LOCATIONS: LocationItem[] = [
-    { id: '1', title: 'Ajeromi Local Government', subtitle: 'Femi Areola Street, Ikeja GRA.' },
-    { id: '2', title: 'Agege Local Government', subtitle: 'Femi Areola Street, Ikeja GRA.' },
-    { id: '3', title: 'Ikorodu Local Government', subtitle: '23 T.O.S Benson Avenue, Ikorodu.' },
-    { id: '4', title: 'Festac Local Government', subtitle: '1st Avenue, Festac Town.' },
+    { id: '1', title: 'Ajeromi', subtitle: 'Femi Areola Street, Ikeja GRA.' },
+    { id: '2', title: 'Agege', subtitle: 'Femi Areola Street, Ikeja GRA.' },
+    { id: '3', title: 'Ikorodu', subtitle: '23 T.O.S Benson Avenue, Ikorodu.' },
+    { id: '4', title: 'Festac', subtitle: '1st Avenue, Festac Town.' },
 ];
 
 interface ValidationErrors {
@@ -348,6 +348,8 @@ export default function PersonalTravelAllowanceScreen() {
                 address: ptaData.selectedLocation.subtitle || '',
                 state: ptaData.selectedState?.title || '',
                 city: ptaData.selectedCity?.title || '',
+                scheduledPickupDate: formatDateForApi(ptaData.pickupDate),
+                scheduledPickupTime: ptaData.pickupTime,
             } : undefined
         };
 

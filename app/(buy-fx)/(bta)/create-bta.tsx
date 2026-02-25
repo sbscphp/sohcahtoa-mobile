@@ -1,12 +1,16 @@
 import DatePickerField from '@/components/DatePickerField';
 import InitiateTransactionSheet from '@/components/InitiateTransactionSheet';
 import InputField from '@/components/InputField';
+import LoadingBackdrop from '@/components/LoadingBackdrop';
 import { LocationItem } from '@/components/LocationSelectionSheet';
 import CredentialStep from '@/components/transaction-flow/CredentialStep';
 import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import LocationStep from '@/components/transaction-flow/LocationStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
+import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
+import { UploadedFile, useDocumentUpload } from '@/hooks/useDocumentUpload';
+import { useToastStore } from '@/stores/useToastStore';
 import { btaStep0Schema, btaStep1Schema, btaStep2Schema, btaStep3Schema } from '@/utils/validations/bta';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
@@ -45,6 +49,7 @@ const LOCATIONS: LocationItem[] = [
 export default function BusinessTravelAllowanceScreen() {
     const router = useRouter();
     const [currentStep, setCurrentStep] = useState(0);
+    const createTransaction = useCreateTransactionMutation();
 
     // Step 0: Credentials State
     const [bvn, setBvn] = useState('');
@@ -90,12 +95,31 @@ export default function BusinessTravelAllowanceScreen() {
         }
     };
 
+    // Document upload files
+    const [tccFile, setTccFile] = useState<UploadedFile | null>(null);
+    const [tccMeta, setTccMeta] = useState<import('@/hooks/useDocumentUpload').UploadedMetadata | null>(null);
+    const [passportFile, setPassportFile] = useState<UploadedFile | null>(null);
+    const [passportMeta, setPassportMeta] = useState<import('@/hooks/useDocumentUpload').UploadedMetadata | null>(null);
+    const [tinFile, setTinFile] = useState<UploadedFile | null>(null);
+    const [tinMeta, setTinMeta] = useState<import('@/hooks/useDocumentUpload').UploadedMetadata | null>(null);
+
+    const showToast = useToastStore(s => s.showToast);
+    const { upload: uploadFile, isPending: isUploading } = useDocumentUpload({
+        onSuccess: (documentType, { file, metadata }) => {
+            if (documentType === 'TCC') { setTccFile(file); setTccMeta(metadata); }
+            else if (documentType === 'PASSPORT') { setPassportFile(file); setPassportMeta(metadata); }
+            else if (documentType === 'TIN') { setTinFile(file); setTinMeta(metadata); }
+        },
+        onError: () => showToast('Failed to upload document. Please try again.', 'error'),
+    });
+
     // --- Configuration ---
 
     // Fields for Step 0
     const credentialFields = [
         { label: 'Bank Verification Number(BVN)', placeholder: 'Enter your BVN', value: bvn, onChangeText: (v: string) => { setBvn(v); clearError('bvn'); }, required: true, keyboardType: 'numeric' as const, error: validationErrors.bvn },
         { label: 'Tax Identification Number(TIN)', placeholder: 'Enter your TIN', value: tin, onChangeText: (v: string) => { setTin(v); clearError('tin'); }, required: true, keyboardType: 'numeric' as const, error: validationErrors.tin },
+
         { label: 'National Identification Number(NIN)', placeholder: 'Enter your NIN', value: nin, onChangeText: (v: string) => { setNin(v); clearError('nin'); }, required: true, keyboardType: 'numeric' as const, error: validationErrors.nin },
         { label: 'Form A ID', placeholder: 'Enter Form A ID', value: formAId, onChangeText: (v: string) => { setFormAId(v); clearError('formAId'); }, required: true, keyboardType: 'numeric' as const, error: validationErrors.formAId },
         { label: 'International Passport Number', placeholder: 'Enter international passport', value: passportNumber, onChangeText: (v: string) => { setPassportNumber(v); clearError('passportNumber'); }, required: true, error: validationErrors.passportNumber },
@@ -105,7 +129,8 @@ export default function BusinessTravelAllowanceScreen() {
     const documentFields = [
         {
             label: 'Tax Clearance Certificate (TCC)',
-            onUpload: () => console.log('Upload Letter'),
+            onUpload: () => uploadFile('TCC'),
+            fileName: tccFile?.name,
             required: true,
             associatedInputs: (
                 <View>
@@ -115,7 +140,8 @@ export default function BusinessTravelAllowanceScreen() {
         },
         {
             label: 'International Passport',
-            onUpload: () => console.log('Upload Passport'),
+            onUpload: () => uploadFile('PASSPORT'),
+            fileName: passportFile?.name,
             required: true,
             associatedInputs: (
                 <View style={{ flexDirection: 'row', gap: 12 }}>
@@ -130,7 +156,8 @@ export default function BusinessTravelAllowanceScreen() {
         },
         {
             label: 'Tax Identification Number (TIN)',
-            onUpload: () => console.log('Upload Letter'),
+            onUpload: () => uploadFile('TIN'),
+            fileName: tinFile?.name,
             required: true,
             associatedInputs: (
                 <View>
@@ -143,6 +170,10 @@ export default function BusinessTravelAllowanceScreen() {
     // --- Handlers ---
 
     const handleNext = () => {
+        if (isUploading) {
+            showToast('Please wait for files to finish uploading', 'warning');
+            return;
+        }
         const errors: ValidationErrors = {};
 
         if (currentStep === 0) {
@@ -205,87 +236,123 @@ export default function BusinessTravelAllowanceScreen() {
     };
 
     const handleConfirmInitiate = () => {
-        setInitiateSheetVisible(false);
-        router.push('/(buy-fx)/(bta)/request-initiated-success');
+        const formatDateForApi = (dateStr: string): string => {
+            if (!dateStr) return '';
+            const parts = dateStr.split('/');
+            if (parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}`;
+            return dateStr;
+        };
+
+        const payload = {
+            type: 'BTA',
+            currency: currencyGet.code,
+            amount: parseFloat(amountGet.replace(/,/g, '')),
+            purpose: 'Business Travel Allowance (BTA)',
+            destinationCountry: currencyGet.country,
+            bvn,
+            nin,
+            formAId,
+            documents: [
+                ...(tccMeta ? [tccMeta] : []),
+                ...(passportMeta ? [passportMeta] : []),
+                ...(tinMeta ? [tinMeta] : []),
+            ],
+            pickupLocation: selectedLocation ? {
+                name: selectedLocation.title,
+                address: selectedLocation.subtitle || '',
+            } : undefined,
+        };
+
+        createTransaction.mutate(payload, {
+            onSuccess: (response) => {
+                if (response.success) {
+                    setInitiateSheetVisible(false);
+                    router.push('/(buy-fx)/(bta)/request-initiated-success');
+                }
+            },
+        });
     };
 
     return (
-        <TransactionLayout
-            title="Business Travel Allowance"
-            currentStep={currentStep}
-            totalSteps={4}
-            onBack={handleBack}
-            onNext={handleNext}
-            nextLabel={currentStep === 3 ? (selectedState && selectedCity ? "Initiate Transaction Request" : "Continue") : "Continue"}
-        >
-            {currentStep === 0 && (
-                <CredentialStep fields={credentialFields} />
-            )}
+        <>
+            <LoadingBackdrop visible={isUploading || createTransaction.isPending} />
+            <TransactionLayout
+                title="Business Travel Allowance"
+                currentStep={currentStep}
+                totalSteps={4}
+                onBack={handleBack}
+                onNext={handleNext}
+                nextLabel={currentStep === 3 ? (selectedState && selectedCity ? "Initiate Transaction Request" : "Continue") : "Continue"}
+            >
+                {currentStep === 0 && (
+                    <CredentialStep fields={credentialFields} />
+                )}
 
-            {currentStep === 1 && (
-                <DocumentStep documents={documentFields} />
-            )}
+                {currentStep === 1 && (
+                    <DocumentStep documents={documentFields} />
+                )}
 
-            {currentStep === 2 && (
-                <ExchangeStep
-                    transactionType={transactionType}
-                    onTransactionTypeChange={setTransactionType}
-                    currencyGet={currencyGet}
-                    onCurrencyGetChange={setCurrencyGet}
-                    currencySend={currencySend}
-                    onCurrencySendChange={setCurrencySend}
-                    amountGet={amountGet}
-                    amountSend={amountSend}
-                    rate={`1 ${currencyGet.code} = 1500 ${currencySend.code}`}
-                    onAmountGetChange={setAmountGet}
-                    onAmountSendChange={setAmountSend}
-                    allowedModes={['buy']}
+                {currentStep === 2 && (
+                    <ExchangeStep
+                        transactionType={transactionType}
+                        onTransactionTypeChange={setTransactionType}
+                        currencyGet={currencyGet}
+                        onCurrencyGetChange={setCurrencyGet}
+                        currencySend={currencySend}
+                        onCurrencySendChange={setCurrencySend}
+                        amountGet={amountGet}
+                        amountSend={amountSend}
+                        rate={`1 ${currencyGet.code} = 1500 ${currencySend.code}`}
+                        onAmountGetChange={setAmountGet}
+                        onAmountSendChange={setAmountSend}
+                        allowedModes={['buy']}
+                    />
+                )}
+
+                {currentStep === 3 && (
+                    <LocationStep
+                        states={STATES}
+                        cities={CITIES}
+                        locations={LOCATIONS}
+                        selectedState={selectedState}
+                        onSelectState={(item) => {
+                            setSelectedState(item);
+                            setSelectedCity(null);
+                            setSelectedLocation(null);
+                        }}
+                        selectedCity={selectedCity}
+                        onSelectCity={(item) => {
+                            setSelectedCity(item);
+                            setSelectedLocation(null);
+                        }}
+                        selectedLocation={selectedLocation}
+                        onSelectLocation={setSelectedLocation}
+                        pickupDate={pickupDate}
+                        onPickupDateChange={setPickupDate}
+                        pickupTime={pickupTime}
+                        onPickupTimeChange={setPickupTime}
+                    />
+                )}
+
+                <InitiateTransactionSheet
+                    visible={initiateSheetVisible}
+                    onClose={() => setInitiateSheetVisible(false)}
+                    onConfirm={handleConfirmInitiate}
+                    title="Initiate BTA Transaction request?"
+                    items={[
+                        {
+                            title: "Verification before approval",
+                            description: "You will be able to process your BTA once your documents are verified and approved.",
+                            iconType: 'verify'
+                        },
+                        {
+                            title: "Maximum of $5,000 per quarter",
+                            description: "The maximum you can transact under BTA is $5,000 per quarter for each eligible business traveler.",
+                            iconType: 'limit'
+                        }
+                    ]}
                 />
-            )}
-
-            {currentStep === 3 && (
-                <LocationStep
-                    states={STATES}
-                    cities={CITIES}
-                    locations={LOCATIONS}
-                    selectedState={selectedState}
-                    onSelectState={(item) => {
-                        setSelectedState(item);
-                        setSelectedCity(null);
-                        setSelectedLocation(null);
-                    }}
-                    selectedCity={selectedCity}
-                    onSelectCity={(item) => {
-                        setSelectedCity(item);
-                        setSelectedLocation(null);
-                    }}
-                    selectedLocation={selectedLocation}
-                    onSelectLocation={setSelectedLocation}
-                    pickupDate={pickupDate}
-                    onPickupDateChange={setPickupDate}
-                    pickupTime={pickupTime}
-                    onPickupTimeChange={setPickupTime}
-                />
-            )}
-
-            <InitiateTransactionSheet
-                visible={initiateSheetVisible}
-                onClose={() => setInitiateSheetVisible(false)}
-                onConfirm={handleConfirmInitiate}
-                title="Initiate BTA Transaction request?"
-                items={[
-                    {
-                        title: "Verification before approval",
-                        description: "You will be able to process your BTA once your documents are verified and approved.",
-                        iconType: 'verify'
-                    },
-                    {
-                        title: "Maximum of $5,000 per quarter",
-                        description: "The maximum you can transact under BTA is $5,000 per quarter for each eligible business traveler.",
-                        iconType: 'limit'
-                    }
-                ]}
-            />
-        </TransactionLayout>
+            </TransactionLayout>
+        </>
     );
 }

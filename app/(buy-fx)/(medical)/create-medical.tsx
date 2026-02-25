@@ -1,11 +1,15 @@
 import InitiateTransactionSheet from '@/components/InitiateTransactionSheet';
 import InputField from '@/components/InputField';
+import LoadingBackdrop from '@/components/LoadingBackdrop';
 import { LocationItem } from '@/components/LocationSelectionSheet';
 import CredentialStep from '@/components/transaction-flow/CredentialStep';
 import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import MedicalBankDetailsStep from '@/components/transaction-flow/MedicalBankDetailsStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
+import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
+import { UploadedFile, useDocumentUpload } from '@/hooks/useDocumentUpload';
+import { useToastStore } from '@/stores/useToastStore';
 import { medicalStep0Schema, medicalStep2Schema, medicalStep3Schema } from '@/utils/validations/medical';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
@@ -44,6 +48,7 @@ const LOCATIONS: LocationItem[] = [
 export default function MedicalPaymentScreen() {
     const router = useRouter();
     const [currentStep, setCurrentStep] = useState(0);
+    const createTransaction = useCreateTransactionMutation();
 
     // Step 0: Credentials State
     const [bvn, setBvn] = useState('');
@@ -92,6 +97,24 @@ export default function MedicalPaymentScreen() {
         }
     };
 
+    // Document upload files
+    const [formAFile, setFormAFile] = useState<UploadedFile | null>(null);
+    const [formAMeta, setFormAMeta] = useState<import('@/hooks/useDocumentUpload').UploadedMetadata | null>(null);
+    const [passportFile, setPassportFile] = useState<UploadedFile | null>(null);
+    const [passportMeta, setPassportMeta] = useState<import('@/hooks/useDocumentUpload').UploadedMetadata | null>(null);
+    const [visaFile, setVisaFile] = useState<UploadedFile | null>(null);
+    const [visaMeta, setVisaMeta] = useState<import('@/hooks/useDocumentUpload').UploadedMetadata | null>(null);
+
+    const showToast = useToastStore(s => s.showToast);
+    const { upload: uploadFile, isPending: isUploading } = useDocumentUpload({
+        onSuccess: (documentType, { file, metadata }) => {
+            if (documentType === 'FORM_A_DOCUMENT') { setFormAFile(file); setFormAMeta(metadata); }
+            else if (documentType === 'PASSPORT') { setPassportFile(file); setPassportMeta(metadata); }
+            else if (documentType === 'VISA') { setVisaFile(file); setVisaMeta(metadata); }
+        },
+        onError: () => showToast('Failed to upload document. Please try again.', 'error'),
+    });
+
     // --- Configuration ---
 
     // Fields for Step 0
@@ -106,17 +129,20 @@ export default function MedicalPaymentScreen() {
     const documentFields = [
         {
             label: 'Form A',
-            onUpload: () => console.log('Upload Invoice'),
+            onUpload: () => uploadFile('FORM_A_DOCUMENT'),
+            fileName: formAFile?.name,
             required: true,
         },
         {
             label: 'International Passport',
-            onUpload: () => console.log('Upload Report'),
+            onUpload: () => uploadFile('PASSPORT'),
+            fileName: passportFile?.name,
             required: true,
         },
         {
             label: 'Valid Visa',
-            onUpload: () => console.log('Upload Passport'),
+            onUpload: () => uploadFile('VISA'),
+            fileName: visaFile?.name,
             required: true,
             associatedInputs: (
                 <View>
@@ -131,6 +157,10 @@ export default function MedicalPaymentScreen() {
     // --- Handlers ---
 
     const handleNext = () => {
+        if (isUploading) {
+            showToast('Please wait for files to finish uploading', 'warning');
+            return;
+        }
         const errors: ValidationErrors = {};
 
         if (currentStep === 0) {
@@ -184,81 +214,113 @@ export default function MedicalPaymentScreen() {
     };
 
     const handleConfirmInitiate = () => {
-        setInitiateSheetVisible(false);
-        router.push('/(buy-fx)/(medical)/request-initiated-success');
+        const payload = {
+            type: 'MEDICAL',
+            currency: currencyGet.code,
+            amount: parseFloat(amountGet.replace(/,/g, '')),
+            purpose: 'Medical Fee Payment',
+            destinationCountry: currencyGet.country,
+            bvn,
+            nin,
+            formAId,
+            documents: [
+                ...(formAMeta ? [formAMeta] : []),
+                ...(passportMeta ? [passportMeta] : []),
+                ...(visaMeta ? [visaMeta] : []),
+            ],
+            beneficiaryDetails: {
+                name: beneficiaryName,
+                accountNumber,
+                accountName: beneficiaryName,
+                bankName: beneficiaryBank,
+                iban: swiftCode,
+            },
+        };
+
+        createTransaction.mutate(payload, {
+            onSuccess: (response) => {
+                if (response.success) {
+                    setInitiateSheetVisible(false);
+                    router.push('/(buy-fx)/(medical)/request-initiated-success');
+                }
+            },
+        });
     };
 
     return (
-        <TransactionLayout
-            title="Medical Fee"
-            currentStep={currentStep}
-            totalSteps={4}
-            onBack={handleBack}
-            onNext={handleNext}
-            nextLabel={currentStep === 3 ? (beneficiaryName && accountNumber ? "Initiate Transaction Request" : "Continue") : "Continue"}
-        >
-            {currentStep === 0 && (
-                <CredentialStep fields={credentialFields} />
-            )}
+        <>
+            <LoadingBackdrop visible={isUploading || createTransaction.isPending} />
+            <TransactionLayout
+                title="Medical Fee"
+                currentStep={currentStep}
+                totalSteps={4}
+                onBack={handleBack}
+                onNext={handleNext}
+                nextLabel={currentStep === 3 ? (beneficiaryName && accountNumber ? "Initiate Transaction Request" : "Continue") : "Continue"}
+            >
+                {currentStep === 0 && (
+                    <CredentialStep fields={credentialFields} />
+                )}
 
-            {currentStep === 1 && (
-                <DocumentStep documents={documentFields} />
-            )}
+                {currentStep === 1 && (
+                    <DocumentStep documents={documentFields} />
+                )}
 
-            {currentStep === 2 && (
-                <ExchangeStep
-                    transactionType={transactionType}
-                    onTransactionTypeChange={setTransactionType}
-                    currencyGet={currencyGet}
-                    onCurrencyGetChange={setCurrencyGet}
-                    currencySend={currencySend}
-                    onCurrencySendChange={setCurrencySend}
-                    amountGet={amountGet}
-                    amountSend={amountSend}
-                    rate={`1 ${currencyGet.code} = 1500 ${currencySend.code}`}
-                    onAmountGetChange={setAmountGet}
-                    onAmountSendChange={setAmountSend}
-                    allowedModes={['buy']}
+                {currentStep === 2 && (
+                    <ExchangeStep
+                        transactionType={transactionType}
+                        onTransactionTypeChange={setTransactionType}
+                        currencyGet={currencyGet}
+                        onCurrencyGetChange={setCurrencyGet}
+                        currencySend={currencySend}
+                        onCurrencySendChange={setCurrencySend}
+                        amountGet={amountGet}
+                        amountSend={amountSend}
+                        rate={`1 ${currencyGet.code} = 1500 ${currencySend.code}`}
+                        onAmountGetChange={setAmountGet}
+                        onAmountSendChange={setAmountSend}
+                        allowedModes={['buy']}
+                    />
+                )}
+
+                {currentStep === 3 && (
+                    <MedicalBankDetailsStep
+                        beneficiaryName={beneficiaryName}
+                        setBeneficiaryName={setBeneficiaryName}
+                        beneficiaryAddress={beneficiaryAddress}
+                        setBeneficiaryAddress={setBeneficiaryAddress}
+                        beneficiaryBank={beneficiaryBank}
+                        setBeneficiaryBank={setBeneficiaryBank}
+                        routingNumber={routingNumber}
+                        setRoutingNumber={setRoutingNumber}
+                        accountNumber={accountNumber}
+                        setAccountNumber={setAccountNumber}
+                        bankAddress={bankAddress}
+                        setBankAddress={setBankAddress}
+                        swiftCode={swiftCode}
+                        setSwiftCode={setSwiftCode}
+                    />
+                )}
+
+                <InitiateTransactionSheet
+                    visible={initiateSheetVisible}
+                    onClose={() => setInitiateSheetVisible(false)}
+                    onConfirm={handleConfirmInitiate}
+                    title="Initiate Medical FX request?"
+                    items={[
+                        {
+                            title: "Verification before approval",
+                            description: "Your medical documents, hospital invoice, and referral letter must be verified and approved before your request can be processed.",
+                            iconType: 'verify'
+                        },
+                        {
+                            title: "Maximum of $5,000 per quarter",
+                            description: "The maximum amount you can request for foreign medical payments is $5,000 per quarter, in line with CBN guidelines.",
+                            iconType: 'limit'
+                        }
+                    ]}
                 />
-            )}
-
-            {currentStep === 3 && (
-                <MedicalBankDetailsStep
-                    beneficiaryName={beneficiaryName}
-                    setBeneficiaryName={setBeneficiaryName}
-                    beneficiaryAddress={beneficiaryAddress}
-                    setBeneficiaryAddress={setBeneficiaryAddress}
-                    beneficiaryBank={beneficiaryBank}
-                    setBeneficiaryBank={setBeneficiaryBank}
-                    routingNumber={routingNumber}
-                    setRoutingNumber={setRoutingNumber}
-                    accountNumber={accountNumber}
-                    setAccountNumber={setAccountNumber}
-                    bankAddress={bankAddress}
-                    setBankAddress={setBankAddress}
-                    swiftCode={swiftCode}
-                    setSwiftCode={setSwiftCode}
-                />
-            )}
-
-            <InitiateTransactionSheet
-                visible={initiateSheetVisible}
-                onClose={() => setInitiateSheetVisible(false)}
-                onConfirm={handleConfirmInitiate}
-                title="Initiate Medical FX request?"
-                items={[
-                    {
-                        title: "Verification before approval",
-                        description: "Your medical documents, hospital invoice, and referral letter must be verified and approved before your request can be processed.",
-                        iconType: 'verify'
-                    },
-                    {
-                        title: "Maximum of $5,000 per quarter",
-                        description: "The maximum amount you can request for foreign medical payments is $5,000 per quarter, in line with CBN guidelines.",
-                        iconType: 'limit'
-                    }
-                ]}
-            />
-        </TransactionLayout>
+            </TransactionLayout>
+        </>
     );
 }

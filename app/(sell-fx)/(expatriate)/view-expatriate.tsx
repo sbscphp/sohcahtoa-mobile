@@ -2,136 +2,70 @@ import TransactionDetailsView from '@/components/transaction-flow/TransactionDet
 import TransactionDocsView from '@/components/transaction-flow/TransactionDocsView';
 import TransactionStatusView, { TransactionStatus } from '@/components/transaction-flow/TransactionStatusView';
 import TransactionViewLayout from '@/components/transaction-flow/TransactionViewLayout';
-import { getDocumentAsync } from 'expo-document-picker';
-import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import { Text, TouchableOpacity } from 'react-native';
+import { useGetTransactionByIdQuery } from '@/hooks/queries/transactions/useGetTransactionByIdQuery';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useMemo, useState } from 'react';
+import { ActivityIndicator, View } from 'react-native';
 
 export default function ViewExpatriateScreen() {
     const router = useRouter();
+    const { transactionId } = useLocalSearchParams<{ transactionId: string }>();
     const [activeTab, setActiveTab] = useState('overview');
 
-    // In a real app, this status would come from a backend or global state
-    const [status, setStatus] = useState<TransactionStatus>('pending');
+    const { data: txResponse, isLoading } = useGetTransactionByIdQuery(transactionId || '');
+    const tx = txResponse?.data;
 
-    // Document States
-    const [workPermitFile, setWorkPermitFile] = useState<string | null>('work_permit.pdf');
-    const [passportFile, setPassportFile] = useState<string | null>('passport.pdf');
-    const [utilityBillFile, setUtilityBillFile] = useState<string | null>('utility_bill.pdf');
-
-    const handleBack = () => {
-        router.back();
+    const mapStatus = (s: string): TransactionStatus => {
+        const map: Record<string, TransactionStatus> = { 'DRAFT': 'pending', 'AWAITING_VERIFICATION': 'pending', 'VERIFICATION_IN_PROGRESS': 'pending', 'VERIFICATION_COMPLETED': 'pending', 'AWAITING_DEPOSIT': 'awaiting_disbursement', 'DEPOSIT_PENDING': 'awaiting_disbursement', 'DEPOSIT_CONFIRMED': 'awaiting_disbursement', 'COMPLIANCE_REVIEW': 'pending', 'ADMIN_APPROVAL_PENDING': 'pending', 'APPROVED': 'approved', 'DISBURSEMENT_IN_PROGRESS': 'awaiting_disbursement', 'COMPLETED': 'settled', 'REJECTED': 'rejected', 'CANCELLED': 'rejected' };
+        return map[s] || 'pending';
     };
+    const status: TransactionStatus = tx ? mapStatus(tx.status) : 'pending';
+    const handleBack = () => { router.back(); };
+    const handleProceed = () => { router.push('/(sell-fx)/(expatriate)/payment'); };
+    const fmtDate = (d: string) => { const dt = new Date(d); const m = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']; return `${dt.getDate()} ${m[dt.getMonth()]} ${dt.getFullYear()}`; };
+    const fmtTime = (d: string) => { const dt = new Date(d); let h = dt.getHours(); const min = dt.getMinutes(); const ap = h >= 12 ? 'pm' : 'am'; h = h % 12 || 12; return `${h}:${String(min).padStart(2, '0')} ${ap}`; };
+    const fmtCur = (n: number | null | undefined, p = '₦') => n == null ? `${p} 0` : `${p} ${n.toLocaleString()}`;
 
-    const handleProceed = () => {
-        // Navigate to payment screen for approved transactions
-        router.push('/(sell-fx)/(expatriate)/payment');
-    };
-
-    const handleUpload = async (docType: 'work_permit' | 'passport' | 'utility') => {
-        try {
-            const result = await getDocumentAsync({
-                type: ['application/pdf', 'image/*'],
-                copyToCacheDirectory: true,
-            });
-
-            if (result.assets && result.assets.length > 0) {
-                const file = result.assets[0];
-                const fileName = file.name;
-
-                if (docType === 'work_permit') setWorkPermitFile(fileName);
-                else if (docType === 'passport') setPassportFile(fileName);
-                else if (docType === 'utility') setUtilityBillFile(fileName);
-            }
-        } catch (error) {
-            console.error("Error picking document:", error);
-        }
-    };
-
-    const toggleState = () => {
-        if (status === 'pending') setStatus('approved');
-        else if (status === 'approved') setStatus('more_info');
-        else if (status === 'more_info') setStatus('rejected');
-        else if (status === 'rejected') setStatus('awaiting_disbursement');
-        else if (status === 'awaiting_disbursement') setStatus('settled');
-        else setStatus('pending');
-    };
-
-    const tabs = [
-        { key: 'overview', label: 'Overview' },
-        { key: 'details', label: 'Transaction Details' },
-        { key: 'docs', label: 'Documentation' },
-    ];
-
-    const detailsItems = [
-        { label: 'Transaction ID', value: 'EXP-994821' },
-        { label: 'Amount (₦)', value: '₦ 1,500,000' },
-        { label: 'Equivalent Amount (FX)', value: '$1,000' },
-        { label: 'Date Initiated', value: 'Feb 9 2026' },
-        { label: 'Pickup Point', value: 'Femi Areola Street, Ikeja GRA.', isRightAligned: true },
-    ];
-
-    const detailsDocuments = [
-        { label: 'Work Permit', fileName: 'work_permit.pdf' },
-        { label: 'International Passport', fileName: 'passport.pdf' },
-        { label: 'Utility Bill', fileName: 'utility_bill.pdf' },
-    ];
-
-    const docsItems = [
-        { label: 'Work Permit', fileName: workPermitFile, onUpload: () => handleUpload('work_permit'), required: true },
-        { label: 'International Passport', fileName: passportFile, onUpload: () => handleUpload('passport'), required: true },
-        { label: 'Utility Bill (Not more than 3 months old)', fileName: utilityBillFile, onUpload: () => handleUpload('utility'), required: true },
-    ];
-
+    const detailsItems = useMemo(() => {
+        if (!tx) return [];
+        return [
+            { label: 'Transaction ID', value: tx.referenceNumber },
+            { label: 'Amount (₦)', value: fmtCur(tx.nairaEquivalent) },
+            { label: 'Equivalent Amount (FX)', value: fmtCur(tx.foreignAmount, tx.currency === 'USD' ? '$' : tx.currency === 'GBP' ? '£' : tx.currency === 'EUR' ? '€' : tx.currency) },
+            { label: 'Date Initiated', value: fmtDate(tx.createdAt) },
+            ...(tx.cashPickup ? [{ label: 'Pickup Point', value: tx.cashPickup.address || 'N/A', isRightAligned: true }] : []),
+        ];
+    }, [tx]);
+    const detailsDocuments = useMemo(() => {
+        if (!tx) return [];
+        return tx.requiredDocuments.filter(d => !!d.uploaded).map(d => ({ label: d.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()), fileName: d.uploaded!.fileName }));
+    }, [tx]);
+    const docsItems = useMemo(() => {
+        if (!tx) return [];
+        return tx.requiredDocuments.filter(d => !!d.uploaded).map(d => ({ label: d.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()), fileName: d.uploaded!.fileName, docStatus: d.uploaded!.status, required: true }));
+    }, [tx]);
     const getMessage = () => {
-        if (status === 'approved' || status === 'awaiting_disbursement' || status === 'settled')
-            return "Congratulations! Your application has been approved. Kindly proceed to complete the transaction.";
-        if (status === 'rejected')
-            return "Your request has been declined. Please check the requirements and try again.";
-
-        return "This is a message box that shows the message from the SohCahToa Admin regarding the request for more information about this application. Admin noted that the documents are unclear.";
+        if (!tx) return '';
+        if (status === 'approved' || status === 'awaiting_disbursement' || status === 'settled') return "Congratulations! Your application has been approved. Kindly proceed to complete the transaction.";
+        if (status === 'rejected') return tx.rejection?.reason || "Your request has been declined.";
+        return `Your transaction is currently ${tx.status.replace(/_/g, ' ').toLowerCase()}. Please check back for updates.`;
     };
+    if (isLoading) return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}><ActivityIndicator size="large" color="#FF6B2C" /></View>;
 
     return (
         <TransactionViewLayout
             title="Transaction"
             activeTab={activeTab}
             onTabChange={setActiveTab}
-            tabs={tabs}
+            tabs={[{ key: 'overview', label: 'Overview' }, { key: 'details', label: 'Transaction Details' }, { key: 'docs', label: 'Documentation' }]}
             onBack={handleBack}
             showActionButton={status !== 'pending' && status !== 'rejected' && status !== 'settled'}
             actionButtonTitle={status === 'approved' || status === 'awaiting_disbursement' ? "Proceed to Payment" : "Resubmit Transaction Request"}
             onActionPress={handleProceed}
         >
-
-            {/* <TouchableOpacity onPress={toggleState} style={{ marginLeft: 'auto', justifyContent: 'center', marginBottom: 10 }}>
-                <Text style={{ fontSize: 10, color: '#ccc' }}>DEV: {status}</Text>
-            </TouchableOpacity> */}
-
-            {activeTab === 'overview' && (
-                <TransactionStatusView
-                    status={status}
-                    id="994821"
-                    date="9 Feb 2026"
-                    time="9:15 pm"
-                    message={getMessage()}
-                />
-            )}
-
-            {activeTab === 'details' && (
-                <TransactionDetailsView
-                    details={detailsItems}
-                    documents={detailsDocuments}
-                />
-            )}
-
-            {activeTab === 'docs' && (
-                <TransactionDocsView
-                    status={status}
-                    documents={docsItems}
-                />
-            )}
-
+            {activeTab === 'overview' && (<TransactionStatusView status={status} id={tx?.referenceNumber?.slice(-6) || ''} date={tx ? fmtDate(tx.createdAt) : ''} time={tx ? fmtTime(tx.createdAt) : ''} message={getMessage()} />)}
+            {activeTab === 'details' && (<TransactionDetailsView details={detailsItems} documents={detailsDocuments} />)}
+            {activeTab === 'docs' && (<TransactionDocsView status={status} documents={docsItems} />)}
         </TransactionViewLayout>
     );
 }
