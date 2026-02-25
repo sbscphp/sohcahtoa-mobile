@@ -3,53 +3,11 @@ import TransactionDocsView from '@/components/transaction-flow/TransactionDocsVi
 import TransactionStatusView, { TransactionStatus } from '@/components/transaction-flow/TransactionStatusView';
 import TransactionViewLayout from '@/components/transaction-flow/TransactionViewLayout';
 import { useGetTransactionByIdQuery } from '@/hooks/queries/transactions/useGetTransactionByIdQuery';
-import { getDocumentAsync } from 'expo-document-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
+import { formatCurrency, formatDate, formatTime, mapApiStatusToViewStatus, truncateFileName } from '@/utils/helpers';
 
-// ── Status Mapping ───────────────────────────────────────────────────
-const mapApiStatusToViewStatus = (status: string): TransactionStatus => {
-    const map: Record<string, TransactionStatus> = {
-        'DRAFT': 'pending',
-        'AWAITING_VERIFICATION': 'pending',
-        'VERIFICATION_IN_PROGRESS': 'pending',
-        'VERIFICATION_COMPLETED': 'pending',
-        'AWAITING_DEPOSIT': 'awaiting_disbursement',
-        'DEPOSIT_PENDING': 'awaiting_disbursement',
-        'DEPOSIT_CONFIRMED': 'awaiting_disbursement',
-        'COMPLIANCE_REVIEW': 'pending',
-        'ADMIN_APPROVAL_PENDING': 'pending',
-        'APPROVED': 'approved',
-        'DISBURSEMENT_IN_PROGRESS': 'awaiting_disbursement',
-        'COMPLETED': 'settled',
-        'REJECTED': 'rejected',
-        'CANCELLED': 'rejected',
-    };
-    return map[status] || 'pending';
-};
-
-const formatDate = (dateStr: string): string => {
-    const d = new Date(dateStr);
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
-};
-
-const formatTime = (dateStr: string): string => {
-    const d = new Date(dateStr);
-    let hours = d.getHours();
-    const minutes = d.getMinutes();
-    const ampm = hours >= 12 ? 'pm' : 'am';
-    hours = hours % 12 || 12;
-    return `${hours}:${String(minutes).padStart(2, '0')} ${ampm}`;
-};
-
-const formatCurrency = (amount: number | null | undefined, prefix: string = '₦'): string => {
-    if (amount == null) return `${prefix} 0`;
-    return `${prefix} ${amount.toLocaleString()}`;
-};
-
-// ── Component ────────────────────────────────────────────────────────
 export default function ViewPtaScreen() {
     const router = useRouter();
     const { transactionId } = useLocalSearchParams<{ transactionId: string }>();
@@ -67,24 +25,12 @@ export default function ViewPtaScreen() {
     };
 
     const handleProceed = () => {
-        router.push('/(buy-fx)/(pta)/payment');
+        router.push({
+            pathname: '/(buy-fx)/(pta)/payment',
+            params: { transactionId }
+        });
     };
 
-    const handleUpload = async (docType: string) => {
-        try {
-            const result = await getDocumentAsync({
-                type: ['application/pdf', 'image/*'],
-                copyToCacheDirectory: true,
-            });
-
-            if (result.assets && result.assets.length > 0) {
-                // TODO: call upload mutation with file
-                console.log('Selected file:', result.assets[0].name, 'for', docType);
-            }
-        } catch (error) {
-            console.error("Error picking document:", error);
-        }
-    };
 
     const tabs = [
         { key: 'overview', label: 'Overview' },
@@ -110,7 +56,7 @@ export default function ViewPtaScreen() {
             .filter((doc) => doc.uploaded)
             .map((doc) => ({
                 label: doc.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
-                fileName: doc.uploaded!.fileName,
+                fileName: truncateFileName(doc.uploaded!.fileName),
             }));
     }, [tx]);
 
@@ -120,7 +66,7 @@ export default function ViewPtaScreen() {
             .filter((doc) => !!doc.uploaded)
             .map((doc) => ({
                 label: doc.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
-                fileName: doc.uploaded!.fileName,
+                fileName: truncateFileName(doc.uploaded!.fileName),
                 docStatus: doc.uploaded!.status,
                 required: true,
             }));

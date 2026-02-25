@@ -25,30 +25,7 @@ interface ValidationErrors {
     [key: string]: string | undefined;
 }
 
-const STATES: LocationItem[] = [
-    { id: '1', title: 'Lagos State' },
-    { id: '2', title: 'Ogun State' },
-    { id: '3', title: 'Rivers State' },
-    { id: '4', title: 'Kaduna State' },
-    { id: '5', title: 'Enugu State' },
-    { id: '6', title: 'Kano State' },
-];
-
-const CITIES: LocationItem[] = [
-    { id: '1', title: 'Ajeromi Local Government' },
-    { id: '2', title: 'Agege Local Government' },
-    { id: '3', title: 'Alimosho Local Government' },
-    { id: '4', title: 'Amuwo Odofin Local Government' },
-    { id: '5', title: 'Apapa Local Government' },
-    { id: '6', title: 'Badagry Local Government' },
-];
-
-const LOCATIONS: LocationItem[] = [
-    { id: '1', title: 'Ajeromi Local Government', subtitle: 'Femi Areola Street, Ikeja GRA.' },
-    { id: '2', title: 'Agege Local Government', subtitle: 'Femi Areola Street, Ikeja GRA.' },
-    { id: '3', title: 'Ikorodu Local Government', subtitle: '23 T.O.S Benson Avenue, Ikorodu.' },
-    { id: '4', title: 'Festac Local Government', subtitle: '1st Avenue, Festac Town.' },
-];
+import { CITIES, LOCATIONS, STATES } from '@/utils/locations';
 
 export default function CreateExpatriateScreen() {
     const router = useRouter();
@@ -122,7 +99,7 @@ export default function CreateExpatriateScreen() {
         }
 
         if (currentStep === 1) {
-            const result = expatriateStep1Schema.safeParse({ workPermitNumber, passportIssueDate, passportExpiryDate, utilityBillNumber });
+            const result = expatriateStep1Schema.safeParse({ workPermitNumber, passportIssueDate, passportExpiryDate });
             if (!result.success) {
                 result.error.issues.forEach((e: z.ZodIssue) => {
                     const key = e.path[0] as string;
@@ -234,6 +211,8 @@ export default function CreateExpatriateScreen() {
                             <FileUpload
                                 onUpload={() => uploadFile('WORK_PERMIT')}
                                 fileName={workPermitFile?.name ?? null}
+                                fileUri={workPermitFile?.uri ?? null}
+                                fileType={workPermitFile?.type ?? null}
                             />
                             <InputField
                                 label="Work Permit Number"
@@ -253,6 +232,8 @@ export default function CreateExpatriateScreen() {
                             <FileUpload
                                 onUpload={() => uploadFile('PASSPORT')}
                                 fileName={passportFile?.name ?? null}
+                                fileUri={passportFile?.uri ?? null}
+                                fileType={passportFile?.type ?? null}
                             />
                             <View style={{ flexDirection: 'row', gap: moderateScale(12) }}>
                                 <View style={{ flex: 1 }}>
@@ -286,6 +267,8 @@ export default function CreateExpatriateScreen() {
                             <FileUpload
                                 onUpload={() => uploadFile('UTILITY_BILL')}
                                 fileName={utilityBillFile?.name ?? null}
+                                fileUri={utilityBillFile?.uri ?? null}
+                                fileType={utilityBillFile?.type ?? null}
                             />
                             <InputField
                                 label="Utility Bill Number"

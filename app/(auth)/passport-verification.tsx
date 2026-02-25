@@ -24,22 +24,22 @@ export default function PassportVerificationScreen() {
     const [showToast, setShowToast] = useState(false);
 
     // International Passport
-    const [passportFile, setPassportFile] = useState<string | null>(null);
+    const [passportFile, setPassportFile] = useState<{ name: string, uri: string, type?: string } | null>(null);
     const [uploadedPassportUrl, setUploadedPassportUrl] = useState<string | null>(null);
     const [passportNumber, setPassportNumber] = useState('');
     const [passportIssueDate, setPassportIssueDate] = useState('');
     const [passportExpiryDate, setPassportExpiryDate] = useState('');
 
     // Work Permit
-    const [workPermitFile, setWorkPermitFile] = useState<string | null>(null);
+    const [workPermitFile, setWorkPermitFile] = useState<{ name: string, uri: string, type?: string } | null>(null);
     const [workPermitNumber, setWorkPermitNumber] = useState('');
 
     // Tax Identification Number
-    const [tinFile, setTinFile] = useState<string | null>(null);
+    const [tinFile, setTinFile] = useState<{ name: string, uri: string, type?: string } | null>(null);
     const [tinNumber, setTinNumber] = useState('');
 
     // Bank Verification Number
-    const [bvnFile, setBvnFile] = useState<string | null>(null);
+    const [bvnFile, setBvnFile] = useState<{ name: string, uri: string, type?: string } | null>(null);
     const [bvnNumber, setBvnNumber] = useState('');
 
     const { mutate: uploadPassport, isPending: isUploading } = useUploadPassportMutation();
@@ -72,7 +72,7 @@ export default function PassportVerificationScreen() {
                 uploadPassport(formData, {
                     onSuccess: (response) => {
                         if (response.success) {
-                            setPassportFile(asset.name);
+                            setPassportFile({ name: asset.name, uri: asset.uri, type: asset.mimeType });
                             setUploadedPassportUrl(response.data.passportDocumentUrl);
                         }
                     },
@@ -80,13 +80,13 @@ export default function PassportVerificationScreen() {
             } else {
                 switch (docType) {
                     case 'workPermit':
-                        setWorkPermitFile(asset.name);
+                        setWorkPermitFile({ name: asset.name, uri: asset.uri, type: asset.mimeType });
                         break;
                     case 'tin':
-                        setTinFile(asset.name);
+                        setTinFile({ name: asset.name, uri: asset.uri, type: asset.mimeType });
                         break;
                     case 'bvn':
-                        setBvnFile(asset.name);
+                        setBvnFile({ name: asset.name, uri: asset.uri, type: asset.mimeType });
                         break;
                 }
                 setShowToast(true);
@@ -146,7 +146,7 @@ export default function PassportVerificationScreen() {
 
             <LoadingBackdrop
                 visible={isUploading}
-        
+
             />
 
             <ScrollView contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
@@ -159,7 +159,9 @@ export default function PassportVerificationScreen() {
                     <Text style={styles.label}>International Passport <Text style={styles.required}>*</Text></Text>
                     <FileUpload
                         onUpload={() => handleFileUpload('passport')}
-                        fileName={passportFile}
+                        fileName={passportFile?.name}
+                        fileUri={passportFile?.uri}
+                        fileType={passportFile?.type}
                     />
                     <View style={styles.inputSpacing}>
                         <InputField
@@ -203,7 +205,9 @@ export default function PassportVerificationScreen() {
                             <Text style={styles.label}>Work Permit <Text style={styles.required}>*</Text></Text>
                             <FileUpload
                                 onUpload={() => handleFileUpload('workPermit')}
-                                fileName={workPermitFile}
+                                fileName={workPermitFile?.name}
+                                fileUri={workPermitFile?.uri}
+                                fileType={workPermitFile?.type}
                             />
                             <View style={styles.inputSpacing}>
                                 <InputField
@@ -221,7 +225,9 @@ export default function PassportVerificationScreen() {
                             <Text style={styles.label}>Tax Identification Number <Text style={styles.required}>*</Text></Text>
                             <FileUpload
                                 onUpload={() => handleFileUpload('tin')}
-                                fileName={tinFile}
+                                fileName={tinFile?.name}
+                                fileUri={tinFile?.uri}
+                                fileType={tinFile?.type}
                             />
                             <View style={styles.inputSpacing}>
                                 <InputField
@@ -239,7 +245,9 @@ export default function PassportVerificationScreen() {
                             <Text style={styles.label}>Bank Verification Number (BVN) <Text style={styles.required}>*</Text></Text>
                             <FileUpload
                                 onUpload={() => handleFileUpload('bvn')}
-                                fileName={bvnFile}
+                                fileName={bvnFile?.name}
+                                fileUri={bvnFile?.uri}
+                                fileType={bvnFile?.type}
                             />
                             <View style={styles.inputSpacing}>
                                 <InputField

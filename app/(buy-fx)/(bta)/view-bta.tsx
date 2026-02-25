@@ -8,7 +8,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 
-// ── Status Mapping ───────────────────────────────────────────────────
+
 const mapApiStatusToViewStatus = (status: string): TransactionStatus => {
     const map: Record<string, TransactionStatus> = {
         'DRAFT': 'pending',

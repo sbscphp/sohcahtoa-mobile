@@ -1,13 +1,17 @@
 import SuccessScreen from '@/components/SuccessScreen';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
 
 export default function PaymentSuccessScreen() {
     const router = useRouter();
+    const { transactionId } = useLocalSearchParams<{ transactionId: string }>();
 
     const handleViewTransaction = () => {
-        // Navigate back to view-pta, possibly ensuring it refreshes or shows updated data
-        router.push('/(buy-fx)/(pta)/view-pta');
+     
+        router.push({
+            pathname: '/(buy-fx)/(pta)/view-pta',
+            params: { transactionId }
+        });
     };
 
     const handleGoHome = () => {

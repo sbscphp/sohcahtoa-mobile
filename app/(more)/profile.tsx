@@ -15,7 +15,7 @@ export default function MyProfileScreen() {
         : '?';
     const [expanded, setExpanded] = useState(true);
 
-    console.log('User:', JSON.stringify(user, null, 2));
+    // console.log('User:', JSON.stringify(user, null, 2));
 
     const basicDetails = [
         { label: 'Full name', value: user?.profile ? `${user.profile.firstName} ${user.profile.lastName}` : 'N/A' },

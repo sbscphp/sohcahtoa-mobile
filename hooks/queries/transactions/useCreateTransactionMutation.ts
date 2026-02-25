@@ -16,7 +16,7 @@ export const useCreateTransactionMutation = () => {
             const message = error.response?.data?.error?.message || 'Failed to initiate transaction';
             showToast(message, 'error');
 
-            console.log(error.response?.data)
+            console.log(error.response.data?.error)
 
         },
     });

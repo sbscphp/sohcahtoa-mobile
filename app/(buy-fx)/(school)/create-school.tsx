@@ -1,28 +1,26 @@
-import DatePickerField from '@/components/DatePickerField';
+import ControlledDatePicker from '@/components/ControlledDatePicker';
+import ControlledInput from '@/components/ControlledInput';
 import GenericSelectionSheet, { SelectionItem } from '@/components/GenericSelectionSheet';
 import InitiateTransactionSheet from '@/components/InitiateTransactionSheet';
-import InputField from '@/components/InputField';
 import LoadingBackdrop from '@/components/LoadingBackdrop';
-import { LocationItem } from '@/components/LocationSelectionSheet';
 import BankDetailsStep from '@/components/transaction-flow/BankDetailsStep';
 import CredentialStep from '@/components/transaction-flow/CredentialStep';
 import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
+import { useCalculateExchangeRateMutation } from '@/hooks/queries/transactions/useCalculateExchangeRateMutation';
 import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
-import { UploadedFile, useDocumentUpload } from '@/hooks/useDocumentUpload';
+import { useGetExchangeRatesQuery } from '@/hooks/queries/transactions/useGetExchangeRatesQuery';
+import { useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useToastStore } from '@/stores/useToastStore';
 import { schoolStep0Schema, schoolStep1Schema, schoolStep2Schema, schoolStep3Schema } from '@/utils/validations/school';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
 import { ArrowDown2, Teacher } from 'iconsax-react-nativejs';
-import React, { useState } from 'react';
-import { View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { TouchableOpacity, View } from 'react-native';
 import { z } from 'zod';
-
-interface ValidationErrors {
-    [key: string]: string | undefined;
-}
-
 
 const ADMISSION_TYPES: SelectionItem[] = [
     { id: '1', label: 'Undergraduate', value: 'Undergraduate', icon: Teacher },
@@ -31,19 +29,57 @@ const ADMISSION_TYPES: SelectionItem[] = [
 
 export default function SchoolFeesScreen() {
     const router = useRouter();
-    const [currentStep, setCurrentStep] = useState(0);
     const createTransaction = useCreateTransactionMutation();
+    const calculateExchangeRate = useCalculateExchangeRateMutation();
+    const showToast = useToastStore(s => s.showToast);
 
-    // Step 0: Credentials State
-    const [bvn, setBvn] = useState('');
-    const [nin, setNin] = useState('');
-    const [formAId, setFormAId] = useState('');
-    const [passportNumber, setPassportNumber] = useState('');
-    const [passportIssueDate, setPassportIssueDate] = useState('');
-    const [passportExpiryDate, setPassportExpiryDate] = useState('');
-    const [admissionType, setAdmissionType] = useState('');
+    const [currentStep, setCurrentStep] = useState(0);
+    const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
+    const [admissionSheetVisible, setAdmissionSheetVisible] = useState(false);
 
-    // Step 2: Exchange State
+    const resolver = (data: any, context: any, options: any) => {
+        const isPostGrad = data.admissionType === 'Post-Graduate';
+        const dynamicSchema = z.object({
+            ...schoolStep0Schema.shape,
+            ...(isPostGrad ? schoolStep1Schema.shape : {
+                passportIssueDate: z.string().optional(),
+                passportExpiryDate: z.string().optional()
+            }),
+            ...schoolStep2Schema(isPostGrad).shape,
+            ...schoolStep3Schema.shape
+        });
+        return zodResolver(dynamicSchema)(data, context, options);
+    };
+
+    const {
+        control,
+        handleSubmit,
+        trigger,
+        watch,
+        setValue,
+        formState: { errors }
+    } = useForm({
+        resolver,
+        defaultValues: {
+            bvn: '',
+            nin: '',
+            formAId: '',
+            passportNumber: '',
+            admissionType: '',
+            passportIssueDate: '',
+            passportExpiryDate: '',
+            amount: 0,
+            bankName: '',
+            accountNumber: '',
+            accountName: '',
+            iban: '',
+        },
+        mode: 'onChange'
+    });
+
+    const admissionType = watch('admissionType');
+    const isPostGrad = admissionType === 'Post-Graduate';
+
     const [transactionType, setTransactionType] = useState<'buy' | 'sell'>('buy');
     const [currencyGet, setCurrencyGet] = useState({
         code: 'USD',
@@ -58,43 +94,80 @@ export default function SchoolFeesScreen() {
         flagUrl: 'https://flagcdn.com/w80/ng.png'
     });
 
-    const [amountGet, setAmountGet] = useState('1'); // Placeholder
-    const [amountSend, setAmountSend] = useState('1,500'); // Placeholder
+    const [amountGetStr, setAmountGetStr] = useState('1');
+    const [amountSendStr, setAmountSendStr] = useState('0');
+    const [currentRate, setCurrentRate] = useState(0);
 
-    // Step 3: Bank Details State (Replacing Location)
-    const [bankName, setBankName] = useState('');
-    const [accountNumber, setAccountNumber] = useState('');
-    const [accountName, setAccountName] = useState('');
-    const [iban, setIban] = useState('');
+    const { data: exchangeRates } = useGetExchangeRatesQuery({
+        fromCurrency: currencyGet.code,
+        toCurrency: currencySend.code
+    });
 
-    // Keeping these for now if needed else where, but not used in Step 3 for School
-    const [selectedState, setSelectedState] = useState<LocationItem | null>(null);
-    const [selectedCity, setSelectedCity] = useState<LocationItem | null>(null);
-    const [selectedLocation, setSelectedLocation] = useState<LocationItem | null>(null);
+    useEffect(() => {
+        if (exchangeRates?.data?.[0]?.sellRate) {
+            setCurrentRate(exchangeRates.data[0].sellRate);
+        }
+    }, [exchangeRates]);
 
-    const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
-    const [admissionSheetVisible, setAdmissionSheetVisible] = useState(false);
-    const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
+    const handleAmountGetChange = (amount: string) => {
+        const cleanAmount = amount.replace(/,/g, '');
+        setAmountGetStr(amount);
+        setValue('amount', parseFloat(cleanAmount) || 0);
 
-    const clearError = (field: string) => {
-        if (validationErrors[field]) {
-            setValidationErrors(prev => ({ ...prev, [field]: undefined }));
+        if (cleanAmount && !isNaN(parseFloat(cleanAmount))) {
+            calculateExchangeRate.mutate({
+                fromCurrency: currencyGet.code,
+                toCurrency: currencySend.code,
+                amount: parseFloat(cleanAmount)
+            }, {
+                onSuccess: (response) => {
+                    if (response.success && response.data) {
+                        setAmountSendStr(response.data.convertedAmount.toLocaleString());
+                        setCurrentRate(response.data.sellRate);
+                    }
+                }
+            });
+        } else {
+            setAmountSendStr('0');
         }
     };
 
-    // Document upload files
-    const [admissionFile, setAdmissionFile] = useState<UploadedFile | null>(null);
-    const [admissionMeta, setAdmissionMeta] = useState<import('@/hooks/useDocumentUpload').UploadedMetadata | null>(null);
-    const [invoiceFile, setInvoiceFile] = useState<UploadedFile | null>(null);
-    const [invoiceMeta, setInvoiceMeta] = useState<import('@/hooks/useDocumentUpload').UploadedMetadata | null>(null);
-    const [passportFile, setPassportFile] = useState<UploadedFile | null>(null);
-    const [passportMeta, setPassportMeta] = useState<import('@/hooks/useDocumentUpload').UploadedMetadata | null>(null);
-    const [resultFile, setResultFile] = useState<UploadedFile | null>(null);
-    const [resultMeta, setResultMeta] = useState<import('@/hooks/useDocumentUpload').UploadedMetadata | null>(null);
-    const [degreeFile, setDegreeFile] = useState<UploadedFile | null>(null);
-    const [degreeMeta, setDegreeMeta] = useState<import('@/hooks/useDocumentUpload').UploadedMetadata | null>(null);
+    const handleCurrencyChange = (type: 'GET' | 'SEND', currency: any) => {
+        if (type === 'GET') {
+            setCurrencyGet(currency);
+        } else {
+            setCurrencySend(currency);
+        }
 
-    const showToast = useToastStore(s => s.showToast);
+        const cleanAmount = amountGetStr.replace(/,/g, '');
+        if (cleanAmount && !isNaN(parseFloat(cleanAmount))) {
+            calculateExchangeRate.mutate({
+                fromCurrency: type === 'GET' ? currency.code : currencyGet.code,
+                toCurrency: type === 'SEND' ? currency.code : currencySend.code,
+                amount: parseFloat(cleanAmount)
+            }, {
+                onSuccess: (response) => {
+                    if (response.success && response.data) {
+                        setAmountSendStr(response.data.convertedAmount.toLocaleString());
+                        setCurrentRate(response.data.sellRate);
+                    }
+                }
+            });
+        }
+    };
+
+    // Document upload state
+    const [admissionFile, setAdmissionFile] = useState<any>(null);
+    const [admissionMeta, setAdmissionMeta] = useState<any>(null);
+    const [invoiceFile, setInvoiceFile] = useState<any>(null);
+    const [invoiceMeta, setInvoiceMeta] = useState<any>(null);
+    const [passportFile, setPassportFile] = useState<any>(null);
+    const [passportMeta, setPassportMeta] = useState<any>(null);
+    const [resultFile, setResultFile] = useState<any>(null);
+    const [resultMeta, setResultMeta] = useState<any>(null);
+    const [degreeFile, setDegreeFile] = useState<any>(null);
+    const [degreeMeta, setDegreeMeta] = useState<any>(null);
+
     const { upload: uploadFile, isPending: isUploading } = useDocumentUpload({
         onSuccess: (documentType, { file, metadata }) => {
             if (documentType === 'SCHOOL_ADMISSION') { setAdmissionFile(file); setAdmissionMeta(metadata); }
@@ -106,60 +179,46 @@ export default function SchoolFeesScreen() {
         onError: () => showToast('Failed to upload document. Please try again.', 'error'),
     });
 
-    // --- Configuration ---
-
-    // Fields for Step 0
     const credentialFields = [
-        { label: 'Bank Verification Number (BVN)', placeholder: 'Enter your BVN', value: bvn, onChangeText: (v: string) => { setBvn(v); clearError('bvn'); }, required: true, keyboardType: 'numeric' as const, error: validationErrors.bvn },
-        { label: 'National Identification Number (NIN)', placeholder: 'Enter your NIN', value: nin, onChangeText: (v: string) => { setNin(v); clearError('nin'); }, required: true, keyboardType: 'numeric' as const, error: validationErrors.nin },
-        { label: 'Form A ID', placeholder: 'Enter Form A ID', value: formAId, onChangeText: (v: string) => { setFormAId(v); clearError('formAId'); }, required: true, error: validationErrors.formAId },
-        { label: 'International Passport', placeholder: 'Enter international passport', value: passportNumber, onChangeText: (v: string) => { setPassportNumber(v); clearError('passportNumber'); }, required: true, error: validationErrors.passportNumber },
+        { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number(BVN)" placeholder="Enter your BVN" required keyboardType="numeric" /> },
+        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number(NIN)" placeholder="Enter your NIN" required keyboardType="numeric" /> },
+        { customComponent: <ControlledInput control={control} name="formAId" label="Form A ID" placeholder="Enter Form A ID" required /> },
+        { customComponent: <ControlledInput control={control} name="passportNumber" label="International Passport" placeholder="Enter international passport" required /> },
         {
-            label: 'Admission Type',
-            placeholder: 'Select Admission Type',
-            value: admissionType,
-            onChangeText: setAdmissionType,
-            required: true,
-            onPress: () => setAdmissionSheetVisible(true),
-            rightIcon: ArrowDown2,
-            type: 'select' as const,
-            error: validationErrors.admissionType,
+            customComponent: (
+                <TouchableOpacity onPress={() => setAdmissionSheetVisible(true)} activeOpacity={0.8}>
+                    <View pointerEvents="none">
+                        <ControlledInput control={control} name="admissionType" label="Admission Type" placeholder="Select Admission Type" required rightIcon={ArrowDown2} editable={false} />
+                    </View>
+                </TouchableOpacity>
+            )
         },
     ];
-
 
     const undergraduateDocuments = [
         {
             label: 'Evidence of Admission',
             onUpload: () => uploadFile('SCHOOL_ADMISSION'),
             fileName: admissionFile?.name,
+            fileUri: admissionFile?.uri,
+            fileType: admissionFile?.type,
             required: true,
         },
         {
             label: 'School Invoice',
             onUpload: () => uploadFile('INVOICE'),
             fileName: invoiceFile?.name,
+            fileUri: invoiceFile?.uri,
+            fileType: invoiceFile?.type,
             required: true,
-            associatedInputs: (
-                <View>
-                    <View style={{ flex: 1 }}>
-                        <InputField label='School Invoice Number' required placeholder='Enter school invoice number' />
-                    </View>
-                </View>
-            )
         },
         {
             label: 'International Passport',
             onUpload: () => uploadFile('PASSPORT'),
             fileName: passportFile?.name,
+            fileUri: passportFile?.uri,
+            fileType: passportFile?.type,
             required: true,
-            associatedInputs: (
-                <View>
-                    <View style={{ flex: 1 }}>
-                        <InputField label='International Passport Number' required placeholder='Enter international passport number' />
-                    </View>
-                </View>
-            )
         },
     ];
 
@@ -168,14 +227,16 @@ export default function SchoolFeesScreen() {
             label: 'International Passport',
             onUpload: () => uploadFile('PASSPORT'),
             fileName: passportFile?.name,
+            fileUri: passportFile?.uri,
+            fileType: passportFile?.type,
             required: true,
             associatedInputs: (
                 <View style={{ flexDirection: 'row', gap: 12 }}>
                     <View style={{ flex: 1 }}>
-                        <DatePickerField label='Passport Issue Date' value={passportIssueDate} onDateChange={setPassportIssueDate} required maximumDate={new Date()} />
+                        <ControlledDatePicker control={control} name="passportIssueDate" label="Passport Issue Date" required maximumDate={new Date()} />
                     </View>
                     <View style={{ flex: 1 }}>
-                        <DatePickerField label='Passport Expiry Date' value={passportExpiryDate} onDateChange={setPassportExpiryDate} required minimumDate={new Date()} />
+                        <ControlledDatePicker control={control} name="passportExpiryDate" label="Passport Expiry Date" required minimumDate={new Date()} />
                     </View>
                 </View>
             )
@@ -184,98 +245,68 @@ export default function SchoolFeesScreen() {
             label: 'School Invoice',
             onUpload: () => uploadFile('INVOICE'),
             fileName: invoiceFile?.name,
+            fileUri: invoiceFile?.uri,
+            fileType: invoiceFile?.type,
             required: true,
-            associatedInputs: (
-                <View>
-                    <View style={{ flex: 1 }}>
-                        <InputField label='School Invoice Number' required placeholder='Enter school invoice number' />
-                    </View>
-                </View>
-            )
         },
         {
             label: 'Statement Of Result',
             onUpload: () => uploadFile('RECEIPT'),
             fileName: resultFile?.name,
+            fileUri: resultFile?.uri,
+            fileType: resultFile?.type,
             required: true,
-            associatedInputs: (
-                <View>
-                    <View style={{ flex: 1 }}>
-                        <InputField label='Statement Of Result' required placeholder='Enter statement of number' />
-                    </View>
-                </View>
-            )
         },
         {
             label: 'First Degree Certificate',
             onUpload: () => uploadFile('MEMBERSHIP_CARD'),
             fileName: degreeFile?.name,
+            fileUri: degreeFile?.uri,
+            fileType: degreeFile?.type,
             required: true,
         },
-    ]
+    ];
 
-    const documentFields = admissionType === 'Post-Graduate' ? postgraduateDocuments : undergraduateDocuments;
+    const documentFields = isPostGrad ? postgraduateDocuments : undergraduateDocuments;
 
-    // --- Handlers ---
-
-    const handleNext = () => {
+    const handleNext = async () => {
         if (isUploading) {
             showToast('Please wait for files to finish uploading', 'warning');
             return;
         }
-        const errors: ValidationErrors = {};
 
+        let isStepValid = false;
         if (currentStep === 0) {
-            const result = schoolStep0Schema.safeParse({ bvn, nin, formAId, passportNumber, admissionType });
-            if (!result.success) {
-                result.error.issues.forEach((e: z.ZodIssue) => {
-                    const key = e.path[0] as string;
-                    if (!errors[key]) errors[key] = e.message;
-                });
-            }
-        }
+            isStepValid = await trigger(['bvn', 'nin', 'formAId', 'passportNumber', 'admissionType']);
+        } else if (currentStep === 1) {
+            const hasRequiredUgDocs = admissionFile && invoiceFile && passportFile;
+            const hasRequiredPgDocs = passportFile && invoiceFile && resultFile && degreeFile;
 
-        if (currentStep === 1) {
-            if (admissionType === 'Post-Graduate') {
-                const result = schoolStep1Schema.safeParse({ passportIssueDate, passportExpiryDate });
-                if (!result.success) {
-                    result.error.issues.forEach((e: z.ZodIssue) => {
-                        const key = e.path[0] as string;
-                        if (!errors[key]) errors[key] = e.message;
-                    });
+            if (isPostGrad) {
+                if (!hasRequiredPgDocs) {
+                    showToast('Please upload all required documents', 'error');
+                    return;
                 }
+                isStepValid = await trigger(['passportIssueDate', 'passportExpiryDate']);
+            } else {
+                if (!hasRequiredUgDocs) {
+                    showToast('Please upload all required documents', 'error');
+                    return;
+                }
+                isStepValid = true;
             }
-        }
-        if (currentStep === 2) {
-            const isPostGrad = admissionType === 'Post-Graduate';
-            const result = schoolStep2Schema(isPostGrad).safeParse({ amount: parseFloat(amountGet.replace(/,/g, '')) });
-            if (!result.success) {
-                result.error.issues.forEach((e: z.ZodIssue) => {
-                    if (!errors.amount) errors.amount = e.message;
-                });
-            }
+        } else if (currentStep === 2) {
+            isStepValid = await trigger(['amount']);
+        } else if (currentStep === 3) {
+            isStepValid = await trigger(['bankName', 'accountNumber', 'accountName', 'iban']);
         }
 
-        if (currentStep === 3) {
-            const result = schoolStep3Schema.safeParse({ bankName, accountNumber, accountName });
-            if (!result.success) {
-                result.error.issues.forEach((e: z.ZodIssue) => {
-                    const key = e.path[0] as string;
-                    if (!errors[key]) errors[key] = e.message;
-                });
+        if (isStepValid) {
+            if (currentStep < 3) {
+                setCurrentStep(currentStep + 1);
+            } else {
+                setInitiateSheetVisible(true);
             }
-        }
-
-        if (Object.keys(errors).length > 0) {
-            setValidationErrors(errors);
-            return;
-        }
-
-        setValidationErrors({});
-        if (currentStep < 3) {
-            setCurrentStep(currentStep + 1);
-        } else {
-            setInitiateSheetVisible(true);
         }
     };
 
@@ -287,17 +318,17 @@ export default function SchoolFeesScreen() {
         }
     };
 
-    const handleConfirmInitiate = () => {
+    const onSubmit = (data: any) => {
         const payload = {
             type: 'SCHOOL_FEES',
             currency: currencyGet.code,
-            amount: parseFloat(amountGet.replace(/,/g, '')),
-            purpose: `School Fees Payment (${admissionType})`,
+            amount: data.amount,
+            purpose: `School Fees Payment (${data.admissionType})`,
             destinationCountry: currencyGet.country,
-            bvn,
-            nin,
-            formAId,
-            admissionType,
+            bvn: data.bvn,
+            nin: data.nin,
+            formAId: data.formAId,
+            admissionType: data.admissionType,
             documents: [
                 ...(admissionMeta ? [admissionMeta] : []),
                 ...(invoiceMeta ? [invoiceMeta] : []),
@@ -306,11 +337,11 @@ export default function SchoolFeesScreen() {
                 ...(degreeMeta ? [degreeMeta] : []),
             ],
             beneficiaryDetails: {
-                name: accountName,
-                accountNumber,
-                accountName,
-                bankName,
-                iban,
+                name: data.accountName,
+                accountNumber: data.accountNumber,
+                accountName: data.accountName,
+                bankName: data.bankName,
+                iban: data.iban,
             },
         };
 
@@ -324,8 +355,11 @@ export default function SchoolFeesScreen() {
         });
     };
 
+    const bankName = watch('bankName');
+    const accountNumber = watch('accountNumber');
+
     return (
-        <>
+        <View style={{ flex: 1 }}>
             <LoadingBackdrop visible={isUploading || createTransaction.isPending} />
             <TransactionLayout
                 title={currentStep === 0 ? "School Fees Payment" : (admissionType ? `${admissionType} Fees` : "School Fees Payment")}
@@ -348,38 +382,29 @@ export default function SchoolFeesScreen() {
                         transactionType={transactionType}
                         onTransactionTypeChange={setTransactionType}
                         currencyGet={currencyGet}
-                        onCurrencyGetChange={setCurrencyGet}
+                        onCurrencyGetChange={(v: any) => handleCurrencyChange('GET', v)}
                         currencySend={currencySend}
-                        onCurrencySendChange={setCurrencySend}
-                        amountGet={amountGet}
-                        amountSend={amountSend}
-                        rate={`1 ${currencyGet.code} = 1500 ${currencySend.code}`}
-                        onAmountGetChange={setAmountGet}
-                        onAmountSendChange={setAmountSend}
+                        onCurrencySendChange={(v: any) => handleCurrencyChange('SEND', v)}
+                        amountGet={amountGetStr}
+                        amountSend={amountSendStr}
+                        rate={`1 ${currencyGet.code} = ${currentRate.toLocaleString()} ${currencySend.code}`}
+                        onAmountGetChange={handleAmountGetChange}
+                        onAmountSendChange={setAmountSendStr}
                         allowedModes={['buy']}
+                        error={errors.amount?.message as string | undefined}
                     />
                 )}
 
                 {currentStep === 3 && (
-                    <BankDetailsStep
-                        bankName={bankName}
-                        setBankName={setBankName}
-                        accountNumber={accountNumber}
-                        setAccountNumber={setAccountNumber}
-                        accountName={accountName}
-                        setAccountName={setAccountName}
-                        iban={iban}
-                        setIban={setIban}
-                    />
+                    <BankDetailsStep control={control} />
                 )}
-
 
                 <InitiateTransactionSheet
                     visible={initiateSheetVisible}
                     onClose={() => setInitiateSheetVisible(false)}
-                    onConfirm={handleConfirmInitiate}
+                    onConfirm={handleSubmit(onSubmit)}
                     title={`Initiate ${admissionType} Transaction request?`}
-                    items={admissionType === 'Post-Graduate' ? [
+                    items={isPostGrad ? [
                         {
                             title: "Verification before approval",
                             description: "Post-graduate tuition invoices, admission letters, and identification documents must be verified before processing.",
@@ -414,10 +439,13 @@ export default function SchoolFeesScreen() {
                     headerIconColor="rgba(221, 79, 5, 1)"
                     items={ADMISSION_TYPES}
                     selectedItem={admissionType}
-                    onSelect={(item) => setAdmissionType(item.value)}
+                    onSelect={(item) => {
+                        setValue('admissionType', item.value);
+                        setAdmissionSheetVisible(false);
+                    }}
                     confirmButtonText="Select Admission Type"
                 />
             </TransactionLayout>
-        </>
+        </View>
     );
 }

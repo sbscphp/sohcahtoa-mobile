@@ -1,5 +1,5 @@
+import ControlledInput from '@/components/ControlledInput';
 import InitiateTransactionSheet from '@/components/InitiateTransactionSheet';
-import InputField from '@/components/InputField';
 import LoadingBackdrop from '@/components/LoadingBackdrop';
 import { LocationItem } from '@/components/LocationSelectionSheet';
 import CredentialStep from '@/components/transaction-flow/CredentialStep';
@@ -10,304 +10,220 @@ import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
 import { useCalculateExchangeRateMutation } from '@/hooks/queries/transactions/useCalculateExchangeRateMutation';
 import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
 import { useGetExchangeRatesQuery } from '@/hooks/queries/transactions/useGetExchangeRatesQuery';
-import { useGetPickupPointsQuery } from '@/hooks/queries/transactions/useGetPickupPointsQuery';
 import { useDocumentUpload } from '@/hooks/useDocumentUpload';
-import { useAuthStore } from '@/stores/useAuthStore';
 import { useToastStore } from '@/stores/useToastStore';
-import { useTransactionStore } from '@/stores/useTransactionStore';
+import { CITIES, LOCATIONS, STATES } from '@/utils/locations';
 import { ptaStep0Schema, ptaStep1Schema, ptaStep2Schema, ptaStep3Schema } from '@/utils/validations/pta';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { View } from 'react-native';
 import { z } from 'zod';
 
-const STATES: LocationItem[] = [
-    { id: '1', title: 'Lagos' },
-    { id: '2', title: 'Ogun' },
-    { id: '3', title: 'Rivers' },
-    { id: '4', title: 'Kaduna' },
-    { id: '5', title: 'Enugu' },
-    { id: '6', title: 'Kano' },
-];
+const ptaFormSchema = z.object({
+    ...ptaStep0Schema.shape,
+    ...ptaStep1Schema.shape,
+    ...ptaStep2Schema.shape,
+    ...ptaStep3Schema.shape
+});
 
-const CITIES: LocationItem[] = [
-    { id: '1', title: 'Ajeromi' },
-    { id: '2', title: 'Agege' },
-    { id: '3', title: 'Alimosho' },
-    { id: '4', title: 'Amuwo Odofin' },
-    { id: '5', title: 'Apapa' },
-    { id: '6', title: 'Badagry' },
-];
-
-const LOCATIONS: LocationItem[] = [
-    { id: '1', title: 'Ajeromi', subtitle: 'Femi Areola Street, Ikeja GRA.' },
-    { id: '2', title: 'Agege', subtitle: 'Femi Areola Street, Ikeja GRA.' },
-    { id: '3', title: 'Ikorodu', subtitle: '23 T.O.S Benson Avenue, Ikorodu.' },
-    { id: '4', title: 'Festac', subtitle: '1st Avenue, Festac Town.' },
-];
-
-interface ValidationErrors {
-    [key: string]: string | undefined;
-}
-
+type PtaFormValues = z.infer<typeof ptaFormSchema>;
 
 export default function PersonalTravelAllowanceScreen() {
     const router = useRouter();
-    const [currentStep, setCurrentStep] = useState(0);
-
-    const { ptaData, setPtaData, resetPtaData } = useTransactionStore();
-    const user = useAuthStore((state) => state.user);
     const createTransaction = useCreateTransactionMutation();
     const calculateExchangeRate = useCalculateExchangeRateMutation();
+    const showToast = useToastStore(s => s.showToast);
+
+    const [currentStep, setCurrentStep] = useState(0);
+    const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
+
+    const {
+        control,
+        handleSubmit,
+        trigger,
+        watch,
+        setValue,
+        formState: { errors }
+    } = useForm<PtaFormValues>({
+        resolver: zodResolver(ptaFormSchema),
+        defaultValues: {
+            bvn: '',
+            nin: '',
+            formAId: '',
+            passportNumber: '',
+            visaNumber: '',
+            ticketNumber: '',
+            amount: 0,
+            selectedState: undefined as unknown as LocationItem,
+            selectedCity: undefined as unknown as LocationItem,
+            selectedLocation: undefined as unknown as LocationItem,
+            pickupDate: '',
+            pickupTime: '',
+        },
+        mode: 'onChange'
+    });
+
+    const [transactionType, setTransactionType] = useState<'buy' | 'sell'>('buy');
+    const [currencyGet, setCurrencyGet] = useState({
+        code: 'USD',
+        country: 'United States',
+        currencyName: 'Dollar',
+        flagUrl: 'https://flagcdn.com/w80/us.png'
+    });
+    const [currencySend, setCurrencySend] = useState({
+        code: 'NGN',
+        country: 'Nigeria',
+        currencyName: 'Naira',
+        flagUrl: 'https://flagcdn.com/w80/ng.png'
+    });
+
+    const [amountGetStr, setAmountGetStr] = useState('1');
+    const [amountSendStr, setAmountSendStr] = useState('0');
+    const [currentRate, setCurrentRate] = useState(0);
+
+    // Document upload files state
+    const [visaFile, setVisaFile] = useState<any>(null);
+    const [visaMetadata, setVisaMetadata] = useState<any>(null);
+    const [ticketFile, setTicketFile] = useState<any>(null);
+    const [ticketMetadata, setTicketMetadata] = useState<any>(null);
 
     const { upload: uploadFile, isPending: isUploading } = useDocumentUpload({
-        onSuccess: (documentType, { file, metadata, response }) => {
+        onSuccess: (documentType, { file, metadata }) => {
             if (documentType === 'VISA') {
-                setPtaData({ visaFile: file, visaMetadata: metadata, visaUploadResponse: response });
-                clearError('visaFile');
-            } else {
-                setPtaData({ ticketFile: file, ticketMetadata: metadata, ticketUploadResponse: response });
-                clearError('ticketFile');
+                setVisaFile(file);
+                setVisaMetadata(metadata);
+            } else if (documentType === 'RETURN_TICKET') {
+                setTicketFile(file);
+                setTicketMetadata(metadata);
             }
         },
+        onError: () => showToast('Failed to upload document. Please try again.', 'error'),
     });
 
     const { data: exchangeRates } = useGetExchangeRatesQuery({
-        fromCurrency: ptaData.currencyGet.code,
-        toCurrency: ptaData.currencySend.code
+        fromCurrency: currencyGet.code,
+        toCurrency: currencySend.code
     });
 
-    const { data: pickupPointsData } = useGetPickupPointsQuery();
-
-    // // Derive States from API data
-    // const STATES: LocationItem[] = Array.from(
-    //     new Set(pickupPointsData?.data?.map((p) => p.location))
-    // ).map((location, index) => ({
-    //     id: (index + 1).toString(),
-    //     title: location,
-    // })).filter(state => state.title);
-
-    // // Derive Cities based on selected State
-    // const CITIES: LocationItem[] = Array.from(
-    //     new Set(
-    //         pickupPointsData?.data
-    //             ?.filter((p) => p.location === ptaData.selectedState?.title)
-    //             .map((p) => p.branch)
-    //     )
-    // ).map((branch, index) => ({
-    //     id: (index + 1).toString(),
-    //     title: branch,
-    // })).filter(city => city.title);
-
-    // // Derive Locations based on selected State and City
-    // const LOCATIONS: LocationItem[] = (pickupPointsData?.data || [])
-    //     .filter(
-    //         (p) =>
-    //             p.location === ptaData.selectedState?.title &&
-    //             p.branch === ptaData.selectedCity?.title
-    //     )
-    //     .map((p) => ({
-    //         id: p.id,
-    //         title: p.name,
-    //         subtitle: p.address,
-    //     }));
-
-    React.useEffect(() => {
+    useEffect(() => {
         if (exchangeRates?.data?.[0]?.sellRate) {
-            setPtaData({ currentRate: exchangeRates.data[0].sellRate });
+            setCurrentRate(exchangeRates.data[0].sellRate);
         }
-    }, [exchangeRates, setPtaData]);
-
-    const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
-    const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
-    const showToast = useToastStore((state) => state.showToast);
-
-    const clearError = (field: string) => {
-        if (validationErrors[field]) {
-            setValidationErrors(prev => ({ ...prev, [field]: undefined }));
-        }
-    };
-
-    const credentialFields = [
-        { label: 'Bank Verification Number', placeholder: 'Enter your BVN', value: ptaData.bvn, onChangeText: (v: string) => { setPtaData({ bvn: v }); clearError('bvn'); }, required: true, keyboardType: 'numeric' as const, error: validationErrors.bvn },
-        { label: 'National Identification Number', placeholder: 'Enter your NIN', value: ptaData.nin, onChangeText: (v: string) => { setPtaData({ nin: v }); clearError('nin'); }, required: true, keyboardType: 'numeric' as const, error: validationErrors.nin },
-        { label: 'Form A ID', placeholder: 'Enter form A ID', value: ptaData.formAId, onChangeText: (v: string) => { setPtaData({ formAId: v }); clearError('formAId'); }, required: true, error: validationErrors.formAId },
-        { label: 'International Passport Number', placeholder: 'Enter international passport', value: ptaData.passportNumber, onChangeText: (v: string) => { setPtaData({ passportNumber: v }); clearError('passportNumber'); }, required: true, error: validationErrors.passportNumber },
-    ];
-
-    // console.log('ptaData', ptaData);
-
+    }, [exchangeRates]);
 
     const handleAmountGetChange = (amount: string) => {
         const cleanAmount = amount.replace(/,/g, '');
-        setPtaData({ amountGet: amount });
-        clearError('amount');
+        setAmountGetStr(amount);
+        setValue('amount', parseFloat(cleanAmount) || 0);
 
         if (cleanAmount && !isNaN(parseFloat(cleanAmount))) {
             calculateExchangeRate.mutate({
-                fromCurrency: ptaData.currencyGet.code,
-                toCurrency: ptaData.currencySend.code,
+                fromCurrency: currencyGet.code,
+                toCurrency: currencySend.code,
                 amount: parseFloat(cleanAmount)
             }, {
                 onSuccess: (response) => {
                     if (response.success && response.data) {
-                        setPtaData({
-                            amountSend: response.data.convertedAmount.toLocaleString(),
-                            currentRate: response.data.sellRate
-                        });
+                        setAmountSendStr(response.data.convertedAmount.toLocaleString());
+                        setCurrentRate(response.data.sellRate);
                     }
                 }
             });
         } else {
-            setPtaData({ amountSend: '0' });
+            setAmountSendStr('0');
         }
     };
 
     const handleCurrencyChange = (type: 'GET' | 'SEND', currency: any) => {
-        const newPtaData = { ...ptaData };
         if (type === 'GET') {
-            newPtaData.currencyGet = currency;
+            setCurrencyGet(currency);
         } else {
-            newPtaData.currencySend = currency;
+            setCurrencySend(currency);
         }
-        setPtaData(newPtaData);
 
-        const cleanAmount = ptaData.amountGet.replace(/,/g, '');
+        const cleanAmount = amountGetStr.replace(/,/g, '');
         if (cleanAmount && !isNaN(parseFloat(cleanAmount))) {
             calculateExchangeRate.mutate({
-                fromCurrency: newPtaData.currencyGet.code,
-                toCurrency: newPtaData.currencySend.code,
+                fromCurrency: type === 'GET' ? currency.code : currencyGet.code,
+                toCurrency: type === 'SEND' ? currency.code : currencySend.code,
                 amount: parseFloat(cleanAmount)
             }, {
                 onSuccess: (response) => {
                     if (response.success && response.data) {
-                        setPtaData({
-                            amountSend: response.data.convertedAmount.toLocaleString(),
-                            currentRate: response.data.sellRate
-                        });
+                        setAmountSendStr(response.data.convertedAmount.toLocaleString());
+                        setCurrentRate(response.data.sellRate);
                     }
                 }
             });
         }
     };
 
-    // Step 2: Exchange Data
-    const exchangeRateText = `1 ${ptaData.currencyGet.code} = ${ptaData.currentRate.toLocaleString()} ${ptaData.currencySend.code}`;
+    const credentialFields = [
+        { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number(BVN)" placeholder="Enter your BVN" required keyboardType="numeric" /> },
+        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number(NIN)" placeholder="Enter your NIN" required keyboardType="numeric" /> },
+        { customComponent: <ControlledInput control={control} name="formAId" label="Form A ID" placeholder="Enter Form A ID" required /> },
+        { customComponent: <ControlledInput control={control} name="passportNumber" label="International Passport Number" placeholder="Enter international passport" required /> }
+    ];
 
-    // Documents for Step 1
     const documentFields = [
         {
             label: 'Valid Visa',
             onUpload: () => uploadFile('VISA'),
-            fileName: ptaData.visaFile?.name,
+            fileName: visaFile?.name,
+            fileUri: visaFile?.uri,
+            fileType: visaFile?.type,
             required: true,
-            error: validationErrors.visaFile,
             associatedInputs: (
-                <InputField
-                    label="Valid Visa Number"
-                    placeholder="Enter valid visa number"
-                    required
-                    value={ptaData.visaNumber}
-                    onChangeText={(v) => { setPtaData({ visaNumber: v }); clearError('visaNumber'); }}
-                    error={validationErrors.visaNumber}
-                />
+                <View>
+                    <ControlledInput control={control} name="visaNumber" label="Valid Visa Number" required placeholder="Enter valid visa number" keyboardType="numeric" />
+                </View>
             )
         },
         {
             label: 'Return Ticket',
             onUpload: () => uploadFile('RETURN_TICKET'),
-            fileName: ptaData.ticketFile?.name,
+            fileName: ticketFile?.name,
+            fileUri: ticketFile?.uri,
+            fileType: ticketFile?.type,
             required: true,
-            error: validationErrors.ticketFile,
             associatedInputs: (
-                <InputField
-                    label="Return Ticket Number"
-                    placeholder="Enter return ticket number"
-                    required
-                    value={ptaData.ticketNumber}
-                    onChangeText={(v) => { setPtaData({ ticketNumber: v }); clearError('ticketNumber'); }}
-                    error={validationErrors.ticketNumber}
-                />
+                <View>
+                    <ControlledInput control={control} name="ticketNumber" label="Return Ticket Number" required placeholder="Enter return ticket number" />
+                </View>
             )
         }
     ];
 
-    // --- Handlers ---
-
-    const handleNext = () => {
-        const errors: ValidationErrors = {};
-
-        if (currentStep === 0) {
-            const result = ptaStep0Schema.safeParse({
-                bvn: ptaData.bvn,
-                nin: ptaData.nin,
-                formAId: ptaData.formAId,
-                passportNumber: ptaData.passportNumber,
-            });
-            if (!result.success) {
-                result.error.issues.forEach((e: z.ZodIssue) => {
-                    const key = e.path[0] as string;
-                    if (!errors[key]) errors[key] = e.message;
-                });
-            }
-        }
-
-        if (currentStep === 1) {
-            if (isUploading) {
-                showToast('Please wait for files to finish uploading', 'warning');
-                return;
-            }
-            const result = ptaStep1Schema.safeParse({
-                visaFile: ptaData.visaFile?.name ?? '',
-                visaNumber: ptaData.visaNumber ?? '',
-                ticketFile: ptaData.ticketFile?.name ?? '',
-                ticketNumber: ptaData.ticketNumber ?? '',
-            });
-            if (!result.success) {
-                result.error.issues.forEach((e: z.ZodIssue) => {
-                    const key = e.path[0] as string;
-                    if (!errors[key]) errors[key] = e.message;
-                });
-            }
-        }
-
-        if (currentStep === 2) {
-            const result = ptaStep2Schema.safeParse({
-                amount: parseFloat(ptaData.amountGet.replace(/,/g, '')),
-            });
-            if (!result.success) {
-                result.error.issues.forEach((e: z.ZodIssue) => {
-                    if (!errors.amount) errors.amount = e.message;
-                });
-            }
-        }
-
-        if (currentStep === 3) {
-            const result = ptaStep3Schema.safeParse({
-                selectedState: ptaData.selectedState,
-                selectedCity: ptaData.selectedCity,
-                selectedLocation: ptaData.selectedLocation,
-                pickupDate: ptaData.pickupDate,
-                pickupTime: ptaData.pickupTime,
-            });
-            if (!result.success) {
-                result.error.issues.forEach((e: z.ZodIssue) => {
-                    const key = e.path[0] as string;
-                    if (!errors[key]) errors[key] = e.message;
-                });
-            }
-        }
-
-        if (Object.keys(errors).length > 0) {
-            setValidationErrors(errors);
+    const handleNext = async () => {
+        if (isUploading) {
+            showToast('Please wait for files to finish uploading', 'warning');
             return;
         }
 
-        setValidationErrors({});
-        if (currentStep < 3) {
-            setCurrentStep(currentStep + 1);
-        } else {
-            setInitiateSheetVisible(true);
+        let isStepValid = false;
+
+        if (currentStep === 0) {
+            isStepValid = await trigger(['bvn', 'nin', 'formAId', 'passportNumber']);
+        } else if (currentStep === 1) {
+            if (!visaFile || !ticketFile) {
+                showToast('Please upload all required documents (Visa and Return Ticket)', 'error');
+                return;
+            }
+            isStepValid = await trigger(['visaNumber', 'ticketNumber']);
+        } else if (currentStep === 2) {
+            isStepValid = await trigger(['amount']);
+        } else if (currentStep === 3) {
+            isStepValid = await trigger(['selectedState', 'selectedCity', 'selectedLocation', 'pickupDate', 'pickupTime']);
+        }
+
+        if (isStepValid) {
+            if (currentStep < 3) {
+                setCurrentStep(currentStep + 1);
+            } else {
+                setInitiateSheetVisible(true);
+            }
         }
     };
 
@@ -319,8 +235,8 @@ export default function PersonalTravelAllowanceScreen() {
         }
     };
 
-    const handleConfirmInitiate = () => {
-        // Convert dd/mm/yyyy to yyyy-MM-dd for the API
+    const onSubmit = (data: PtaFormValues) => {
+        console.log(data,"PTA");
         const formatDateForApi = (dateStr: string): string => {
             if (!dateStr) return '';
             const parts = dateStr.split('/');
@@ -332,24 +248,24 @@ export default function PersonalTravelAllowanceScreen() {
 
         const payload = {
             type: 'PTA',
-            currency: ptaData.currencyGet.code,
-            amount: parseFloat(ptaData.amountGet.replace(/,/g, '')),
+            currency: currencyGet.code,
+            amount: data.amount,
             purpose: 'I am going on a Vacation (PTA)',
-            destinationCountry: ptaData.currencyGet.country,
-            bvn: ptaData.bvn,
-            nin: ptaData.nin,
-            formAId: ptaData.formAId,
+            destinationCountry: currencyGet.country,
+            bvn: data.bvn,
+            nin: data.nin,
+            formAId: data.formAId,
             documents: [
-                ...(ptaData.visaMetadata ? [ptaData.visaMetadata] : []),
-                ...(ptaData.ticketMetadata ? [ptaData.ticketMetadata] : [])
+                ...(visaMetadata ? [visaMetadata] : []),
+                ...(ticketMetadata ? [ticketMetadata] : [])
             ],
-            pickupLocation: ptaData.selectedLocation ? {
-                name: ptaData.selectedLocation.title,
-                address: ptaData.selectedLocation.subtitle || '',
-                state: ptaData.selectedState?.title || '',
-                city: ptaData.selectedCity?.title || '',
-                scheduledPickupDate: formatDateForApi(ptaData.pickupDate),
-                scheduledPickupTime: ptaData.pickupTime,
+            pickupLocation: data.selectedLocation ? {
+                name: data.selectedLocation.title,
+                address: data.selectedLocation.subtitle || '',
+                state: data.selectedState?.title || '',
+                city: data.selectedCity?.title || '',
+                scheduledPickupDate: formatDateForApi(data.pickupDate),
+                scheduledPickupTime: data.pickupTime,
             } : undefined
         };
 
@@ -357,12 +273,20 @@ export default function PersonalTravelAllowanceScreen() {
             onSuccess: (response) => {
                 if (response.success) {
                     setInitiateSheetVisible(false);
-                    resetPtaData();
-                    router.push('/(buy-fx)/(pta)/request-initiated-success');
+                    router.push({
+                        pathname: '/(buy-fx)/(pta)/request-initiated-success',
+                        params: { transactionId: response.data?.transactionId }
+                    });
                 }
             }
         });
     };
+
+    const selectedState = watch('selectedState');
+    const selectedCity = watch('selectedCity');
+    const selectedLocation = watch('selectedLocation');
+    const pickupDate = watch('pickupDate');
+    const pickupTime = watch('pickupTime');
 
     return (
         <View style={{ flex: 1 }}>
@@ -373,7 +297,7 @@ export default function PersonalTravelAllowanceScreen() {
                 totalSteps={4}
                 onBack={handleBack}
                 onNext={handleNext}
-                nextLabel={currentStep === 3 ? (ptaData.selectedState && ptaData.selectedCity ? "Initiate Transaction Request" : "Continue") : "Continue"}
+                nextLabel={currentStep === 3 ? (selectedState && selectedCity ? "Initiate Transaction Request" : "Continue") : "Continue"}
             >
                 {currentStep === 0 && (
                     <CredentialStep fields={credentialFields} />
@@ -385,19 +309,19 @@ export default function PersonalTravelAllowanceScreen() {
 
                 {currentStep === 2 && (
                     <ExchangeStep
-                        transactionType={ptaData.transactionType}
-                        onTransactionTypeChange={(v) => setPtaData({ transactionType: v })}
-                        currencyGet={ptaData.currencyGet}
+                        transactionType={transactionType}
+                        onTransactionTypeChange={setTransactionType}
+                        currencyGet={currencyGet}
                         onCurrencyGetChange={(v: any) => handleCurrencyChange('GET', v)}
-                        currencySend={ptaData.currencySend}
+                        currencySend={currencySend}
                         onCurrencySendChange={(v: any) => handleCurrencyChange('SEND', v)}
-                        amountGet={ptaData.amountGet}
-                        amountSend={ptaData.amountSend}
-                        rate={exchangeRateText}
+                        amountGet={amountGetStr}
+                        amountSend={amountSendStr}
+                        rate={`1 ${currencyGet.code} = ${currentRate.toLocaleString()} ${currencySend.code}`}
                         onAmountGetChange={handleAmountGetChange}
-                        onAmountSendChange={(v) => setPtaData({ amountSend: v })}
+                        onAmountSendChange={setAmountSendStr}
                         allowedModes={['buy']}
-                        error={validationErrors.amount}
+                        error={errors.amount?.message}
                     />
                 )}
 
@@ -406,35 +330,29 @@ export default function PersonalTravelAllowanceScreen() {
                         states={STATES}
                         cities={CITIES}
                         locations={LOCATIONS}
-                        selectedState={ptaData.selectedState}
+                        selectedState={selectedState}
                         onSelectState={(v) => {
-                            setPtaData({
-                                selectedState: v,
-                                selectedCity: null,
-                                selectedLocation: null
-                            });
-                            clearError('state');
+                            setValue('selectedState', v);
+                            setValue('selectedCity', undefined as unknown as LocationItem);
+                            setValue('selectedLocation', undefined as unknown as LocationItem);
                         }}
-                        selectedCity={ptaData.selectedCity}
+                        selectedCity={selectedCity}
                         onSelectCity={(v) => {
-                            setPtaData({
-                                selectedCity: v,
-                                selectedLocation: null
-                            });
-                            clearError('city');
+                            setValue('selectedCity', v);
+                            setValue('selectedLocation', undefined as unknown as LocationItem);
                         }}
-                        selectedLocation={ptaData.selectedLocation}
-                        onSelectLocation={(v) => { setPtaData({ selectedLocation: v }); clearError('location'); }}
-                        pickupDate={ptaData.pickupDate}
-                        onPickupDateChange={(v) => { setPtaData({ pickupDate: v }); clearError('pickupDate'); }}
-                        pickupTime={ptaData.pickupTime}
-                        onPickupTimeChange={(v) => { setPtaData({ pickupTime: v }); clearError('pickupTime'); }}
+                        selectedLocation={selectedLocation}
+                        onSelectLocation={(v) => setValue('selectedLocation', v)}
+                        pickupDate={pickupDate}
+                        onPickupDateChange={(v: string) => setValue('pickupDate', v)}
+                        pickupTime={pickupTime}
+                        onPickupTimeChange={(v: string) => setValue('pickupTime', v)}
                         errors={{
-                            state: validationErrors.state,
-                            city: validationErrors.city,
-                            location: validationErrors.location,
-                            pickupDate: validationErrors.pickupDate,
-                            pickupTime: validationErrors.pickupTime
+                            state: errors.selectedState?.message as string | undefined,
+                            city: errors.selectedCity?.message as string | undefined,
+                            location: errors.selectedLocation?.message as string | undefined,
+                            pickupDate: errors.pickupDate?.message as string | undefined,
+                            pickupTime: errors.pickupTime?.message as string | undefined
                         }}
                     />
                 )}
@@ -442,7 +360,7 @@ export default function PersonalTravelAllowanceScreen() {
                 <InitiateTransactionSheet
                     visible={initiateSheetVisible}
                     onClose={() => setInitiateSheetVisible(false)}
-                    onConfirm={handleConfirmInitiate}
+                    onConfirm={handleSubmit(onSubmit)}
                     title="Initiate PTA Transaction request?"
                     loading={createTransaction.isPending}
                     items={[

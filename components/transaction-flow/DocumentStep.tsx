@@ -7,6 +7,8 @@ interface DocumentField {
     label: string;
     onUpload: () => void;
     fileName?: string | null;
+    fileUri?: string | null;
+    fileType?: string | null;
     required?: boolean;
 
     // Optional associated inputs (e.g. Passport Number, Expiry Date) below the upload
@@ -33,6 +35,8 @@ export default function DocumentStep({ title = "Upload Relevant Documents", docu
                     <FileUpload
                         onUpload={doc.onUpload}
                         fileName={doc.fileName}
+                        fileUri={doc.fileUri}
+                        fileType={doc.fileType}
                         title={`Upload or change here.`}
                         error={doc.error}
                     />

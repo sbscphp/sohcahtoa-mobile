@@ -1,12 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { DocumentUpload, Folder } from 'iconsax-react-nativejs';
 import React from 'react';
-import { Text, TouchableOpacity, View } from 'react-native';
+import { Image, Text, TouchableOpacity, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 
 interface FileUploadProps {
     onUpload: () => void;
     fileName?: string | null;
+    fileUri?: string | null;
+    fileType?: string | null;
     title?: string;
     subtitle?: string;
     status?: 'default' | 'approved' | 'pending' | 'error';
@@ -16,6 +18,8 @@ interface FileUploadProps {
 const FileUpload: React.FC<FileUploadProps> = ({
     onUpload,
     fileName,
+    fileUri,
+    fileType,
     title = 'Upload or change here.',
     subtitle = 'PDF, PNG, IMG, JPG Supported. Max. size: 20 MB',
     status = 'default',
@@ -64,13 +68,21 @@ const FileUpload: React.FC<FileUploadProps> = ({
         );
     }
 
+    const isImage = fileUri && (fileType?.startsWith('image/') || /\.(jpeg|jpg|png|gif|webp)$/i.test(fileName || ''));
+
     return (
         <View>
             <View style={[styles.previewContainer, { borderColor: getPreviewBorderColor() }]}>
-                <View style={styles.previewImagePlaceholder}>
-                    <Ionicons name="document-text-outline" size={moderateScale(48)} color="#898d8bff" />
-                    <Text style={styles.fileNameText} numberOfLines={1}>{fileName}</Text>
-                </View>
+                {isImage ? (
+                    <View style={styles.previewImagePlaceholder}>
+                        <Image source={{ uri: fileUri }} style={{ width: '100%', height: '100%', borderRadius: 16 }} resizeMode="cover" />
+                    </View>
+                ) : (
+                    <View style={styles.previewImagePlaceholder}>
+                        <Ionicons name="document-text-outline" size={moderateScale(48)} color="#898d8bff" />
+                        <Text style={styles.fileNameText} numberOfLines={1}>{fileName}</Text>
+                    </View>
+                )}
 
                 <TouchableOpacity style={styles.changeButton} onPress={onUpload}>
                     <Text style={styles.changeButtonText}>Change</Text>
@@ -133,7 +145,7 @@ const styles = ScaledSheet.create({
         alignSelf: 'flex-end',
         flexDirection: 'row',
         alignItems: 'center',
-        gap:8
+        gap: 8
     },
     browseText: {
         fontSize: '13@ms',

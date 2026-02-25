@@ -1,6 +1,6 @@
-import DatePickerField from '@/components/DatePickerField';
+import ControlledDatePicker from '@/components/ControlledDatePicker';
+import ControlledInput from '@/components/ControlledInput';
 import InitiateTransactionSheet from '@/components/InitiateTransactionSheet';
-import InputField from '@/components/InputField';
 import LoadingBackdrop from '@/components/LoadingBackdrop';
 import { LocationItem } from '@/components/LocationSelectionSheet';
 import CredentialStep from '@/components/transaction-flow/CredentialStep';
@@ -9,59 +9,62 @@ import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import LocationStep from '@/components/transaction-flow/LocationStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
 import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
-import { UploadedFile, useDocumentUpload } from '@/hooks/useDocumentUpload';
+import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useToastStore } from '@/stores/useToastStore';
+import { CITIES, LOCATIONS, STATES } from '@/utils/locations';
 import { btaStep0Schema, btaStep1Schema, btaStep2Schema, btaStep3Schema } from '@/utils/validations/bta';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { View } from 'react-native';
 import { z } from 'zod';
 
-interface ValidationErrors {
-    [key: string]: string | undefined;
-}
+const btaFormSchema = z.object({
+    ...btaStep0Schema.shape,
+    ...btaStep1Schema.shape,
+    ...btaStep2Schema.shape,
+    ...btaStep3Schema.shape
+});
 
-const STATES: LocationItem[] = [
-    { id: '1', title: 'Lagos State' },
-    { id: '2', title: 'Ogun State' },
-    { id: '3', title: 'Rivers State' },
-    { id: '4', title: 'Kaduna State' },
-    { id: '5', title: 'Enugu State' },
-    { id: '6', title: 'Kano State' },
-];
-
-const CITIES: LocationItem[] = [
-    { id: '1', title: 'Ajeromi Local Government' },
-    { id: '2', title: 'Agege Local Government' },
-    { id: '3', title: 'Alimosho Local Government' },
-    { id: '4', title: 'Amuwo Odofin Local Government' },
-    { id: '5', title: 'Apapa Local Government' },
-    { id: '6', title: 'Badagry Local Government' },
-];
-
-const LOCATIONS: LocationItem[] = [
-    { id: '1', title: 'Ajeromi Local Government', subtitle: 'Femi Areola Street, Ikeja GRA.' },
-    { id: '2', title: 'Agege Local Government', subtitle: 'Femi Areola Street, Ikeja GRA.' },
-    { id: '3', title: 'Ikorodu Local Government', subtitle: '23 T.O.S Benson Avenue, Ikorodu.' },
-    { id: '4', title: 'Festac Local Government', subtitle: '1st Avenue, Festac Town.' },
-];
+type BtaFormValues = z.infer<typeof btaFormSchema>;
 
 export default function BusinessTravelAllowanceScreen() {
     const router = useRouter();
-    const [currentStep, setCurrentStep] = useState(0);
     const createTransaction = useCreateTransactionMutation();
+    const showToast = useToastStore(s => s.showToast);
 
-    // Step 0: Credentials State
-    const [bvn, setBvn] = useState('');
-    const [nin, setNin] = useState('');
-    const [formAId, setFormAId] = useState('');
-    const [tin, setTin] = useState('');
-    const [passportNumber, setPassportNumber] = useState('');
-    const [passportIssueDate, setPassportIssueDate] = useState('');
-    const [passportExpiryDate, setPassportExpiryDate] = useState('');
-    const [tccNumber, setTccNumber] = useState('');
+    const [currentStep, setCurrentStep] = useState(0);
+    const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
 
-    // Step 2: Exchange State
+    const {
+        control,
+        handleSubmit,
+        trigger,
+        watch,
+        setValue,
+        formState: { errors }
+    } = useForm<BtaFormValues>({
+        resolver: zodResolver(btaFormSchema),
+        defaultValues: {
+            bvn: '',
+            nin: '',
+            formAId: '',
+            tin: '',
+            passportNumber: '',
+            passportIssueDate: '',
+            passportExpiryDate: '',
+            tccNumber: '',
+            amount: 1,
+            selectedState: undefined as unknown as LocationItem,
+            selectedCity: undefined as unknown as LocationItem,
+            selectedLocation: undefined as unknown as LocationItem,
+            pickupDate: '',
+            pickupTime: '',
+        },
+        mode: 'onChange'
+    });
+
     const [transactionType, setTransactionType] = useState<'buy' | 'sell'>('buy');
     const [currencyGet, setCurrencyGet] = useState({
         code: 'USD',
@@ -76,80 +79,79 @@ export default function BusinessTravelAllowanceScreen() {
         flagUrl: 'https://flagcdn.com/w80/ng.png'
     });
 
-    const [amountGet, setAmountGet] = useState('1'); // Placeholder
-    const [amountSend, setAmountSend] = useState('1,500'); // Placeholder
+    // We manually track amount string since exchange step does lots of formatting
+    const [amountGetStr, setAmountGetStr] = useState('1');
+    const [amountSendStr, setAmountSendStr] = useState('1,500');
 
-    // Step 3: Location State
-    const [selectedState, setSelectedState] = useState<LocationItem | null>(null);
-    const [selectedCity, setSelectedCity] = useState<LocationItem | null>(null);
-    const [selectedLocation, setSelectedLocation] = useState<LocationItem | null>(null);
-    const [pickupDate, setPickupDate] = useState('');
-    const [pickupTime, setPickupTime] = useState('');
-
-    const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
-    const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
-
-    const clearError = (field: string) => {
-        if (validationErrors[field]) {
-            setValidationErrors(prev => ({ ...prev, [field]: undefined }));
-        }
+    const handleAmountChange = (val: string) => {
+        setAmountGetStr(val);
+        setValue('amount', parseFloat(val.replace(/,/g, '')) || 0);
     };
 
-    // Document upload files
-    const [tccFile, setTccFile] = useState<UploadedFile | null>(null);
-    const [tccMeta, setTccMeta] = useState<import('@/hooks/useDocumentUpload').UploadedMetadata | null>(null);
-    const [passportFile, setPassportFile] = useState<UploadedFile | null>(null);
-    const [passportMeta, setPassportMeta] = useState<import('@/hooks/useDocumentUpload').UploadedMetadata | null>(null);
-    const [tinFile, setTinFile] = useState<UploadedFile | null>(null);
-    const [tinMeta, setTinMeta] = useState<import('@/hooks/useDocumentUpload').UploadedMetadata | null>(null);
+    // Document upload files state
+    const [docs, setDocs] = useState({
+        tcc: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        passport: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        tin: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        visa: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        returnTicket: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        corporateBodyLetter: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        partnerInvitationLetter: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+    });
 
-    const showToast = useToastStore(s => s.showToast);
+    const updateDoc = (key: keyof typeof docs, file: UploadedFile, metadata: UploadedMetadata) => {
+        setDocs(prev => ({ ...prev, [key]: { file, meta: metadata } }));
+    };
+
     const { upload: uploadFile, isPending: isUploading } = useDocumentUpload({
         onSuccess: (documentType, { file, metadata }) => {
-            if (documentType === 'TCC') { setTccFile(file); setTccMeta(metadata); }
-            else if (documentType === 'PASSPORT') { setPassportFile(file); setPassportMeta(metadata); }
-            else if (documentType === 'TIN') { setTinFile(file); setTinMeta(metadata); }
+            if (documentType === 'TCC') updateDoc('tcc', file, metadata);
+            else if (documentType === 'PASSPORT') updateDoc('passport', file, metadata);
+            else if (documentType === 'TIN') updateDoc('tin', file, metadata);
+            else if (documentType === 'VISA') updateDoc('visa', file, metadata);
+            else if (documentType === 'RETURN_TICKET') updateDoc('returnTicket', file, metadata);
+            else if (documentType === 'CORPORATE_BODY_LETTER') updateDoc('corporateBodyLetter', file, metadata);
+            else if (documentType === 'PARTNER_INVITATION_LETTER') updateDoc('partnerInvitationLetter', file, metadata);
         },
         onError: () => showToast('Failed to upload document. Please try again.', 'error'),
     });
 
-    // --- Configuration ---
-
-    // Fields for Step 0
     const credentialFields = [
-        { label: 'Bank Verification Number(BVN)', placeholder: 'Enter your BVN', value: bvn, onChangeText: (v: string) => { setBvn(v); clearError('bvn'); }, required: true, keyboardType: 'numeric' as const, error: validationErrors.bvn },
-        { label: 'Tax Identification Number(TIN)', placeholder: 'Enter your TIN', value: tin, onChangeText: (v: string) => { setTin(v); clearError('tin'); }, required: true, keyboardType: 'numeric' as const, error: validationErrors.tin },
-
-        { label: 'National Identification Number(NIN)', placeholder: 'Enter your NIN', value: nin, onChangeText: (v: string) => { setNin(v); clearError('nin'); }, required: true, keyboardType: 'numeric' as const, error: validationErrors.nin },
-        { label: 'Form A ID', placeholder: 'Enter Form A ID', value: formAId, onChangeText: (v: string) => { setFormAId(v); clearError('formAId'); }, required: true, keyboardType: 'numeric' as const, error: validationErrors.formAId },
-        { label: 'International Passport Number', placeholder: 'Enter international passport', value: passportNumber, onChangeText: (v: string) => { setPassportNumber(v); clearError('passportNumber'); }, required: true, error: validationErrors.passportNumber },
+        { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number(BVN)" placeholder="Enter your BVN" required keyboardType="numeric" /> },
+        { customComponent: <ControlledInput control={control} name="tin" label="Tax Identification Number(TIN)" placeholder="Enter your TIN" required keyboardType="numeric" /> },
+        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number(NIN)" placeholder="Enter your NIN" required keyboardType="numeric" /> },
+        { customComponent: <ControlledInput control={control} name="formAId" label="Form A ID" placeholder="Enter Form A ID" required /> },
+        { customComponent: <ControlledInput control={control} name="passportNumber" label="International Passport Number" placeholder="Enter international passport" required /> }
     ];
 
-    // Documents for Step 1
     const documentFields = [
         {
             label: 'Tax Clearance Certificate (TCC)',
             onUpload: () => uploadFile('TCC'),
-            fileName: tccFile?.name,
+            fileName: docs.tcc.file?.name,
+            fileUri: docs.tcc.file?.uri,
+            fileType: docs.tcc.file?.type,
             required: true,
             associatedInputs: (
                 <View>
-                    <InputField label='Tax Clearance Certificate (TCC)' required placeholder='Enter TCC number' value={tccNumber} onChangeText={setTccNumber} keyboardType='numeric' />
+                    <ControlledInput control={control} name="tccNumber" label="Tax Clearance Certificate (TCC)" required placeholder="Enter TCC number" keyboardType="numeric" />
                 </View>
             )
         },
         {
             label: 'International Passport',
             onUpload: () => uploadFile('PASSPORT'),
-            fileName: passportFile?.name,
+            fileName: docs.passport.file?.name,
+            fileUri: docs.passport.file?.uri,
+            fileType: docs.passport.file?.type,
             required: true,
             associatedInputs: (
                 <View style={{ flexDirection: 'row', gap: 12 }}>
                     <View style={{ flex: 1 }}>
-                        <DatePickerField label='Passport Issue Date' value={passportIssueDate} onDateChange={setPassportIssueDate} required maximumDate={new Date()} />
+                        <ControlledDatePicker control={control} name="passportIssueDate" label="Passport Issue Date" required maximumDate={new Date()} />
                     </View>
                     <View style={{ flex: 1 }}>
-                        <DatePickerField label='Passport Expiry Date' value={passportExpiryDate} onDateChange={setPassportExpiryDate} required minimumDate={new Date()} />
+                        <ControlledDatePicker control={control} name="passportExpiryDate" label="Passport Expiry Date" required minimumDate={new Date()} />
                     </View>
                 </View>
             )
@@ -157,73 +159,74 @@ export default function BusinessTravelAllowanceScreen() {
         {
             label: 'Tax Identification Number (TIN)',
             onUpload: () => uploadFile('TIN'),
-            fileName: tinFile?.name,
+            fileName: docs.tin.file?.name,
+            fileUri: docs.tin.file?.uri,
+            fileType: docs.tin.file?.type,
+            required: true,
+        },
+        {
+            label: 'Valid Visa',
+            onUpload: () => uploadFile('VISA'),
+            fileName: docs.visa.file?.name,
+            fileUri: docs.visa.file?.uri,
+            fileType: docs.visa.file?.type,
             required: true,
             associatedInputs: (
-                <View>
-                    <InputField label='Tax Identification Number (TIN)' required placeholder='Enter TIN number' value={tccNumber} onChangeText={setTccNumber} keyboardType='numeric' />
+                <View style={{ flexDirection: 'row', gap: 12 }}>
+                    <ControlledInput control={control} name="visaNumber" label="Visa Number" required placeholder="Enter visa number" keyboardType="numeric" />
                 </View>
             )
         },
+        {
+            label: 'Return Ticket',
+            onUpload: () => uploadFile('RETURN_TICKET'),
+            fileName: docs.returnTicket.file?.name,
+            fileUri: docs.returnTicket.file?.uri,
+            fileType: docs.returnTicket.file?.type,
+            required: true,
+        },
+        {
+            label: 'Letter of Request from Corporate Body',
+            onUpload: () => uploadFile('CORPORATE_BODY_LETTER'),
+            fileName: docs.corporateBodyLetter.file?.name,
+            fileUri: docs.corporateBodyLetter.file?.uri,
+            fileType: docs.corporateBodyLetter.file?.type,
+            required: true,
+        },
+        {
+            label: 'Letter of Invitation from Partner',
+            onUpload: () => uploadFile('PARTNER_INVITATION_LETTER'),
+            fileName: docs.partnerInvitationLetter.file?.name,
+            fileUri: docs.partnerInvitationLetter.file?.uri,
+            fileType: docs.partnerInvitationLetter.file?.type,
+            required: true,
+        },
     ];
 
-    // --- Handlers ---
-
-    const handleNext = () => {
+    const handleNext = async () => {
         if (isUploading) {
             showToast('Please wait for files to finish uploading', 'warning');
             return;
         }
-        const errors: ValidationErrors = {};
+
+        let isStepValid = false;
 
         if (currentStep === 0) {
-            const result = btaStep0Schema.safeParse({ bvn, tin, nin, formAId, passportNumber });
-            if (!result.success) {
-                result.error.issues.forEach((e: z.ZodIssue) => {
-                    const key = e.path[0] as string;
-                    if (!errors[key]) errors[key] = e.message;
-                });
-            }
+            isStepValid = await trigger(['bvn', 'tin', 'nin', 'formAId', 'passportNumber']);
+        } else if (currentStep === 1) {
+            isStepValid = await trigger(['tccNumber', 'passportIssueDate', 'passportExpiryDate']);
+        } else if (currentStep === 2) {
+            isStepValid = await trigger(['amount']);
+        } else if (currentStep === 3) {
+            isStepValid = await trigger(['selectedState', 'selectedCity', 'selectedLocation', 'pickupDate', 'pickupTime']);
         }
 
-        if (currentStep === 1) {
-            const result = btaStep1Schema.safeParse({ tccNumber, passportIssueDate, passportExpiryDate });
-            if (!result.success) {
-                result.error.issues.forEach((e: z.ZodIssue) => {
-                    const key = e.path[0] as string;
-                    if (!errors[key]) errors[key] = e.message;
-                });
+        if (isStepValid) {
+            if (currentStep < 3) {
+                setCurrentStep(currentStep + 1);
+            } else {
+                setInitiateSheetVisible(true);
             }
-        }
-        if (currentStep === 2) {
-            const result = btaStep2Schema.safeParse({ amount: parseFloat(amountGet.replace(/,/g, '')) });
-            if (!result.success) {
-                result.error.issues.forEach((e: z.ZodIssue) => {
-                    if (!errors.amount) errors.amount = e.message;
-                });
-            }
-        }
-
-        if (currentStep === 3) {
-            const result = btaStep3Schema.safeParse({ selectedState, selectedCity, selectedLocation, pickupDate, pickupTime });
-            if (!result.success) {
-                result.error.issues.forEach((e: z.ZodIssue) => {
-                    const key = e.path[0] as string;
-                    if (!errors[key]) errors[key] = e.message;
-                });
-            }
-        }
-
-        if (Object.keys(errors).length > 0) {
-            setValidationErrors(errors);
-            return;
-        }
-
-        setValidationErrors({});
-        if (currentStep < 3) {
-            setCurrentStep(currentStep + 1);
-        } else {
-            setInitiateSheetVisible(true);
         }
     };
 
@@ -235,31 +238,28 @@ export default function BusinessTravelAllowanceScreen() {
         }
     };
 
-    const handleConfirmInitiate = () => {
-        const formatDateForApi = (dateStr: string): string => {
-            if (!dateStr) return '';
-            const parts = dateStr.split('/');
-            if (parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}`;
-            return dateStr;
-        };
-
+    const onSubmit = (data: BtaFormValues) => {
         const payload = {
             type: 'BTA',
             currency: currencyGet.code,
-            amount: parseFloat(amountGet.replace(/,/g, '')),
+            amount: data.amount,
             purpose: 'Business Travel Allowance (BTA)',
             destinationCountry: currencyGet.country,
-            bvn,
-            nin,
-            formAId,
+            bvn: data.bvn,
+            nin: data.nin,
+            formAId: data.formAId,
             documents: [
-                ...(tccMeta ? [tccMeta] : []),
-                ...(passportMeta ? [passportMeta] : []),
-                ...(tinMeta ? [tinMeta] : []),
+                ...(docs.tcc.meta ? [docs.tcc.meta] : []),
+                ...(docs.passport.meta ? [docs.passport.meta] : []),
+                ...(docs.tin.meta ? [docs.tin.meta] : []),
+                ...(docs.visa.meta ? [docs.visa.meta] : []),
+                ...(docs.returnTicket.meta ? [docs.returnTicket.meta] : []),
+                ...(docs.corporateBodyLetter.meta ? [docs.corporateBodyLetter.meta] : []),
+                ...(docs.partnerInvitationLetter.meta ? [docs.partnerInvitationLetter.meta] : []),
             ],
-            pickupLocation: selectedLocation ? {
-                name: selectedLocation.title,
-                address: selectedLocation.subtitle || '',
+            pickupLocation: data.selectedLocation ? {
+                name: data.selectedLocation.title,
+                address: data.selectedLocation.subtitle || '',
             } : undefined,
         };
 
@@ -267,11 +267,20 @@ export default function BusinessTravelAllowanceScreen() {
             onSuccess: (response) => {
                 if (response.success) {
                     setInitiateSheetVisible(false);
-                    router.push('/(buy-fx)/(bta)/request-initiated-success');
+                    router.push({
+                        pathname: '/(buy-fx)/(bta)/request-initiated-success',
+                        params: { transactionId: response.data?.transactionId }
+                    });
                 }
             },
         });
     };
+
+    const selectedState = watch('selectedState');
+    const selectedCity = watch('selectedCity');
+    const selectedLocation = watch('selectedLocation');
+    const pickupDate = watch('pickupDate');
+    const pickupTime = watch('pickupTime');
 
     return (
         <>
@@ -300,12 +309,13 @@ export default function BusinessTravelAllowanceScreen() {
                         onCurrencyGetChange={setCurrencyGet}
                         currencySend={currencySend}
                         onCurrencySendChange={setCurrencySend}
-                        amountGet={amountGet}
-                        amountSend={amountSend}
+                        amountGet={amountGetStr}
+                        amountSend={amountSendStr}
                         rate={`1 ${currencyGet.code} = 1500 ${currencySend.code}`}
-                        onAmountGetChange={setAmountGet}
-                        onAmountSendChange={setAmountSend}
+                        onAmountGetChange={handleAmountChange}
+                        onAmountSendChange={setAmountSendStr}
                         allowedModes={['buy']}
+                        error={errors.amount?.message}
                     />
                 )}
 
@@ -316,28 +326,36 @@ export default function BusinessTravelAllowanceScreen() {
                         locations={LOCATIONS}
                         selectedState={selectedState}
                         onSelectState={(item) => {
-                            setSelectedState(item);
-                            setSelectedCity(null);
-                            setSelectedLocation(null);
+                            setValue('selectedState', item);
+                            setValue('selectedCity', undefined as unknown as LocationItem);
+                            setValue('selectedLocation', undefined as unknown as LocationItem);
                         }}
                         selectedCity={selectedCity}
                         onSelectCity={(item) => {
-                            setSelectedCity(item);
-                            setSelectedLocation(null);
+                            setValue('selectedCity', item);
+                            setValue('selectedLocation', undefined as unknown as LocationItem);
                         }}
                         selectedLocation={selectedLocation}
-                        onSelectLocation={setSelectedLocation}
+                        onSelectLocation={(item) => setValue('selectedLocation', item)}
                         pickupDate={pickupDate}
-                        onPickupDateChange={setPickupDate}
+                        onPickupDateChange={(v: string) => setValue('pickupDate', v)}
                         pickupTime={pickupTime}
-                        onPickupTimeChange={setPickupTime}
+                        onPickupTimeChange={(v: string) => setValue('pickupTime', v)}
+                        errors={{
+                            state: errors.selectedState?.message as string | undefined,
+                            city: errors.selectedCity?.message as string | undefined,
+                            location: errors.selectedLocation?.message as string | undefined,
+                            pickupDate: errors.pickupDate?.message as string | undefined,
+                            pickupTime: errors.pickupTime?.message as string | undefined
+                        }}
                     />
                 )}
 
                 <InitiateTransactionSheet
                     visible={initiateSheetVisible}
+                    loading={createTransaction.isPending}
                     onClose={() => setInitiateSheetVisible(false)}
-                    onConfirm={handleConfirmInitiate}
+                    onConfirm={handleSubmit(onSubmit)}
                     title="Initiate BTA Transaction request?"
                     items={[
                         {

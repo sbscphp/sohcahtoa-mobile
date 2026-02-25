@@ -249,3 +249,10 @@ export interface GetTransactionByIdResponse {
         updatedAt: string;
     };
 }
+
+export interface GetPickupStatesResponse {
+    success: boolean;
+    data: {
+        states: string[];
+    };
+}

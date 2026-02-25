@@ -482,12 +482,12 @@ const styles = ScaledSheet.create({
         overflow: 'hidden',
     },
     flagText: {
-        fontSize: '12@ms',
+        fontSize: '16@ms',
         lineHeight: '16@ms',
     },
     currencyCode: {
         color: '#FFFFFF',
-        fontSize: '12@ms',
+        fontSize: '14@ms',
         fontWeight: '600',
     },
     balanceAmount: {

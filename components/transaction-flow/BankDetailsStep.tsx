@@ -1,63 +1,47 @@
-import InputField from '@/components/InputField';
+import ControlledInput from '@/components/ControlledInput';
 import React from 'react';
 import { Text, View } from 'react-native';
 import { ScaledSheet } from 'react-native-size-matters';
 
 interface BankDetailsStepProps {
-    bankName: string;
-    setBankName: (text: string) => void;
-    accountNumber: string;
-    setAccountNumber: (text: string) => void;
-    accountName: string;
-    setAccountName: (text: string) => void;
-    iban: string;
-    setIban: (text: string) => void;
+    control: any;
 }
 
-export default function BankDetailsStep({
-    bankName,
-    setBankName,
-    accountNumber,
-    setAccountNumber,
-    accountName,
-    setAccountName,
-    iban,
-    setIban
-}: BankDetailsStepProps) {
+export default function BankDetailsStep({ control }: BankDetailsStepProps) {
     return (
         <View style={styles.container}>
             <Text style={styles.title}>Where would you like to send the fund to?</Text>
 
-            <InputField
+            <ControlledInput
+                control={control}
+                name="bankName"
                 label="Bank Name"
                 placeholder="Enter bank name"
-                value={bankName}
-                onChangeText={setBankName}
                 required
             />
 
-            <InputField
+            <ControlledInput
+                control={control}
+                name="accountNumber"
                 label="Account Number"
                 placeholder="Enter account number"
-                value={accountNumber}
-                onChangeText={setAccountNumber}
                 required
                 keyboardType="numeric"
             />
 
-            <InputField
+            <ControlledInput
+                control={control}
+                name="accountName"
                 label="Account Name"
                 placeholder="Enter account name"
-                value={accountName}
-                onChangeText={setAccountName}
                 required
             />
 
-            <InputField
+            <ControlledInput
+                control={control}
+                name="iban"
                 label="Iban"
                 placeholder="Enter iban number"
-                value={iban}
-                onChangeText={setIban}
                 required
             />
         </View>

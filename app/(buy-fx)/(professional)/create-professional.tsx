@@ -1,40 +1,67 @@
+import ControlledInput from '@/components/ControlledInput';
 import InitiateTransactionSheet from '@/components/InitiateTransactionSheet';
-import InputField from '@/components/InputField';
 import LoadingBackdrop from '@/components/LoadingBackdrop';
 import BankDetailsStep from '@/components/transaction-flow/BankDetailsStep';
 import CredentialStep from '@/components/transaction-flow/CredentialStep';
 import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
+import { useCalculateExchangeRateMutation } from '@/hooks/queries/transactions/useCalculateExchangeRateMutation';
 import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
-import { UploadedFile, useDocumentUpload } from '@/hooks/useDocumentUpload';
+import { useGetExchangeRatesQuery } from '@/hooks/queries/transactions/useGetExchangeRatesQuery';
+import { useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useToastStore } from '@/stores/useToastStore';
 import { professionalStep0Schema, professionalStep1Schema, professionalStep2Schema, professionalStep3Schema } from '@/utils/validations/professional';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { View } from 'react-native';
 import { z } from 'zod';
 
-interface ValidationErrors {
-    [key: string]: string | undefined;
-}
+const professionalFormSchema = z.object({
+    ...professionalStep0Schema.shape,
+    ...professionalStep1Schema.shape,
+    ...professionalStep2Schema.shape,
+    ...professionalStep3Schema.shape
+});
 
-
+type ProfessionalFormValues = z.infer<typeof professionalFormSchema>;
 
 export default function ProfessionalScreen() {
     const router = useRouter();
-    const [currentStep, setCurrentStep] = useState(0);
     const createTransaction = useCreateTransactionMutation();
+    const calculateExchangeRate = useCalculateExchangeRateMutation();
+    const showToast = useToastStore(s => s.showToast);
 
-    // Step 0: Credentials State
-    const [bvn, setBvn] = useState('');
-    const [nin, setNin] = useState('');
-    const [formAId, setFormAId] = useState('');
-    const [passportNumber, setPassportNumber] = useState('');
-    const [evidenceOfMembership, setEvidenceOfMembership] = useState('');
-    const [invoiceNumber, setInvoiceNumber] = useState('');
+    const [currentStep, setCurrentStep] = useState(0);
+    const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
 
-    // Step 2: Exchange State
+    const {
+        control,
+        handleSubmit,
+        trigger,
+        watch,
+        setValue,
+        formState: { errors }
+    } = useForm<ProfessionalFormValues>({
+        resolver: zodResolver(professionalFormSchema),
+        defaultValues: {
+            bvn: '',
+            nin: '',
+            formAId: '',
+            passportNumber: '',
+            evidenceOfMembership: '',
+            invoiceNumber: '',
+            amount: 0,
+            bankName: '',
+            accountNumber: '',
+            accountName: '',
+            iban: '',
+        },
+        mode: 'onChange'
+    });
+
     const [transactionType, setTransactionType] = useState<'buy' | 'sell'>('buy');
     const [currencyGet, setCurrencyGet] = useState({
         code: 'USD',
@@ -49,31 +76,74 @@ export default function ProfessionalScreen() {
         flagUrl: 'https://flagcdn.com/w80/ng.png'
     });
 
-    const [amountGet, setAmountGet] = useState('1'); // Placeholder
-    const [amountSend, setAmountSend] = useState('1,500'); // Placeholder
+    const [amountGetStr, setAmountGetStr] = useState('1');
+    const [amountSendStr, setAmountSendStr] = useState('0');
+    const [currentRate, setCurrentRate] = useState(0);
 
-    // Step 3: Bank Details State (Replacing Location)
-    const [bankName, setBankName] = useState('');
-    const [accountNumber, setAccountNumber] = useState('');
-    const [accountName, setAccountName] = useState('');
-    const [iban, setIban] = useState('');
+    const { data: exchangeRates } = useGetExchangeRatesQuery({
+        fromCurrency: currencyGet.code,
+        toCurrency: currencySend.code
+    });
 
-    const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
-    const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
+    useEffect(() => {
+        if (exchangeRates?.data?.[0]?.sellRate) {
+            setCurrentRate(exchangeRates.data[0].sellRate);
+        }
+    }, [exchangeRates]);
 
-    const clearError = (field: string) => {
-        if (validationErrors[field]) {
-            setValidationErrors(prev => ({ ...prev, [field]: undefined }));
+    const handleAmountGetChange = (amount: string) => {
+        const cleanAmount = amount.replace(/,/g, '');
+        setAmountGetStr(amount);
+        setValue('amount', parseFloat(cleanAmount) || 0);
+
+        if (cleanAmount && !isNaN(parseFloat(cleanAmount))) {
+            calculateExchangeRate.mutate({
+                fromCurrency: currencyGet.code,
+                toCurrency: currencySend.code,
+                amount: parseFloat(cleanAmount)
+            }, {
+                onSuccess: (response) => {
+                    if (response.success && response.data) {
+                        setAmountSendStr(response.data.convertedAmount.toLocaleString());
+                        setCurrentRate(response.data.sellRate);
+                    }
+                }
+            });
+        } else {
+            setAmountSendStr('0');
         }
     };
 
-    // Document upload files
-    const [membershipFile, setMembershipFile] = useState<UploadedFile | null>(null);
-    const [membershipMeta, setMembershipMeta] = useState<import('@/hooks/useDocumentUpload').UploadedMetadata | null>(null);
-    const [invoiceFile, setInvoiceFile] = useState<UploadedFile | null>(null);
-    const [invoiceMeta, setInvoiceMeta] = useState<import('@/hooks/useDocumentUpload').UploadedMetadata | null>(null);
+    const handleCurrencyChange = (type: 'GET' | 'SEND', currency: any) => {
+        if (type === 'GET') {
+            setCurrencyGet(currency);
+        } else {
+            setCurrencySend(currency);
+        }
 
-    const showToast = useToastStore(s => s.showToast);
+        const cleanAmount = amountGetStr.replace(/,/g, '');
+        if (cleanAmount && !isNaN(parseFloat(cleanAmount))) {
+            calculateExchangeRate.mutate({
+                fromCurrency: type === 'GET' ? currency.code : currencyGet.code,
+                toCurrency: type === 'SEND' ? currency.code : currencySend.code,
+                amount: parseFloat(cleanAmount)
+            }, {
+                onSuccess: (response) => {
+                    if (response.success && response.data) {
+                        setAmountSendStr(response.data.convertedAmount.toLocaleString());
+                        setCurrentRate(response.data.sellRate);
+                    }
+                }
+            });
+        }
+    };
+
+    // Document upload state
+    const [membershipFile, setMembershipFile] = useState<any>(null);
+    const [membershipMeta, setMembershipMeta] = useState<any>(null);
+    const [invoiceFile, setInvoiceFile] = useState<any>(null);
+    const [invoiceMeta, setInvoiceMeta] = useState<any>(null);
+
     const { upload: uploadFile, isPending: isUploading } = useDocumentUpload({
         onSuccess: (documentType, { file, metadata }) => {
             if (documentType === 'MEMBERSHIP_CARD') { setMembershipFile(file); setMembershipMeta(metadata); }
@@ -82,26 +152,24 @@ export default function ProfessionalScreen() {
         onError: () => showToast('Failed to upload document. Please try again.', 'error'),
     });
 
-    // --- Configuration ---
-
-    // Fields for Step 0
     const credentialFields = [
-        { label: 'Bank Verification Number (BVN)', placeholder: 'Enter your BVN', value: bvn, onChangeText: (v: string) => { setBvn(v); clearError('bvn'); }, required: true, keyboardType: 'numeric' as const, error: validationErrors.bvn },
-        { label: 'National Identification Number (NIN)', placeholder: 'Enter your NIN', value: nin, onChangeText: (v: string) => { setNin(v); clearError('nin'); }, required: true, keyboardType: 'numeric' as const, error: validationErrors.nin },
-        { label: 'Form A ID', placeholder: 'Enter Form A ID', value: formAId, onChangeText: (v: string) => { setFormAId(v); clearError('formAId'); }, required: true, error: validationErrors.formAId },
-        { label: 'International Passport Number', placeholder: 'Enter international passport', value: passportNumber, onChangeText: (v: string) => { setPassportNumber(v); clearError('passportNumber'); }, required: true, error: validationErrors.passportNumber },
+        { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number(BVN)" placeholder="Enter your BVN" required keyboardType="numeric" /> },
+        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number(NIN)" placeholder="Enter your NIN" required keyboardType="numeric" /> },
+        { customComponent: <ControlledInput control={control} name="formAId" label="Form A ID" placeholder="Enter Form A ID" required /> },
+        { customComponent: <ControlledInput control={control} name="passportNumber" label="International Passport Number" placeholder="Enter international passport" required /> },
     ];
 
-    // Documents for Step 1
     const documentFields = [
         {
             label: 'Evidence of Membership',
             onUpload: () => uploadFile('MEMBERSHIP_CARD'),
             fileName: membershipFile?.name,
+            fileUri: membershipFile?.uri,
+            fileType: membershipFile?.type,
             required: true,
             associatedInputs: (
-                <View style={{ marginBottom: 16 }}>
-                    <InputField label='Evidence of Membership' placeholder='Enter evidence of membership' value={evidenceOfMembership} onChangeText={setEvidenceOfMembership} required />
+                <View>
+                    <ControlledInput control={control} name="evidenceOfMembership" label="Evidence of Membership" placeholder="Enter evidence of membership" required />
                 </View>
             )
         },
@@ -109,72 +177,44 @@ export default function ProfessionalScreen() {
             label: 'Invoice from Professional Body',
             onUpload: () => uploadFile('INVOICE'),
             fileName: invoiceFile?.name,
+            fileUri: invoiceFile?.uri,
+            fileType: invoiceFile?.type,
             required: true,
             associatedInputs: (
-                <View style={{ marginBottom: 16 }}>
-                    <InputField label='Invoice from Professional Body' placeholder='Enter invoice number' value={invoiceNumber} onChangeText={setInvoiceNumber} required />
+                <View>
+                    <ControlledInput control={control} name="invoiceNumber" label="Invoice from Professional Body" placeholder="Enter invoice number" required />
                 </View>
             )
         },
     ];
 
-    // --- Handlers ---
-
-    const handleNext = () => {
+    const handleNext = async () => {
         if (isUploading) {
             showToast('Please wait for files to finish uploading', 'warning');
             return;
         }
-        const errors: ValidationErrors = {};
 
+        let isStepValid = false;
         if (currentStep === 0) {
-            const result = professionalStep0Schema.safeParse({ bvn, nin, formAId, passportNumber });
-            if (!result.success) {
-                result.error.issues.forEach((e: z.ZodIssue) => {
-                    const key = e.path[0] as string;
-                    if (!errors[key]) errors[key] = e.message;
-                });
+            isStepValid = await trigger(['bvn', 'nin', 'formAId', 'passportNumber']);
+        } else if (currentStep === 1) {
+            if (!membershipFile || !invoiceFile) {
+                showToast('Please upload all required documents', 'error');
+                return;
             }
+            isStepValid = await trigger(['evidenceOfMembership', 'invoiceNumber']);
+        } else if (currentStep === 2) {
+            isStepValid = await trigger(['amount']);
+        } else if (currentStep === 3) {
+            isStepValid = await trigger(['bankName', 'accountNumber', 'accountName', 'iban']);
         }
 
-        if (currentStep === 1) {
-            const result = professionalStep1Schema.safeParse({ evidenceOfMembership, invoiceNumber });
-            if (!result.success) {
-                result.error.issues.forEach((e: z.ZodIssue) => {
-                    const key = e.path[0] as string;
-                    if (!errors[key]) errors[key] = e.message;
-                });
+        if (isStepValid) {
+            if (currentStep < 3) {
+                setCurrentStep(currentStep + 1);
+            } else {
+                setInitiateSheetVisible(true);
             }
-        }
-        if (currentStep === 2) {
-            const result = professionalStep2Schema.safeParse({ amount: parseFloat(amountGet.replace(/,/g, '')) });
-            if (!result.success) {
-                result.error.issues.forEach((e: z.ZodIssue) => {
-                    if (!errors.amount) errors.amount = e.message;
-                });
-            }
-        }
-
-        if (currentStep === 3) {
-            const result = professionalStep3Schema.safeParse({ bankName, accountNumber, accountName });
-            if (!result.success) {
-                result.error.issues.forEach((e: z.ZodIssue) => {
-                    const key = e.path[0] as string;
-                    if (!errors[key]) errors[key] = e.message;
-                });
-            }
-        }
-
-        if (Object.keys(errors).length > 0) {
-            setValidationErrors(errors);
-            return;
-        }
-
-        setValidationErrors({});
-        if (currentStep < 3) {
-            setCurrentStep(currentStep + 1);
-        } else {
-            setInitiateSheetVisible(true);
         }
     };
 
@@ -186,26 +226,26 @@ export default function ProfessionalScreen() {
         }
     };
 
-    const handleConfirmInitiate = () => {
+    const onSubmit = (data: ProfessionalFormValues) => {
         const payload = {
             type: 'PROFESSIONAL',
             currency: currencyGet.code,
-            amount: parseFloat(amountGet.replace(/,/g, '')),
+            amount: data.amount,
             purpose: 'Professional Fees Payment',
             destinationCountry: currencyGet.country,
-            bvn,
-            nin,
-            formAId,
+            bvn: data.bvn,
+            nin: data.nin,
+            formAId: data.formAId,
             documents: [
                 ...(membershipMeta ? [membershipMeta] : []),
                 ...(invoiceMeta ? [invoiceMeta] : []),
             ],
             beneficiaryDetails: {
-                name: accountName,
-                accountNumber,
-                accountName,
-                bankName,
-                iban,
+                name: data.accountName,
+                accountNumber: data.accountNumber,
+                accountName: data.accountName,
+                bankName: data.bankName,
+                iban: data.iban,
             },
         };
 
@@ -219,9 +259,12 @@ export default function ProfessionalScreen() {
         });
     };
 
+    const bankName = watch('bankName');
+    const accountNumber = watch('accountNumber');
+
     return (
-        <>
-            <LoadingBackdrop visible={isUploading || createTransaction.isPending} />
+        <View style={{ flex: 1 }}>
+            <LoadingBackdrop visible={isUploading} />
             <TransactionLayout
                 title="Professional"
                 currentStep={currentStep}
@@ -243,36 +286,29 @@ export default function ProfessionalScreen() {
                         transactionType={transactionType}
                         onTransactionTypeChange={setTransactionType}
                         currencyGet={currencyGet}
-                        onCurrencyGetChange={setCurrencyGet}
+                        onCurrencyGetChange={(v: any) => handleCurrencyChange('GET', v)}
                         currencySend={currencySend}
-                        onCurrencySendChange={setCurrencySend}
-                        amountGet={amountGet}
-                        amountSend={amountSend}
-                        rate={`1 ${currencyGet.code} = 1500 ${currencySend.code}`}
-                        onAmountGetChange={setAmountGet}
-                        onAmountSendChange={setAmountSend}
+                        onCurrencySendChange={(v: any) => handleCurrencyChange('SEND', v)}
+                        amountGet={amountGetStr}
+                        amountSend={amountSendStr}
+                        rate={`1 ${currencyGet.code} = ${currentRate.toLocaleString()} ${currencySend.code}`}
+                        onAmountGetChange={handleAmountGetChange}
+                        onAmountSendChange={setAmountSendStr}
                         allowedModes={['buy']}
+                        error={errors.amount?.message}
                     />
                 )}
 
                 {currentStep === 3 && (
-                    <BankDetailsStep
-                        bankName={bankName}
-                        setBankName={setBankName}
-                        accountNumber={accountNumber}
-                        setAccountNumber={setAccountNumber}
-                        accountName={accountName}
-                        setAccountName={setAccountName}
-                        iban={iban}
-                        setIban={setIban}
-                    />
+                    <BankDetailsStep control={control} />
                 )}
 
                 <InitiateTransactionSheet
                     visible={initiateSheetVisible}
                     onClose={() => setInitiateSheetVisible(false)}
-                    onConfirm={handleConfirmInitiate}
+                    onConfirm={handleSubmit(onSubmit)}
                     title="Initiate Professional Transaction request?"
+                    loading={createTransaction.isPending}
                     items={[
                         {
                             title: "Verification before approval",
@@ -287,6 +323,6 @@ export default function ProfessionalScreen() {
                     ]}
                 />
             </TransactionLayout>
-        </>
+        </View>
     );
 }

@@ -1,100 +1,72 @@
-import InputField from '@/components/InputField';
+import ControlledInput from '@/components/ControlledInput';
 import React from 'react';
 import { ScrollView, Text } from 'react-native';
 import { ScaledSheet } from 'react-native-size-matters';
 
 interface MedicalBankDetailsStepProps {
-    beneficiaryName: string;
-    setBeneficiaryName: (text: string) => void;
-    beneficiaryAddress: string;
-    setBeneficiaryAddress: (text: string) => void;
-    beneficiaryBank: string;
-    setBeneficiaryBank: (text: string) => void;
-    routingNumber: string;
-    setRoutingNumber: (text: string) => void;
-    accountNumber: string;
-    setAccountNumber: (text: string) => void;
-    bankAddress: string;
-    setBankAddress: (text: string) => void;
-    swiftCode: string;
-    setSwiftCode: (text: string) => void;
+    control: any;
 }
 
-export default function MedicalBankDetailsStep({
-    beneficiaryName,
-    setBeneficiaryName,
-    beneficiaryAddress,
-    setBeneficiaryAddress,
-    beneficiaryBank,
-    setBeneficiaryBank,
-    routingNumber,
-    setRoutingNumber,
-    accountNumber,
-    setAccountNumber,
-    bankAddress,
-    setBankAddress,
-    swiftCode,
-    setSwiftCode
-}: MedicalBankDetailsStepProps) {
+export default function MedicalBankDetailsStep({ control }: MedicalBankDetailsStepProps) {
     return (
         <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
             <Text style={styles.title}>Where would you like to send the fund to?</Text>
 
-            <InputField
+            <ControlledInput
+                control={control}
+                name="beneficiaryName"
                 label="Beneficiary"
                 placeholder="Enter beneficiary name"
-                value={beneficiaryName}
-                onChangeText={setBeneficiaryName}
                 required
             />
 
-            <InputField
+            <ControlledInput
+                control={control}
+                name="beneficiaryAddress"
                 label="Beneficiary Address"
                 placeholder="Enter beneficiary address"
-                value={beneficiaryAddress}
-                onChangeText={setBeneficiaryAddress}
                 required
             />
 
-            <InputField
+            <ControlledInput
+                control={control}
+                name="beneficiaryBank"
                 label="Beneficiary Bank"
                 placeholder="Enter beneficiary bank"
-                value={beneficiaryBank}
-                onChangeText={setBeneficiaryBank}
                 required
             />
 
-            <InputField
+            <ControlledInput
+                control={control}
+                name="routingNumber"
                 label="Routing Number"
                 placeholder="Enter routing number"
-                value={routingNumber}
-                onChangeText={setRoutingNumber}
                 required
                 keyboardType="numeric"
             />
 
-            <InputField
+            <ControlledInput
+                control={control}
+                name="accountNumber"
                 label="Account Number"
                 placeholder="Enter account number"
-                value={accountNumber}
-                onChangeText={setAccountNumber}
                 required
                 keyboardType="numeric"
             />
 
-            <InputField
+            <ControlledInput
+                control={control}
+                name="bankAddress"
                 label="Bank Address"
                 placeholder="Enter bank address"
-                value={bankAddress}
-                onChangeText={setBankAddress}
                 required
             />
 
-            <InputField
+            <ControlledInput
+                control={control}
+                name="swiftCode"
                 label="SWIFT CODE"
                 placeholder="Enter swift code"
-                value={swiftCode}
-                onChangeText={setSwiftCode}
                 required
             />
         </ScrollView>
@@ -104,7 +76,7 @@ export default function MedicalBankDetailsStep({
 const styles = ScaledSheet.create({
     container: {
         gap: '6@vs',
-        paddingBottom: '40@vs', 
+        paddingBottom: '40@vs',
     },
     title: {
         fontSize: '16@ms',

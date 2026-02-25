@@ -29,30 +29,7 @@ interface ValidationErrors {
     [key: string]: string | undefined;
 }
 
-const STATES: LocationItem[] = [
-    { id: '1', title: 'Lagos State' },
-    { id: '2', title: 'Ogun State' },
-    { id: '3', title: 'Rivers State' },
-    { id: '4', title: 'Kaduna State' },
-    { id: '5', title: 'Enugu State' },
-    { id: '6', title: 'Kano State' },
-];
-
-const CITIES: LocationItem[] = [
-    { id: '1', title: 'Ajeromi Local Government' },
-    { id: '2', title: 'Agege Local Government' },
-    { id: '3', title: 'Alimosho Local Government' },
-    { id: '4', title: 'Amuwo Odofin Local Government' },
-    { id: '5', title: 'Apapa Local Government' },
-    { id: '6', title: 'Badagry Local Government' },
-];
-
-const LOCATIONS: LocationItem[] = [
-    { id: '1', title: 'Ajeromi Local Government', subtitle: 'Femi Areola Street, Ikeja GRA.' },
-    { id: '2', title: 'Agege Local Government', subtitle: 'Femi Areola Street, Ikeja GRA.' },
-    { id: '3', title: 'Ikorodu Local Government', subtitle: '23 T.O.S Benson Avenue, Ikorodu.' },
-    { id: '4', title: 'Festac Local Government', subtitle: '1st Avenue, Festac Town.' },
-];
+import { CITIES, LOCATIONS, STATES } from '@/utils/locations';
 
 export default function CreateTouristScreen() {
     const router = useRouter();
@@ -139,6 +116,8 @@ export default function CreateTouristScreen() {
             label: 'International Passport',
             onUpload: () => uploadFile('PASSPORT'),
             fileName: passportFile?.name,
+            fileUri: passportFile?.uri,
+            fileType: passportFile?.type,
             required: true,
             error: validationErrors.passportIssueDate || validationErrors.passportExpiryDate,
             associatedInputs: (
@@ -156,6 +135,8 @@ export default function CreateTouristScreen() {
             label: 'Valid Visa',
             onUpload: () => uploadFile('VISA'),
             fileName: visaFile?.name,
+            fileUri: visaFile?.uri,
+            fileType: visaFile?.type,
             required: true,
             error: validationErrors.visaNumber,
             associatedInputs: (
@@ -168,6 +149,8 @@ export default function CreateTouristScreen() {
             label: 'Valid Return Ticket',
             onUpload: () => uploadFile('RETURN_TICKET'),
             fileName: ticketFile?.name,
+            fileUri: ticketFile?.uri,
+            fileType: ticketFile?.type,
             required: true,
             error: validationErrors.ticketNumber,
             associatedInputs: (
@@ -175,7 +158,16 @@ export default function CreateTouristScreen() {
                     <InputField label='Valid Return Ticket' required placeholder='Enter ticket number' value={ticketNumber} onChangeText={(v) => { setTicketNumber(v); clearError('ticketNumber'); }} error={validationErrors.ticketNumber} />
                 </View>
             )
-        }
+        },
+        {
+            label: 'Receipt for Initial Naira Purchase',
+            onUpload: () => uploadFile('RECEIPT'),
+            fileName: ticketFile?.name,
+            fileUri: ticketFile?.uri,
+            fileType: ticketFile?.type,
+            required: true,
+            error: validationErrors.ticketNumber,
+        },
     ];
 
     const handleNext = () => {

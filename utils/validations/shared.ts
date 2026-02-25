@@ -46,6 +46,7 @@ export const bankDetailsStepSchema = z.object({
     bankName: z.string().min(1, 'Please enter the bank name'),
     accountNumber: z.string().min(10, 'Please enter a valid account number'),
     accountName: z.string().min(1, 'Please enter the account name'),
+    iban: z.string().min(1, 'Please enter the IBAN'),
 });
 
 /** Step 3: Medical bank details */
@@ -53,7 +54,10 @@ export const medicalBankDetailsStepSchema = z.object({
     beneficiaryName: z.string().min(1, 'Please enter the beneficiary name'),
     beneficiaryAddress: z.string().min(1, 'Please enter the beneficiary address'),
     beneficiaryBank: z.string().min(1, 'Please enter the beneficiary bank'),
+    routingNumber: z.string().min(1, 'Please enter the routing number'),
     accountNumber: z.string().min(1, 'Please enter the account number'),
+    bankAddress: z.string().min(1, 'Please enter the bank address'),
+    swiftCode: z.string().min(1, 'Please enter the SWIFT code'),
 });
 
 /** Step 2: Exchange amount — parameterised by max amount */
