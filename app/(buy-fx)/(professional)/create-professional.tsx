@@ -5,7 +5,7 @@ import CredentialStep from '@/components/transaction-flow/CredentialStep';
 import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
-import { professionalStep0Schema, professionalStep2Schema, professionalStep3Schema } from '@/utils/validations/professional';
+import { professionalStep0Schema, professionalStep1Schema, professionalStep2Schema, professionalStep3Schema } from '@/utils/validations/professional';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { View } from 'react-native';
@@ -111,6 +111,15 @@ export default function ProfessionalScreen() {
             }
         }
 
+        if (currentStep === 1) {
+            const result = professionalStep1Schema.safeParse({ evidenceOfMembership, invoiceNumber });
+            if (!result.success) {
+                result.error.issues.forEach((e: z.ZodIssue) => {
+                    const key = e.path[0] as string;
+                    if (!errors[key]) errors[key] = e.message;
+                });
+            }
+        }
         if (currentStep === 2) {
             const result = professionalStep2Schema.safeParse({ amount: parseFloat(amountGet.replace(/,/g, '')) });
             if (!result.success) {
@@ -186,6 +195,7 @@ export default function ProfessionalScreen() {
                     rate={`1 ${currencyGet.code} = 1500 ${currencySend.code}`}
                     onAmountGetChange={setAmountGet}
                     onAmountSendChange={setAmountSend}
+                    allowedModes={['buy']}
                 />
             )}
 

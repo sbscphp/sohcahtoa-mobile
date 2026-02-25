@@ -7,7 +7,7 @@ import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import LocationStep from '@/components/transaction-flow/LocationStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
-import { btaStep0Schema, btaStep2Schema, btaStep3Schema } from '@/utils/validations/bta';
+import { btaStep0Schema, btaStep1Schema, btaStep2Schema, btaStep3Schema } from '@/utils/validations/bta';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { View } from 'react-native';
@@ -155,6 +155,15 @@ export default function BusinessTravelAllowanceScreen() {
             }
         }
 
+        if (currentStep === 1) {
+            const result = btaStep1Schema.safeParse({ tccNumber, passportIssueDate, passportExpiryDate });
+            if (!result.success) {
+                result.error.issues.forEach((e: z.ZodIssue) => {
+                    const key = e.path[0] as string;
+                    if (!errors[key]) errors[key] = e.message;
+                });
+            }
+        }
         if (currentStep === 2) {
             const result = btaStep2Schema.safeParse({ amount: parseFloat(amountGet.replace(/,/g, '')) });
             if (!result.success) {
@@ -230,6 +239,7 @@ export default function BusinessTravelAllowanceScreen() {
                     rate={`1 ${currencyGet.code} = 1500 ${currencySend.code}`}
                     onAmountGetChange={setAmountGet}
                     onAmountSendChange={setAmountSend}
+                    allowedModes={['buy']}
                 />
             )}
 

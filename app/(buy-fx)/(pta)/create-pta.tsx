@@ -15,7 +15,7 @@ import { useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useToastStore } from '@/stores/useToastStore';
 import { useTransactionStore } from '@/stores/useTransactionStore';
-import { ptaStep0Schema, ptaStep2Schema, ptaStep3Schema } from '@/utils/validations/pta';
+import { ptaStep0Schema, ptaStep1Schema, ptaStep2Schema, ptaStep3Schema } from '@/utils/validations/pta';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { View } from 'react-native';
@@ -257,6 +257,18 @@ export default function PersonalTravelAllowanceScreen() {
                 showToast('Please wait for files to finish uploading', 'warning');
                 return;
             }
+            const result = ptaStep1Schema.safeParse({
+                visaFile: ptaData.visaFile?.name ?? '',
+                visaNumber: ptaData.visaNumber ?? '',
+                ticketFile: ptaData.ticketFile?.name ?? '',
+                ticketNumber: ptaData.ticketNumber ?? '',
+            });
+            if (!result.success) {
+                result.error.issues.forEach((e: z.ZodIssue) => {
+                    const key = e.path[0] as string;
+                    if (!errors[key]) errors[key] = e.message;
+                });
+            }
         }
 
         if (currentStep === 2) {
@@ -382,6 +394,7 @@ export default function PersonalTravelAllowanceScreen() {
                         rate={exchangeRateText}
                         onAmountGetChange={handleAmountGetChange}
                         onAmountSendChange={(v) => setPtaData({ amountSend: v })}
+                        allowedModes={['buy']}
                         error={validationErrors.amount}
                     />
                 )}

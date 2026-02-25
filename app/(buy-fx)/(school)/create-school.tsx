@@ -8,7 +8,7 @@ import CredentialStep from '@/components/transaction-flow/CredentialStep';
 import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
-import { schoolStep0Schema, schoolStep2Schema, schoolStep3Schema } from '@/utils/validations/school';
+import { schoolStep0Schema, schoolStep1Schema, schoolStep2Schema, schoolStep3Schema } from '@/utils/validations/school';
 import { useRouter } from 'expo-router';
 import { ArrowDown2, Teacher } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
@@ -196,6 +196,17 @@ export default function SchoolFeesScreen() {
             }
         }
 
+        if (currentStep === 1) {
+            if (admissionType === 'Post-Graduate') {
+                const result = schoolStep1Schema.safeParse({ passportIssueDate, passportExpiryDate });
+                if (!result.success) {
+                    result.error.issues.forEach((e: z.ZodIssue) => {
+                        const key = e.path[0] as string;
+                        if (!errors[key]) errors[key] = e.message;
+                    });
+                }
+            }
+        }
         if (currentStep === 2) {
             const isPostGrad = admissionType === 'Post-Graduate';
             const result = schoolStep2Schema(isPostGrad).safeParse({ amount: parseFloat(amountGet.replace(/,/g, '')) });
@@ -272,6 +283,7 @@ export default function SchoolFeesScreen() {
                     rate={`1 ${currencyGet.code} = 1500 ${currencySend.code}`}
                     onAmountGetChange={setAmountGet}
                     onAmountSendChange={setAmountSend}
+                    allowedModes={['buy']}
                 />
             )}
 

@@ -18,6 +18,13 @@ export const btaStep0Schema = z.object({
     passportNumber: passportNumberField,
 });
 
+/** Step 1: BTA documents */
+export const btaStep1Schema = z.object({
+    tccNumber: z.string().min(1, 'Please enter your TCC number'),
+    passportIssueDate: z.string().min(1, 'Please select Passport Issue Date'),
+    passportExpiryDate: z.string().min(1, 'Please select Passport Expiry Date'),
+});
+
 /** Step 2: BTA amount — max $5,000 */
 export const btaStep2Schema = amountStepSchema(5000, 'BTA');
 

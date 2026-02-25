@@ -7,6 +7,13 @@ export const ptaStep0Schema = z.object({
     passportNumber: z.string().regex(/^[A-Za-z]\d{8}$/, 'Please enter a valid International Passport Number'),
 });
 
+export const ptaStep1Schema = z.object({
+    visaFile: z.string().min(1, 'Please upload a valid Visa'),
+    visaNumber: z.string().min(1, 'Please enter your Visa Number'),
+    ticketFile: z.string().min(1, 'Please upload your Return Ticket'),
+    ticketNumber: z.string().min(1, 'Please enter your Return Ticket Number'),
+});
+
 export const ptaStep2Schema = z.object({
     amount: z
         .number()

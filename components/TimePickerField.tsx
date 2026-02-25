@@ -56,14 +56,14 @@ const TimePickerField: React.FC<TimePickerFieldProps> = ({
     const handleTimeChange = (event: any, time?: Date) => {
         if (Platform.OS === 'android') {
             setShowPicker(false);
-            if (time) {
+            // event.type can be 'set' (confirmed) or 'dismissed' (cancelled)
+            if (event.type === 'set' && time) {
                 setSelectedTime(time);
                 setTempTime(time);
-                const formattedTime = formatTime(time);
-                onTimeChange(formattedTime);
+                onTimeChange(formatTime(time));
             }
         } else {
-            // iOS - always update temp time when scrolling
+            // iOS — always update temp time as user scrolls
             if (time) {
                 setTempTime(time);
             }
@@ -162,7 +162,7 @@ const TimePickerField: React.FC<TimePickerFieldProps> = ({
                 <DateTimePicker
                     value={tempTime || new Date()}
                     mode="time"
-                    display="default"
+                    display="spinner"
                     onChange={handleTimeChange}
                 />
             )}
