@@ -120,7 +120,7 @@ export default function MoreScreen() {
                                 logout(undefined, {
                                     onSuccess: () => {
                                         setLogoutModalVisible(false);
-                                        router.replace('/(auth)/welcome-back');
+                                        router.replace('/(auth)/login');
                                     },
                                     onError: () => {
                                         setLogoutModalVisible(false);

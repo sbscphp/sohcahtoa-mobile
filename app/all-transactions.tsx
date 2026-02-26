@@ -102,13 +102,14 @@ const getTransactionRoute = (type: string): string => {
         'PTA': '/(buy-fx)/(pta)/view-pta',
         'BTA': '/(buy-fx)/(bta)/view-bta',
         'MEDICAL': '/(buy-fx)/(medical)/view-medical',
-        'SCHOOL': '/(buy-fx)/(school)/view-school',
-        'PROFESSIONAL': '/(buy-fx)/(professional)/view-professional',
+        'SCHOOL_FEES': '/(buy-fx)/(school)/view-school',
+        'PROFESSIONAL_BODY': '/(buy-fx)/(professional)/view-professional',
         'TOURING': '/(buy-fx)/(touring)/view-touring',
-        'EXPATRIATE': '/(sell-fx)/(expatriate)/view-expatriate',
-        'RESIDENT': '/(sell-fx)/(resident)/view-resident',
-        'TOURIST': '/(sell-fx)/(tourist)/view-tourist',
-        'RECEIVE_FX': '/(receive-fx)/view-receive-fx',
+        'EXPATRIATE_FX': '/(sell-fx)/(expatriate)/view-expatriate',
+        'RESIDENT_FX': '/(sell-fx)/(resident)/view-resident',
+        'TOURIST_FX': '/(sell-fx)/(tourist)/view-tourist',
+        'IMTO_REMITTANCE': '/(receive-fx)/view-receive-fx',
+        'CASH_REMITTANCE': '/(receive-fx)/view-receive-fx',
     };
     return routes[type] || '/(buy-fx)/(pta)/view-pta';
 };

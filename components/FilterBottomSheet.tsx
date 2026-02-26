@@ -21,7 +21,7 @@ const TYPE_OPTIONS = [
 const GROUP_OPTIONS = [
     { label: 'Buy FX', value: 'BUY' },
     { label: 'Sell FX', value: 'SELL' },
-    { label: 'Receive FX', value: 'RECEIVE' },
+    { label: 'Receive FX', value: 'REMITTANCE' },
 ];
 
 const CURRENCY_OPTIONS = [

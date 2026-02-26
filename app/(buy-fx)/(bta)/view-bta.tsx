@@ -3,7 +3,6 @@ import TransactionDocsView from '@/components/transaction-flow/TransactionDocsVi
 import TransactionStatusView, { TransactionStatus } from '@/components/transaction-flow/TransactionStatusView';
 import TransactionViewLayout from '@/components/transaction-flow/TransactionViewLayout';
 import { useGetTransactionByIdQuery } from '@/hooks/queries/transactions/useGetTransactionByIdQuery';
-import { getDocumentAsync } from 'expo-document-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
@@ -53,13 +52,14 @@ const formatCurrency = (amount: number | null | undefined, prefix: string = '₦
 export default function ViewBtaScreen() {
     const router = useRouter();
     const { transactionId } = useLocalSearchParams<{ transactionId: string }>();
+    console.log(transactionId, 'transactionId');
     const [activeTab, setActiveTab] = useState('overview');
 
     const { data: txResponse, isLoading } = useGetTransactionByIdQuery(transactionId || '');
     const tx = txResponse?.data;
 
 
-    console.log('Transaction:', tx);
+    // console.log('Transaction:', tx);
 
     const status: TransactionStatus = tx ? mapApiStatusToViewStatus(tx.status) : 'pending';
 
@@ -68,24 +68,12 @@ export default function ViewBtaScreen() {
     };
 
     const handleProceed = () => {
-        router.push('/(buy-fx)/(bta)/payment');
+        router.push({
+            pathname: '/(buy-fx)/(bta)/payment',
+            params: { transactionId }
+        });
     };
 
-    const handleUpload = async (docType: string) => {
-        try {
-            const result = await getDocumentAsync({
-                type: ['application/pdf', 'image/*'],
-                copyToCacheDirectory: true,
-            });
-
-            if (result.assets && result.assets.length > 0) {
-                // TODO: call upload mutation with file
-                console.log('Selected file:', result.assets[0].name, 'for', docType);
-            }
-        } catch (error) {
-            console.error("Error picking document:", error);
-        }
-    };
 
     const tabs = [
         { key: 'overview', label: 'Overview' },

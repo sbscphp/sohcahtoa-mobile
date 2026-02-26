@@ -16,7 +16,7 @@ export default function ViewPtaScreen() {
     const { data: txResponse, isLoading } = useGetTransactionByIdQuery(transactionId || '');
     const tx = txResponse?.data;
 
-    console.log('Transaction:', tx);
+    // console.log('Transaction:', tx);
 
     const status: TransactionStatus = tx ? mapApiStatusToViewStatus(tx.status) : 'pending';
 

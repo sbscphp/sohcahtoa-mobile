@@ -54,6 +54,7 @@ export default function BusinessTravelAllowanceScreen() {
             passportNumber: '',
             passportIssueDate: '',
             passportExpiryDate: '',
+            visaNumber: '',
             tccNumber: '',
             amount: 1,
             selectedState: undefined as unknown as LocationItem,
@@ -79,7 +80,6 @@ export default function BusinessTravelAllowanceScreen() {
         flagUrl: 'https://flagcdn.com/w80/ng.png'
     });
 
-    // We manually track amount string since exchange step does lots of formatting
     const [amountGetStr, setAmountGetStr] = useState('1');
     const [amountSendStr, setAmountSendStr] = useState('1,500');
 
@@ -172,7 +172,7 @@ export default function BusinessTravelAllowanceScreen() {
             fileType: docs.visa.file?.type,
             required: true,
             associatedInputs: (
-                <View style={{ flexDirection: 'row', gap: 12 }}>
+                <View >
                     <ControlledInput control={control} name="visaNumber" label="Visa Number" required placeholder="Enter visa number" keyboardType="numeric" />
                 </View>
             )
@@ -214,7 +214,7 @@ export default function BusinessTravelAllowanceScreen() {
         if (currentStep === 0) {
             isStepValid = await trigger(['bvn', 'tin', 'nin', 'formAId', 'passportNumber']);
         } else if (currentStep === 1) {
-            isStepValid = await trigger(['tccNumber', 'passportIssueDate', 'passportExpiryDate']);
+            isStepValid = await trigger(['tccNumber', 'passportIssueDate', 'passportExpiryDate', 'visaNumber']);
         } else if (currentStep === 2) {
             isStepValid = await trigger(['amount']);
         } else if (currentStep === 3) {

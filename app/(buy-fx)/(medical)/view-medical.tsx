@@ -30,7 +30,10 @@ export default function ViewMedicalPaymentScreen() {
     const status: TransactionStatus = tx ? mapApiStatusToViewStatus(tx.status) : 'pending';
 
     const handleBack = () => { router.back(); };
-    const handleProceed = () => { router.push('/(buy-fx)/(medical)/payment'); };
+    const handleProceed = () => { router.push({
+            pathname: '/(buy-fx)/(medical)/payment',
+            params: { transactionId }
+        }); };
 
     const formatDate = (d: string) => { const dt = new Date(d); const m = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']; return `${dt.getDate()} ${m[dt.getMonth()]} ${dt.getFullYear()}`; };
     const formatTime = (d: string) => { const dt = new Date(d); let h = dt.getHours(); const min = dt.getMinutes(); const ap = h >= 12 ? 'pm' : 'am'; h = h % 12 || 12; return `${h}:${String(min).padStart(2, '0')} ${ap}`; };

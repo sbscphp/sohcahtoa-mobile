@@ -21,7 +21,10 @@ export default function ViewSchoolFeesScreen() {
     };
     const status: TransactionStatus = tx ? mapStatus(tx.status) : 'pending';
     const handleBack = () => { router.back(); };
-    const handleProceed = () => { router.push('/(buy-fx)/(school)/payment'); };
+    const handleProceed = () => { router.push({
+            pathname: '/(buy-fx)/(school)/payment',
+            params: { transactionId }
+        }); };
     const fmtDate = (d: string) => { const dt = new Date(d); const m = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']; return `${dt.getDate()} ${m[dt.getMonth()]} ${dt.getFullYear()}`; };
     const fmtTime = (d: string) => { const dt = new Date(d); let h = dt.getHours(); const min = dt.getMinutes(); const ap = h >= 12 ? 'pm' : 'am'; h = h % 12 || 12; return `${h}:${String(min).padStart(2, '0')} ${ap}`; };
     const fmtCur = (n: number | null | undefined, p = '₦') => n == null ? `${p} 0` : `${p} ${n.toLocaleString()}`;
