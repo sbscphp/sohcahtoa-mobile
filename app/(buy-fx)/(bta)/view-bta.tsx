@@ -48,7 +48,6 @@ const formatCurrency = (amount: number | null | undefined, prefix: string = '₦
     return `${prefix} ${amount.toLocaleString()}`;
 };
 
-// ── Component ────────────────────────────────────────────────────────
 export default function ViewBtaScreen() {
     const router = useRouter();
     const { transactionId } = useLocalSearchParams<{ transactionId: string }>();

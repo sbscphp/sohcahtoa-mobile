@@ -68,6 +68,7 @@ export default function SchoolFeesScreen() {
             admissionType: '',
             passportIssueDate: '',
             passportExpiryDate: '',
+            invoiceNumber: '',
             amount: 0,
             bankName: '',
             accountNumber: '',
@@ -211,6 +212,11 @@ export default function SchoolFeesScreen() {
             fileUri: invoiceFile?.uri,
             fileType: invoiceFile?.type,
             required: true,
+            associatedInputs: (
+                <View>
+                    <ControlledInput control={control} name="invoiceNumber" label="School Invoice Number" placeholder="Enter invoice number" required />
+                </View>
+            )
         },
         {
             label: 'International Passport',
@@ -219,6 +225,13 @@ export default function SchoolFeesScreen() {
             fileUri: passportFile?.uri,
             fileType: passportFile?.type,
             required: true,
+            associatedInputs: (
+
+                <View style={{ flex: 1 }}>
+                    <ControlledInput control={control} name="passportNumber" label="International Passport Number" placeholder="Enter international passport number" required />
+                </View>
+
+            )
         },
     ];
 
@@ -248,6 +261,11 @@ export default function SchoolFeesScreen() {
             fileUri: invoiceFile?.uri,
             fileType: invoiceFile?.type,
             required: true,
+            associatedInputs: (
+                <View>
+                    <ControlledInput control={control} name="invoiceNumber" label="School Invoice Number" placeholder="Enter invoice number" required />
+                </View>
+            )
         },
         {
             label: 'Statement Of Result',
@@ -329,12 +347,15 @@ export default function SchoolFeesScreen() {
             nin: data.nin,
             formAId: data.formAId,
             admissionType: data.admissionType,
-            documents: [
+            documents: isPostGrad ? [
+                ...(passportMeta ? [passportMeta] : []),
+                ...(invoiceMeta ? [invoiceMeta] : []),
+                ...(resultMeta ? [resultMeta] : []),
+                ...(degreeMeta ? [degreeMeta] : []),
+            ] : [
                 ...(admissionMeta ? [admissionMeta] : []),
                 ...(invoiceMeta ? [invoiceMeta] : []),
                 ...(passportMeta ? [passportMeta] : []),
-                ...(resultMeta ? [resultMeta] : []),
-                ...(degreeMeta ? [degreeMeta] : []),
             ],
             beneficiaryDetails: {
                 name: data.accountName,
@@ -349,7 +370,13 @@ export default function SchoolFeesScreen() {
             onSuccess: (response) => {
                 if (response.success) {
                     setInitiateSheetVisible(false);
-                    router.push('/(buy-fx)/(school)/request-initiated-success');
+                    router.push({
+                        pathname: '/(buy-fx)/(school)/request-initiated-success',
+                        params: {
+                            transactionId: response.data.transactionId,
+                        },
+                    });
+
                 }
             },
         });
@@ -401,6 +428,7 @@ export default function SchoolFeesScreen() {
 
                 <InitiateTransactionSheet
                     visible={initiateSheetVisible}
+                    loading={createTransaction.isPending}
                     onClose={() => setInitiateSheetVisible(false)}
                     onConfirm={handleSubmit(onSubmit)}
                     title={`Initiate ${admissionType} Transaction request?`}

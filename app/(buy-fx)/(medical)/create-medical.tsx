@@ -11,7 +11,7 @@ import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCr
 import { useGetExchangeRatesQuery } from '@/hooks/queries/transactions/useGetExchangeRatesQuery';
 import { useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useToastStore } from '@/stores/useToastStore';
-import { medicalStep0Schema, medicalStep2Schema, medicalStep3Schema } from '@/utils/validations/medical';
+import { medicalStep0Schema, medicalStep1Schema, medicalStep2Schema, medicalStep3Schema } from '@/utils/validations/medical';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -21,6 +21,7 @@ import { z } from 'zod';
 
 const medicalFormSchema = z.object({
     ...medicalStep0Schema.shape,
+    ...medicalStep1Schema.shape,
     ...medicalStep2Schema.shape,
     ...medicalStep3Schema.shape
 });
@@ -50,6 +51,8 @@ export default function MedicalPaymentScreen() {
             nin: '',
             formAId: '',
             passportNumber: '',
+            visaNumber: '',
+            returnTicketNumber: '',
             amount: 0,
             beneficiaryName: '',
             beneficiaryAddress: '',
@@ -58,6 +61,7 @@ export default function MedicalPaymentScreen() {
             accountNumber: '',
             bankAddress: '',
             swiftCode: '',
+            iban: '',
         },
         mode: 'onChange'
     });
@@ -195,6 +199,12 @@ export default function MedicalPaymentScreen() {
             fileUri: visaFile?.uri,
             fileType: visaFile?.type,
             required: true,
+            associatedInputs: (
+                <View>
+                    <ControlledInput control={control} name="visaNumber" label="Visa Number" required placeholder="Enter visa number" keyboardType="numeric" />
+                </View>
+            )
+
         },
         {
             label: 'Return Ticket',
@@ -203,9 +213,15 @@ export default function MedicalPaymentScreen() {
             fileUri: returnTicketFile?.uri,
             fileType: returnTicketFile?.type,
             required: true,
+            associatedInputs: (
+                <View>
+                    <ControlledInput control={control} name="returnTicketNumber" label="Return Ticket Number" required placeholder="Enter return ticket number" keyboardType="numeric" />
+                </View>
+            )
+
         },
         {
-            label: 'Reference Letter',
+            label: 'Reference Letter (Nigerian Specialist Doctor or Hospital)',
             onUpload: () => uploadFile('MEDICAL_LETTER'),
             fileName: referenceLetterFile?.name,
             fileUri: referenceLetterFile?.uri,
@@ -213,7 +229,7 @@ export default function MedicalPaymentScreen() {
             required: true,
         },
         {
-            label: 'Oversea Doctor Letter',
+            label: 'Letter from oversea doctor stating treatment cost',
             onUpload: () => uploadFile('OVERSEAS_MEDICAL_LETTER'),
             fileName: overseaDoctorLetterFile?.name,
             fileUri: overseaDoctorLetterFile?.uri,
@@ -236,11 +252,11 @@ export default function MedicalPaymentScreen() {
                 showToast('Please upload all required documents', 'error');
                 return;
             }
-            isStepValid = true; // No extra fields in step 1 schema for medical natively, just files
+            isStepValid = await trigger(['visaNumber', 'returnTicketNumber']);
         } else if (currentStep === 2) {
             isStepValid = await trigger(['amount']);
         } else if (currentStep === 3) {
-            isStepValid = await trigger(['beneficiaryName', 'beneficiaryAddress', 'beneficiaryBank', 'routingNumber', 'accountNumber', 'bankAddress', 'swiftCode']);
+            isStepValid = await trigger(['beneficiaryName', 'beneficiaryAddress', 'beneficiaryBank', 'routingNumber', 'accountNumber', 'bankAddress', 'swiftCode', 'iban']);
         }
 
         if (isStepValid) {
@@ -287,7 +303,7 @@ export default function MedicalPaymentScreen() {
                 accountNumber: data.accountNumber,
                 accountName: data.beneficiaryName,
                 bankName: data.beneficiaryBank,
-                iban: '',
+                iban: data.iban,
             },
         };
 
@@ -295,7 +311,10 @@ export default function MedicalPaymentScreen() {
             onSuccess: (response) => {
                 if (response.success) {
                     setInitiateSheetVisible(false);
-                    router.push('/(buy-fx)/(medical)/request-initiated-success');
+                    router.push({
+                        pathname: '/(buy-fx)/(medical)/request-initiated-success',
+                        params: { transactionId: response.data?.transactionId }
+                    });
                 }
             },
         });
@@ -346,6 +365,7 @@ export default function MedicalPaymentScreen() {
 
                 <InitiateTransactionSheet
                     visible={initiateSheetVisible}
+
                     onClose={() => setInitiateSheetVisible(false)}
                     onConfirm={handleSubmit(onSubmit)}
                     title="Initiate Medical Transaction request?"

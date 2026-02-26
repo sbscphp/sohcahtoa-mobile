@@ -15,6 +15,8 @@ export default function ViewMedicalPaymentScreen() {
     const { data: txResponse, isLoading } = useGetTransactionByIdQuery(transactionId || '');
     const tx = txResponse?.data;
 
+    console.log(tx,"MEDI");
+
     const mapApiStatusToViewStatus = (s: string): TransactionStatus => {
         const map: Record<string, TransactionStatus> = {
             'DRAFT': 'pending', 'AWAITING_VERIFICATION': 'pending', 'VERIFICATION_IN_PROGRESS': 'pending',

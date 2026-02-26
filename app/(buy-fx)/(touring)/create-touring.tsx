@@ -280,7 +280,10 @@ export default function TouringScreen() {
             onSuccess: (response) => {
                 if (response.success) {
                     setInitiateSheetVisible(false);
-                    router.push('/(buy-fx)/(touring)/request-initiated-success');
+                    router.push({
+                        pathname: '/(buy-fx)/(touring)/request-initiated-success',
+                        params: { transactionId: response.data?.transactionId }
+                    });
                 }
             },
         });

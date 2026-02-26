@@ -69,6 +69,14 @@ export default function MedicalBankDetailsStep({ control }: MedicalBankDetailsSt
                 placeholder="Enter swift code"
                 required
             />
+
+            <ControlledInput
+                control={control}
+                name="iban"
+                label="IBAN"
+                placeholder="Enter IBAN"
+                required
+            />
         </ScrollView>
     );
 }

@@ -47,6 +47,7 @@ export default function ViewSchoolFeesScreen() {
         if (!tx) return [];
         return tx.requiredDocuments.filter(d => !!d.uploaded).map(d => ({ label: d.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()), fileName: d.uploaded!.fileName, docStatus: d.uploaded!.status, required: true }));
     }, [tx]);
+    console.log(docsItems, "DOCS");
     const getMessage = () => {
         if (!tx) return '';
         if (status === 'approved' || status === 'awaiting_disbursement' || status === 'settled') return "Congratulations! Your school fees payment request has been approved. Please proceed to payment.";

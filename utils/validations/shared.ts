@@ -58,6 +58,7 @@ export const medicalBankDetailsStepSchema = z.object({
     accountNumber: z.string().min(1, 'Please enter the account number'),
     bankAddress: z.string().min(1, 'Please enter the bank address'),
     swiftCode: z.string().min(1, 'Please enter the SWIFT code'),
+    iban: z.string().min(1, 'Please enter the IBAN'),
 });
 
 /** Step 2: Exchange amount — parameterised by max amount */

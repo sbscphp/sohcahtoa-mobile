@@ -5,7 +5,7 @@ import React from 'react';
 export default function PaymentSuccessScreen() {
     const router = useRouter();
  const { transactionId } = useLocalSearchParams<{ transactionId: string }>();
-console.log(transactionId, 'transactionId');
+
     const handleViewTransaction = () => {
         router.push({
             pathname: '/(buy-fx)/(bta)/view-bta',

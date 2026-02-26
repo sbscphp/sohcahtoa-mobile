@@ -228,7 +228,7 @@ export default function ProfessionalScreen() {
 
     const onSubmit = (data: ProfessionalFormValues) => {
         const payload = {
-            type: 'PROFESSIONAL',
+            type: 'PROFESSIONAL_BODY',
             currency: currencyGet.code,
             amount: data.amount,
             purpose: 'Professional Fees Payment',
@@ -253,7 +253,10 @@ export default function ProfessionalScreen() {
             onSuccess: (response) => {
                 if (response.success) {
                     setInitiateSheetVisible(false);
-                    router.push('/(buy-fx)/(professional)/request-initiated-success');
+                     router.push({
+                        pathname: '/(buy-fx)/(professional)/request-initiated-success',
+                        params: { transactionId: response.data?.transactionId }
+                    });
                 }
             },
         });
