@@ -11,7 +11,7 @@ export const useCreateTouristAccountMutation = () => {
             if (response.success && response.data) {
                 showToast(response.data.message || 'Account Created Successfully', 'success');
             }
-            // console.log(response, "response");
+            console.log(response, "response");
         },
         onError: (error: any) => {
             const message = error.response?.data?.error?.message || error.message || 'Account Creation Failed';

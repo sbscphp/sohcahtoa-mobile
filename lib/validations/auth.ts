@@ -30,8 +30,7 @@ export const passportSchema = z.object({
     passportNumber: z
         .string()
         .min(1, 'Passport number is required')
-        .min(6, 'Passport number must be at least 6 characters')
-        .max(12, 'Passport number must not exceed 12 characters')
+        .length(9, 'Passport number must be exactly 9 characters')
         .regex(/^[A-Z0-9]+$/, 'Passport number must contain only uppercase letters and numbers'),
 });
 

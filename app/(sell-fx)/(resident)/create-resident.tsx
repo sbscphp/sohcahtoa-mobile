@@ -1,6 +1,6 @@
-import DatePickerField from '@/components/DatePickerField';
+import ControlledDatePicker from '@/components/ControlledDatePicker';
+import ControlledInput from '@/components/ControlledInput';
 import InitiateTransactionSheet from '@/components/InitiateTransactionSheet';
-import InputField from '@/components/InputField';
 import LoadingBackdrop from '@/components/LoadingBackdrop';
 import { LocationItem } from '@/components/LocationSelectionSheet';
 import CredentialStep from '@/components/transaction-flow/CredentialStep';
@@ -8,7 +8,9 @@ import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import LocationStep from '@/components/transaction-flow/LocationStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
-import { UploadedFile, useDocumentUpload } from '@/hooks/useDocumentUpload';
+import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
+import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDocumentUpload';
+import { useExchangeLogic } from '@/hooks/useExchangeLogic';
 import { useToastStore } from '@/stores/useToastStore';
 import {
     residentStep0Schema,
@@ -16,96 +18,127 @@ import {
     residentStep2Schema,
     residentStep3Schema,
 } from '@/utils/validations/resident';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { View } from 'react-native';
 import { z } from 'zod';
 
-interface ValidationErrors {
-    [key: string]: string | undefined;
-}
-
 import { CITIES, LOCATIONS, STATES } from '@/utils/locations';
+
+const residentFormSchema = z.object({
+    ...residentStep0Schema.shape,
+    ...residentStep1Schema.shape,
+    ...residentStep2Schema.shape,
+    ...residentStep3Schema.shape
+});
+
+type ResidentFormValues = z.infer<typeof residentFormSchema>;
 
 export default function CreateResidentScreen() {
     const router = useRouter();
+    const createTransaction = useCreateTransactionMutation();
     const [currentStep, setCurrentStep] = useState(0);
 
-    // Step 0
-    const [bvnNumber, setBvnNumber] = useState('');
-    const [ninNumber, setNinNumber] = useState('');
-    const [passportNumber, setPassportNumber] = useState('');
+    const {
+        control,
+        handleSubmit,
+        trigger,
+        watch,
+        setValue,
+        formState: { errors }
+    } = useForm<ResidentFormValues>({
+        resolver: zodResolver(residentFormSchema),
+        defaultValues: {
+            bvn: '',
+            nin: '',
+            passportNumber: '',
+            passportIssueDate: '',
+            passportExpiryDate: '',
+            utilityNumber: '',
+            amount: 0,
+            selectedState: undefined as unknown as LocationItem,
+            selectedCity: undefined as unknown as LocationItem,
+            selectedLocation: undefined as unknown as LocationItem,
+            pickupDate: '',
+            pickupTime: '',
+        },
+        mode: 'onChange'
+    });
 
     // Step 1 — uploaded files
-    const [passportFile, setPassportFile] = useState<UploadedFile | null>(null);
-    const [utilityFile, setUtilityFile] = useState<UploadedFile | null>(null);
-    // Step 1 — associated inputs
-    const [passportIssueDate, setPassportIssueDate] = useState('');
-    const [passportExpiryDate, setPassportExpiryDate] = useState('');
-    const [utilityNumber, setUtilityNumber] = useState('');
+    const [docs, setDocs] = useState({
+        passport: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        utility: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+    });
+
+    const updateDoc = (key: keyof typeof docs, file: UploadedFile, metadata: UploadedMetadata) => {
+        setDocs(prev => ({ ...prev, [key]: { file, meta: metadata } }));
+    };
 
     const showToast = useToastStore(s => s.showToast);
 
     const { upload: uploadFile, isPending: isUploading } = useDocumentUpload({
-        onSuccess: (documentType, { file }) => {
-            if (documentType === 'PASSPORT') {
-                setPassportFile(file);
-            } else if (documentType === 'UTILITY_BILL') {
-                setUtilityFile(file);
-            }
+        onSuccess: (documentType, { file, metadata }) => {
+            if (documentType === 'PASSPORT') updateDoc('passport', file, metadata);
+            else if (documentType === 'UTILITY_BILL') updateDoc('utility', file, metadata);
         },
         onError: () => showToast('Failed to upload document. Please try again.', 'error'),
     });
 
     // Step 2
-    const [transactionType, setTransactionType] = useState<'buy' | 'sell'>('sell');
-    const [currencyGet, setCurrencyGet] = useState({ code: 'USD', country: 'United States', currencyName: 'Dollar', flagUrl: 'https://flagcdn.com/w80/us.png' });
-    const [currencySend, setCurrencySend] = useState({ code: 'NGN', country: 'Nigeria', currencyName: 'Naira', flagUrl: 'https://flagcdn.com/w80/ng.png' });
-    const [amountGet, setAmountGet] = useState('1');
-    const [amountSend, setAmountSend] = useState('1,500');
-
-    // Step 3
-    const [selectedState, setSelectedState] = useState<LocationItem | null>(null);
-    const [selectedCity, setSelectedCity] = useState<LocationItem | null>(null);
-    const [selectedLocation, setSelectedLocation] = useState<LocationItem | null>(null);
-    const [pickupDate, setPickupDate] = useState('');
-    const [pickupTime, setPickupTime] = useState('');
+    const {
+        transactionType,
+        setTransactionType,
+        currencyGet,
+        setCurrencyGet,
+        currencySend,
+        setCurrencySend,
+        amountGetStr: amountGet,
+        setAmountGetStr: setAmountGet,
+        amountSendStr: amountSend,
+        setAmountSendStr: setAmountSend,
+        currentRate,
+    } = useExchangeLogic({ setValue, initialAmount: '1' });
 
     const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
-    const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
-
-    const clearError = (field: string) => {
-        if (validationErrors[field]) {
-            setValidationErrors(prev => ({ ...prev, [field]: undefined }));
-        }
-    };
 
     const credentialFields = [
         {
-            label: 'Bank Verification Number (BVN)',
-            placeholder: 'Enter BVN',
-            value: bvnNumber,
-            onChangeText: (v: string) => { setBvnNumber(v); clearError('bvn'); },
-            required: true,
-            keyboardType: 'numeric' as const,
-            error: validationErrors.bvn,
+            customComponent: (
+                <ControlledInput
+                    control={control}
+                    name="bvn"
+                    label="Bank Verification Number (BVN)"
+                    placeholder="Enter BVN"
+                    required
+                    keyboardType="numeric"
+                />
+            )
         },
         {
-            label: 'National Identification Number (NIN)',
-            placeholder: 'Enter NIN',
-            value: ninNumber,
-            onChangeText: (v: string) => { setNinNumber(v); clearError('nin'); },
-            required: true,
-            keyboardType: 'numeric' as const,
-            error: validationErrors.nin,
+            customComponent: (
+                <ControlledInput
+                    control={control}
+                    name="nin"
+                    label="National Identification Number (NIN)"
+                    placeholder="Enter NIN"
+                    required
+                    keyboardType="numeric"
+                />
+            )
         },
         {
-            label: 'International Passport Number',
-            placeholder: 'Enter international passport number',
-            value: passportNumber,
-            onChangeText: (v: string) => { setPassportNumber(v); clearError('passportNumber'); },
-            required: true,
-            error: validationErrors.passportNumber,
+            customComponent: (
+                <ControlledInput
+                    control={control}
+                    name="passportNumber"
+                    label="International Passport Number"
+                    placeholder="Enter international passport number"
+                    required
+                />
+            )
         },
     ];
 
@@ -113,31 +146,28 @@ export default function CreateResidentScreen() {
         {
             label: 'International Passport',
             onUpload: () => uploadFile('PASSPORT'),
-            fileName: passportFile?.name,
-            fileUri: passportFile?.uri,
-            fileType: passportFile?.type,
+            fileName: docs.passport.file?.name,
+            fileUri: docs.passport.file?.uri,
+            fileType: docs.passport.file?.type,
             required: true,
-            error: validationErrors.passportIssueDate || validationErrors.passportExpiryDate,
             associatedInputs: (
                 <View style={{ flexDirection: 'row', gap: 12 }}>
                     <View style={{ flex: 1 }}>
-                        <DatePickerField
-                            label='Passport Issue Date'
+                        <ControlledDatePicker
+                            control={control}
+                            name="passportIssueDate"
+                            label="Passport Issue Date"
                             required
-                            value={passportIssueDate}
-                            onDateChange={(v) => { setPassportIssueDate(v); clearError('passportIssueDate'); }}
                             maximumDate={new Date()}
-                            error={validationErrors.passportIssueDate}
                         />
                     </View>
                     <View style={{ flex: 1 }}>
-                        <DatePickerField
-                            label='Passport Expiry Date'
+                        <ControlledDatePicker
+                            control={control}
+                            name="passportExpiryDate"
+                            label="Passport Expiry Date"
                             required
-                            value={passportExpiryDate}
-                            onDateChange={(v) => { setPassportExpiryDate(v); clearError('passportExpiryDate'); }}
                             minimumDate={new Date()}
-                            error={validationErrors.passportExpiryDate}
                         />
                     </View>
                 </View>
@@ -146,83 +176,52 @@ export default function CreateResidentScreen() {
         {
             label: 'Utility bill  (Not more than 3 months old)',
             onUpload: () => uploadFile('UTILITY_BILL'),
-            fileName: utilityFile?.name,
-            fileUri: utilityFile?.uri,
-            fileType: utilityFile?.type,
+            fileName: docs.utility.file?.name,
+            fileUri: docs.utility.file?.uri,
+            fileType: docs.utility.file?.type,
             required: true,
-            error: validationErrors.utilityNumber,
             associatedInputs: (
                 <View>
-                    <InputField
-                        label='Utility Bill'
+                    <ControlledInput
+                        control={control}
+                        name="utilityNumber"
+                        label="Utility Bill"
                         required
-                        placeholder='Enter Utility number'
-                        value={utilityNumber}
-                        onChangeText={(v) => { setUtilityNumber(v); clearError('utilityNumber'); }}
-                        error={validationErrors.utilityNumber}
+                        placeholder="Enter Utility number"
                     />
                 </View>
             ),
         },
     ];
 
-    const handleNext = () => {
+    const handleNext = async () => {
         if (isUploading) {
             showToast('Please wait for files to finish uploading', 'warning');
             return;
         }
 
-        const errors: ValidationErrors = {};
+        let isStepValid = false;
 
         if (currentStep === 0) {
-            const result = residentStep0Schema.safeParse({ bvn: bvnNumber, nin: ninNumber, passportNumber });
-            if (!result.success) {
-                result.error.issues.forEach((e: z.ZodIssue) => {
-                    const key = e.path[0] as string;
-                    if (!errors[key]) errors[key] = e.message;
-                });
+            isStepValid = await trigger(['bvn', 'nin', 'passportNumber']);
+        } else if (currentStep === 1) {
+            if (!docs.passport.file || !docs.utility.file) {
+                showToast('Please upload all required documents', 'error');
+                return;
             }
+            isStepValid = await trigger(['passportIssueDate', 'passportExpiryDate', 'utilityNumber']);
+        } else if (currentStep === 2) {
+            isStepValid = await trigger(['amount']);
+        } else if (currentStep === 3) {
+            isStepValid = await trigger(['selectedState', 'selectedCity', 'selectedLocation', 'pickupDate', 'pickupTime']);
         }
 
-        if (currentStep === 1) {
-            const result = residentStep1Schema.safeParse({ passportIssueDate, passportExpiryDate, utilityNumber });
-            if (!result.success) {
-                result.error.issues.forEach((e: z.ZodIssue) => {
-                    const key = e.path[0] as string;
-                    if (!errors[key]) errors[key] = e.message;
-                });
+        if (isStepValid) {
+            if (currentStep < 3) {
+                setCurrentStep(currentStep + 1);
+            } else {
+                setInitiateSheetVisible(true);
             }
-        }
-
-        if (currentStep === 2) {
-            const result = residentStep2Schema.safeParse({ amount: parseFloat(amountGet.replace(/,/g, '')) });
-            if (!result.success) {
-                result.error.issues.forEach((e: z.ZodIssue) => {
-                    if (!errors.amount) errors.amount = e.message;
-                });
-            }
-        }
-
-        if (currentStep === 3) {
-            const result = residentStep3Schema.safeParse({ selectedState, selectedCity, selectedLocation, pickupDate, pickupTime });
-            if (!result.success) {
-                result.error.issues.forEach((e: z.ZodIssue) => {
-                    const key = e.path[0] as string;
-                    if (!errors[key]) errors[key] = e.message;
-                });
-            }
-        }
-
-        if (Object.keys(errors).length > 0) {
-            setValidationErrors(errors);
-            return;
-        }
-
-        setValidationErrors({});
-        if (currentStep < 3) {
-            setCurrentStep(currentStep + 1);
-        } else {
-            setInitiateSheetVisible(true);
         }
     };
 
@@ -234,14 +233,65 @@ export default function CreateResidentScreen() {
         }
     };
 
-    const handleConfirmInitiate = () => {
-        setInitiateSheetVisible(false);
-        router.push('/(sell-fx)/(resident)/success');
+    const onSubmit = (data: ResidentFormValues) => {
+        const formatDateForApi = (dateStr: string): string => {
+            if (!dateStr) return '';
+            const parts = dateStr.split('/');
+            if (parts.length === 3) {
+                return `${parts[2]}-${parts[1]}-${parts[0]}`;
+            }
+            return dateStr;
+        };
+
+        const payload = {
+            type: 'RESIDENT_FX',
+            currency: currencyGet.code,
+            amount: data.amount,
+            purpose: 'I have FX and want Naira',
+            destinationCountry: currencyGet.country,
+            bvn: data.bvn,
+            nin: data.nin,
+            passportNumber: data.passportNumber,
+            passportIssueDate: data.passportIssueDate,
+            passportExpiryDate: data.passportExpiryDate,
+            documents: [
+                ...(docs.passport.meta ? [docs.passport.meta] : []),
+                ...(docs.utility.meta ? [docs.utility.meta] : []),
+            ],
+            pickupLocation: data.selectedLocation ? {
+                name: data.selectedLocation.title,
+                address: data.selectedLocation.subtitle || '',
+                state: data.selectedState?.title || '',
+                city: data.selectedCity?.title || '',
+                scheduledPickupDate: formatDateForApi(data.pickupDate),
+                scheduledPickupTime: data.pickupTime,
+            } : undefined,
+        };
+
+        createTransaction.mutate(payload, {
+            onSuccess: (response) => {
+                if (response.success) {
+                    setInitiateSheetVisible(false);
+                    router.push({
+                        pathname: '/(sell-fx)/(resident)/success',
+                        params: {
+                            transactionId: response.data.transactionId,
+                        },
+                    });
+                }
+            },
+        });
     };
+
+    const selectedState = watch('selectedState');
+    const selectedCity = watch('selectedCity');
+    const selectedLocation = watch('selectedLocation');
+    const pickupDate = watch('pickupDate');
+    const pickupTime = watch('pickupTime');
 
     return (
         <>
-            <LoadingBackdrop visible={isUploading} />
+            <LoadingBackdrop visible={isUploading || createTransaction.isPending} />
             <TransactionLayout
                 title="Resident"
                 currentStep={currentStep}
@@ -268,11 +318,11 @@ export default function CreateResidentScreen() {
                         onCurrencySendChange={setCurrencySend}
                         amountGet={amountGet}
                         amountSend={amountSend}
-                        rate={`1 ${currencyGet.code} = 1500 ${currencySend.code}`}
+                        rate={`1 ${currencyGet.code} = ${currentRate.toLocaleString()} ${currencySend.code}`}
                         onAmountGetChange={setAmountGet}
                         onAmountSendChange={setAmountSend}
                         allowedModes={['sell']}
-                        error={validationErrors.amount}
+                        error={errors.amount?.message as string | undefined}
                     />
                 )}
 
@@ -282,25 +332,39 @@ export default function CreateResidentScreen() {
                         cities={CITIES}
                         locations={LOCATIONS}
                         selectedState={selectedState}
-                        onSelectState={(item) => { setSelectedState(item); setSelectedCity(null); setSelectedLocation(null); clearError('selectedState'); }}
+                        onSelectState={(item) => {
+                            setValue('selectedState', item);
+                            setValue('selectedCity', undefined as unknown as LocationItem);
+                            setValue('selectedLocation', undefined as unknown as LocationItem);
+                        }}
                         selectedCity={selectedCity}
-                        onSelectCity={(item) => { setSelectedCity(item); setSelectedLocation(null); clearError('selectedCity'); }}
+                        onSelectCity={(item) => {
+                            setValue('selectedCity', item);
+                            setValue('selectedLocation', undefined as unknown as LocationItem);
+                        }}
                         selectedLocation={selectedLocation}
-                        onSelectLocation={(item) => { setSelectedLocation(item); clearError('selectedLocation'); }}
+                        onSelectLocation={(item) => setValue('selectedLocation', item)}
                         title="Select Pick Up Point"
                         pickupDate={pickupDate}
-                        onPickupDateChange={(v) => { setPickupDate(v); clearError('pickupDate'); }}
+                        onPickupDateChange={(v) => setValue('pickupDate', v)}
                         pickupTime={pickupTime}
-                        onPickupTimeChange={(v) => { setPickupTime(v); clearError('pickupTime'); }}
-                        errors={validationErrors}
+                        onPickupTimeChange={(v) => setValue('pickupTime', v)}
+                        errors={{
+                            state: errors.selectedState?.message as string | undefined,
+                            city: errors.selectedCity?.message as string | undefined,
+                            location: errors.selectedLocation?.message as string | undefined,
+                            pickupDate: errors.pickupDate?.message as string | undefined,
+                            pickupTime: errors.pickupTime?.message as string | undefined
+                        }}
                     />
                 )}
 
                 <InitiateTransactionSheet
                     visible={initiateSheetVisible}
                     onClose={() => setInitiateSheetVisible(false)}
-                    onConfirm={handleConfirmInitiate}
+                    onConfirm={handleSubmit(onSubmit)}
                     title="Initiate Resident Transaction request?"
+                    loading={createTransaction.isPending}
                     items={[
                         {
                             title: "Verification before approval",

@@ -18,7 +18,7 @@ export const useResendTouristOtpMutation = (options?: UseResendTouristOtpMutatio
                 showToast(data.data.message || 'OTP resent successfully', 'success');
                 options?.onSuccess?.(data);
             }
-            // console.log(data, "RESEND TOURIST OTP SUCCESS");
+            console.log(data, "RESEND TOURIST OTP SUCCESS");
 
         },
         onError: (error: any) => {

@@ -1,7 +1,7 @@
 
-import DatePickerField from '@/components/DatePickerField';
+import ControlledDatePicker from '@/components/ControlledDatePicker';
+import ControlledInput from '@/components/ControlledInput';
 import InitiateTransactionSheet from '@/components/InitiateTransactionSheet';
-import InputField from '@/components/InputField';
 import LoadingBackdrop from '@/components/LoadingBackdrop';
 import { LocationItem } from '@/components/LocationSelectionSheet';
 import SourceOfFundsSheet from '@/components/SourceOfFundsSheet';
@@ -10,7 +10,9 @@ import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import LocationStep from '@/components/transaction-flow/LocationStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
-import { UploadedFile, useDocumentUpload } from '@/hooks/useDocumentUpload';
+import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
+import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDocumentUpload';
+import { useExchangeLogic } from '@/hooks/useExchangeLogic';
 import { useToastStore } from '@/stores/useToastStore';
 import {
     touristStep0Schema,
@@ -19,94 +21,118 @@ import {
     touristStep3LocationSchema,
     touristStep3TransferSchema,
 } from '@/utils/validations/tourist';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { Pressable, Text, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import { z } from 'zod';
 
-interface ValidationErrors {
-    [key: string]: string | undefined;
-}
-
 import { CITIES, LOCATIONS, STATES } from '@/utils/locations';
+
+const touristFormSchema = z.object({
+    ...touristStep0Schema.shape,
+    ...touristStep1Schema.shape,
+    ...touristStep2Schema.shape,
+    ...touristStep3TransferSchema.shape,
+    ...touristStep3LocationSchema.shape,
+});
+
+type TouristFormValues = z.infer<typeof touristFormSchema>;
+
 
 export default function CreateTouristScreen() {
     const router = useRouter();
+    const createTransaction = useCreateTransactionMutation();
     const [currentStep, setCurrentStep] = useState(0);
 
-    // Step 0: Credentials
-    const [passportNumberInput, setPassportNumberInput] = useState('');
+    const {
+        control,
+        handleSubmit,
+        trigger,
+        watch,
+        setValue,
+        formState: { errors }
+    } = useForm<TouristFormValues>({
+        resolver: zodResolver(touristFormSchema),
+        defaultValues: {
+            passportNumber: '',
+            passportIssueDate: '',
+            passportExpiryDate: '',
+            visaNumber: '',
+            ticketNumber: '',
+            amount: 0,
+            accountName: '',
+            bankName: '',
+            selectedState: undefined as unknown as LocationItem,
+            selectedCity: undefined as unknown as LocationItem,
+            selectedLocation: undefined as unknown as LocationItem,
+            pickupDate: '',
+            pickupTime: '',
+        },
+        mode: 'onChange'
+    });
 
     // Step 1: Uploaded files
-    const [passportFile, setPassportFile] = useState<UploadedFile | null>(null);
-    const [visaFile, setVisaFile] = useState<UploadedFile | null>(null);
-    const [ticketFile, setTicketFile] = useState<UploadedFile | null>(null);
-    // Step 1: Associated inputs
-    const [passportIssueDate, setPassportIssueDate] = useState('');
-    const [passportExpiryDate, setPassportExpiryDate] = useState('');
-    const [visaNumber, setVisaNumber] = useState('');
-    const [ticketNumber, setTicketNumber] = useState('');
+    const [docs, setDocs] = useState({
+        passport: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        visa: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        ticket: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        receipt: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+    });
+
+    const updateDoc = (key: keyof typeof docs, file: UploadedFile, metadata: UploadedMetadata) => {
+        setDocs(prev => ({ ...prev, [key]: { file, meta: metadata } }));
+    };
 
     const showToast = useToastStore(s => s.showToast);
 
     const { upload: uploadFile, isPending: isUploading } = useDocumentUpload({
-        onSuccess: (documentType, { file }) => {
-            if (documentType === 'PASSPORT') setPassportFile(file);
-            else if (documentType === 'VISA') setVisaFile(file);
-            else if (documentType === 'RETURN_TICKET') setTicketFile(file);
+        onSuccess: (documentType, { file, metadata }) => {
+            if (documentType === 'PASSPORT') updateDoc('passport', file, metadata);
+            else if (documentType === 'VISA') updateDoc('visa', file, metadata);
+            else if (documentType === 'RETURN_TICKET') updateDoc('ticket', file, metadata);
+            else if (documentType === 'RECEIPT') updateDoc('receipt', file, metadata);
         },
         onError: () => showToast('Failed to upload document. Please try again.', 'error'),
     });
 
     // Step 2: Exchange State
-    const [transactionType, setTransactionType] = useState<'buy' | 'sell'>('sell');
-    const [currencyGet, setCurrencyGet] = useState({
-        code: 'NGN',
-        country: 'Nigeria',
-        currencyName: 'Naira',
-        flagUrl: 'https://flagcdn.com/w80/ng.png'
-    });
-    const [currencySend, setCurrencySend] = useState({
-        code: 'USD',
-        country: 'United States',
-        currencyName: 'Dollar',
-        flagUrl: 'https://flagcdn.com/w80/us.png'
-    });
+    const {
+        transactionType,
+        setTransactionType,
+        currencyGet,
+        setCurrencyGet,
+        currencySend,
+        setCurrencySend,
+        amountGetStr: amountGet,
+        setAmountGetStr: setAmountGet,
+        amountSendStr: amountSend,
+        setAmountSendStr: setAmountSend,
+        currentRate,
+    } = useExchangeLogic({ setValue, initialAmount: '' });
 
-    const [amountGet, setAmountGet] = useState('');
-    const [amountSend, setAmountSend] = useState('1,500'); // Placeholder
-
-    // Step 3: Payment Method & Location
+    // Step 3: Payment Method
     const [paymentMethod, setPaymentMethod] = useState<'transfer' | 'card'>('transfer');
-    const [selectedState, setSelectedState] = useState<LocationItem | null>(null);
-    const [selectedCity, setSelectedCity] = useState<LocationItem | null>(null);
-    const [selectedLocation, setSelectedLocation] = useState<LocationItem | null>(null);
-    const [pickupDate, setPickupDate] = useState('');
-    const [pickupTime, setPickupTime] = useState('');
 
-    // Transfer Details
-    const [accountName, setAccountName] = useState('');
-    const [bankName, setBankName] = useState('');
     const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
     const [showSourceOfFundsSheet, setShowSourceOfFundsSheet] = useState(false);
-    const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
-
-    const clearError = (field: string) => {
-        if (validationErrors[field]) {
-            setValidationErrors(prev => ({ ...prev, [field]: undefined }));
-        }
-    };
 
     // Configuration for Step 0
     const credentialFields = [
         {
-            label: 'International Passport Number',
-            placeholder: 'Enter international passport number',
-            value: passportNumberInput,
-            onChangeText: (v: string) => { setPassportNumberInput(v); clearError('passportNumber'); },
-            required: true,
-            error: validationErrors.passportNumber,
+            customComponent: (
+                <ControlledInput
+                    control={control}
+                    name="passportNumber"
+                    label="International Passport Number"
+                    placeholder="Enter international passport number"
+                    required
+                    maxLength={9}
+                    filterType="alphanumeric"
+                />
+            )
         }
     ];
 
@@ -115,18 +141,29 @@ export default function CreateTouristScreen() {
         {
             label: 'International Passport',
             onUpload: () => uploadFile('PASSPORT'),
-            fileName: passportFile?.name,
-            fileUri: passportFile?.uri,
-            fileType: passportFile?.type,
+            fileName: docs.passport.file?.name,
+            fileUri: docs.passport.file?.uri,
+            fileType: docs.passport.file?.type,
             required: true,
-            error: validationErrors.passportIssueDate || validationErrors.passportExpiryDate,
             associatedInputs: (
                 <View style={{ flexDirection: 'row', gap: 12 }}>
                     <View style={{ flex: 1 }}>
-                        <DatePickerField label='Passport Issue Date' required value={passportIssueDate} onDateChange={(v) => { setPassportIssueDate(v); clearError('passportIssueDate'); }} maximumDate={new Date()} error={validationErrors.passportIssueDate} />
+                        <ControlledDatePicker
+                            control={control}
+                            name="passportIssueDate"
+                            label="Passport Issue Date"
+                            required
+                            maximumDate={new Date()}
+                        />
                     </View>
                     <View style={{ flex: 1 }}>
-                        <DatePickerField label='Passport Expiry Date' required value={passportExpiryDate} onDateChange={(v) => { setPassportExpiryDate(v); clearError('passportExpiryDate'); }} minimumDate={new Date()} error={validationErrors.passportExpiryDate} />
+                        <ControlledDatePicker
+                            control={control}
+                            name="passportExpiryDate"
+                            label="Passport Expiry Date"
+                            required
+                            minimumDate={new Date()}
+                        />
                     </View>
                 </View>
             )
@@ -134,108 +171,84 @@ export default function CreateTouristScreen() {
         {
             label: 'Valid Visa',
             onUpload: () => uploadFile('VISA'),
-            fileName: visaFile?.name,
-            fileUri: visaFile?.uri,
-            fileType: visaFile?.type,
+            fileName: docs.visa.file?.name,
+            fileUri: docs.visa.file?.uri,
+            fileType: docs.visa.file?.type,
             required: true,
-            error: validationErrors.visaNumber,
             associatedInputs: (
                 <View>
-                    <InputField label='Valid Visa' required placeholder='Enter visa number' value={visaNumber} onChangeText={(v) => { setVisaNumber(v); clearError('visaNumber'); }} error={validationErrors.visaNumber} />
+                    <ControlledInput
+                        control={control}
+                        name="visaNumber"
+                        label="Valid Visa"
+                        placeholder="Enter visa number"
+                        required
+                    />
                 </View>
             )
         },
         {
             label: 'Valid Return Ticket',
             onUpload: () => uploadFile('RETURN_TICKET'),
-            fileName: ticketFile?.name,
-            fileUri: ticketFile?.uri,
-            fileType: ticketFile?.type,
+            fileName: docs.ticket.file?.name,
+            fileUri: docs.ticket.file?.uri,
+            fileType: docs.ticket.file?.type,
             required: true,
-            error: validationErrors.ticketNumber,
             associatedInputs: (
                 <View>
-                    <InputField label='Valid Return Ticket' required placeholder='Enter ticket number' value={ticketNumber} onChangeText={(v) => { setTicketNumber(v); clearError('ticketNumber'); }} error={validationErrors.ticketNumber} />
+                    <ControlledInput
+                        control={control}
+                        name="ticketNumber"
+                        label="Valid Return Ticket"
+                        placeholder="Enter ticket number"
+                        required
+                    />
                 </View>
             )
         },
         {
             label: 'Receipt for Initial Naira Purchase',
             onUpload: () => uploadFile('RECEIPT'),
-            fileName: ticketFile?.name,
-            fileUri: ticketFile?.uri,
-            fileType: ticketFile?.type,
+            fileName: docs.receipt.file?.name,
+            fileUri: docs.receipt.file?.uri,
+            fileType: docs.receipt.file?.type,
             required: true,
-            error: validationErrors.ticketNumber,
         },
     ];
 
-    const handleNext = () => {
+    const handleNext = async () => {
         if (isUploading) {
             showToast('Please wait for files to finish uploading', 'warning');
             return;
         }
-        const errors: ValidationErrors = {};
+
+        let isStepValid = false;
 
         if (currentStep === 0) {
-            const result = touristStep0Schema.safeParse({ passportNumber: passportNumberInput });
-            if (!result.success) {
-                result.error.issues.forEach((e: z.ZodIssue) => {
-                    const key = e.path[0] as string;
-                    if (!errors[key]) errors[key] = e.message;
-                });
+            isStepValid = await trigger(['passportNumber']);
+        } else if (currentStep === 1) {
+            if (!docs.passport.file || !docs.visa.file || !docs.ticket.file || !docs.receipt.file) {
+                showToast('Please upload all required documents', 'error');
+                return;
             }
-        }
-
-        if (currentStep === 1) {
-            const result = touristStep1Schema.safeParse({ passportIssueDate, passportExpiryDate, visaNumber, ticketNumber });
-            if (!result.success) {
-                result.error.issues.forEach((e: z.ZodIssue) => {
-                    const key = e.path[0] as string;
-                    if (!errors[key]) errors[key] = e.message;
-                });
-            }
-        }
-
-        if (currentStep === 2) {
-            const result = touristStep2Schema.safeParse({ amount: parseFloat(amountSend.replace(/,/g, '')) });
-            if (!result.success) {
-                result.error.issues.forEach((e: z.ZodIssue) => {
-                    if (!errors.amount) errors.amount = e.message;
-                });
-            }
-        }
-
-        if (currentStep === 3) {
+            isStepValid = await trigger(['passportIssueDate', 'passportExpiryDate', 'visaNumber', 'ticketNumber']);
+        } else if (currentStep === 2) {
+            setValue('amount', parseFloat(amountSend.replace(/,/g, '')) || 0);
+            isStepValid = await trigger(['amount']);
+        } else if (currentStep === 3) {
             if (paymentMethod === 'transfer') {
-                const result = touristStep3TransferSchema.safeParse({ accountName, bankName });
-                if (!result.success) {
-                    result.error.issues.forEach((e: z.ZodIssue) => {
-                        const key = e.path[0] as string;
-                        if (!errors[key]) errors[key] = e.message;
-                    });
-                }
+                isStepValid = await trigger(['accountName', 'bankName']);
             } else {
-                const result = touristStep3LocationSchema.safeParse({ selectedState, selectedCity, selectedLocation, pickupDate, pickupTime });
-                if (!result.success) {
-                    result.error.issues.forEach((e: z.ZodIssue) => {
-                        const key = e.path[0] as string;
-                        if (!errors[key]) errors[key] = e.message;
-                    });
-                }
+                isStepValid = await trigger(['selectedState', 'selectedCity', 'selectedLocation', 'pickupDate', 'pickupTime']);
             }
         }
 
-        if (Object.keys(errors).length > 0) {
-            setValidationErrors(errors);
-            return;
-        }
-
-        setValidationErrors({});
-        if (currentStep < 3) {
-            setCurrentStep(currentStep + 1);
-        } else {
-            setInitiateSheetVisible(true);
+        if (isStepValid) {
+            if (currentStep < 3) {
+                setCurrentStep(currentStep + 1);
+            } else {
+                setInitiateSheetVisible(true);
+            }
         }
     };
 
@@ -247,14 +260,80 @@ export default function CreateTouristScreen() {
         }
     };
 
-    const handleConfirmInitiate = () => {
-        setInitiateSheetVisible(false);
-        router.push('/(sell-fx)/(tourist)/success');
+    const onSubmit = (data: TouristFormValues) => {
+        const formatDateForApi = (dateStr: string): string => {
+            if (!dateStr) return '';
+            const parts = dateStr.split('/');
+            if (parts.length === 3) {
+                return `${parts[2]}-${parts[1]}-${parts[0]}`;
+            }
+            return dateStr;
+        };
+
+        const payload: any = {
+            type: 'TOURIST_FX',
+            currency: currencySend.code,
+            amount: data.amount,
+            purpose: 'I am touring Nigeria and want Naira',
+            destinationCountry: currencySend.country,
+            documents: [
+                ...(docs.passport.meta ? [docs.passport.meta] : []),
+                ...(docs.visa.meta ? [docs.visa.meta] : []),
+                ...(docs.ticket.meta ? [docs.ticket.meta] : []),
+                ...(docs.receipt.meta ? [docs.receipt.meta] : []),
+            ],
+            identificationNumber: data.passportNumber,
+            passportIssueDate: data.passportIssueDate,
+            passportExpiryDate: data.passportExpiryDate,
+            visaNumber: data.visaNumber,
+            ticketNumber: data.ticketNumber,
+        };
+
+        if (paymentMethod === 'transfer') {
+            payload.beneficiaryDetails = {
+                name: data.accountName,
+                accountNumber: '',
+                accountName: data.accountName,
+                bankName: data.bankName,
+                iban: '',
+            };
+        } else {
+            if (data.selectedLocation) {
+                payload.pickupLocation = {
+                    name: data.selectedLocation.title,
+                    address: data.selectedLocation.subtitle || '',
+                    state: data.selectedState?.title || '',
+                    city: data.selectedCity?.title || '',
+                    scheduledPickupDate: formatDateForApi(data.pickupDate),
+                    scheduledPickupTime: data.pickupTime,
+                };
+            }
+        }
+
+        createTransaction.mutate(payload, {
+            onSuccess: (response) => {
+                if (response.success) {
+                    setInitiateSheetVisible(false);
+                    router.push({
+                        pathname: '/(sell-fx)/(tourist)/success',
+                        params: {
+                            transactionId: response.data.transactionId,
+                        },
+                    });
+                }
+            },
+        });
     };
+
+    const selectedState = watch('selectedState');
+    const selectedCity = watch('selectedCity');
+    const selectedLocation = watch('selectedLocation');
+    const pickupDate = watch('pickupDate');
+    const pickupTime = watch('pickupTime');
 
     return (
         <>
-            <LoadingBackdrop visible={isUploading} />
+            <LoadingBackdrop visible={isUploading || createTransaction.isPending} />
             <TransactionLayout
                 title={"Tourist"}
                 currentStep={currentStep}
@@ -281,12 +360,12 @@ export default function CreateTouristScreen() {
                         onCurrencySendChange={setCurrencySend}
                         amountGet={amountGet}
                         amountSend={amountSend}
-                        rate={`1 ${currencySend.code} = 1500 ${currencyGet.code}`}
+                        rate={`1 ${currencySend.code} = ${currentRate.toLocaleString()} ${currencyGet.code}`}
                         onAmountGetChange={setAmountGet}
                         onAmountSendChange={setAmountSend}
                         allowedModes={['sell']}
+                        error={errors.amount?.message as string | undefined}
                         showLimitWarning
-                        // ={parseFloat(amountSend.replace(/,/g, '')) > 10000}
                         onLimitWarningPress={() => setShowSourceOfFundsSheet(true)}
                     />
                 )}
@@ -323,18 +402,18 @@ export default function CreateTouristScreen() {
                         {paymentMethod === 'transfer' ? (
                             <View style={{ gap: moderateScale(16) }}>
                                 <Text style={styles.sectionTitle}>Select Pick Up Point</Text>
-                                <InputField
+                                <ControlledInput
+                                    control={control}
+                                    name="accountName"
                                     label="Account Name"
                                     placeholder="Enter account name"
-                                    value={accountName}
-                                    onChangeText={setAccountName}
                                     required
                                 />
-                                <InputField
+                                <ControlledInput
+                                    control={control}
+                                    name="bankName"
                                     label="Bank Name"
                                     placeholder="Enter bank name"
-                                    value={bankName}
-                                    onChangeText={setBankName}
                                     required
                                 />
                             </View>
@@ -345,22 +424,29 @@ export default function CreateTouristScreen() {
                                 locations={LOCATIONS}
                                 selectedState={selectedState}
                                 onSelectState={(item) => {
-                                    setSelectedState(item);
-                                    setSelectedCity(null);
-                                    setSelectedLocation(null);
+                                    setValue('selectedState', item);
+                                    setValue('selectedCity', undefined as unknown as LocationItem);
+                                    setValue('selectedLocation', undefined as unknown as LocationItem);
                                 }}
                                 selectedCity={selectedCity}
                                 onSelectCity={(item) => {
-                                    setSelectedCity(item);
-                                    setSelectedLocation(null);
+                                    setValue('selectedCity', item);
+                                    setValue('selectedLocation', undefined as unknown as LocationItem);
                                 }}
                                 selectedLocation={selectedLocation}
-                                onSelectLocation={setSelectedLocation}
+                                onSelectLocation={(item) => setValue('selectedLocation', item)}
                                 title="Select Pick Up Point"
                                 pickupDate={pickupDate}
-                                onPickupDateChange={setPickupDate}
+                                onPickupDateChange={(v) => setValue('pickupDate', v)}
                                 pickupTime={pickupTime}
-                                onPickupTimeChange={setPickupTime}
+                                onPickupTimeChange={(v) => setValue('pickupTime', v)}
+                                errors={{
+                                    state: errors.selectedState?.message as string | undefined,
+                                    city: errors.selectedCity?.message as string | undefined,
+                                    location: errors.selectedLocation?.message as string | undefined,
+                                    pickupDate: errors.pickupDate?.message as string | undefined,
+                                    pickupTime: errors.pickupTime?.message as string | undefined
+                                }}
                             />
                         )}
                     </View>
@@ -369,8 +455,9 @@ export default function CreateTouristScreen() {
                 <InitiateTransactionSheet
                     visible={initiateSheetVisible}
                     onClose={() => setInitiateSheetVisible(false)}
-                    onConfirm={handleConfirmInitiate}
+                    onConfirm={handleSubmit(onSubmit)}
                     title="Initiate Tourist Transaction request?"
+                    loading={createTransaction.isPending}
                     items={[
                         {
                             title: "Verification before approval",
@@ -394,7 +481,7 @@ export default function CreateTouristScreen() {
                         email: 'kemef@gmail.com', // Placeholder
                         bvn: '55544332278554', // Placeholder
                         address: '16a Alexandre drive', // Placeholder
-                        passportNumber: passportNumberInput || '102234556777776'
+                        passportNumber: watch('passportNumber') || '102234556777776'
                     }}
                     transactionDetails={{
                         type: 'Tourist',

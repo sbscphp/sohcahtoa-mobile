@@ -18,7 +18,7 @@ export const useResendExpatriateOtpMutation = (options?: UseResendExpatriateOtpM
                 showToast(data.data.message || 'OTP resent successfully', 'success');
                 options?.onSuccess?.(data);
             }
-            // console.log(data, "RESEND EXPATRIATE OTP SUCCESS");
+            console.log(data, "RESEND EXPATRIATE OTP SUCCESS");
 
         },
         onError: (error: any) => {

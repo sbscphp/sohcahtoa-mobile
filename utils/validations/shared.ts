@@ -1,6 +1,5 @@
 import { z } from 'zod';
 
-// --- Shared field validators ---
 
 export const bvnField = z
     .string()
@@ -20,7 +19,8 @@ export const passportNumberField = z
 
 export const tinField = z
     .string()
-    .min(1, 'Please enter your TIN');
+    .length(11, 'Please enter a valid 11-digit TIN')
+    .regex(/^\d+$/, 'TIN must contain only digits');
 
 // --- Shared step schemas ---
 

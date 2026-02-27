@@ -20,6 +20,8 @@ export default function ViewPtaScreen() {
 
     const status: TransactionStatus = tx ? mapApiStatusToViewStatus(tx.status) : 'pending';
 
+    // console.log('STATE:', tx?.status);
+
     const handleBack = () => {
         router.back();
     };

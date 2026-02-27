@@ -8,16 +8,15 @@ import CredentialStep from '@/components/transaction-flow/CredentialStep';
 import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
-import { useCalculateExchangeRateMutation } from '@/hooks/queries/transactions/useCalculateExchangeRateMutation';
 import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
-import { useGetExchangeRatesQuery } from '@/hooks/queries/transactions/useGetExchangeRatesQuery';
-import { useDocumentUpload } from '@/hooks/useDocumentUpload';
+import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDocumentUpload';
+import { useExchangeLogic } from '@/hooks/useExchangeLogic';
 import { useToastStore } from '@/stores/useToastStore';
 import { schoolStep0Schema, schoolStep1Schema, schoolStep2Schema, schoolStep3Schema } from '@/utils/validations/school';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
 import { ArrowDown2, Teacher } from 'iconsax-react-nativejs';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { TouchableOpacity, View } from 'react-native';
 import { z } from 'zod';
@@ -30,7 +29,6 @@ const ADMISSION_TYPES: SelectionItem[] = [
 export default function SchoolFeesScreen() {
     const router = useRouter();
     const createTransaction = useCreateTransactionMutation();
-    const calculateExchangeRate = useCalculateExchangeRateMutation();
     const showToast = useToastStore(s => s.showToast);
 
     const [currentStep, setCurrentStep] = useState(0);
@@ -81,101 +79,40 @@ export default function SchoolFeesScreen() {
     const admissionType = watch('admissionType');
     const isPostGrad = admissionType === 'Post-Graduate';
 
-    const [transactionType, setTransactionType] = useState<'buy' | 'sell'>('buy');
-    const [currencyGet, setCurrencyGet] = useState({
-        code: 'USD',
-        country: 'United States',
-        currencyName: 'Dollar',
-        flagUrl: 'https://flagcdn.com/w80/us.png'
-    });
-    const [currencySend, setCurrencySend] = useState({
-        code: 'NGN',
-        country: 'Nigeria',
-        currencyName: 'Naira',
-        flagUrl: 'https://flagcdn.com/w80/ng.png'
-    });
-
-    const [amountGetStr, setAmountGetStr] = useState('1');
-    const [amountSendStr, setAmountSendStr] = useState('0');
-    const [currentRate, setCurrentRate] = useState(0);
-
-    const { data: exchangeRates } = useGetExchangeRatesQuery({
-        fromCurrency: currencyGet.code,
-        toCurrency: currencySend.code
-    });
-
-    useEffect(() => {
-        if (exchangeRates?.data?.[0]?.sellRate) {
-            setCurrentRate(exchangeRates.data[0].sellRate);
-        }
-    }, [exchangeRates]);
-
-    const handleAmountGetChange = (amount: string) => {
-        const cleanAmount = amount.replace(/,/g, '');
-        setAmountGetStr(amount);
-        setValue('amount', parseFloat(cleanAmount) || 0);
-
-        if (cleanAmount && !isNaN(parseFloat(cleanAmount))) {
-            calculateExchangeRate.mutate({
-                fromCurrency: currencyGet.code,
-                toCurrency: currencySend.code,
-                amount: parseFloat(cleanAmount)
-            }, {
-                onSuccess: (response) => {
-                    if (response.success && response.data) {
-                        setAmountSendStr(response.data.convertedAmount.toLocaleString());
-                        setCurrentRate(response.data.sellRate);
-                    }
-                }
-            });
-        } else {
-            setAmountSendStr('0');
-        }
-    };
-
-    const handleCurrencyChange = (type: 'GET' | 'SEND', currency: any) => {
-        if (type === 'GET') {
-            setCurrencyGet(currency);
-        } else {
-            setCurrencySend(currency);
-        }
-
-        const cleanAmount = amountGetStr.replace(/,/g, '');
-        if (cleanAmount && !isNaN(parseFloat(cleanAmount))) {
-            calculateExchangeRate.mutate({
-                fromCurrency: type === 'GET' ? currency.code : currencyGet.code,
-                toCurrency: type === 'SEND' ? currency.code : currencySend.code,
-                amount: parseFloat(cleanAmount)
-            }, {
-                onSuccess: (response) => {
-                    if (response.success && response.data) {
-                        setAmountSendStr(response.data.convertedAmount.toLocaleString());
-                        setCurrentRate(response.data.sellRate);
-                    }
-                }
-            });
-        }
-    };
+    const {
+        transactionType,
+        setTransactionType,
+        currencyGet,
+        setCurrencyGet,
+        currencySend,
+        setCurrencySend,
+        amountGetStr,
+        setAmountGetStr,
+        amountSendStr,
+        setAmountSendStr,
+        currentRate,
+    } = useExchangeLogic({ setValue, initialAmount: '1' });
 
     // Document upload state
-    const [admissionFile, setAdmissionFile] = useState<any>(null);
-    const [admissionMeta, setAdmissionMeta] = useState<any>(null);
-    const [invoiceFile, setInvoiceFile] = useState<any>(null);
-    const [invoiceMeta, setInvoiceMeta] = useState<any>(null);
-    const [passportFile, setPassportFile] = useState<any>(null);
-    const [passportMeta, setPassportMeta] = useState<any>(null);
-    const [resultFile, setResultFile] = useState<any>(null);
-    const [resultMeta, setResultMeta] = useState<any>(null);
-    const [degreeFile, setDegreeFile] = useState<any>(null);
-    const [degreeMeta, setDegreeMeta] = useState<any>(null);
+    const [docs, setDocs] = useState({
+        admission: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        invoice: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        passport: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        result: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        degree: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+    });
+
+    const updateDoc = (key: keyof typeof docs, file: UploadedFile, metadata: UploadedMetadata) => {
+        setDocs(prev => ({ ...prev, [key]: { file, meta: metadata } }));
+    };
 
     const { upload: uploadFile, isPending: isUploading } = useDocumentUpload({
         onSuccess: (documentType, { file, metadata }) => {
-            if (documentType === 'SCHOOL_ADMISSION') { setAdmissionFile(file); setAdmissionMeta(metadata); }
-            else if (documentType === 'INVOICE') { setInvoiceFile(file); setInvoiceMeta(metadata); }
-            else if (documentType === 'PASSPORT') { setPassportFile(file); setPassportMeta(metadata); }
-            else if (documentType === 'RECEIPT') { setResultFile(file); setResultMeta(metadata); }
-            else if (documentType === 'MEMBERSHIP_CARD') { setDegreeFile(file); setDegreeMeta(metadata); }
+            if (documentType === 'SCHOOL_ADMISSION') updateDoc('admission', file, metadata);
+            else if (documentType === 'INVOICE') updateDoc('invoice', file, metadata);
+            else if (documentType === 'PASSPORT') updateDoc('passport', file, metadata);
+            else if (documentType === 'RECEIPT') updateDoc('result', file, metadata);
+            else if (documentType === 'MEMBERSHIP_CARD') updateDoc('degree', file, metadata);
         },
         onError: () => showToast('Failed to upload document. Please try again.', 'error'),
     });
@@ -200,17 +137,17 @@ export default function SchoolFeesScreen() {
         {
             label: 'Evidence of Admission',
             onUpload: () => uploadFile('SCHOOL_ADMISSION'),
-            fileName: admissionFile?.name,
-            fileUri: admissionFile?.uri,
-            fileType: admissionFile?.type,
+            fileName: docs.admission.file?.name,
+            fileUri: docs.admission.file?.uri,
+            fileType: docs.admission.file?.type,
             required: true,
         },
         {
             label: 'School Invoice',
             onUpload: () => uploadFile('INVOICE'),
-            fileName: invoiceFile?.name,
-            fileUri: invoiceFile?.uri,
-            fileType: invoiceFile?.type,
+            fileName: docs.invoice.file?.name,
+            fileUri: docs.invoice.file?.uri,
+            fileType: docs.invoice.file?.type,
             required: true,
             associatedInputs: (
                 <View>
@@ -221,9 +158,9 @@ export default function SchoolFeesScreen() {
         {
             label: 'International Passport',
             onUpload: () => uploadFile('PASSPORT'),
-            fileName: passportFile?.name,
-            fileUri: passportFile?.uri,
-            fileType: passportFile?.type,
+            fileName: docs.passport.file?.name,
+            fileUri: docs.passport.file?.uri,
+            fileType: docs.passport.file?.type,
             required: true,
             associatedInputs: (
 
@@ -239,9 +176,9 @@ export default function SchoolFeesScreen() {
         {
             label: 'International Passport',
             onUpload: () => uploadFile('PASSPORT'),
-            fileName: passportFile?.name,
-            fileUri: passportFile?.uri,
-            fileType: passportFile?.type,
+            fileName: docs.passport.file?.name,
+            fileUri: docs.passport.file?.uri,
+            fileType: docs.passport.file?.type,
             required: true,
             associatedInputs: (
                 <View style={{ flexDirection: 'row', gap: 12 }}>
@@ -257,9 +194,9 @@ export default function SchoolFeesScreen() {
         {
             label: 'School Invoice',
             onUpload: () => uploadFile('INVOICE'),
-            fileName: invoiceFile?.name,
-            fileUri: invoiceFile?.uri,
-            fileType: invoiceFile?.type,
+            fileName: docs.invoice.file?.name,
+            fileUri: docs.invoice.file?.uri,
+            fileType: docs.invoice.file?.type,
             required: true,
             associatedInputs: (
                 <View>
@@ -270,17 +207,17 @@ export default function SchoolFeesScreen() {
         {
             label: 'Statement Of Result',
             onUpload: () => uploadFile('RECEIPT'),
-            fileName: resultFile?.name,
-            fileUri: resultFile?.uri,
-            fileType: resultFile?.type,
+            fileName: docs.result.file?.name,
+            fileUri: docs.result.file?.uri,
+            fileType: docs.result.file?.type,
             required: true,
         },
         {
             label: 'First Degree Certificate',
             onUpload: () => uploadFile('MEMBERSHIP_CARD'),
-            fileName: degreeFile?.name,
-            fileUri: degreeFile?.uri,
-            fileType: degreeFile?.type,
+            fileName: docs.degree.file?.name,
+            fileUri: docs.degree.file?.uri,
+            fileType: docs.degree.file?.type,
             required: true,
         },
     ];
@@ -297,8 +234,8 @@ export default function SchoolFeesScreen() {
         if (currentStep === 0) {
             isStepValid = await trigger(['bvn', 'nin', 'formAId', 'passportNumber', 'admissionType']);
         } else if (currentStep === 1) {
-            const hasRequiredUgDocs = admissionFile && invoiceFile && passportFile;
-            const hasRequiredPgDocs = passportFile && invoiceFile && resultFile && degreeFile;
+            const hasRequiredUgDocs = docs.admission.file && docs.invoice.file && docs.passport.file;
+            const hasRequiredPgDocs = docs.passport.file && docs.invoice.file && docs.result.file && docs.degree.file;
 
             if (isPostGrad) {
                 if (!hasRequiredPgDocs) {
@@ -341,21 +278,25 @@ export default function SchoolFeesScreen() {
             type: 'SCHOOL_FEES',
             currency: currencyGet.code,
             amount: data.amount,
-            purpose: `School Fees Payment (${data.admissionType})`,
+            purpose: `Pay School Fees`,
             destinationCountry: currencyGet.country,
             bvn: data.bvn,
             nin: data.nin,
             formAId: data.formAId,
             admissionType: data.admissionType,
+            passportNumber: data.passportNumber,
+            passportIssueDate: data.passportIssueDate,
+            passportExpiryDate: data.passportExpiryDate,
+            invoiceNumber: data.invoiceNumber,
             documents: isPostGrad ? [
-                ...(passportMeta ? [passportMeta] : []),
-                ...(invoiceMeta ? [invoiceMeta] : []),
-                ...(resultMeta ? [resultMeta] : []),
-                ...(degreeMeta ? [degreeMeta] : []),
+                ...(docs.passport.meta ? [docs.passport.meta] : []),
+                ...(docs.invoice.meta ? [docs.invoice.meta] : []),
+                ...(docs.result.meta ? [docs.result.meta] : []),
+                ...(docs.degree.meta ? [docs.degree.meta] : []),
             ] : [
-                ...(admissionMeta ? [admissionMeta] : []),
-                ...(invoiceMeta ? [invoiceMeta] : []),
-                ...(passportMeta ? [passportMeta] : []),
+                ...(docs.admission.meta ? [docs.admission.meta] : []),
+                ...(docs.invoice.meta ? [docs.invoice.meta] : []),
+                ...(docs.passport.meta ? [docs.passport.meta] : []),
             ],
             beneficiaryDetails: {
                 name: data.accountName,
@@ -409,13 +350,13 @@ export default function SchoolFeesScreen() {
                         transactionType={transactionType}
                         onTransactionTypeChange={setTransactionType}
                         currencyGet={currencyGet}
-                        onCurrencyGetChange={(v: any) => handleCurrencyChange('GET', v)}
+                        onCurrencyGetChange={setCurrencyGet}
                         currencySend={currencySend}
-                        onCurrencySendChange={(v: any) => handleCurrencyChange('SEND', v)}
+                        onCurrencySendChange={setCurrencySend}
                         amountGet={amountGetStr}
                         amountSend={amountSendStr}
                         rate={`1 ${currencyGet.code} = ${currentRate.toLocaleString()} ${currencySend.code}`}
-                        onAmountGetChange={handleAmountGetChange}
+                        onAmountGetChange={setAmountGetStr}
                         onAmountSendChange={setAmountSendStr}
                         allowedModes={['buy']}
                         error={errors.amount?.message as string | undefined}

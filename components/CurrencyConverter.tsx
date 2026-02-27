@@ -86,6 +86,9 @@ export default function CurrencyConverter({
         }
     };
 
+    const foreignAmountStr = transactionType === 'sell' ? amountGet : amountSend;
+    const foreignAmount = parseFloat(foreignAmountStr.replace(/,/g, '')) || 0;
+
     return (
         <View style={styles.container}>
             <View style={styles.toggleWrapper}>
@@ -148,9 +151,9 @@ export default function CurrencyConverter({
                             error={error}
                         />
                     </View>
-                    {showLimitWarning && (
+                    {(showLimitWarning && foreignAmount >= 10000) && (
                         <TouchableOpacity
-                            style={{ backgroundColor: '#F1F1F1', padding: 10, borderRadius: 10 }}
+                            style={{ backgroundColor: '#F1F1F1', padding: 10, borderRadius: 10, marginTop: moderateScale(20) }}
                             onPress={onLimitWarningPress}
                         >
                             <Text style={{ fontSize: moderateScale(12), color: 'rgba(217, 45, 32, 1)', fontWeight: '400' }}>

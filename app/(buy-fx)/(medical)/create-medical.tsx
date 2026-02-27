@@ -6,15 +6,14 @@ import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import MedicalBankDetailsStep from '@/components/transaction-flow/MedicalBankDetailsStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
-import { useCalculateExchangeRateMutation } from '@/hooks/queries/transactions/useCalculateExchangeRateMutation';
 import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
-import { useGetExchangeRatesQuery } from '@/hooks/queries/transactions/useGetExchangeRatesQuery';
-import { useDocumentUpload } from '@/hooks/useDocumentUpload';
+import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDocumentUpload';
+import { useExchangeLogic } from '@/hooks/useExchangeLogic';
 import { useToastStore } from '@/stores/useToastStore';
 import { medicalStep0Schema, medicalStep1Schema, medicalStep2Schema, medicalStep3Schema } from '@/utils/validations/medical';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { View } from 'react-native';
 import { z } from 'zod';
@@ -31,7 +30,6 @@ type MedicalFormValues = z.infer<typeof medicalFormSchema>;
 export default function MedicalPaymentScreen() {
     const router = useRouter();
     const createTransaction = useCreateTransactionMutation();
-    const calculateExchangeRate = useCalculateExchangeRateMutation();
     const showToast = useToastStore(s => s.showToast);
 
     const [currentStep, setCurrentStep] = useState(0);
@@ -66,104 +64,43 @@ export default function MedicalPaymentScreen() {
         mode: 'onChange'
     });
 
-    const [transactionType, setTransactionType] = useState<'buy' | 'sell'>('buy');
-    const [currencyGet, setCurrencyGet] = useState({
-        code: 'USD',
-        country: 'United States',
-        currencyName: 'Dollar',
-        flagUrl: 'https://flagcdn.com/w80/us.png'
-    });
-    const [currencySend, setCurrencySend] = useState({
-        code: 'NGN',
-        country: 'Nigeria',
-        currencyName: 'Naira',
-        flagUrl: 'https://flagcdn.com/w80/ng.png'
-    });
-
-    const [amountGetStr, setAmountGetStr] = useState('1');
-    const [amountSendStr, setAmountSendStr] = useState('0');
-    const [currentRate, setCurrentRate] = useState(0);
-
-    const { data: exchangeRates } = useGetExchangeRatesQuery({
-        fromCurrency: currencyGet.code,
-        toCurrency: currencySend.code
-    });
-
-    useEffect(() => {
-        if (exchangeRates?.data?.[0]?.sellRate) {
-            setCurrentRate(exchangeRates.data[0].sellRate);
-        }
-    }, [exchangeRates]);
-
-    const handleAmountGetChange = (amount: string) => {
-        const cleanAmount = amount.replace(/,/g, '');
-        setAmountGetStr(amount);
-        setValue('amount', parseFloat(cleanAmount) || 0);
-
-        if (cleanAmount && !isNaN(parseFloat(cleanAmount))) {
-            calculateExchangeRate.mutate({
-                fromCurrency: currencyGet.code,
-                toCurrency: currencySend.code,
-                amount: parseFloat(cleanAmount)
-            }, {
-                onSuccess: (response) => {
-                    if (response.success && response.data) {
-                        setAmountSendStr(response.data.convertedAmount.toLocaleString());
-                        setCurrentRate(response.data.sellRate);
-                    }
-                }
-            });
-        } else {
-            setAmountSendStr('0');
-        }
-    };
-
-    const handleCurrencyChange = (type: 'GET' | 'SEND', currency: any) => {
-        if (type === 'GET') {
-            setCurrencyGet(currency);
-        } else {
-            setCurrencySend(currency);
-        }
-
-        const cleanAmount = amountGetStr.replace(/,/g, '');
-        if (cleanAmount && !isNaN(parseFloat(cleanAmount))) {
-            calculateExchangeRate.mutate({
-                fromCurrency: type === 'GET' ? currency.code : currencyGet.code,
-                toCurrency: type === 'SEND' ? currency.code : currencySend.code,
-                amount: parseFloat(cleanAmount)
-            }, {
-                onSuccess: (response) => {
-                    if (response.success && response.data) {
-                        setAmountSendStr(response.data.convertedAmount.toLocaleString());
-                        setCurrentRate(response.data.sellRate);
-                    }
-                }
-            });
-        }
-    };
+    const {
+        transactionType,
+        setTransactionType,
+        currencyGet,
+        setCurrencyGet,
+        currencySend,
+        setCurrencySend,
+        amountGetStr,
+        setAmountGetStr,
+        amountSendStr,
+        setAmountSendStr,
+        currentRate,
+        calculateExchangeRate,
+    } = useExchangeLogic({ setValue, initialAmount: '1' });
 
     // Document upload state
-    const [formAFile, setFormAFile] = useState<any>(null);
-    const [formAMeta, setFormAMeta] = useState<any>(null);
-    const [passportFile, setPassportFile] = useState<any>(null);
-    const [passportMeta, setPassportMeta] = useState<any>(null);
-    const [visaFile, setVisaFile] = useState<any>(null);
-    const [visaMeta, setVisaMeta] = useState<any>(null);
-    const [returnTicketFile, setReturnTicketFile] = useState<any>(null);
-    const [returnTicketMeta, setReturnTicketMeta] = useState<any>(null);
-    const [referenceLetterFile, setReferenceLetterFile] = useState<any>(null);
-    const [referenceLetterMeta, setReferenceLetterMeta] = useState<any>(null);
-    const [overseaDoctorLetterFile, setOverseaDoctorLetterFile] = useState<any>(null);
-    const [overseaDoctorLetterMeta, setOverseaDoctorLetterMeta] = useState<any>(null);
+    const [docs, setDocs] = useState({
+        formA: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        passport: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        visa: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        returnTicket: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        referenceLetter: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        overseaDoctorLetter: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+    });
+
+    const updateDoc = (key: keyof typeof docs, file: UploadedFile, metadata: UploadedMetadata) => {
+        setDocs(prev => ({ ...prev, [key]: { file, meta: metadata } }));
+    };
 
     const { upload: uploadFile, isPending: isUploading } = useDocumentUpload({
         onSuccess: (documentType, { file, metadata }) => {
-            if (documentType === 'FORM_A_DOCUMENT') { setFormAFile(file); setFormAMeta(metadata); }
-            else if (documentType === 'PASSPORT') { setPassportFile(file); setPassportMeta(metadata); }
-            else if (documentType === 'VISA') { setVisaFile(file); setVisaMeta(metadata); }
-            else if (documentType === 'RETURN_TICKET') { setReturnTicketFile(file); setReturnTicketMeta(metadata); }
-            else if (documentType === 'MEDICAL_LETTER') { setReferenceLetterFile(file); setReferenceLetterMeta(metadata); }
-            else if (documentType === 'OVERSEAS_MEDICAL_LETTER') { setOverseaDoctorLetterFile(file); setOverseaDoctorLetterMeta(metadata); }
+            if (documentType === 'FORM_A_DOCUMENT') updateDoc('formA', file, metadata);
+            else if (documentType === 'PASSPORT') updateDoc('passport', file, metadata);
+            else if (documentType === 'VISA') updateDoc('visa', file, metadata);
+            else if (documentType === 'RETURN_TICKET') updateDoc('returnTicket', file, metadata);
+            else if (documentType === 'MEDICAL_LETTER') updateDoc('referenceLetter', file, metadata);
+            else if (documentType === 'OVERSEAS_MEDICAL_LETTER') updateDoc('overseaDoctorLetter', file, metadata);
         },
         onError: () => showToast('Failed to upload document. Please try again.', 'error'),
     });
@@ -179,25 +116,25 @@ export default function MedicalPaymentScreen() {
         {
             label: 'Form A',
             onUpload: () => uploadFile('FORM_A_DOCUMENT'),
-            fileName: formAFile?.name,
-            fileUri: formAFile?.uri,
-            fileType: formAFile?.type,
+            fileName: docs.formA.file?.name,
+            fileUri: docs.formA.file?.uri,
+            fileType: docs.formA.file?.type,
             required: true,
         },
         {
             label: 'International Passport',
             onUpload: () => uploadFile('PASSPORT'),
-            fileName: passportFile?.name,
-            fileUri: passportFile?.uri,
-            fileType: passportFile?.type,
+            fileName: docs.passport.file?.name,
+            fileUri: docs.passport.file?.uri,
+            fileType: docs.passport.file?.type,
             required: true,
         },
         {
             label: 'Valid Visa',
             onUpload: () => uploadFile('VISA'),
-            fileName: visaFile?.name,
-            fileUri: visaFile?.uri,
-            fileType: visaFile?.type,
+            fileName: docs.visa.file?.name,
+            fileUri: docs.visa.file?.uri,
+            fileType: docs.visa.file?.type,
             required: true,
             associatedInputs: (
                 <View>
@@ -209,9 +146,9 @@ export default function MedicalPaymentScreen() {
         {
             label: 'Return Ticket',
             onUpload: () => uploadFile('RETURN_TICKET'),
-            fileName: returnTicketFile?.name,
-            fileUri: returnTicketFile?.uri,
-            fileType: returnTicketFile?.type,
+            fileName: docs.returnTicket.file?.name,
+            fileUri: docs.returnTicket.file?.uri,
+            fileType: docs.returnTicket.file?.type,
             required: true,
             associatedInputs: (
                 <View>
@@ -223,17 +160,17 @@ export default function MedicalPaymentScreen() {
         {
             label: 'Reference Letter (Nigerian Specialist Doctor or Hospital)',
             onUpload: () => uploadFile('MEDICAL_LETTER'),
-            fileName: referenceLetterFile?.name,
-            fileUri: referenceLetterFile?.uri,
-            fileType: referenceLetterFile?.type,
+            fileName: docs.referenceLetter.file?.name,
+            fileUri: docs.referenceLetter.file?.uri,
+            fileType: docs.referenceLetter.file?.type,
             required: true,
         },
         {
             label: 'Letter from oversea doctor stating treatment cost',
             onUpload: () => uploadFile('OVERSEAS_MEDICAL_LETTER'),
-            fileName: overseaDoctorLetterFile?.name,
-            fileUri: overseaDoctorLetterFile?.uri,
-            fileType: overseaDoctorLetterFile?.type,
+            fileName: docs.overseaDoctorLetter.file?.name,
+            fileUri: docs.overseaDoctorLetter.file?.uri,
+            fileType: docs.overseaDoctorLetter.file?.type,
             required: true,
         },
     ];
@@ -248,7 +185,7 @@ export default function MedicalPaymentScreen() {
         if (currentStep === 0) {
             isStepValid = await trigger(['bvn', 'nin', 'formAId', 'passportNumber']);
         } else if (currentStep === 1) {
-            if (!formAFile || !passportFile || !visaFile || !returnTicketFile || !referenceLetterFile || !overseaDoctorLetterFile) {
+            if (!docs.formA.file || !docs.passport.file || !docs.visa.file || !docs.returnTicket.file || !docs.referenceLetter.file || !docs.overseaDoctorLetter.file) {
                 showToast('Please upload all required documents', 'error');
                 return;
             }
@@ -286,13 +223,16 @@ export default function MedicalPaymentScreen() {
             bvn: data.bvn,
             nin: data.nin,
             formAId: data.formAId,
+            passportNumber: data.passportNumber,
+            visaNumber: data.visaNumber,
+            returnTicketNumber: data.returnTicketNumber,
             documents: [
-                ...(formAMeta ? [formAMeta] : []),
-                ...(passportMeta ? [passportMeta] : []),
-                ...(visaMeta ? [visaMeta] : []),
-                ...(returnTicketMeta ? [returnTicketMeta] : []),
-                ...(referenceLetterMeta ? [referenceLetterMeta] : []),
-                ...(overseaDoctorLetterMeta ? [overseaDoctorLetterMeta] : []),
+                ...(docs.formA.meta ? [docs.formA.meta] : []),
+                ...(docs.passport.meta ? [docs.passport.meta] : []),
+                ...(docs.visa.meta ? [docs.visa.meta] : []),
+                ...(docs.returnTicket.meta ? [docs.returnTicket.meta] : []),
+                ...(docs.referenceLetter.meta ? [docs.referenceLetter.meta] : []),
+                ...(docs.overseaDoctorLetter.meta ? [docs.overseaDoctorLetter.meta] : []),
             ],
             beneficiaryDetails: {
                 name: data.beneficiaryName,
@@ -346,13 +286,13 @@ export default function MedicalPaymentScreen() {
                         transactionType={transactionType}
                         onTransactionTypeChange={setTransactionType}
                         currencyGet={currencyGet}
-                        onCurrencyGetChange={(v: any) => handleCurrencyChange('GET', v)}
+                        onCurrencyGetChange={setCurrencyGet}
                         currencySend={currencySend}
-                        onCurrencySendChange={(v: any) => handleCurrencyChange('SEND', v)}
+                        onCurrencySendChange={setCurrencySend}
                         amountGet={amountGetStr}
                         amountSend={amountSendStr}
                         rate={`1 ${currencyGet.code} = ${currentRate.toLocaleString()} ${currencySend.code}`}
-                        onAmountGetChange={handleAmountGetChange}
+                        onAmountGetChange={setAmountGetStr}
                         onAmountSendChange={setAmountSendStr}
                         allowedModes={['buy']}
                         error={errors.amount?.message as string | undefined}

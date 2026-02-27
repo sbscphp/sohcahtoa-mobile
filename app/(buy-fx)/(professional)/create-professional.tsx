@@ -6,15 +6,14 @@ import CredentialStep from '@/components/transaction-flow/CredentialStep';
 import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
-import { useCalculateExchangeRateMutation } from '@/hooks/queries/transactions/useCalculateExchangeRateMutation';
 import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
-import { useGetExchangeRatesQuery } from '@/hooks/queries/transactions/useGetExchangeRatesQuery';
-import { useDocumentUpload } from '@/hooks/useDocumentUpload';
+import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDocumentUpload';
+import { useExchangeLogic } from '@/hooks/useExchangeLogic';
 import { useToastStore } from '@/stores/useToastStore';
 import { professionalStep0Schema, professionalStep1Schema, professionalStep2Schema, professionalStep3Schema } from '@/utils/validations/professional';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { View } from 'react-native';
 import { z } from 'zod';
@@ -31,7 +30,6 @@ type ProfessionalFormValues = z.infer<typeof professionalFormSchema>;
 export default function ProfessionalScreen() {
     const router = useRouter();
     const createTransaction = useCreateTransactionMutation();
-    const calculateExchangeRate = useCalculateExchangeRateMutation();
     const showToast = useToastStore(s => s.showToast);
 
     const [currentStep, setCurrentStep] = useState(0);
@@ -62,92 +60,34 @@ export default function ProfessionalScreen() {
         mode: 'onChange'
     });
 
-    const [transactionType, setTransactionType] = useState<'buy' | 'sell'>('buy');
-    const [currencyGet, setCurrencyGet] = useState({
-        code: 'USD',
-        country: 'United States',
-        currencyName: 'Dollar',
-        flagUrl: 'https://flagcdn.com/w80/us.png'
-    });
-    const [currencySend, setCurrencySend] = useState({
-        code: 'NGN',
-        country: 'Nigeria',
-        currencyName: 'Naira',
-        flagUrl: 'https://flagcdn.com/w80/ng.png'
-    });
-
-    const [amountGetStr, setAmountGetStr] = useState('1');
-    const [amountSendStr, setAmountSendStr] = useState('0');
-    const [currentRate, setCurrentRate] = useState(0);
-
-    const { data: exchangeRates } = useGetExchangeRatesQuery({
-        fromCurrency: currencyGet.code,
-        toCurrency: currencySend.code
-    });
-
-    useEffect(() => {
-        if (exchangeRates?.data?.[0]?.sellRate) {
-            setCurrentRate(exchangeRates.data[0].sellRate);
-        }
-    }, [exchangeRates]);
-
-    const handleAmountGetChange = (amount: string) => {
-        const cleanAmount = amount.replace(/,/g, '');
-        setAmountGetStr(amount);
-        setValue('amount', parseFloat(cleanAmount) || 0);
-
-        if (cleanAmount && !isNaN(parseFloat(cleanAmount))) {
-            calculateExchangeRate.mutate({
-                fromCurrency: currencyGet.code,
-                toCurrency: currencySend.code,
-                amount: parseFloat(cleanAmount)
-            }, {
-                onSuccess: (response) => {
-                    if (response.success && response.data) {
-                        setAmountSendStr(response.data.convertedAmount.toLocaleString());
-                        setCurrentRate(response.data.sellRate);
-                    }
-                }
-            });
-        } else {
-            setAmountSendStr('0');
-        }
-    };
-
-    const handleCurrencyChange = (type: 'GET' | 'SEND', currency: any) => {
-        if (type === 'GET') {
-            setCurrencyGet(currency);
-        } else {
-            setCurrencySend(currency);
-        }
-
-        const cleanAmount = amountGetStr.replace(/,/g, '');
-        if (cleanAmount && !isNaN(parseFloat(cleanAmount))) {
-            calculateExchangeRate.mutate({
-                fromCurrency: type === 'GET' ? currency.code : currencyGet.code,
-                toCurrency: type === 'SEND' ? currency.code : currencySend.code,
-                amount: parseFloat(cleanAmount)
-            }, {
-                onSuccess: (response) => {
-                    if (response.success && response.data) {
-                        setAmountSendStr(response.data.convertedAmount.toLocaleString());
-                        setCurrentRate(response.data.sellRate);
-                    }
-                }
-            });
-        }
-    };
+    const {
+        transactionType,
+        setTransactionType,
+        currencyGet,
+        setCurrencyGet,
+        currencySend,
+        setCurrencySend,
+        amountGetStr,
+        setAmountGetStr,
+        amountSendStr,
+        setAmountSendStr,
+        currentRate,
+    } = useExchangeLogic({ setValue, initialAmount: '1' });
 
     // Document upload state
-    const [membershipFile, setMembershipFile] = useState<any>(null);
-    const [membershipMeta, setMembershipMeta] = useState<any>(null);
-    const [invoiceFile, setInvoiceFile] = useState<any>(null);
-    const [invoiceMeta, setInvoiceMeta] = useState<any>(null);
+    const [docs, setDocs] = useState({
+        membership: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        invoice: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+    });
+
+    const updateDoc = (key: keyof typeof docs, file: UploadedFile, metadata: UploadedMetadata) => {
+        setDocs(prev => ({ ...prev, [key]: { file, meta: metadata } }));
+    };
 
     const { upload: uploadFile, isPending: isUploading } = useDocumentUpload({
         onSuccess: (documentType, { file, metadata }) => {
-            if (documentType === 'MEMBERSHIP_CARD') { setMembershipFile(file); setMembershipMeta(metadata); }
-            else if (documentType === 'INVOICE') { setInvoiceFile(file); setInvoiceMeta(metadata); }
+            if (documentType === 'MEMBERSHIP_CARD') updateDoc('membership', file, metadata);
+            else if (documentType === 'INVOICE') updateDoc('invoice', file, metadata);
         },
         onError: () => showToast('Failed to upload document. Please try again.', 'error'),
     });
@@ -163,9 +103,9 @@ export default function ProfessionalScreen() {
         {
             label: 'Evidence of Membership',
             onUpload: () => uploadFile('MEMBERSHIP_CARD'),
-            fileName: membershipFile?.name,
-            fileUri: membershipFile?.uri,
-            fileType: membershipFile?.type,
+            fileName: docs.membership.file?.name,
+            fileUri: docs.membership.file?.uri,
+            fileType: docs.membership.file?.type,
             required: true,
             associatedInputs: (
                 <View>
@@ -176,9 +116,9 @@ export default function ProfessionalScreen() {
         {
             label: 'Invoice from Professional Body',
             onUpload: () => uploadFile('INVOICE'),
-            fileName: invoiceFile?.name,
-            fileUri: invoiceFile?.uri,
-            fileType: invoiceFile?.type,
+            fileName: docs.invoice.file?.name,
+            fileUri: docs.invoice.file?.uri,
+            fileType: docs.invoice.file?.type,
             required: true,
             associatedInputs: (
                 <View>
@@ -198,7 +138,7 @@ export default function ProfessionalScreen() {
         if (currentStep === 0) {
             isStepValid = await trigger(['bvn', 'nin', 'formAId', 'passportNumber']);
         } else if (currentStep === 1) {
-            if (!membershipFile || !invoiceFile) {
+            if (!docs.membership.file || !docs.invoice.file) {
                 showToast('Please upload all required documents', 'error');
                 return;
             }
@@ -236,11 +176,14 @@ export default function ProfessionalScreen() {
             bvn: data.bvn,
             nin: data.nin,
             formAId: data.formAId,
+            passportNumber: data.passportNumber,
+            evidenceOfMembership: data.evidenceOfMembership,
+            invoiceNumber: data.invoiceNumber,
             documents: [
-                ...(membershipMeta ? [membershipMeta] : []),
-                ...(invoiceMeta ? [invoiceMeta] : []),
+                ...(docs.membership.meta ? [docs.membership.meta] : []),
+                ...(docs.invoice.meta ? [docs.invoice.meta] : []),
             ],
-            beneficiaryDetails: {
+            paymentDetails: {
                 name: data.accountName,
                 accountNumber: data.accountNumber,
                 accountName: data.accountName,
@@ -253,7 +196,7 @@ export default function ProfessionalScreen() {
             onSuccess: (response) => {
                 if (response.success) {
                     setInitiateSheetVisible(false);
-                     router.push({
+                    router.push({
                         pathname: '/(buy-fx)/(professional)/request-initiated-success',
                         params: { transactionId: response.data?.transactionId }
                     });
@@ -289,13 +232,13 @@ export default function ProfessionalScreen() {
                         transactionType={transactionType}
                         onTransactionTypeChange={setTransactionType}
                         currencyGet={currencyGet}
-                        onCurrencyGetChange={(v: any) => handleCurrencyChange('GET', v)}
+                        onCurrencyGetChange={setCurrencyGet}
                         currencySend={currencySend}
-                        onCurrencySendChange={(v: any) => handleCurrencyChange('SEND', v)}
+                        onCurrencySendChange={setCurrencySend}
                         amountGet={amountGetStr}
                         amountSend={amountSendStr}
                         rate={`1 ${currencyGet.code} = ${currentRate.toLocaleString()} ${currencySend.code}`}
-                        onAmountGetChange={handleAmountGetChange}
+                        onAmountGetChange={setAmountGetStr}
                         onAmountSendChange={setAmountSendStr}
                         allowedModes={['buy']}
                         error={errors.amount?.message}

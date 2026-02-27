@@ -10,6 +10,7 @@ import LocationStep from '@/components/transaction-flow/LocationStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
 import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
 import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDocumentUpload';
+import { useExchangeLogic } from '@/hooks/useExchangeLogic';
 import { useToastStore } from '@/stores/useToastStore';
 import { CITIES, LOCATIONS, STATES } from '@/utils/locations';
 import { btaStep0Schema, btaStep1Schema, btaStep2Schema, btaStep3Schema } from '@/utils/validations/bta';
@@ -56,7 +57,7 @@ export default function BusinessTravelAllowanceScreen() {
             passportExpiryDate: '',
             visaNumber: '',
             tccNumber: '',
-            amount: 1,
+            amount: 0,
             selectedState: undefined as unknown as LocationItem,
             selectedCity: undefined as unknown as LocationItem,
             selectedLocation: undefined as unknown as LocationItem,
@@ -66,27 +67,19 @@ export default function BusinessTravelAllowanceScreen() {
         mode: 'onChange'
     });
 
-    const [transactionType, setTransactionType] = useState<'buy' | 'sell'>('buy');
-    const [currencyGet, setCurrencyGet] = useState({
-        code: 'USD',
-        country: 'United States',
-        currencyName: 'Dollar',
-        flagUrl: 'https://flagcdn.com/w80/us.png'
-    });
-    const [currencySend, setCurrencySend] = useState({
-        code: 'NGN',
-        country: 'Nigeria',
-        currencyName: 'Naira',
-        flagUrl: 'https://flagcdn.com/w80/ng.png'
-    });
-
-    const [amountGetStr, setAmountGetStr] = useState('1');
-    const [amountSendStr, setAmountSendStr] = useState('1,500');
-
-    const handleAmountChange = (val: string) => {
-        setAmountGetStr(val);
-        setValue('amount', parseFloat(val.replace(/,/g, '')) || 0);
-    };
+    const {
+        transactionType,
+        setTransactionType,
+        currencyGet,
+        setCurrencyGet,
+        currencySend,
+        setCurrencySend,
+        amountGetStr,
+        setAmountGetStr,
+        amountSendStr,
+        setAmountSendStr,
+        currentRate,
+    } = useExchangeLogic({ setValue, initialAmount: '1' });
 
     // Document upload files state
     const [docs, setDocs] = useState({
@@ -117,11 +110,11 @@ export default function BusinessTravelAllowanceScreen() {
     });
 
     const credentialFields = [
-        { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number(BVN)" placeholder="Enter your BVN" required keyboardType="numeric" /> },
-        { customComponent: <ControlledInput control={control} name="tin" label="Tax Identification Number(TIN)" placeholder="Enter your TIN" required keyboardType="numeric" /> },
-        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number(NIN)" placeholder="Enter your NIN" required keyboardType="numeric" /> },
+        { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number(BVN)" placeholder="Enter your BVN" required keyboardType="numeric" maxLength={11} filterType="numeric" /> },
+        { customComponent: <ControlledInput control={control} name="tin" label="Tax Identification Number(TIN)" placeholder="Enter your TIN" required keyboardType="numeric" maxLength={11} filterType="numeric" /> },
+        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number(NIN)" placeholder="Enter your NIN" required keyboardType="numeric" maxLength={11} filterType="numeric" /> },
         { customComponent: <ControlledInput control={control} name="formAId" label="Form A ID" placeholder="Enter Form A ID" required /> },
-        { customComponent: <ControlledInput control={control} name="passportNumber" label="International Passport Number" placeholder="Enter international passport" required /> }
+        { customComponent: <ControlledInput control={control} name="passportNumber" label="International Passport Number" placeholder="Enter international passport" required maxLength={9} filterType="alphanumeric" /> }
     ];
 
     const documentFields = [
@@ -239,6 +232,15 @@ export default function BusinessTravelAllowanceScreen() {
     };
 
     const onSubmit = (data: BtaFormValues) => {
+        const formatDateForApi = (dateStr: string): string => {
+            if (!dateStr) return '';
+            const parts = dateStr.split('/');
+            if (parts.length === 3) {
+                return `${parts[2]}-${parts[1]}-${parts[0]}`;
+            }
+            return dateStr;
+        };
+
         const payload = {
             type: 'BTA',
             currency: currencyGet.code,
@@ -248,6 +250,11 @@ export default function BusinessTravelAllowanceScreen() {
             bvn: data.bvn,
             nin: data.nin,
             formAId: data.formAId,
+            passportNumber: data.passportNumber,
+            passportIssueDate: data.passportIssueDate,
+            passportExpiryDate: data.passportExpiryDate,
+            visaNumber: data.visaNumber,
+            tccNumber: data.tccNumber,
             documents: [
                 ...(docs.tcc.meta ? [docs.tcc.meta] : []),
                 ...(docs.passport.meta ? [docs.passport.meta] : []),
@@ -260,6 +267,10 @@ export default function BusinessTravelAllowanceScreen() {
             pickupLocation: data.selectedLocation ? {
                 name: data.selectedLocation.title,
                 address: data.selectedLocation.subtitle || '',
+                state: data.selectedState?.title || '',
+                city: data.selectedCity?.title || '',
+                scheduledPickupDate: formatDateForApi(data.pickupDate),
+                scheduledPickupTime: data.pickupTime,
             } : undefined,
         };
 
@@ -311,8 +322,8 @@ export default function BusinessTravelAllowanceScreen() {
                         onCurrencySendChange={setCurrencySend}
                         amountGet={amountGetStr}
                         amountSend={amountSendStr}
-                        rate={`1 ${currencyGet.code} = 1500 ${currencySend.code}`}
-                        onAmountGetChange={handleAmountChange}
+                        rate={`1 ${currencyGet.code} = ${currentRate.toLocaleString()} ${currencySend.code}`}
+                        onAmountGetChange={setAmountGetStr}
                         onAmountSendChange={setAmountSendStr}
                         allowedModes={['buy']}
                         error={errors.amount?.message}

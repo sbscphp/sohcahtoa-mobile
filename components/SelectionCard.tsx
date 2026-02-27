@@ -1,12 +1,13 @@
+import { Image } from 'expo-image';
 import React from 'react';
-import { Image, ImageSourcePropType, Text, TouchableOpacity, View } from 'react-native';
-import { ScaledSheet } from 'react-native-size-matters';
+import { Text, TouchableOpacity, View } from 'react-native';
+import { moderateScale, ScaledSheet } from 'react-native-size-matters';
 import { Colors } from '../constants/theme';
 
 interface SelectionCardProps {
     title: string;
     description: string;
-    iconSource: ImageSourcePropType;
+    iconSource: any; // Changed to any to support both assets and SVG components
     selected: boolean;
     onPress: () => void;
 }
@@ -18,6 +19,24 @@ const SelectionCard: React.FC<SelectionCardProps> = ({
     selected,
     onPress,
 }) => {
+    const renderIcon = () => {
+        if (!iconSource) return null;
+
+        // Check if iconSource is a component (from react-native-svg-transformer)
+        if (typeof iconSource === 'function' || (typeof iconSource === 'object' && (iconSource as any).$$typeof)) {
+            const IconComponent = iconSource as React.ComponentType<any>;
+            return (
+                <IconComponent
+                    width={moderateScale(45)}
+                    height={moderateScale(45)}
+                    style={styles.icon}
+                />
+            );
+        }
+
+        return <Image source={iconSource} style={styles.icon} contentFit="contain" />;
+    };
+
     return (
         <TouchableOpacity
             activeOpacity={0.7}
@@ -29,7 +48,7 @@ const SelectionCard: React.FC<SelectionCardProps> = ({
             accessibilityState={{ selected }}
         >
             <View style={styles.iconContainer}>
-                <Image source={iconSource} style={styles.icon} resizeMode="contain" />
+                {renderIcon()}
             </View>
             <View style={styles.content}>
                 <Text style={styles.title}>{title}</Text>

@@ -1,13 +1,15 @@
-import DatePickerField from '@/components/DatePickerField';
+import ControlledDatePicker from '@/components/ControlledDatePicker';
+import ControlledInput from '@/components/ControlledInput';
 import FileUpload from '@/components/FileUpload';
 import InitiateTransactionSheet from '@/components/InitiateTransactionSheet';
-import InputField from '@/components/InputField';
 import LoadingBackdrop from '@/components/LoadingBackdrop';
 import { LocationItem } from '@/components/LocationSelectionSheet';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import LocationStep from '@/components/transaction-flow/LocationStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
-import { UploadedFile, useDocumentUpload } from '@/hooks/useDocumentUpload';
+import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
+import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDocumentUpload';
+import { useExchangeLogic } from '@/hooks/useExchangeLogic';
 import { useToastStore } from '@/stores/useToastStore';
 import {
     expatriateStep0Schema,
@@ -15,128 +17,125 @@ import {
     expatriateStep2Schema,
     expatriateStep3Schema,
 } from '@/utils/validations/expatriate';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { Text, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import { z } from 'zod';
 
-interface ValidationErrors {
-    [key: string]: string | undefined;
-}
-
 import { CITIES, LOCATIONS, STATES } from '@/utils/locations';
+
+const expatriateFormSchema = z.object({
+    ...expatriateStep0Schema.shape,
+    ...expatriateStep1Schema.shape,
+    ...expatriateStep2Schema.shape,
+    ...expatriateStep3Schema.shape
+});
+
+type ExpatriateFormValues = z.infer<typeof expatriateFormSchema>;
 
 export default function CreateExpatriateScreen() {
     const router = useRouter();
+    const createTransaction = useCreateTransactionMutation();
     const [currentStep, setCurrentStep] = useState(0);
 
-    // Step 0: Credentials
-    const [bvnNumber, setBvnNumber] = useState('');
-    const [ninNumber, setNinNumber] = useState('');
-    const [passportNumber, setPassportNumber] = useState('');
+    const {
+        control,
+        handleSubmit,
+        trigger,
+        watch,
+        setValue,
+        formState: { errors }
+    } = useForm<ExpatriateFormValues>({
+        resolver: zodResolver(expatriateFormSchema),
+        defaultValues: {
+            bvn: '',
+            nin: '',
+            passportNumber: '',
+            workPermitNumber: '',
+            passportIssueDate: '',
+            passportExpiryDate: '',
+            utilityBillNumber: '',
+            amount: 0,
+            selectedState: undefined as unknown as LocationItem,
+            selectedCity: undefined as unknown as LocationItem,
+            selectedLocation: undefined as unknown as LocationItem,
+            pickupDate: '',
+            pickupTime: '',
+        },
+        mode: 'onChange'
+    });
 
     // Step 1: Uploaded files
-    const [workPermitFile, setWorkPermitFile] = useState<UploadedFile | null>(null);
-    const [passportFile, setPassportFile] = useState<UploadedFile | null>(null);
-    const [utilityBillFile, setUtilityBillFile] = useState<UploadedFile | null>(null);
-    // Step 1: Associated inputs
-    const [workPermitNumber, setWorkPermitNumber] = useState('');
-    const [passportIssueDate, setPassportIssueDate] = useState('');
-    const [passportExpiryDate, setPassportExpiryDate] = useState('');
-    const [utilityBillNumber, setUtilityBillNumber] = useState('');
+    const [docs, setDocs] = useState({
+        workPermit: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        passport: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        utility: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+    });
+
+    const updateDoc = (key: keyof typeof docs, file: UploadedFile, metadata: UploadedMetadata) => {
+        setDocs(prev => ({ ...prev, [key]: { file, meta: metadata } }));
+    };
 
     const showToast = useToastStore(s => s.showToast);
 
     const { upload: uploadFile, isPending: isUploading } = useDocumentUpload({
-        onSuccess: (documentType, { file }) => {
-            if (documentType === 'WORK_PERMIT') setWorkPermitFile(file);
-            else if (documentType === 'PASSPORT') setPassportFile(file);
-            else if (documentType === 'UTILITY_BILL') setUtilityBillFile(file);
+        onSuccess: (documentType, { file, metadata }) => {
+            if (documentType === 'WORK_PERMIT') updateDoc('workPermit', file, metadata);
+            else if (documentType === 'PASSPORT') updateDoc('passport', file, metadata);
+            else if (documentType === 'UTILITY_BILL') updateDoc('utility', file, metadata);
         },
         onError: () => showToast('Failed to upload document. Please try again.', 'error'),
     });
 
     // Step 2: Exchange
-    const [transactionType, setTransactionType] = useState<'buy' | 'sell'>('sell');
-    const [currencyGet, setCurrencyGet] = useState({ code: 'NGN', country: 'Nigeria', currencyName: 'Naira', flagUrl: 'https://flagcdn.com/w80/ng.png' });
-    const [currencySend, setCurrencySend] = useState({ code: 'USD', country: 'United States', currencyName: 'Dollar', flagUrl: 'https://flagcdn.com/w80/us.png' });
-    const [amountGet, setAmountGet] = useState('');
-    const [amountSend, setAmountSend] = useState('1,500');
+    const {
+        transactionType,
+        setTransactionType,
+        currencyGet,
+        setCurrencyGet,
+        currencySend,
+        setCurrencySend,
+        amountGetStr: amountGet,
+        setAmountGetStr: setAmountGet,
+        amountSendStr: amountSend,
+        setAmountSendStr: setAmountSend,
+        currentRate,
+    } = useExchangeLogic({ setValue, initialAmount: '' });
 
     // Step 3: Pickup
-    const [selectedState, setSelectedState] = useState<LocationItem | null>(null);
-    const [selectedCity, setSelectedCity] = useState<LocationItem | null>(null);
-    const [selectedLocation, setSelectedLocation] = useState<LocationItem | null>(null);
-    const [pickupDate, setPickupDate] = useState('');
-    const [pickupTime, setPickupTime] = useState('');
-
     const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
-    const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
 
-    const clearError = (field: string) => {
-        if (validationErrors[field]) {
-            setValidationErrors(prev => ({ ...prev, [field]: undefined }));
-        }
-    };
-
-    const handleNext = () => {
+    const handleNext = async () => {
         if (isUploading) {
             showToast('Please wait for files to finish uploading', 'warning');
             return;
         }
 
-        const errors: ValidationErrors = {};
+        let isStepValid = false;
 
         if (currentStep === 0) {
-            const result = expatriateStep0Schema.safeParse({ bvn: bvnNumber, nin: ninNumber, passportNumber });
-            if (!result.success) {
-                result.error.issues.forEach((e: z.ZodIssue) => {
-                    const key = e.path[0] as string;
-                    if (!errors[key]) errors[key] = e.message;
-                });
+            isStepValid = await trigger(['bvn', 'nin', 'passportNumber']);
+        } else if (currentStep === 1) {
+            if (!docs.workPermit.file || !docs.passport.file || !docs.utility.file) {
+                showToast('Please upload all required documents', 'error');
+                return;
             }
+            isStepValid = await trigger(['workPermitNumber', 'passportIssueDate', 'passportExpiryDate', 'utilityBillNumber']);
+        } else if (currentStep === 2) {
+            isStepValid = await trigger(['amount']);
+        } else if (currentStep === 3) {
+            isStepValid = await trigger(['selectedState', 'selectedCity', 'selectedLocation', 'pickupDate', 'pickupTime']);
         }
 
-        if (currentStep === 1) {
-            const result = expatriateStep1Schema.safeParse({ workPermitNumber, passportIssueDate, passportExpiryDate });
-            if (!result.success) {
-                result.error.issues.forEach((e: z.ZodIssue) => {
-                    const key = e.path[0] as string;
-                    if (!errors[key]) errors[key] = e.message;
-                });
+        if (isStepValid) {
+            if (currentStep < 3) {
+                setCurrentStep(currentStep + 1);
+            } else {
+                setInitiateSheetVisible(true);
             }
-        }
-
-        if (currentStep === 2) {
-            const result = expatriateStep2Schema.safeParse({ amount: parseFloat(amountSend.replace(/,/g, '')) });
-            if (!result.success) {
-                result.error.issues.forEach((e: z.ZodIssue) => {
-                    if (!errors.amount) errors.amount = e.message;
-                });
-            }
-        }
-
-        if (currentStep === 3) {
-            const result = expatriateStep3Schema.safeParse({ selectedState, selectedCity, selectedLocation, pickupDate, pickupTime });
-            if (!result.success) {
-                result.error.issues.forEach((e: z.ZodIssue) => {
-                    const key = e.path[0] as string;
-                    if (!errors[key]) errors[key] = e.message;
-                });
-            }
-        }
-
-        if (Object.keys(errors).length > 0) {
-            setValidationErrors(errors);
-            return;
-        }
-
-        setValidationErrors({});
-        if (currentStep < 3) {
-            setCurrentStep(currentStep + 1);
-        } else {
-            setInitiateSheetVisible(true);
         }
     };
 
@@ -148,14 +147,68 @@ export default function CreateExpatriateScreen() {
         }
     };
 
-    const handleConfirmInitiate = () => {
-        setInitiateSheetVisible(false);
-        router.push('/(sell-fx)/(expatriate)/success');
+    const onSubmit = (data: ExpatriateFormValues) => {
+        const formatDateForApi = (dateStr: string): string => {
+            if (!dateStr) return '';
+            const parts = dateStr.split('/');
+            if (parts.length === 3) {
+                return `${parts[2]}-${parts[1]}-${parts[0]}`;
+            }
+            return dateStr;
+        };
+
+        const payload = {
+            type: 'EXPATRIATE_FX',
+            currency: currencySend.code,
+            amount: data.amount,
+            purpose: 'I am a foreigner living or working in Nigeria',
+            destinationCountry: currencySend.country,
+            bvn: data.bvn,
+            nin: data.nin,
+            passportNumber: data.passportNumber,
+            workPermitNumber: data.workPermitNumber,
+            passportIssueDate: data.passportIssueDate,
+            passportExpiryDate: data.passportExpiryDate,
+            utilityBillNumber: data.utilityBillNumber,
+            documents: [
+                ...(docs.workPermit.meta ? [docs.workPermit.meta] : []),
+                ...(docs.passport.meta ? [docs.passport.meta] : []),
+                ...(docs.utility.meta ? [docs.utility.meta] : []),
+            ],
+            pickupLocation: data.selectedLocation ? {
+                name: data.selectedLocation.title,
+                address: data.selectedLocation.subtitle || '',
+                state: data.selectedState?.title || '',
+                city: data.selectedCity?.title || '',
+                scheduledPickupDate: formatDateForApi(data.pickupDate),
+                scheduledPickupTime: data.pickupTime,
+            } : undefined,
+        };
+
+        createTransaction.mutate(payload, {
+            onSuccess: (response) => {
+                if (response.success) {
+                    setInitiateSheetVisible(false);
+                    router.push({
+                        pathname: '/(sell-fx)/(expatriate)/success',
+                        params: {
+                            transactionId: response.data.transactionId,
+                        },
+                    });
+                }
+            },
+        });
     };
+
+    const selectedState = watch('selectedState');
+    const selectedCity = watch('selectedCity');
+    const selectedLocation = watch('selectedLocation');
+    const pickupDate = watch('pickupDate');
+    const pickupTime = watch('pickupTime');
 
     return (
         <>
-            <LoadingBackdrop visible={isUploading} />
+            <LoadingBackdrop visible={isUploading || createTransaction.isPending} />
             <TransactionLayout
                 title="Expatriate"
                 currentStep={currentStep}
@@ -168,33 +221,36 @@ export default function CreateExpatriateScreen() {
                     <View style={styles.container}>
                         <Text style={styles.sectionTitle}>Enter Tax Identification Number (TIN) and Form "A" ID</Text>
 
-                        <InputField
+                        <ControlledInput
+                            control={control}
+                            name="bvn"
                             label="Bank Verification Number (BVN)"
                             placeholder="Enter BVN"
-                            value={bvnNumber}
-                            onChangeText={(v) => { setBvnNumber(v); clearError('bvn'); }}
                             required
                             keyboardType="numeric"
-                            error={validationErrors.bvn}
+                            maxLength={11}
+                            filterType="numeric"
                         />
 
-                        <InputField
+                        <ControlledInput
+                            control={control}
+                            name="nin"
                             label="National Identification Number (NIN)"
                             placeholder="Enter NIN"
-                            value={ninNumber}
-                            onChangeText={(v) => { setNinNumber(v); clearError('nin'); }}
                             required
                             keyboardType="numeric"
-                            error={validationErrors.nin}
+                            maxLength={11}
+                            filterType="numeric"
                         />
 
-                        <InputField
+                        <ControlledInput
+                            control={control}
+                            name="passportNumber"
                             label="International Passport Number"
                             placeholder="Enter international passport number"
-                            value={passportNumber}
-                            onChangeText={(v) => { setPassportNumber(v); clearError('passportNumber'); }}
                             required
-                            error={validationErrors.passportNumber}
+                            maxLength={9}
+                            filterType="alphanumeric"
                         />
                     </View>
                 )}
@@ -210,17 +266,16 @@ export default function CreateExpatriateScreen() {
                             </Text>
                             <FileUpload
                                 onUpload={() => uploadFile('WORK_PERMIT')}
-                                fileName={workPermitFile?.name ?? null}
-                                fileUri={workPermitFile?.uri ?? null}
-                                fileType={workPermitFile?.type ?? null}
+                                fileName={docs.workPermit.file?.name ?? null}
+                                fileUri={docs.workPermit.file?.uri ?? null}
+                                fileType={docs.workPermit.file?.type ?? null}
                             />
-                            <InputField
+                            <ControlledInput
+                                control={control}
+                                name="workPermitNumber"
                                 label="Work Permit Number"
                                 placeholder="Enter work permit number"
-                                value={workPermitNumber}
-                                onChangeText={(v) => { setWorkPermitNumber(v); clearError('workPermitNumber'); }}
                                 required
-                                error={validationErrors.workPermitNumber}
                             />
                         </View>
 
@@ -231,29 +286,27 @@ export default function CreateExpatriateScreen() {
                             </Text>
                             <FileUpload
                                 onUpload={() => uploadFile('PASSPORT')}
-                                fileName={passportFile?.name ?? null}
-                                fileUri={passportFile?.uri ?? null}
-                                fileType={passportFile?.type ?? null}
+                                fileName={docs.passport.file?.name ?? null}
+                                fileUri={docs.passport.file?.uri ?? null}
+                                fileType={docs.passport.file?.type ?? null}
                             />
                             <View style={{ flexDirection: 'row', gap: moderateScale(12) }}>
                                 <View style={{ flex: 1 }}>
-                                    <DatePickerField
+                                    <ControlledDatePicker
+                                        control={control}
+                                        name="passportIssueDate"
                                         label="Passport Issue Date"
-                                        value={passportIssueDate}
-                                        onDateChange={(v) => { setPassportIssueDate(v); clearError('passportIssueDate'); }}
                                         required
                                         maximumDate={new Date()}
-                                        error={validationErrors.passportIssueDate}
                                     />
                                 </View>
                                 <View style={{ flex: 1 }}>
-                                    <DatePickerField
+                                    <ControlledDatePicker
+                                        control={control}
+                                        name="passportExpiryDate"
                                         label="Passport Expiry Date"
-                                        value={passportExpiryDate}
-                                        onDateChange={(v) => { setPassportExpiryDate(v); clearError('passportExpiryDate'); }}
                                         required
                                         minimumDate={new Date()}
-                                        error={validationErrors.passportExpiryDate}
                                     />
                                 </View>
                             </View>
@@ -266,17 +319,16 @@ export default function CreateExpatriateScreen() {
                             </Text>
                             <FileUpload
                                 onUpload={() => uploadFile('UTILITY_BILL')}
-                                fileName={utilityBillFile?.name ?? null}
-                                fileUri={utilityBillFile?.uri ?? null}
-                                fileType={utilityBillFile?.type ?? null}
+                                fileName={docs.utility.file?.name ?? null}
+                                fileUri={docs.utility.file?.uri ?? null}
+                                fileType={docs.utility.file?.type ?? null}
                             />
-                            <InputField
+                            <ControlledInput
+                                control={control}
+                                name="utilityBillNumber"
                                 label="Utility Bill Number"
                                 placeholder="Enter utility bill number"
-                                value={utilityBillNumber}
-                                onChangeText={(v) => { setUtilityBillNumber(v); clearError('utilityBillNumber'); }}
                                 required
-                                error={validationErrors.utilityBillNumber}
                             />
                         </View>
                     </View>
@@ -292,11 +344,11 @@ export default function CreateExpatriateScreen() {
                         onCurrencySendChange={setCurrencySend}
                         amountGet={amountGet}
                         amountSend={amountSend}
-                        rate={`1 ${currencySend.code} = 1500 ${currencyGet.code}`}
+                        rate={`1 ${currencySend.code} = ${currentRate.toLocaleString()} ${currencyGet.code}`}
                         onAmountGetChange={setAmountGet}
                         onAmountSendChange={setAmountSend}
                         allowedModes={['sell']}
-                        error={validationErrors.amount}
+                        error={errors.amount?.message as string | undefined}
                     />
                 )}
 
@@ -306,25 +358,39 @@ export default function CreateExpatriateScreen() {
                         cities={CITIES}
                         locations={LOCATIONS}
                         selectedState={selectedState}
-                        onSelectState={(item) => { setSelectedState(item); setSelectedCity(null); setSelectedLocation(null); clearError('selectedState'); }}
+                        onSelectState={(item) => {
+                            setValue('selectedState', item);
+                            setValue('selectedCity', undefined as unknown as LocationItem);
+                            setValue('selectedLocation', undefined as unknown as LocationItem);
+                        }}
                         selectedCity={selectedCity}
-                        onSelectCity={(item) => { setSelectedCity(item); setSelectedLocation(null); clearError('selectedCity'); }}
+                        onSelectCity={(item) => {
+                            setValue('selectedCity', item);
+                            setValue('selectedLocation', undefined as unknown as LocationItem);
+                        }}
                         selectedLocation={selectedLocation}
-                        onSelectLocation={(item) => { setSelectedLocation(item); clearError('selectedLocation'); }}
+                        onSelectLocation={(item) => setValue('selectedLocation', item)}
                         title="Where would you like to receive your funds?"
                         pickupDate={pickupDate}
-                        onPickupDateChange={(v) => { setPickupDate(v); clearError('pickupDate'); }}
+                        onPickupDateChange={(v) => setValue('pickupDate', v)}
                         pickupTime={pickupTime}
-                        onPickupTimeChange={(v) => { setPickupTime(v); clearError('pickupTime'); }}
-                        errors={validationErrors}
+                        onPickupTimeChange={(v) => setValue('pickupTime', v)}
+                        errors={{
+                            state: errors.selectedState?.message as string | undefined,
+                            city: errors.selectedCity?.message as string | undefined,
+                            location: errors.selectedLocation?.message as string | undefined,
+                            pickupDate: errors.pickupDate?.message as string | undefined,
+                            pickupTime: errors.pickupTime?.message as string | undefined
+                        }}
                     />
                 )}
 
                 <InitiateTransactionSheet
                     visible={initiateSheetVisible}
                     onClose={() => setInitiateSheetVisible(false)}
-                    onConfirm={handleConfirmInitiate}
+                    onConfirm={handleSubmit(onSubmit)}
                     title="Initiate Expatriate Transaction request?"
+                    loading={createTransaction.isPending}
                     items={[
                         {
                             title: "Verification before approval",

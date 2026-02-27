@@ -8,6 +8,7 @@ export const touringStep0Schema = baseCredentialSchema;
 export const touringStep1Schema = z.object({
     passportIssueDate: z.string().min(1, 'Please select Passport Issue Date'),
     passportExpiryDate: z.string().min(1, 'Please select Passport Expiry Date'),
+    visaNumber: z.string().min(1, 'Please enter Visa Number'),
 });
 
 /** Step 2: Touring amount — max $4,000 */

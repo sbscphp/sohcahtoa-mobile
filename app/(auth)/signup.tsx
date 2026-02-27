@@ -58,7 +58,7 @@ export default function SignupScreen() {
                     <SelectionCard
                         title="Expatriate"
                         description="A foreign national living or working in Nigeria"
-                        iconSource={require('../../assets/images/map.png')}
+                        iconSource={require('../../assets/images/expatriate-onboarding.png')}
                         selected={selectedType === 'expatriate'}
                         onPress={() => setSelectedType('expatriate')}
                     />

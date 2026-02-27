@@ -1,7 +1,7 @@
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Clock } from 'iconsax-react-nativejs';
-import React, { useEffect, useRef, useState } from 'react';
-import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Modal, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { moderateScale, ScaledSheet } from 'react-native-size-matters';
 import PrimaryButton from './PrimaryButton';
 
@@ -14,13 +14,17 @@ interface TimePickerFieldProps {
     error?: string;
 }
 
-/** "HH:mm" → Date (today's date, hours/minutes filled in). */
+/** "HH:mm" → Date. We use a fixed date to avoid "today" logic issues on some platforms. */
 function parseTime(timeString: string): Date {
-    const d = new Date();
-    const parts = timeString.split(':');
-    if (parts.length >= 2) {
-        d.setHours(parseInt(parts[0], 10), parseInt(parts[1], 10), 0, 0);
+    const d = new Date(2000, 0, 1);
+    if (!timeString) {
+        d.setHours(9, 0, 0, 0);
+        return d;
     }
+    const parts = timeString.split(':');
+    const h = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10);
+    d.setHours(isNaN(h) ? 9 : h, isNaN(m) ? 0 : m, 0, 0);
     return d;
 }
 
@@ -42,45 +46,29 @@ const TimePickerField: React.FC<TimePickerFieldProps> = ({
 }) => {
     const [showPicker, setShowPicker] = useState(false);
 
-    /**
-     * tempTime is what the spinner currently shows. We keep it in a ref so
-     * mutations inside onChange don't cause unnecessary re-renders, and we
-     * read the final value in handleConfirm via the ref.
-     */
-    const tempTimeRef = useRef<Date>(value ? parseTime(value) : new Date());
-    // A separate state just for forcing a re-render of the spinner with the
-    // correct key when the picker opens.
+    const [tempTime, setTempTime] = useState<Date>(value ? parseTime(value) : new Date());
     const [pickerKey, setPickerKey] = useState(0);
 
-    /**
-     * Keep tempTimeRef in sync with the committed `value` prop whenever the
-     * picker is closed. This means when the picker opens it always starts at
-     * the right position without relying on batched setState.
-     */
     useEffect(() => {
         if (!showPicker) {
-            tempTimeRef.current = value ? parseTime(value) : new Date();
+            setTempTime(parseTime(value));
         }
     }, [value, showPicker]);
 
     const handleOpen = () => {
-        // Sync ref to current value one last time before opening
-        tempTimeRef.current = value ? parseTime(value) : new Date();
-        // Increment key → forces DateTimePicker to remount with the correct
-        // initial value (avoids Android reusing stale native spinner state)
+        setTempTime(parseTime(value));
         setPickerKey(k => k + 1);
         setShowPicker(true);
     };
 
     const handleChange = (_event: any, date?: Date) => {
-        // Update ref as user scrolls the spinner (no re-render needed)
         if (date) {
-            tempTimeRef.current = date;
+            setTempTime(date);
         }
     };
 
     const handleConfirm = () => {
-        onTimeChange(formatTime(tempTimeRef.current));
+        onTimeChange(formatTime(tempTime));
         setShowPicker(false);
     };
 
@@ -136,9 +124,10 @@ const TimePickerField: React.FC<TimePickerFieldProps> = ({
                          */}
                         <DateTimePicker
                             key={pickerKey}
-                            value={tempTimeRef.current}
+                            value={tempTime}
                             mode="time"
-                            display="spinner"
+                            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                            is24Hour={true}
                             onChange={handleChange}
                             textColor="#0F172A"
                             style={{ width: '100%' }}

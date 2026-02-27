@@ -7,16 +7,15 @@ import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import LocationStep from '@/components/transaction-flow/LocationStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
-import { useCalculateExchangeRateMutation } from '@/hooks/queries/transactions/useCalculateExchangeRateMutation';
 import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
-import { useGetExchangeRatesQuery } from '@/hooks/queries/transactions/useGetExchangeRatesQuery';
-import { useDocumentUpload } from '@/hooks/useDocumentUpload';
+import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDocumentUpload';
+import { useExchangeLogic } from '@/hooks/useExchangeLogic';
 import { useToastStore } from '@/stores/useToastStore';
 import { CITIES, LOCATIONS, STATES } from '@/utils/locations';
 import { ptaStep0Schema, ptaStep1Schema, ptaStep2Schema, ptaStep3Schema } from '@/utils/validations/pta';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { View } from 'react-native';
 import { z } from 'zod';
@@ -33,7 +32,6 @@ type PtaFormValues = z.infer<typeof ptaFormSchema>;
 export default function PersonalTravelAllowanceScreen() {
     const router = useRouter();
     const createTransaction = useCreateTransactionMutation();
-    const calculateExchangeRate = useCalculateExchangeRateMutation();
     const showToast = useToastStore(s => s.showToast);
 
     const [currentStep, setCurrentStep] = useState(0);
@@ -65,115 +63,52 @@ export default function PersonalTravelAllowanceScreen() {
         mode: 'onChange'
     });
 
-    const [transactionType, setTransactionType] = useState<'buy' | 'sell'>('buy');
-    const [currencyGet, setCurrencyGet] = useState({
-        code: 'USD',
-        country: 'United States',
-        currencyName: 'Dollar',
-        flagUrl: 'https://flagcdn.com/w80/us.png'
-    });
-    const [currencySend, setCurrencySend] = useState({
-        code: 'NGN',
-        country: 'Nigeria',
-        currencyName: 'Naira',
-        flagUrl: 'https://flagcdn.com/w80/ng.png'
-    });
-
-    const [amountGetStr, setAmountGetStr] = useState('1');
-    const [amountSendStr, setAmountSendStr] = useState('0');
-    const [currentRate, setCurrentRate] = useState(0);
+    const {
+        transactionType,
+        setTransactionType,
+        currencyGet,
+        setCurrencyGet,
+        currencySend,
+        setCurrencySend,
+        amountGetStr,
+        setAmountGetStr,
+        amountSendStr,
+        setAmountSendStr,
+        currentRate,
+    } = useExchangeLogic({ setValue, initialAmount: '1' });
 
     // Document upload files state
-    const [visaFile, setVisaFile] = useState<any>(null);
-    const [visaMetadata, setVisaMetadata] = useState<any>(null);
-    const [ticketFile, setTicketFile] = useState<any>(null);
-    const [ticketMetadata, setTicketMetadata] = useState<any>(null);
+    const [docs, setDocs] = useState({
+        visa: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        ticket: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+    });
+
+    const updateDoc = (key: keyof typeof docs, file: UploadedFile, metadata: UploadedMetadata) => {
+        setDocs(prev => ({ ...prev, [key]: { file, meta: metadata } }));
+    };
 
     const { upload: uploadFile, isPending: isUploading } = useDocumentUpload({
         onSuccess: (documentType, { file, metadata }) => {
-            if (documentType === 'VISA') {
-                setVisaFile(file);
-                setVisaMetadata(metadata);
-            } else if (documentType === 'RETURN_TICKET') {
-                setTicketFile(file);
-                setTicketMetadata(metadata);
-            }
+            if (documentType === 'VISA') updateDoc('visa', file, metadata);
+            else if (documentType === 'RETURN_TICKET') updateDoc('ticket', file, metadata);
         },
         onError: () => showToast('Failed to upload document. Please try again.', 'error'),
     });
 
-    const { data: exchangeRates } = useGetExchangeRatesQuery({
-        fromCurrency: currencyGet.code,
-        toCurrency: currencySend.code
-    });
-
-    useEffect(() => {
-        if (exchangeRates?.data?.[0]?.sellRate) {
-            setCurrentRate(exchangeRates.data[0].sellRate);
-        }
-    }, [exchangeRates]);
-
-    const handleAmountGetChange = (amount: string) => {
-        const cleanAmount = amount.replace(/,/g, '');
-        setAmountGetStr(amount);
-        setValue('amount', parseFloat(cleanAmount) || 0);
-
-        if (cleanAmount && !isNaN(parseFloat(cleanAmount))) {
-            calculateExchangeRate.mutate({
-                fromCurrency: currencyGet.code,
-                toCurrency: currencySend.code,
-                amount: parseFloat(cleanAmount)
-            }, {
-                onSuccess: (response) => {
-                    if (response.success && response.data) {
-                        setAmountSendStr(response.data.convertedAmount.toLocaleString());
-                        setCurrentRate(response.data.sellRate);
-                    }
-                }
-            });
-        } else {
-            setAmountSendStr('0');
-        }
-    };
-
-    const handleCurrencyChange = (type: 'GET' | 'SEND', currency: any) => {
-        if (type === 'GET') {
-            setCurrencyGet(currency);
-        } else {
-            setCurrencySend(currency);
-        }
-
-        const cleanAmount = amountGetStr.replace(/,/g, '');
-        if (cleanAmount && !isNaN(parseFloat(cleanAmount))) {
-            calculateExchangeRate.mutate({
-                fromCurrency: type === 'GET' ? currency.code : currencyGet.code,
-                toCurrency: type === 'SEND' ? currency.code : currencySend.code,
-                amount: parseFloat(cleanAmount)
-            }, {
-                onSuccess: (response) => {
-                    if (response.success && response.data) {
-                        setAmountSendStr(response.data.convertedAmount.toLocaleString());
-                        setCurrentRate(response.data.sellRate);
-                    }
-                }
-            });
-        }
-    };
-
     const credentialFields = [
-        { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number(BVN)" placeholder="Enter your BVN" required keyboardType="numeric" /> },
-        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number(NIN)" placeholder="Enter your NIN" required keyboardType="numeric" /> },
+        { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number(BVN)" placeholder="Enter your BVN" required keyboardType="numeric" maxLength={11} filterType="numeric" /> },
+        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number(NIN)" placeholder="Enter your NIN" required keyboardType="numeric" maxLength={11} filterType="numeric" /> },
         { customComponent: <ControlledInput control={control} name="formAId" label="Form A ID" placeholder="Enter Form A ID" required /> },
-        { customComponent: <ControlledInput control={control} name="passportNumber" label="International Passport Number" placeholder="Enter international passport" required /> }
+        { customComponent: <ControlledInput control={control} name="passportNumber" label="International Passport Number" placeholder="Enter international passport" required maxLength={9} filterType="alphanumeric" /> }
     ];
 
     const documentFields = [
         {
             label: 'Valid Visa',
             onUpload: () => uploadFile('VISA'),
-            fileName: visaFile?.name,
-            fileUri: visaFile?.uri,
-            fileType: visaFile?.type,
+            fileName: docs.visa.file?.name,
+            fileUri: docs.visa.file?.uri,
+            fileType: docs.visa.file?.type,
             required: true,
             associatedInputs: (
                 <View>
@@ -184,9 +119,9 @@ export default function PersonalTravelAllowanceScreen() {
         {
             label: 'Return Ticket',
             onUpload: () => uploadFile('RETURN_TICKET'),
-            fileName: ticketFile?.name,
-            fileUri: ticketFile?.uri,
-            fileType: ticketFile?.type,
+            fileName: docs.ticket.file?.name,
+            fileUri: docs.ticket.file?.uri,
+            fileType: docs.ticket.file?.type,
             required: true,
             associatedInputs: (
                 <View>
@@ -207,7 +142,7 @@ export default function PersonalTravelAllowanceScreen() {
         if (currentStep === 0) {
             isStepValid = await trigger(['bvn', 'nin', 'formAId', 'passportNumber']);
         } else if (currentStep === 1) {
-            if (!visaFile || !ticketFile) {
+            if (!docs.visa.file || !docs.ticket.file) {
                 showToast('Please upload all required documents (Visa and Return Ticket)', 'error');
                 return;
             }
@@ -236,7 +171,7 @@ export default function PersonalTravelAllowanceScreen() {
     };
 
     const onSubmit = (data: PtaFormValues) => {
-        console.log(data,"PTA");
+        console.log(data, "PTA");
         const formatDateForApi = (dateStr: string): string => {
             if (!dateStr) return '';
             const parts = dateStr.split('/');
@@ -255,9 +190,12 @@ export default function PersonalTravelAllowanceScreen() {
             bvn: data.bvn,
             nin: data.nin,
             formAId: data.formAId,
+            passportNumber: data.passportNumber,
+            visaNumber: data.visaNumber,
+            ticketNumber: data.ticketNumber,
             documents: [
-                ...(visaMetadata ? [visaMetadata] : []),
-                ...(ticketMetadata ? [ticketMetadata] : [])
+                ...(docs.visa.meta ? [docs.visa.meta] : []),
+                ...(docs.ticket.meta ? [docs.ticket.meta] : [])
             ],
             pickupLocation: data.selectedLocation ? {
                 name: data.selectedLocation.title,
@@ -312,13 +250,13 @@ export default function PersonalTravelAllowanceScreen() {
                         transactionType={transactionType}
                         onTransactionTypeChange={setTransactionType}
                         currencyGet={currencyGet}
-                        onCurrencyGetChange={(v: any) => handleCurrencyChange('GET', v)}
+                        onCurrencyGetChange={setCurrencyGet}
                         currencySend={currencySend}
-                        onCurrencySendChange={(v: any) => handleCurrencyChange('SEND', v)}
+                        onCurrencySendChange={setCurrencySend}
                         amountGet={amountGetStr}
                         amountSend={amountSendStr}
                         rate={`1 ${currencyGet.code} = ${currentRate.toLocaleString()} ${currencySend.code}`}
-                        onAmountGetChange={handleAmountGetChange}
+                        onAmountGetChange={setAmountGetStr}
                         onAmountSendChange={setAmountSendStr}
                         allowedModes={['buy']}
                         error={errors.amount?.message}

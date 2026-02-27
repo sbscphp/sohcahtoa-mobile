@@ -8,16 +8,15 @@ import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import LocationStep from '@/components/transaction-flow/LocationStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
-import { useCalculateExchangeRateMutation } from '@/hooks/queries/transactions/useCalculateExchangeRateMutation';
 import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
-import { useGetExchangeRatesQuery } from '@/hooks/queries/transactions/useGetExchangeRatesQuery';
-import { useDocumentUpload } from '@/hooks/useDocumentUpload';
+import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDocumentUpload';
+import { useExchangeLogic } from '@/hooks/useExchangeLogic';
 import { useToastStore } from '@/stores/useToastStore';
 import { CITIES, LOCATIONS, STATES } from '@/utils/locations';
 import { touringStep0Schema, touringStep1Schema, touringStep2Schema, touringStep3Schema } from '@/utils/validations/touring';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { View } from 'react-native';
 import { z } from 'zod';
@@ -34,7 +33,6 @@ type TouringFormValues = z.infer<typeof touringFormSchema>;
 export default function TouringScreen() {
     const router = useRouter();
     const createTransaction = useCreateTransactionMutation();
-    const calculateExchangeRate = useCalculateExchangeRateMutation();
     const showToast = useToastStore(s => s.showToast);
 
     const [currentStep, setCurrentStep] = useState(0);
@@ -56,6 +54,7 @@ export default function TouringScreen() {
             passportNumber: '',
             passportIssueDate: '',
             passportExpiryDate: '',
+            visaNumber: '',
             amount: 0,
             selectedState: undefined as unknown as LocationItem,
             selectedCity: undefined as unknown as LocationItem,
@@ -66,98 +65,38 @@ export default function TouringScreen() {
         mode: 'onChange'
     });
 
-    const [transactionType, setTransactionType] = useState<'buy' | 'sell'>('buy');
-    const [currencyGet, setCurrencyGet] = useState({
-        code: 'USD',
-        country: 'United States',
-        currencyName: 'Dollar',
-        flagUrl: 'https://flagcdn.com/w80/us.png'
-    });
-    const [currencySend, setCurrencySend] = useState({
-        code: 'NGN',
-        country: 'Nigeria',
-        currencyName: 'Naira',
-        flagUrl: 'https://flagcdn.com/w80/ng.png'
-    });
-
-    const [amountGetStr, setAmountGetStr] = useState('1');
-    const [amountSendStr, setAmountSendStr] = useState('0');
-    const [currentRate, setCurrentRate] = useState(0);
-
-    const { data: exchangeRates } = useGetExchangeRatesQuery({
-        fromCurrency: currencyGet.code,
-        toCurrency: currencySend.code
-    });
-
-    useEffect(() => {
-        if (exchangeRates?.data?.[0]?.sellRate) {
-            setCurrentRate(exchangeRates.data[0].sellRate);
-        }
-    }, [exchangeRates]);
-
-    const handleAmountGetChange = (amount: string) => {
-        const cleanAmount = amount.replace(/,/g, '');
-        setAmountGetStr(amount);
-        setValue('amount', parseFloat(cleanAmount) || 0);
-
-        if (cleanAmount && !isNaN(parseFloat(cleanAmount))) {
-            calculateExchangeRate.mutate({
-                fromCurrency: currencyGet.code,
-                toCurrency: currencySend.code,
-                amount: parseFloat(cleanAmount)
-            }, {
-                onSuccess: (response) => {
-                    if (response.success && response.data) {
-                        setAmountSendStr(response.data.convertedAmount.toLocaleString());
-                        setCurrentRate(response.data.sellRate);
-                    }
-                }
-            });
-        } else {
-            setAmountSendStr('0');
-        }
-    };
-
-    const handleCurrencyChange = (type: 'GET' | 'SEND', currency: any) => {
-        if (type === 'GET') {
-            setCurrencyGet(currency);
-        } else {
-            setCurrencySend(currency);
-        }
-
-        const cleanAmount = amountGetStr.replace(/,/g, '');
-        if (cleanAmount && !isNaN(parseFloat(cleanAmount))) {
-            calculateExchangeRate.mutate({
-                fromCurrency: type === 'GET' ? currency.code : currencyGet.code,
-                toCurrency: type === 'SEND' ? currency.code : currencySend.code,
-                amount: parseFloat(cleanAmount)
-            }, {
-                onSuccess: (response) => {
-                    if (response.success && response.data) {
-                        setAmountSendStr(response.data.convertedAmount.toLocaleString());
-                        setCurrentRate(response.data.sellRate);
-                    }
-                }
-            });
-        }
-    };
+    const {
+        transactionType,
+        setTransactionType,
+        currencyGet,
+        setCurrencyGet,
+        currencySend,
+        setCurrencySend,
+        amountGetStr,
+        setAmountGetStr,
+        amountSendStr,
+        setAmountSendStr,
+        currentRate,
+    } = useExchangeLogic({ setValue, initialAmount: '1' });
 
     // Document upload state
-    const [passportFile, setPassportFile] = useState<any>(null);
-    const [passportMeta, setPassportMeta] = useState<any>(null);
-    const [visaFile, setVisaFile] = useState<any>(null);
-    const [visaMeta, setVisaMeta] = useState<any>(null);
-    const [ticketFile, setTicketFile] = useState<any>(null);
-    const [ticketMeta, setTicketMeta] = useState<any>(null);
-    const [initialNairaPurchaseReceiptFile, setInitialNairaPurchaseReceiptFile] = useState<any>(null);
-    const [initialNairaPurchaseReceiptMeta, setInitialNairaPurchaseReceiptMeta] = useState<any>(null);
+    const [docs, setDocs] = useState({
+        passport: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        visa: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        ticket: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        receipt: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+    });
+
+    const updateDoc = (key: keyof typeof docs, file: UploadedFile, metadata: UploadedMetadata) => {
+        setDocs(prev => ({ ...prev, [key]: { file, meta: metadata } }));
+    };
 
     const { upload: uploadFile, isPending: isUploading } = useDocumentUpload({
         onSuccess: (documentType, { file, metadata }) => {
-            if (documentType === 'PASSPORT') { setPassportFile(file); setPassportMeta(metadata); }
-            else if (documentType === 'VISA') { setVisaFile(file); setVisaMeta(metadata); }
-            else if (documentType === 'RETURN_TICKET') { setTicketFile(file); setTicketMeta(metadata); }
-            else if (documentType === 'INITIAL_NAIRA_PURCHASE_RECEIPT') { setInitialNairaPurchaseReceiptFile(file); setInitialNairaPurchaseReceiptMeta(metadata); }
+            if (documentType === 'PASSPORT') updateDoc('passport', file, metadata);
+            else if (documentType === 'VISA') updateDoc('visa', file, metadata);
+            else if (documentType === 'RETURN_TICKET') updateDoc('ticket', file, metadata);
+            else if (documentType === 'RECEIPT') updateDoc('receipt', file, metadata);
         },
         onError: () => showToast('Failed to upload document. Please try again.', 'error'),
     });
@@ -173,9 +112,9 @@ export default function TouringScreen() {
         {
             label: 'International Passport',
             onUpload: () => uploadFile('PASSPORT'),
-            fileName: passportFile?.name,
-            fileUri: passportFile?.uri,
-            fileType: passportFile?.type,
+            fileName: docs.passport.file?.name,
+            fileUri: docs.passport.file?.uri,
+            fileType: docs.passport.file?.type,
             required: true,
             associatedInputs: (
                 <View style={{ flexDirection: 'row', gap: 12 }}>
@@ -189,27 +128,30 @@ export default function TouringScreen() {
             )
         },
         {
-            label: 'Valid Visa',
+            label: 'Valid Visa ',
             onUpload: () => uploadFile('VISA'),
-            fileName: visaFile?.name,
-            fileUri: visaFile?.uri,
-            fileType: visaFile?.type,
+            fileName: docs.visa.file?.name,
+            fileUri: docs.visa.file?.uri,
+            fileType: docs.visa.file?.type,
             required: true,
+            associatedInputs: (
+                <ControlledInput control={control} name="visaNumber" label="Visa Number" placeholder="Enter visa number" required />
+            )
         },
         {
             label: 'Return Ticket',
             onUpload: () => uploadFile('RETURN_TICKET'),
-            fileName: ticketFile?.name,
-            fileUri: ticketFile?.uri,
-            fileType: ticketFile?.type,
+            fileName: docs.ticket.file?.name,
+            fileUri: docs.ticket.file?.uri,
+            fileType: docs.ticket.file?.type,
             required: true,
         },
         {
             label: 'Receipt for Initial Naira Purchase',
-            onUpload: () => uploadFile('INITIAL_NAIRA_PURCHASE_RECEIPT'),
-            fileName: initialNairaPurchaseReceiptFile?.name,
-            fileUri: initialNairaPurchaseReceiptFile?.uri,
-            fileType: initialNairaPurchaseReceiptFile?.type,
+            onUpload: () => uploadFile('RECEIPT'),
+            fileName: docs.receipt.file?.name,
+            fileUri: docs.receipt.file?.uri,
+            fileType: docs.receipt.file?.type,
             required: true,
         },
     ];
@@ -224,11 +166,11 @@ export default function TouringScreen() {
         if (currentStep === 0) {
             isStepValid = await trigger(['bvn', 'nin', 'formAId', 'passportNumber']);
         } else if (currentStep === 1) {
-            if (!passportFile || !visaFile || !ticketFile || !initialNairaPurchaseReceiptFile) {
+            if (!docs.passport.file || !docs.visa.file || !docs.ticket.file || !docs.receipt.file) {
                 showToast('Please upload all required documents', 'error');
                 return;
             }
-            isStepValid = await trigger(['passportIssueDate', 'passportExpiryDate']);
+            isStepValid = await trigger(['passportIssueDate', 'passportExpiryDate', 'visaNumber']);
         } else if (currentStep === 2) {
             isStepValid = await trigger(['amount']);
         } else if (currentStep === 3) {
@@ -253,27 +195,42 @@ export default function TouringScreen() {
     };
 
     const onSubmit = (data: TouringFormValues) => {
+        const formatDateForApi = (dateStr: string): string => {
+            if (!dateStr) return '';
+            const parts = dateStr.split('/');
+            if (parts.length === 3) {
+                return `${parts[2]}-${parts[1]}-${parts[0]}`;
+            }
+            return dateStr;
+        };
+
         const payload = {
-            type: 'TOURING',
+            type: 'TOURIST_FX',
             currency: currencyGet.code,
             amount: data.amount,
-            purpose: 'Touring',
+            purpose: 'I am Touring Nigeria',
             destinationCountry: currencyGet.country,
             bvn: data.bvn,
             nin: data.nin,
             formAId: data.formAId,
+            passportNumber: data.passportNumber,
+            passportIssueDate: data.passportIssueDate,
+            passportExpiryDate: data.passportExpiryDate,
+            visaNumber: data.visaNumber,
             documents: [
-                ...(passportMeta ? [passportMeta] : []),
-                ...(visaMeta ? [visaMeta] : []),
-                ...(ticketMeta ? [ticketMeta] : []),
-                ...(initialNairaPurchaseReceiptMeta ? [initialNairaPurchaseReceiptMeta] : []),
+                ...(docs.passport.meta ? [docs.passport.meta] : []),
+                ...(docs.visa.meta ? [docs.visa.meta] : []),
+                ...(docs.ticket.meta ? [docs.ticket.meta] : []),
+                ...(docs.receipt.meta ? [docs.receipt.meta] : []),
             ],
             pickupLocation: data.selectedLocation ? {
                 name: data.selectedLocation.title,
                 address: data.selectedLocation.subtitle || '',
+                state: data.selectedState?.title || '',
+                city: data.selectedCity?.title || '',
+                scheduledPickupDate: formatDateForApi(data.pickupDate),
+                scheduledPickupTime: data.pickupTime,
             } : undefined,
-            pickupDate: data.pickupDate,
-            pickupTime: data.pickupTime,
         };
 
         createTransaction.mutate(payload, {
@@ -319,13 +276,13 @@ export default function TouringScreen() {
                         transactionType={transactionType}
                         onTransactionTypeChange={setTransactionType}
                         currencyGet={currencyGet}
-                        onCurrencyGetChange={(v: any) => handleCurrencyChange('GET', v)}
+                        onCurrencyGetChange={setCurrencyGet}
                         currencySend={currencySend}
-                        onCurrencySendChange={(v: any) => handleCurrencyChange('SEND', v)}
+                        onCurrencySendChange={setCurrencySend}
                         amountGet={amountGetStr}
                         amountSend={amountSendStr}
                         rate={`1 ${currencyGet.code} = ${currentRate.toLocaleString()} ${currencySend.code}`}
-                        onAmountGetChange={handleAmountGetChange}
+                        onAmountGetChange={setAmountGetStr}
                         onAmountSendChange={setAmountSendStr}
                         allowedModes={['buy']}
                         error={errors.amount?.message}

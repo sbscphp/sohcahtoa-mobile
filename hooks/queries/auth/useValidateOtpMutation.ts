@@ -20,7 +20,7 @@ export const useValidateOtpMutation = () => {
                 showToast(response.data.message || 'OTP Validated Successfully', 'success');
             }
 
-            // console.log(response, 'Response');
+            console.log(response, 'Response');
         },
         onError: (error: any) => {
             const message = error.response?.data?.error?.message || error.message || 'Validate OTP Failed';
