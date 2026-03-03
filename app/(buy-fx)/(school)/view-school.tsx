@@ -3,6 +3,7 @@ import TransactionDocsView from '@/components/transaction-flow/TransactionDocsVi
 import TransactionStatusView, { TransactionStatus } from '@/components/transaction-flow/TransactionStatusView';
 import TransactionViewLayout from '@/components/transaction-flow/TransactionViewLayout';
 import { useGetTransactionByIdQuery } from '@/hooks/queries/transactions/useGetTransactionByIdQuery';
+import { commonDocTypeLabels, getTransactionDocuments } from '@/utils/helpers';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
@@ -21,10 +22,12 @@ export default function ViewSchoolFeesScreen() {
     };
     const status: TransactionStatus = tx ? mapStatus(tx.status) : 'pending';
     const handleBack = () => { router.back(); };
-    const handleProceed = () => { router.push({
+    const handleProceed = () => {
+        router.push({
             pathname: '/(buy-fx)/(school)/payment',
             params: { transactionId }
-        }); };
+        });
+    };
     const fmtDate = (d: string) => { const dt = new Date(d); const m = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']; return `${dt.getDate()} ${m[dt.getMonth()]} ${dt.getFullYear()}`; };
     const fmtTime = (d: string) => { const dt = new Date(d); let h = dt.getHours(); const min = dt.getMinutes(); const ap = h >= 12 ? 'pm' : 'am'; h = h % 12 || 12; return `${h}:${String(min).padStart(2, '0')} ${ap}`; };
     const fmtCur = (n: number | null | undefined, p = '₦') => n == null ? `${p} 0` : `${p} ${n.toLocaleString()}`;
@@ -41,11 +44,23 @@ export default function ViewSchoolFeesScreen() {
     }, [tx]);
     const detailsDocuments = useMemo(() => {
         if (!tx) return [];
-        return tx.requiredDocuments.filter(d => !!d.uploaded).map(d => ({ label: d.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()), fileName: d.uploaded!.fileName }));
+        const docs = getTransactionDocuments(tx);
+
+        const uploadedDocs = tx.requiredDocuments.filter(d => !!d.uploaded).map(d => ({
+            label: commonDocTypeLabels[d.type] || d.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
+            fileName: d.uploaded!.fileName
+        }));
+        return [...docs, ...uploadedDocs];
     }, [tx]);
+
     const docsItems = useMemo(() => {
         if (!tx) return [];
-        return tx.requiredDocuments.filter(d => !!d.uploaded).map(d => ({ label: d.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()), fileName: d.uploaded!.fileName, docStatus: d.uploaded!.status, required: true }));
+        return tx.requiredDocuments.filter(d => !!d.uploaded).map(d => ({
+            label: commonDocTypeLabels[d.type] || d.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
+            fileName: d.uploaded!.fileName,
+            docStatus: d.uploaded!.status,
+            required: true
+        }));
     }, [tx]);
     console.log(docsItems, "DOCS");
     const getMessage = () => {

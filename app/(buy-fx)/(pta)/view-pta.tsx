@@ -3,10 +3,10 @@ import TransactionDocsView from '@/components/transaction-flow/TransactionDocsVi
 import TransactionStatusView, { TransactionStatus } from '@/components/transaction-flow/TransactionStatusView';
 import TransactionViewLayout from '@/components/transaction-flow/TransactionViewLayout';
 import { useGetTransactionByIdQuery } from '@/hooks/queries/transactions/useGetTransactionByIdQuery';
+import { commonDocTypeLabels, formatCurrency, formatDate, formatTime, getTransactionDocuments, mapApiStatusToViewStatus, truncateFileName } from '@/utils/helpers';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
-import { formatCurrency, formatDate, formatTime, mapApiStatusToViewStatus, truncateFileName } from '@/utils/helpers';
 
 export default function ViewPtaScreen() {
     const router = useRouter();
@@ -16,7 +16,7 @@ export default function ViewPtaScreen() {
     const { data: txResponse, isLoading } = useGetTransactionByIdQuery(transactionId || '');
     const tx = txResponse?.data;
 
-    // console.log('Transaction:', tx);
+    // console.log('Transaction:', JSON.stringify(tx, null, 2));
 
     const status: TransactionStatus = tx ? mapApiStatusToViewStatus(tx.status) : 'pending';
 
@@ -46,20 +46,28 @@ export default function ViewPtaScreen() {
             { label: 'Transaction ID', value: tx.referenceNumber },
             { label: 'Amount (₦)', value: formatCurrency(tx.nairaEquivalent) },
             { label: 'Equivalent Amount (FX)', value: formatCurrency(tx.foreignAmount, tx.currency === 'USD' ? '$' : tx.currency === 'GBP' ? '£' : tx.currency === 'EUR' ? '€' : tx.currency) },
-            { label: 'Exchange Rate', value: tx.exchangeRate ? `₦${tx.exchangeRate.toLocaleString()}/$1` : 'N/A' },
             { label: 'Date Initiated', value: formatDate(tx.createdAt) },
-            ...(tx.cashPickup ? [{ label: 'Pickup Address', value: tx.cashPickup.address || 'N/A', isRightAligned: true }] : []),
+            ...(tx.cashPickup ? [{
+                label: 'Pickup Address',
+                value: [tx.cashPickup.pickupLocation, tx.cashPickup.pickupCity, tx.cashPickup.pickupState].filter(Boolean).join(', ') || 'N/A',
+                isRightAligned: true
+            }] : []),
         ];
     }, [tx]);
 
     const detailsDocuments = useMemo(() => {
         if (!tx) return [];
-        return tx.requiredDocuments
+
+        const docs = getTransactionDocuments(tx);
+
+        const uploadedDocs = tx.requiredDocuments
             .filter((doc) => doc.uploaded)
             .map((doc) => ({
-                label: doc.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
-                fileName: truncateFileName(doc.uploaded!.fileName),
+                label: commonDocTypeLabels[doc.type] || doc.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
+                fileName: doc.uploaded!.fileName,
             }));
+
+        return [...docs, ...uploadedDocs];
     }, [tx]);
 
     const docsItems = useMemo(() => {

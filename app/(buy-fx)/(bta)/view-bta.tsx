@@ -3,50 +3,11 @@ import TransactionDocsView from '@/components/transaction-flow/TransactionDocsVi
 import TransactionStatusView, { TransactionStatus } from '@/components/transaction-flow/TransactionStatusView';
 import TransactionViewLayout from '@/components/transaction-flow/TransactionViewLayout';
 import { useGetTransactionByIdQuery } from '@/hooks/queries/transactions/useGetTransactionByIdQuery';
+import { commonDocTypeLabels, formatCurrency, formatDate, formatTime, getTransactionDocuments, mapApiStatusToViewStatus } from '@/utils/helpers';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 
-
-const mapApiStatusToViewStatus = (status: string): TransactionStatus => {
-    const map: Record<string, TransactionStatus> = {
-        'DRAFT': 'pending',
-        'AWAITING_VERIFICATION': 'pending',
-        'VERIFICATION_IN_PROGRESS': 'pending',
-        'VERIFICATION_COMPLETED': 'pending',
-        'AWAITING_DEPOSIT': 'awaiting_disbursement',
-        'DEPOSIT_PENDING': 'awaiting_disbursement',
-        'DEPOSIT_CONFIRMED': 'awaiting_disbursement',
-        'COMPLIANCE_REVIEW': 'pending',
-        'ADMIN_APPROVAL_PENDING': 'pending',
-        'APPROVED': 'approved',
-        'DISBURSEMENT_IN_PROGRESS': 'awaiting_disbursement',
-        'COMPLETED': 'settled',
-        'REJECTED': 'rejected',
-        'CANCELLED': 'rejected',
-    };
-    return map[status] || 'pending';
-};
-
-const formatDate = (dateStr: string): string => {
-    const d = new Date(dateStr);
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
-};
-
-const formatTime = (dateStr: string): string => {
-    const d = new Date(dateStr);
-    let hours = d.getHours();
-    const minutes = d.getMinutes();
-    const ampm = hours >= 12 ? 'pm' : 'am';
-    hours = hours % 12 || 12;
-    return `${hours}:${String(minutes).padStart(2, '0')} ${ampm}`;
-};
-
-const formatCurrency = (amount: number | null | undefined, prefix: string = '₦'): string => {
-    if (amount == null) return `${prefix} 0`;
-    return `${prefix} ${amount.toLocaleString()}`;
-};
 
 export default function ViewBtaScreen() {
     const router = useRouter();
@@ -58,7 +19,7 @@ export default function ViewBtaScreen() {
     const tx = txResponse?.data;
 
 
-    // console.log('Transaction:', tx);
+    // console.log(JSON.stringify(tx, null, 2), 'TRANSACTION');
 
     const status: TransactionStatus = tx ? mapApiStatusToViewStatus(tx.status) : 'pending';
 
@@ -86,20 +47,28 @@ export default function ViewBtaScreen() {
             { label: 'Transaction ID', value: tx.referenceNumber },
             { label: 'Amount (₦)', value: formatCurrency(tx.nairaEquivalent) },
             { label: 'Equivalent Amount (FX)', value: formatCurrency(tx.foreignAmount, tx.currency === 'USD' ? '$' : tx.currency === 'GBP' ? '£' : tx.currency === 'EUR' ? '€' : tx.currency) },
-            { label: 'Exchange Rate', value: tx.exchangeRate ? `₦${tx.exchangeRate.toLocaleString()}/$1` : 'N/A' },
             { label: 'Date Initiated', value: formatDate(tx.createdAt) },
-            ...(tx.cashPickup ? [{ label: 'Pickup Address', value: tx.cashPickup.address || 'N/A', isRightAligned: true }] : []),
+            ...(tx.cashPickup ? [{
+                label: 'Pickup Address',
+                value: [tx.cashPickup.pickupLocation, tx.cashPickup.pickupCity, tx.cashPickup.pickupState].filter(Boolean).join(', ') || 'N/A',
+                isRightAligned: true
+            }] : []),
         ];
     }, [tx]);
 
     const detailsDocuments = useMemo(() => {
         if (!tx) return [];
-        return tx.requiredDocuments
+
+        const docs = getTransactionDocuments(tx);
+
+        const uploadedDocs = tx.requiredDocuments
             .filter((doc) => doc.uploaded)
             .map((doc) => ({
-                label: doc.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
+                label: commonDocTypeLabels[doc.type] || doc.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
                 fileName: doc.uploaded!.fileName,
             }));
+
+        return [...docs, ...uploadedDocs];
     }, [tx]);
 
     const docsItems = useMemo(() => {
@@ -107,7 +76,7 @@ export default function ViewBtaScreen() {
         return tx.requiredDocuments
             .filter((doc) => !!doc.uploaded)
             .map((doc) => ({
-                label: doc.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
+                label: commonDocTypeLabels[doc.type] || doc.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
                 fileName: doc.uploaded!.fileName,
                 docStatus: doc.uploaded!.status,
                 required: true,

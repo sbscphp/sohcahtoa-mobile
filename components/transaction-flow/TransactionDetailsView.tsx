@@ -113,7 +113,7 @@ export default function TransactionDetailsView({ details, documents = [], docume
                 <>
                     <Text style={[styles.sectionHeader, { marginTop: moderateScale(62) }]}>Disbursement Details</Text>
 
-                  
+
                     {disbursementDetails.paymentInfo.map((item, index) => (
                         <View key={index}>
                             <View style={styles.detailRow}>
@@ -142,25 +142,36 @@ export default function TransactionDetailsView({ details, documents = [], docume
                         <View style={styles.separator} />
                         <Text style={[styles.sectionHeader, { marginTop: moderateScale(62) }]}>{documentSectionTitle}</Text>
 
-                        {documents.map((doc, index) => (
-                            <View key={index}>
-                                {doc.value ? (
-                                    <View style={styles.detailRow}>
-                                        <Text style={styles.detailLabel}>{doc.label}</Text>
-                                        <Text style={styles.detailValue} numberOfLines={2}>{doc.value}</Text>
-                                    </View>
-                                ) : (
-                                    <View style={styles.docRow}>
-                                        <Text style={styles.detailLabel}>{doc.label}</Text>
-                                        <View style={styles.downloadContainer}>
-                                            <Text style={styles.docName}>{doc.fileName}</Text>
-                                            <Download size={moderateScale(14)} color="rgba(152, 162, 179, 1)" />
+                        {(() => {
+                            const truncateFileName = (name: string | undefined, maxLength = 18) => {
+                                if (!name) return '';
+                                if (name.length <= maxLength) return name;
+                                const ext = name.split('.').pop();
+                                const base = name.substring(0, name.lastIndexOf('.'));
+                                const keep = maxLength - (ext?.length || 0) - 8;
+                                return base.substring(0, Math.max(0, keep)) + '...' + ext;
+                            };
+
+                            return documents.map((doc, index) => (
+                                <View key={index}>
+                                    {doc.value ? (
+                                        <View style={styles.detailRow}>
+                                            <Text style={styles.detailLabel}>{doc.label}</Text>
+                                            <Text style={styles.detailValue} numberOfLines={2}>{doc.value}</Text>
                                         </View>
-                                    </View>
-                                )}
-                                {index < documents.length - 1 && <View style={[styles.separator, { marginTop: verticalScale(12) }]} />}
-                            </View>
-                        ))}
+                                    ) : (
+                                        <View style={styles.docRow}>
+                                            <Text style={styles.detailLabel}>{doc.label}</Text>
+                                            <View style={styles.downloadContainer}>
+                                                <Text style={styles.docName} numberOfLines={1}>{truncateFileName(doc.fileName)}</Text>
+                                                <Download size={moderateScale(14)} color="rgba(152, 162, 179, 1)" />
+                                            </View>
+                                        </View>
+                                    )}
+                                    {index < documents.length - 1 && <View style={[styles.separator, { marginTop: verticalScale(12) }]} />}
+                                </View>
+                            ));
+                        })()}
                         <View style={styles.separator} />
                     </>
                 )
@@ -218,6 +229,7 @@ const styles = ScaledSheet.create({
     docName: {
         fontSize: '15@ms',
         color: '#64748B',
+        flexShrink: 1,
     },
     secondaryValue: {
         fontSize: '14@ms',

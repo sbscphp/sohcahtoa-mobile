@@ -57,3 +57,38 @@ export const truncateFileName = (name: string, maxLength: number = 25): string =
 
     return `${name.slice(0, maxLength - 3)}...`;
 };
+export const commonDocTypeLabels: Record<string, string> = {
+    'VISA': 'Valid Visa',
+    'PASSPORT': 'International Passport',
+    'FORM_A': 'Form A',
+    'FORM_A_DOCUMENT': 'Form A',
+    'RETURN_TICKET': 'Return Ticket',
+    'INTERNATIONAL_PASSPORT': 'International Passport',
+    'TIN': 'TIN',
+    'TCC': 'TCC',
+    'CORPORATE_BODY_LETTER': 'Corporate Body Letter',
+    'PARTNER_INVITATION_LETTER': 'Partner Invitation Letter',
+    'SCHOOL_ADMISSION': 'School Admission',
+    'MEDICAL_LETTER': 'Medical Letter',
+    'OVERSEAS_MEDICAL_LETTER': 'Overseas Medical Letter',
+    'PROFESSIONAL_BODY_LETTER': 'Professional Body Letter',
+    'MEMBERSHIP_CARD': 'Membership Card',
+    'INVOICE': 'Invoice',
+    'RECEIPT': 'Receipt',
+};
+
+export const getTransactionDocuments = (tx: any): { label: string; value: string }[] => {
+    if (!tx) return [];
+    const docs: { label: string; value: string }[] = [];
+
+    // Personal Info fields
+    if (tx.personalInfo?.bvn) docs.push({ label: 'BVN Number', value: tx.personalInfo.bvn });
+    if (tx.personalInfo?.nin) docs.push({ label: 'NIN', value: tx.personalInfo.nin });
+    if (tx.personalInfo?.admissionType) docs.push({ label: 'Admission Type', value: tx.personalInfo.admissionType });
+
+    // Root level fields
+    if (tx.taxClearanceNumber) docs.push({ label: 'TIN', value: tx.taxClearanceNumber });
+    if (tx.formAId) docs.push({ label: 'Form A ID', value: tx.formAId });
+
+    return docs;
+};

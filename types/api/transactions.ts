@@ -95,6 +95,13 @@ export interface Transaction {
     nairaEquivalent: number;
     exchangeRate: number;
     disbursementMethod: string;
+    formAId?: string;
+    taxClearanceNumber?: string;
+    personalInfo?: {
+        bvn?: string;
+        nin?: string;
+        admissionType?: string;
+    };
     createdAt: string;
     updatedAt: string;
     completedAt: string | null;
@@ -226,6 +233,13 @@ export interface GetTransactionByIdResponse {
         nairaEquivalent: number;
         exchangeRate: number;
         disbursementMethod: string;
+        formAId?: string;
+        taxClearanceNumber?: string;
+        personalInfo?: {
+            bvn?: string;
+            nin?: string;
+            admissionType?: string;
+        };
         rejection?: {
             reason: string;
             rejectedAt: string;

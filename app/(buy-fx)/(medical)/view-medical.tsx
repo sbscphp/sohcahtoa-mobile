@@ -3,6 +3,7 @@ import TransactionDocsView from '@/components/transaction-flow/TransactionDocsVi
 import TransactionStatusView, { TransactionStatus } from '@/components/transaction-flow/TransactionStatusView';
 import TransactionViewLayout from '@/components/transaction-flow/TransactionViewLayout';
 import { useGetTransactionByIdQuery } from '@/hooks/queries/transactions/useGetTransactionByIdQuery';
+import { commonDocTypeLabels, getTransactionDocuments } from '@/utils/helpers';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
@@ -15,7 +16,7 @@ export default function ViewMedicalPaymentScreen() {
     const { data: txResponse, isLoading } = useGetTransactionByIdQuery(transactionId || '');
     const tx = txResponse?.data;
 
-    console.log(tx,"MEDI");
+    console.log(tx, "MEDI");
 
     const mapApiStatusToViewStatus = (s: string): TransactionStatus => {
         const map: Record<string, TransactionStatus> = {
@@ -32,10 +33,12 @@ export default function ViewMedicalPaymentScreen() {
     const status: TransactionStatus = tx ? mapApiStatusToViewStatus(tx.status) : 'pending';
 
     const handleBack = () => { router.back(); };
-    const handleProceed = () => { router.push({
+    const handleProceed = () => {
+        router.push({
             pathname: '/(buy-fx)/(medical)/payment',
             params: { transactionId }
-        }); };
+        });
+    };
 
     const formatDate = (d: string) => { const dt = new Date(d); const m = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']; return `${dt.getDate()} ${m[dt.getMonth()]} ${dt.getFullYear()}`; };
     const formatTime = (d: string) => { const dt = new Date(d); let h = dt.getHours(); const min = dt.getMinutes(); const ap = h >= 12 ? 'pm' : 'am'; h = h % 12 || 12; return `${h}:${String(min).padStart(2, '0')} ${ap}`; };
@@ -53,7 +56,13 @@ export default function ViewMedicalPaymentScreen() {
 
     const detailsDocuments = useMemo(() => {
         if (!tx) return [];
-        return tx.requiredDocuments.filter(d => !!d.uploaded).map(d => ({ label: d.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()), fileName: d.uploaded!.fileName }));
+        const docs = getTransactionDocuments(tx);
+
+        const uploadedDocs = tx.requiredDocuments.filter(d => !!d.uploaded).map(d => ({
+            label: commonDocTypeLabels[d.type] || d.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
+            fileName: d.uploaded!.fileName
+        }));
+        return [...docs, ...uploadedDocs];
     }, [tx]);
 
     const docsItems = useMemo(() => {
@@ -61,7 +70,7 @@ export default function ViewMedicalPaymentScreen() {
         return tx.requiredDocuments
             .filter((doc) => !!doc.uploaded)
             .map((doc) => ({
-                label: doc.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
+                label: commonDocTypeLabels[doc.type] || doc.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
                 fileName: doc.uploaded!.fileName,
                 docStatus: doc.uploaded!.status,
                 required: true,
