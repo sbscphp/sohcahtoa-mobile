@@ -54,12 +54,14 @@ const InputField: React.FC<InputFieldProps> = ({
                     style={[styles.input, props.style]}
                     secureTextEntry={isPassword && !isPasswordVisible}
                     placeholderTextColor="#94A3B8"
+                    testID="input-field"
                     {...props}
                 />
                 {isPassword && (
                     <TouchableOpacity
                         onPress={() => setIsPasswordVisible(!isPasswordVisible)}
                         style={styles.rightIcon}
+                        testID="password-toggle"
                     >
                         {isPasswordVisible ? (
                             <EyeSlash size={moderateScale(20)} color="rgba(77, 75, 75, 1)" />

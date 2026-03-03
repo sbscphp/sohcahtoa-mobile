@@ -42,6 +42,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ progress, step, totalSteps = 
                 return (
                     <React.Fragment key={index}>
                         <View
+                            testID={`progress-segment-${index}`}
                             style={[
                                 styles.segment,
                                 { backgroundColor: isActive ? Colors.light.primary : '#E2E8F0' }

@@ -49,6 +49,7 @@ const SelectField: React.FC<SelectFieldProps> = ({
             <TouchableOpacity
                 onPress={onPress}
                 disabled={disabled}
+                testID="select-field-touchable"
                 style={[
                     disabled ? styles.inputDisabledWrapper : styles.inputWrapper,
                     error ? styles.inputError : undefined

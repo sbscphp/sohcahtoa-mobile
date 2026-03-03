@@ -14,7 +14,7 @@ interface TimePickerFieldProps {
     error?: string;
 }
 
-/** "HH:mm" → Date. We use a fixed date to avoid "today" logic issues on some platforms. */
+
 function parseTime(timeString: string): Date {
     const d = new Date(2000, 0, 1);
     if (!timeString) {
