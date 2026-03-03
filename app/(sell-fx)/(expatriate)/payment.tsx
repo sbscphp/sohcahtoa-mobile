@@ -11,7 +11,7 @@ export default function PaymentScreen() {
     const router = useRouter();
     const { transactionId } = useLocalSearchParams<{ transactionId: string }>();
     const insets = useSafeAreaInsets();
-    const [timeLeft, setTimeLeft] = useState(1770); // 29:30 in seconds
+    const [timeLeft, setTimeLeft] = useState(1770); 
 
     useEffect(() => {
         const timer = setInterval(() => {

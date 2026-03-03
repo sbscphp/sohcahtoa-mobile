@@ -8,10 +8,9 @@ interface DocumentField {
     onUpload: () => void;
     fileName?: string | null;
     fileUri?: string | null;
+    fileUrl?: string | null;
     fileType?: string | null;
     required?: boolean;
-
-    // Optional associated inputs (e.g. Passport Number, Expiry Date) below the upload
     associatedInputs?: React.ReactNode;
     error?: string;
 }
@@ -36,6 +35,7 @@ export default function DocumentStep({ title = "Upload Relevant Documents", docu
                         onUpload={doc.onUpload}
                         fileName={doc.fileName}
                         fileUri={doc.fileUri}
+                        fileUrl={doc.fileUrl}
                         fileType={doc.fileType}
                         title={`Upload or change here.`}
                         error={doc.error}

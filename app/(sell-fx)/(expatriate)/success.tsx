@@ -1,9 +1,24 @@
 import SuccessScreen from '@/components/SuccessScreen';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
 
 export default function ExpatriateSuccessScreen() {
     const router = useRouter();
+
+    const { transactionId } = useLocalSearchParams();
+
+    const handleViewTransaction = () => {
+        router.push({
+            pathname: '/(sell-fx)/(expatriate)/view-expatriate',
+            params: {
+                transactionId: transactionId,
+            },
+        });
+    };
+
+    const handleGoHome = () => {
+        router.push('/(tabs)');
+    };
 
     return (
         <SuccessScreen
@@ -11,8 +26,8 @@ export default function ExpatriateSuccessScreen() {
             title="Request Submitted Successfully"
             description="You have successfully initiated a new transaction request. Your documents have been received and currently awaiting approval."
             primaryButtonText="View Transaction"
-            onViewTransaction={() => router.push('/(sell-fx)/(expatriate)/view-expatriate')}
-            onGoHome={() => router.push('/(tabs)')}
+            onViewTransaction={handleViewTransaction}
+            onGoHome={handleGoHome}
         />
     );
 }

@@ -267,7 +267,7 @@ export default function CreateExpatriateScreen() {
                             <FileUpload
                                 onUpload={() => uploadFile('WORK_PERMIT')}
                                 fileName={docs.workPermit.file?.name ?? null}
-                                fileUri={docs.workPermit.file?.uri ?? null}
+                                fileUri={docs.workPermit.file?.uri ?? null}                                fileUrl={docs.workPermit.meta?.fileUrl ?? null}
                                 fileType={docs.workPermit.file?.type ?? null}
                             />
                             <ControlledInput
@@ -287,7 +287,7 @@ export default function CreateExpatriateScreen() {
                             <FileUpload
                                 onUpload={() => uploadFile('PASSPORT')}
                                 fileName={docs.passport.file?.name ?? null}
-                                fileUri={docs.passport.file?.uri ?? null}
+                                fileUri={docs.passport.file?.uri ?? null}                                fileUrl={docs.passport.meta?.fileUrl ?? null}
                                 fileType={docs.passport.file?.type ?? null}
                             />
                             <View style={{ flexDirection: 'row', gap: moderateScale(12) }}>
@@ -320,7 +320,7 @@ export default function CreateExpatriateScreen() {
                             <FileUpload
                                 onUpload={() => uploadFile('UTILITY_BILL')}
                                 fileName={docs.utility.file?.name ?? null}
-                                fileUri={docs.utility.file?.uri ?? null}
+                                fileUri={docs.utility.file?.uri ?? null}                                fileUrl={docs.utility.meta?.fileUrl ?? null}
                                 fileType={docs.utility.file?.type ?? null}
                             />
                             <ControlledInput

@@ -8,6 +8,7 @@ interface FileUploadProps {
     onUpload: () => void;
     fileName?: string | null;
     fileUri?: string | null;
+    fileUrl?: string | null;
     fileType?: string | null;
     title?: string;
     subtitle?: string;
@@ -19,6 +20,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
     onUpload,
     fileName,
     fileUri,
+    fileUrl,
     fileType,
     title = 'Upload or change here.',
     subtitle = 'PDF, PNG, IMG, JPG Supported. Max. size: 20 MB',
@@ -68,14 +70,16 @@ const FileUpload: React.FC<FileUploadProps> = ({
         );
     }
 
-    const isImage = fileUri && (fileType?.startsWith('image/') || /\.(jpeg|jpg|png|gif|webp)$/i.test(fileName || ''));
+    const isImage = (fileUri || fileUrl) && (fileType?.startsWith('image/') || /\.(jpeg|jpg|png|gif|webp)$/i.test(fileName || ''));
+
+    const displayUri = fileUrl || fileUri;
 
     return (
         <View>
             <View style={[styles.previewContainer, { borderColor: getPreviewBorderColor() }]}>
                 {isImage ? (
                     <View style={styles.previewImagePlaceholder}>
-                        <Image source={{ uri: fileUri }} style={{ width: '100%', height: '100%', borderRadius: 16 }} resizeMode="cover" />
+                        <Image source={{ uri: displayUri || undefined }} style={{ width: '100%', height: '100%', borderRadius: 16 }} resizeMode="cover" />
                     </View>
                 ) : (
                     <View style={styles.previewImagePlaceholder}>

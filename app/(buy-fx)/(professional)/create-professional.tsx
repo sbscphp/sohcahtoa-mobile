@@ -104,7 +104,7 @@ export default function ProfessionalScreen() {
             label: 'Evidence of Membership',
             onUpload: () => uploadFile('MEMBERSHIP_CARD'),
             fileName: docs.membership.file?.name,
-            fileUri: docs.membership.file?.uri,
+            fileUri: docs.membership.file?.uri,            fileUrl: docs.membership.meta?.fileUrl,
             fileType: docs.membership.file?.type,
             required: true,
             associatedInputs: (
@@ -117,7 +117,7 @@ export default function ProfessionalScreen() {
             label: 'Invoice from Professional Body',
             onUpload: () => uploadFile('INVOICE'),
             fileName: docs.invoice.file?.name,
-            fileUri: docs.invoice.file?.uri,
+            fileUri: docs.invoice.file?.uri,            fileUrl: docs.invoice.meta?.fileUrl,
             fileType: docs.invoice.file?.type,
             required: true,
             associatedInputs: (

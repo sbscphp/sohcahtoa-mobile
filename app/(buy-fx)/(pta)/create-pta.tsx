@@ -107,7 +107,7 @@ export default function PersonalTravelAllowanceScreen() {
             label: 'Valid Visa',
             onUpload: () => uploadFile('VISA'),
             fileName: docs.visa.file?.name,
-            fileUri: docs.visa.file?.uri,
+            fileUri: docs.visa.file?.uri,            fileUrl: docs.visa.meta?.fileUrl,
             fileType: docs.visa.file?.type,
             required: true,
             associatedInputs: (
@@ -120,7 +120,7 @@ export default function PersonalTravelAllowanceScreen() {
             label: 'Return Ticket',
             onUpload: () => uploadFile('RETURN_TICKET'),
             fileName: docs.ticket.file?.name,
-            fileUri: docs.ticket.file?.uri,
+            fileUri: docs.ticket.file?.uri,            fileUrl: docs.ticket.meta?.fileUrl,
             fileType: docs.ticket.file?.type,
             required: true,
             associatedInputs: (

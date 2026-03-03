@@ -142,7 +142,7 @@ export default function CreateTouristScreen() {
             label: 'International Passport',
             onUpload: () => uploadFile('PASSPORT'),
             fileName: docs.passport.file?.name,
-            fileUri: docs.passport.file?.uri,
+            fileUri: docs.passport.file?.uri,            fileUrl: docs.passport.meta?.fileUrl,
             fileType: docs.passport.file?.type,
             required: true,
             associatedInputs: (
@@ -172,7 +172,7 @@ export default function CreateTouristScreen() {
             label: 'Valid Visa',
             onUpload: () => uploadFile('VISA'),
             fileName: docs.visa.file?.name,
-            fileUri: docs.visa.file?.uri,
+            fileUri: docs.visa.file?.uri,            fileUrl: docs.visa.meta?.fileUrl,
             fileType: docs.visa.file?.type,
             required: true,
             associatedInputs: (
@@ -191,7 +191,7 @@ export default function CreateTouristScreen() {
             label: 'Valid Return Ticket',
             onUpload: () => uploadFile('RETURN_TICKET'),
             fileName: docs.ticket.file?.name,
-            fileUri: docs.ticket.file?.uri,
+            fileUri: docs.ticket.file?.uri,            fileUrl: docs.ticket.meta?.fileUrl,
             fileType: docs.ticket.file?.type,
             required: true,
             associatedInputs: (
@@ -210,7 +210,7 @@ export default function CreateTouristScreen() {
             label: 'Receipt for Initial Naira Purchase',
             onUpload: () => uploadFile('RECEIPT'),
             fileName: docs.receipt.file?.name,
-            fileUri: docs.receipt.file?.uri,
+            fileUri: docs.receipt.file?.uri,            fileUrl: docs.receipt.meta?.fileUrl,
             fileType: docs.receipt.file?.type,
             required: true,
         },
@@ -272,6 +272,7 @@ export default function CreateTouristScreen() {
 
         const payload: any = {
             type: 'TOURIST_FX',
+            mode: 'SELL',
             currency: currencySend.code,
             amount: data.amount,
             purpose: 'I am touring Nigeria and want Naira',
