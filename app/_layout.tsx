@@ -33,7 +33,6 @@ function InitialLayout() {
       <Stack.Screen name="(more)" options={{ headerShown: false }} />
       <Stack.Screen name="(receive-fx)" options={{ headerShown: false }} />
       <Stack.Screen name="notifications" options={{ headerShown: false }} />
-      <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
     </Stack>
   );
 }

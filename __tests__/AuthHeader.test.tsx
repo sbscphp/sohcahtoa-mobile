@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 import React from 'react';
 import AuthHeader from '../components/AuthHeader';
 
-// Unmock the component so we can test the real implementation
+
 jest.unmock('../components/AuthHeader');
 
 // Mock useRouter

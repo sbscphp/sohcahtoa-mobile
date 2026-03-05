@@ -16,15 +16,14 @@ interface TimePickerFieldProps {
 
 
 function parseTime(timeString: string): Date {
-    const d = new Date(2000, 0, 1);
+    const d = new Date();
     if (!timeString) {
-        d.setHours(9, 0, 0, 0);
         return d;
     }
     const parts = timeString.split(':');
     const h = parseInt(parts[0], 10);
     const m = parseInt(parts[1], 10);
-    d.setHours(isNaN(h) ? 9 : h, isNaN(m) ? 0 : m, 0, 0);
+    d.setHours(isNaN(h) ? d.getHours() : h, isNaN(m) ? d.getMinutes() : m, 0, 0);
     return d;
 }
 
@@ -45,7 +44,6 @@ const TimePickerField: React.FC<TimePickerFieldProps> = ({
     error,
 }) => {
     const [showPicker, setShowPicker] = useState(false);
-
     const [tempTime, setTempTime] = useState<Date>(value ? parseTime(value) : new Date());
     const [pickerKey, setPickerKey] = useState(0);
 
@@ -61,9 +59,18 @@ const TimePickerField: React.FC<TimePickerFieldProps> = ({
         setShowPicker(true);
     };
 
-    const handleChange = (_event: any, date?: Date) => {
-        if (date) {
-            setTempTime(date);
+    const handleChange = (event: any, date?: Date) => {
+        if (Platform.OS === 'android') {
+            setShowPicker(false);
+            if (date) {
+                setTempTime(date);
+                onTimeChange(formatTime(date));
+            }
+        } else {
+            // iOS
+            if (date) {
+                setTempTime(date);
+            }
         }
     };
 
@@ -99,49 +106,59 @@ const TimePickerField: React.FC<TimePickerFieldProps> = ({
 
             {error && <Text style={styles.errorText}>{error}</Text>}
 
-            <Modal
-                animationType="slide"
-                transparent
-                visible={showPicker}
-                onRequestClose={handleCancel}
-            >
-                <View style={styles.overlay}>
-                    <TouchableOpacity
-                        style={styles.backdrop}
-                        onPress={handleCancel}
-                        activeOpacity={1}
-                    />
-
-                    <View style={styles.sheetContent}>
-                        <View style={styles.sheetHeader}>
-                            <Text style={styles.sheetTitle}>{label}</Text>
-                        </View>
-
-                        {/*
-                         * key={pickerKey} forces a clean remount each time the
-                         * picker opens → Android native spinner resets to
-                         * tempTimeRef.current instead of reusing stale state.
-                         */}
-                        <DateTimePicker
-                            key={pickerKey}
-                            value={tempTime}
-                            mode="time"
-                            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                            is24Hour={true}
-                            onChange={handleChange}
-                            textColor="#0F172A"
-                            style={{ width: '100%' }}
+            {/* iOS Bottom Sheet Picker */}
+            {Platform.OS === 'ios' && (
+                <Modal
+                    animationType="slide"
+                    transparent
+                    visible={showPicker}
+                    onRequestClose={handleCancel}
+                >
+                    <View style={styles.overlay}>
+                        <TouchableOpacity
+                            style={styles.backdrop}
+                            onPress={handleCancel}
+                            activeOpacity={1}
                         />
 
-                        <View style={styles.buttonContainer}>
-                            <PrimaryButton title="Confirm" onPress={handleConfirm} />
-                            <TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
-                                <Text style={styles.cancelButtonText}>Cancel</Text>
-                            </TouchableOpacity>
+                        <View style={styles.sheetContent}>
+                            <View style={styles.sheetHeader}>
+                                <Text style={styles.sheetTitle}>{label}</Text>
+                            </View>
+
+                            <DateTimePicker
+                                key={pickerKey}
+                                value={tempTime}
+                                mode="time"
+                                display="spinner"
+                                is24Hour={true}
+                                onChange={handleChange}
+                                textColor="#0F172A"
+                                style={{ width: '100%' }}
+                            />
+
+                            <View style={styles.buttonContainer}>
+                                <PrimaryButton title="Confirm" onPress={handleConfirm} />
+                                <TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
+                                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                                </TouchableOpacity>
+                            </View>
                         </View>
                     </View>
-                </View>
-            </Modal>
+                </Modal>
+            )}
+
+            {/* Android Native Picker */}
+            {Platform.OS === 'android' && showPicker && (
+                <DateTimePicker
+                    key={pickerKey}
+                    value={tempTime}
+                    mode="time"
+                    display="default"
+                    is24Hour={true}
+                    onChange={handleChange}
+                />
+            )}
         </View>
     );
 };

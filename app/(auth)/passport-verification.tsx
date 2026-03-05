@@ -158,7 +158,7 @@ export default function PassportVerificationScreen() {
 
             <View style={styles.footer}>
                 <PrimaryButton
-                    title="Verify Passport"
+                    title="Upload Document"
                     onPress={handleSubmit(onSubmit)}
                     loading={isVerifying}
                     disabled={isVerifying || !passportFile || !isValid}
