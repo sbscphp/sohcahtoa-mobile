@@ -42,3 +42,15 @@ export interface User {
         expiresAt: string;
     }>;
 }
+
+export interface ChangePasswordPayload {
+    oldPassword?: string;
+    newPassword?: string;
+}
+
+export interface ChangePasswordResponse {
+    success: boolean;
+    data: {
+        message: string;
+    };
+}

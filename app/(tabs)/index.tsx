@@ -2,11 +2,14 @@ import ActionSelectionSheet from '@/components/ActionSelectionSheet';
 import CurrencyDropdown, { CurrencyItem } from '@/components/CurrencyDropdown';
 import VirtualCard from '@/components/VirtualCard';
 import { useProfileQuery } from '@/hooks/queries/auth/useProfileQuery';
+import { useGetTransactionTotalsMutation } from '@/hooks/queries/transactions/useGetTransactionTotalsMutation';
+import { useGetTransactionsQuery } from '@/hooks/queries/transactions/useGetTransactionsQuery';
 import { useAuthStore } from '@/stores/useAuthStore';
+import { formatCurrency, formatDate, formatTime } from '@/utils/helpers';
 import { useRouter } from 'expo-router';
 import { Add, ArrowDown2, Bank, Buildings, Eye, EyeSlash, Hospital, ImportCircle, Notification, People, Refresh, Teacher, User, WalletAdd1, WalletMinus } from 'iconsax-react-nativejs';
-import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import Passport from '../../assets/images/passport.svg';
@@ -29,13 +32,43 @@ const Dot = () => (
     }} />
 );
 
-const TRANSACTIONS = [
-    { id: '1', title: 'Personal Travel Allowance', date: 'Dec 8 2025 • 11 am', amount: '$200', status: 'Pending', type: 'debit' },
-    { id: '2', title: 'Business Travel Allowance', date: 'Dec 8 2025 • 11 am', amount: '$3,000', status: 'Success', type: 'credit' },
-    { id: '3', title: 'Medical Allowance', date: 'Dec 8 2025 • 11 am', amount: '$1,000', status: 'Pending', type: 'debit' },
-    { id: '4', title: 'Medical Allowance', date: 'Dec 8 2025 • 11 am', amount: '$1,000', status: 'Pending', type: 'debit' },
-    { id: '5', title: 'Medical Allowance', date: 'Dec 8 2025 • 11 am', amount: '$1,000', status: 'Pending', type: 'debit' },
-];
+const getStatusLabel = (status: string): string => {
+    const map: Record<string, string> = {
+        'DRAFT': 'Draft',
+        'AWAITING_VERIFICATION': 'Pending',
+        'VERIFICATION_IN_PROGRESS': 'In Progress',
+        'VERIFICATION_COMPLETED': 'In Progress',
+        'AWAITING_DEPOSIT': 'Pending',
+        'DEPOSIT_PENDING': 'Pending',
+        'DEPOSIT_CONFIRMED': 'In Progress',
+        'COMPLIANCE_REVIEW': 'In Progress',
+        'ADMIN_APPROVAL_PENDING': 'Pending',
+        'APPROVED': 'Approved',
+        'DISBURSEMENT_IN_PROGRESS': 'In Progress',
+        'COMPLETED': 'Settled',
+        'REJECTED': 'Declined',
+        'CANCELLED': 'Declined',
+    };
+    return map[status] || status;
+};
+
+const getStatusStyle = (status: string) => {
+    switch (status) {
+        case 'Pending':
+            return { color: 'rgba(181, 71, 8, 1)', backgroundColor: 'rgba(255, 250, 235, 1)' };
+        case 'In Progress':
+            return { color: '#3538CD', backgroundColor: '#EEF4FF' };
+        case 'Declined':
+            return { color: '#B42318', backgroundColor: '#FEF3F2' };
+        case 'Approved':
+        case 'Settled':
+            return { color: '#166534', backgroundColor: '#F0FDF4' };
+        case 'Draft':
+            return { color: '#344054', backgroundColor: '#F2F4F7' };
+        default:
+            return { color: '#344054', backgroundColor: '#F2F4F7' };
+    }
+};
 
 const getGreeting = () => {
     const hour = new Date().getHours();
@@ -51,11 +84,17 @@ export default function HomeScreen() {
     useProfileQuery();
     const [showBalance, setShowBalance] = useState(false);
     const [selectedFilter, setSelectedFilter] = useState('All');
-    const [transactionFilters, setTransactionFilters] = useState(['All', 'PTA', 'BTA', 'Medical']);
+    const [transactionFilters, setTransactionFilters] = useState(['All', 'Buy FX', 'Sell FX', 'Received FX']);
     const [selectedTxFilter, setSelectedTxFilter] = useState('All');
     const [actionSheetType, setActionSheetType] = useState<'buy' | 'sell' | 'receive' | null>(null);
     const [currencySheetVisible, setCurrencySheetVisible] = useState(false);
     const [selectedCurrency, setSelectedCurrency] = useState<CurrencyItem>({ id: '4', code: 'USD', flag: '🇺🇸' });
+
+    const { mutate: getTotals, data: totalsData, isPending: isLoadingTotals } = useGetTransactionTotalsMutation();
+
+    useEffect(() => {
+        getTotals({});
+    }, []);
 
     const handleActionPress = (action: string) => {
         if (action === 'vacation') {
@@ -94,15 +133,15 @@ export default function HomeScreen() {
         setSelectedFilter(filter);
         if (filter === 'FX bought') {
             setTransactionFilters(['All', 'PTA', 'BTA', 'Medical']);
-            setSelectedTxFilter('PTA');
+            setSelectedTxFilter('All');
         } else if (filter === 'FX sold') {
             setTransactionFilters(['All', 'Resident', 'Tourist', 'Expatriate']);
-            setSelectedTxFilter('Resident');
+            setSelectedTxFilter('All');
         } else if (filter === 'Received FX') {
             setTransactionFilters(['All', 'IMTO']);
             setSelectedTxFilter('All');
         } else {
-            setTransactionFilters(['All', 'PTA', 'BTA', 'Medical']);
+            setTransactionFilters(['All', 'Buy FX', 'Sell FX', 'Received FX']);
             setSelectedTxFilter('All');
         }
     };
@@ -147,6 +186,67 @@ export default function HomeScreen() {
 
     const activeConfig = getSheetConfig();
 
+    const getBalanceData = () => {
+        const totals = totalsData?.data;
+        if (!totals) {
+            return { label: 'Total FX units', amount: '0' };
+        }
+
+        switch (selectedFilter) {
+            case 'FX bought':
+                return { label: 'Total FX Bought', amount: totals.buy.totalAmount.toLocaleString() };
+            case 'FX sold':
+                return { label: 'Total FX Sold', amount: totals.sell.totalAmount.toLocaleString() };
+            case 'Received FX':
+                return { label: 'Total FX Received', amount: totals.remittance.totalAmount.toLocaleString() };
+            default:
+                return { label: 'Total FX units', amount: totals.all.totalAmount.toLocaleString() };
+        }
+    };
+
+    const balanceData = getBalanceData();
+
+    const getQueryParams = () => {
+        const params: any = { limit: 5 };
+        if (selectedFilter === 'All' && selectedTxFilter === 'All') {
+            return params;
+        }
+
+
+        if (selectedFilter === 'FX bought') params.group = 'BUY';
+        else if (selectedFilter === 'FX sold') params.group = 'SELL';
+        else if (selectedFilter === 'Received FX') params.group = 'REMITTANCE';
+
+
+        const typeMap: Record<string, string> = {
+            'PTA': 'PTA',
+            'BTA': 'BTA',
+            'Medical': 'MEDICAL',
+            'Resident': 'RESIDENT_FX',
+            'Tourist': 'TOURIST_FX',
+            'Expatriate': 'EXPATRIATE_FX',
+            'IMTO': 'IMTO_REMITTANCE',
+            'Buy FX': 'BUY',
+            'Sell FX': 'SELL',
+            'Received FX': 'REMITTANCE'
+        };
+
+        if (selectedTxFilter !== 'All') {
+            const mappedValue = typeMap[selectedTxFilter];
+            if (mappedValue) {
+                if (['BUY', 'SELL', 'REMITTANCE'].includes(mappedValue)) {
+                    if (!params.group) params.group = mappedValue;
+                } else {
+                    params.type = mappedValue;
+                }
+            }
+        }
+
+        return params;
+    };
+
+    const { data: transactionsData, isLoading: isLoadingTransactions } = useGetTransactionsQuery(getQueryParams());
+    const transactions = transactionsData?.data || [];
 
     const FILTERS = ['All', 'FX bought', 'FX sold', 'Received FX'];
 
@@ -186,12 +286,11 @@ export default function HomeScreen() {
                     ))}
                 </ScrollView>
 
-                {/* Balance Section */}
                 <View style={styles.balanceSection}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
 
                         <View style={styles.balanceHeader}>
-                            <Text style={styles.balanceLabel}>Total FX units</Text>
+                            <Text style={styles.balanceLabel}>{balanceData.label}</Text>
                             <TouchableOpacity onPress={() => setShowBalance(!showBalance)}>
                                 {showBalance ?
                                     <Eye size={moderateScale(18)} color="#1E293B" variant="Bold" /> :
@@ -215,7 +314,7 @@ export default function HomeScreen() {
 
                             {currencySheetVisible && (
                                 <CurrencyDropdown
-                                    onSelect={(currency) => setSelectedCurrency(currency)}
+                                    onSelect={(currency: CurrencyItem) => setSelectedCurrency(currency)}
                                     selectedCurrencyCode={selectedCurrency.code}
                                     onClose={() => setCurrencySheetVisible(false)}
                                 />
@@ -235,10 +334,14 @@ export default function HomeScreen() {
                             </Text>
                         </View>
                         {showBalance ? (
-                            <Text style={styles.balanceAmount}>
-                                428,095
-                                <Text style={styles.balanceDecimal}>.00</Text>
-                            </Text>
+                            isLoadingTotals ? (
+                                <ActivityIndicator size="small" color="#1E293B" style={{ marginLeft: moderateScale(10) }} />
+                            ) : (
+                                <Text style={styles.balanceAmount}>
+                                    {balanceData.amount}
+                                    <Text style={styles.balanceDecimal}>.00</Text>
+                                </Text>
+                            )
                         ) : (
                             <View style={{ flexDirection: 'row', alignItems: 'center', height: moderateScale(38) }}>
                                 <Dot /><Dot /><Dot />
@@ -247,7 +350,7 @@ export default function HomeScreen() {
                     </View>
                 </View>
 
-                {/* Actions Grid */}
+
                 <View style={styles.actionsGrid}>
                     {ACTION_BUTTONS.map((action, index) => (
                         <TouchableOpacity
@@ -263,7 +366,7 @@ export default function HomeScreen() {
                     ))}
                 </View>
                 <View style={styles.divider} />
-                {/* Cards Section */}
+
                 <View style={styles.cardsSection}>
                     <View style={styles.sectionHeader}>
                         <Text style={styles.sectionTitle}>Cards</Text>
@@ -285,7 +388,7 @@ export default function HomeScreen() {
                     </ScrollView>
                 </View>
 
-                {/* Recent Transactions */}
+
                 <View style={styles.transactionsSection}>
                     <View style={styles.sectionHeader}>
                         <Text style={styles.sectionTitle}>Recent Transactions</Text>
@@ -308,24 +411,41 @@ export default function HomeScreen() {
                         ))}
 
                     </View>
+                    {isLoadingTransactions && (
+                        <View style={{ padding: moderateScale(20) }}>
+                            <ActivityIndicator color="#FF6B2C" />
+                        </View>
+                    )}
                     <View style={styles.transactionList}>
-                        {TRANSACTIONS.map((tx) => (
-                            <View key={tx.id} style={styles.transactionItem}>
-                                <View style={[styles.transactionIcon, { backgroundColor: '#F8FAFC' }]}>
-                                    <Refresh size={moderateScale(16)} color="#64748B" />
-                                </View>
-                                <View style={styles.transactionInfo}>
-                                    <Text style={styles.transactionTitle}>{tx.title}</Text>
-                                    <Text style={styles.transactionDate}>{tx.date}</Text>
-                                </View>
-                                <View style={styles.transactionAmountContainer}>
-                                    <Text style={styles.transactionAmount}>{tx.amount}</Text>
-                                    <Text style={[styles.transactionStatus, tx.status === 'Pending' ? { color: 'rgba(181, 71, 8, 1)', backgroundColor: 'rgba(255, 250, 235, 1)' } : { color: '#166534', backgroundColor: '#F0FDF4' }]}>
-                                        {tx.status}
-                                    </Text>
-                                </View>
+                        {transactions.length > 0 ? (
+                            transactions.map((tx: any) => {
+                                const statusLabel = getStatusLabel(tx.status);
+                                const statusStyle = getStatusStyle(statusLabel);
+                                return (
+                                    <View key={tx.id} style={styles.transactionItem}>
+                                        <View style={[styles.transactionIcon, { backgroundColor: '#F8FAFC' }]}>
+                                            <Refresh size={moderateScale(16)} color="#64748B" />
+                                        </View>
+                                        <View style={styles.transactionInfo}>
+                                            <Text style={styles.transactionTitle} numberOfLines={1}>{tx.purpose || tx.type}</Text>
+                                            <Text style={styles.transactionDate}>{formatDate(tx.createdAt)} • {formatTime(tx.createdAt)}</Text>
+                                        </View>
+                                        <View style={styles.transactionAmountContainer}>
+                                            <Text style={styles.transactionAmount}>{formatCurrency(tx.foreignAmount, tx.currency === 'USD' ? '$' : tx.currency === 'NGN' ? '₦' : tx.currency)}</Text>
+                                            <View style={[styles.transactionStatus, { backgroundColor: statusStyle.backgroundColor }]}>
+                                                <Text style={[styles.transactionStatusText, { color: statusStyle.color }]}>
+                                                    {statusLabel}
+                                                </Text>
+                                            </View>
+                                        </View>
+                                    </View>
+                                );
+                            })
+                        ) : !isLoadingTransactions && (
+                            <View style={{ padding: moderateScale(30), alignItems: 'center' }}>
+                                <Text style={{ color: '#64748B', fontSize: moderateScale(14) }}>No transactions found</Text>
                             </View>
-                        ))}
+                        )}
                     </View>
                 </View>
 
@@ -685,11 +805,13 @@ const styles = ScaledSheet.create({
         marginBottom: '4@vs',
     },
     transactionStatus: {
-        fontSize: '12@ms',
-        fontWeight: '600',
         paddingHorizontal: '6@s',
         paddingVertical: '4@vs',
         borderRadius: '12@ms',
         overflow: 'hidden',
+    },
+    transactionStatusText: {
+        fontSize: '12@ms',
+        fontWeight: '600',
     },
 });

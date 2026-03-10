@@ -270,3 +270,28 @@ export interface GetPickupStatesResponse {
         states: string[];
     };
 }
+
+export interface CustomRate {
+    currency: string;
+    rate: number;
+}
+
+export interface GetTransactionTotalsPayload {
+    customRates?: CustomRate[];
+}
+
+export interface TransactionGroupTotal {
+    totalAmount: number;
+    currency: string;
+    transactionCount: number;
+}
+
+export interface GetTransactionTotalsResponse {
+    success: boolean;
+    data: {
+        all: TransactionGroupTotal;
+        buy: TransactionGroupTotal;
+        sell: TransactionGroupTotal;
+        remittance: TransactionGroupTotal;
+    };
+}

@@ -80,12 +80,11 @@ export interface CreateAccountResponse {
 }
 
 export interface VerifyPassportPayload {
-    passportDocumentUrl: string;
+    passportNumber: string;
 }
 
 export interface VerifyExpatriatePassportPayload {
-    passportDocumentUrl: string;
-    passportNumber: string;
+    bvnNumber: string;
 }
 
 export interface VerifyPassportResponse {

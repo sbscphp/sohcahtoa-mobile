@@ -1,7 +1,6 @@
 import ProgressBar from '@/components/ProgressBar';
 import { useSendExpatriateOtpMutation } from '@/hooks/queries/auth/useSendExpatriateOtpMutation';
 import { useSendNigerianEmailOtpMutation } from '@/hooks/queries/auth/useSendNigerianEmailOtpMutation';
-import { useSendOtpMutation } from '@/hooks/queries/auth/useSendOtpMutation';
 import { useSendTouristOtpMutation } from '@/hooks/queries/auth/useSendTouristOtpMutation';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -68,7 +67,10 @@ export default function BvnConfirmationScreen() {
         const onError = (error: any) => {
             const errorMessage = error.response?.data?.error?.message || error.message;
             if (errorMessage === "BVN verification session expired. Please verify your BVN again.") {
-                router.replace('/(auth)/bvn-verification');
+                router.replace({
+                    pathname: '/(auth)/passport-verification',
+                    params: { userType: userType || 'citizen' }
+                });
             }
         };
 
@@ -131,8 +133,8 @@ export default function BvnConfirmationScreen() {
                 <PrimaryButton
                     title="Send OTP"
                     onPress={handleSendOtp}
-                    loading={ isSendingTouristOtp || isSendingExpatriateOtp || isSendingNigerianEmailOtp}
-                    disabled={ isSendingTouristOtp || isSendingExpatriateOtp || isSendingNigerianEmailOtp}
+                    loading={isSendingTouristOtp || isSendingExpatriateOtp || isSendingNigerianEmailOtp}
+                    disabled={isSendingTouristOtp || isSendingExpatriateOtp || isSendingNigerianEmailOtp}
                 />
             </View>
         </SafeAreaView >
