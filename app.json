@@ -16,11 +16,12 @@
       "height": "100%"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.iamkennis.sohcahtoa"
     },
     "android": {
       "adaptiveIcon": {
-       "backgroundColor": "#ffffff",
+        "backgroundColor": "#ffffff",
         "foregroundImage": "./assets/images/s-logo.png"
       },
       "edgeToEdgeEnabled": true,
