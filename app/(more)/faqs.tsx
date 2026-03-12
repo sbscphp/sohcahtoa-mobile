@@ -1,5 +1,6 @@
 import Header from '@/components/Header';
 import InputField from '@/components/InputField';
+import { useRouter } from 'expo-router';
 import { AddCircle, MinusCirlce, SearchNormal1 } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
 import { LayoutAnimation, Platform, ScrollView, Text, TouchableOpacity, UIManager, View } from 'react-native';
@@ -47,6 +48,7 @@ const faqs: FAQ[] = [
 ];
 
 const FAQItem = ({ item }: { item: FAQ }) => {
+
     const [expanded, setExpanded] = useState(false);
 
     const toggleExpand = () => {
@@ -78,6 +80,7 @@ const FAQItem = ({ item }: { item: FAQ }) => {
 };
 
 export default function FAQsScreen() {
+    const router = useRouter();
     const [searchQuery, setSearchQuery] = useState('');
 
     const filteredFAQs = faqs.filter(faq =>
@@ -100,8 +103,9 @@ export default function FAQsScreen() {
                     </Text>
                     <Text style={styles.introSubtitle}>
                         Can't find the answers you are looking for?
-                        <Text style={styles.linkText}> Chat Support</Text>
+
                     </Text>
+                    <Text onPress={() => router.push('/(more)/support')} style={styles.linkText}> Chat Support</Text>
                 </View>
 
                 <InputField

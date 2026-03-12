@@ -68,8 +68,13 @@ export default function MoreScreen() {
 
     return (
         <View style={styles.container}>
-            <Header title="More" rightIcon={<Notification size={moderateScale(28)} color="rgba(143, 139, 139, 1)" variant="Linear" />} />
-
+            <Header title="More" rightIcon={
+                <View>
+                    <Notification size={moderateScale(24)} color="rgba(143, 139, 139, 1)" variant="Linear" />
+                    <View style={styles.notificationDot} />
+                </View>
+            }
+                onRightPress={() => router.push('/notifications')} />
             <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent}>
                 {menuItems.map((item, index) => (
                     <Pressable
@@ -115,7 +120,7 @@ export default function MoreScreen() {
                                 logout(undefined, {
                                     onSuccess: () => {
                                         setLogoutModalVisible(false);
-                                        router.replace('/(auth)/welcome-back');
+                                        router.replace('/(auth)/login');
                                     },
                                     onError: () => {
                                         setLogoutModalVisible(false);
@@ -189,6 +194,17 @@ const styles = ScaledSheet.create({
         marginTop: '20@vs',
         color: '#94A3B8',
         fontSize: '13@ms',
+    },
+    notificationDot: {
+        position: 'absolute',
+        top: 0,
+        right: 0,
+        width: moderateScale(8),
+        height: moderateScale(8),
+        borderRadius: moderateScale(4),
+        backgroundColor: '#EF4444',
+        borderWidth: moderateScale(1.5),
+        borderColor: '#FFFFFF',
     },
     modalOverlay: {
         flex: 1,

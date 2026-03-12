@@ -17,7 +17,7 @@ export const useValidateForgotPasswordOtpMutation = () => {
                 }
                 showToast(response.data.message || 'OTP validated successfully', 'success');
             }
-            // console.log(response);
+            console.log(response);
         },
         onError: (error: any) => {
             const message = error.response?.data?.error?.message || error.message || 'OTP validation failed';

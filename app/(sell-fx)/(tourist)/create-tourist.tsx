@@ -1,7 +1,8 @@
 
-import DatePickerField from '@/components/DatePickerField';
+import ControlledDatePicker from '@/components/ControlledDatePicker';
+import ControlledInput from '@/components/ControlledInput';
 import InitiateTransactionSheet from '@/components/InitiateTransactionSheet';
-import InputField from '@/components/InputField';
+import LoadingBackdrop from '@/components/LoadingBackdrop';
 import { LocationItem } from '@/components/LocationSelectionSheet';
 import SourceOfFundsSheet from '@/components/SourceOfFundsSheet';
 import CredentialStep from '@/components/transaction-flow/CredentialStep';
@@ -9,88 +10,129 @@ import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import LocationStep from '@/components/transaction-flow/LocationStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
+import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
+import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDocumentUpload';
+import { useExchangeLogic } from '@/hooks/useExchangeLogic';
+import { useToastStore } from '@/stores/useToastStore';
+import {
+    touristStep0Schema,
+    touristStep1Schema,
+    touristStep2Schema,
+    touristStep3LocationSchema,
+    touristStep3TransferSchema,
+} from '@/utils/validations/tourist';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { Pressable, Text, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
+import { z } from 'zod';
 
-const STATES: LocationItem[] = [
-    { id: '1', title: 'Lagos State' },
-    { id: '2', title: 'Ogun State' },
-    { id: '3', title: 'Rivers State' },
-    { id: '4', title: 'Kaduna State' },
-    { id: '5', title: 'Enugu State' },
-    { id: '6', title: 'Kano State' },
-];
+import { CITIES, LOCATIONS, STATES } from '@/utils/locations';
 
-const CITIES: LocationItem[] = [
-    { id: '1', title: 'Ajeromi Local Government' },
-    { id: '2', title: 'Agege Local Government' },
-    { id: '3', title: 'Alimosho Local Government' },
-    { id: '4', title: 'Amuwo Odofin Local Government' },
-    { id: '5', title: 'Apapa Local Government' },
-    { id: '6', title: 'Badagry Local Government' },
-];
+const touristFormSchema = z.object({
+    ...touristStep0Schema.shape,
+    ...touristStep1Schema.shape,
+    ...touristStep2Schema.shape,
+    ...touristStep3TransferSchema.shape,
+    ...touristStep3LocationSchema.shape,
+});
 
-const LOCATIONS: LocationItem[] = [
-    { id: '1', title: 'Ajeromi Local Government', subtitle: 'Femi Areola Street, Ikeja GRA.' },
-    { id: '2', title: 'Agege Local Government', subtitle: 'Femi Areola Street, Ikeja GRA.' },
-    { id: '3', title: 'Ikorodu Local Government', subtitle: '23 T.O.S Benson Avenue, Ikorodu.' },
-    { id: '4', title: 'Festac Local Government', subtitle: '1st Avenue, Festac Town.' },
-];
+type TouristFormValues = z.infer<typeof touristFormSchema>;
+
 
 export default function CreateTouristScreen() {
     const router = useRouter();
+    const createTransaction = useCreateTransactionMutation();
     const [currentStep, setCurrentStep] = useState(0);
 
-    // Step 0: Credentials
-    const [passportNumberInput, setPassportNumberInput] = useState('');
+    const {
+        control,
+        handleSubmit,
+        trigger,
+        watch,
+        setValue,
+        formState: { errors }
+    } = useForm<TouristFormValues>({
+        resolver: zodResolver(touristFormSchema),
+        defaultValues: {
+            passportNumber: '',
+            passportIssueDate: '',
+            passportExpiryDate: '',
+            visaNumber: '',
+            ticketNumber: '',
+            amount: 0,
+            accountName: '',
+            bankName: '',
+            selectedState: undefined as unknown as LocationItem,
+            selectedCity: undefined as unknown as LocationItem,
+            selectedLocation: undefined as unknown as LocationItem,
+            pickupDate: '',
+            pickupTime: '',
+        },
+        mode: 'onChange'
+    });
 
-    // Step 1: Document Uploads & Passport Details
-    const [passportIssueDate, setPassportIssueDate] = useState('');
-    const [passportExpiryDate, setPassportExpiryDate] = useState('');
-    const [visaNumber, setVisaNumber] = useState('');
+    // Step 1: Uploaded files
+    const [docs, setDocs] = useState({
+        passport: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        visa: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        ticket: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        receipt: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+    });
+
+    const updateDoc = (key: keyof typeof docs, file: UploadedFile, metadata: UploadedMetadata) => {
+        setDocs(prev => ({ ...prev, [key]: { file, meta: metadata } }));
+    };
+
+    const showToast = useToastStore(s => s.showToast);
+
+    const { upload: uploadFile, isPending: isUploading } = useDocumentUpload({
+        onSuccess: (documentType, { file, metadata }) => {
+            if (documentType === 'PASSPORT') updateDoc('passport', file, metadata);
+            else if (documentType === 'VISA') updateDoc('visa', file, metadata);
+            else if (documentType === 'RETURN_TICKET') updateDoc('ticket', file, metadata);
+            else if (documentType === 'RECEIPT') updateDoc('receipt', file, metadata);
+        },
+        onError: () => showToast('Failed to upload document. Please try again.', 'error'),
+    });
 
     // Step 2: Exchange State
-    const [transactionType, setTransactionType] = useState<'buy' | 'sell'>('sell');
-    const [currencyGet, setCurrencyGet] = useState({
-        code: 'NGN',
-        country: 'Nigeria',
-        currencyName: 'Naira',
-        flagUrl: 'https://flagcdn.com/w80/ng.png'
-    });
-    const [currencySend, setCurrencySend] = useState({
-        code: 'USD',
-        country: 'United States',
-        currencyName: 'Dollar',
-        flagUrl: 'https://flagcdn.com/w80/us.png'
-    });
+    const {
+        transactionType,
+        setTransactionType,
+        currencyGet,
+        setCurrencyGet,
+        currencySend,
+        setCurrencySend,
+        amountGetStr: amountGet,
+        setAmountGetStr: setAmountGet,
+        amountSendStr: amountSend,
+        setAmountSendStr: setAmountSend,
+        currentRate,
+    } = useExchangeLogic({ setValue, initialAmount: '' });
 
-    const [amountGet, setAmountGet] = useState('');
-    const [amountSend, setAmountSend] = useState('1,500'); // Placeholder
-
-    // Step 3: Payment Method & Location
+    // Step 3: Payment Method
     const [paymentMethod, setPaymentMethod] = useState<'transfer' | 'card'>('transfer');
-    const [selectedState, setSelectedState] = useState<LocationItem | null>(null);
-    const [selectedCity, setSelectedCity] = useState<LocationItem | null>(null);
-    const [selectedLocation, setSelectedLocation] = useState<LocationItem | null>(null);
-    const [pickupDate, setPickupDate] = useState('');
-    const [pickupTime, setPickupTime] = useState('');
 
-    // Transfer Details
-    const [accountName, setAccountName] = useState('');
-    const [bankName, setBankName] = useState('');
     const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
     const [showSourceOfFundsSheet, setShowSourceOfFundsSheet] = useState(false);
 
     // Configuration for Step 0
     const credentialFields = [
         {
-            label: 'International Passport Number',
-            placeholder: 'Enter international passport number',
-            value: passportNumberInput,
-            onChangeText: setPassportNumberInput,
-            required: true
+            customComponent: (
+                <ControlledInput
+                    control={control}
+                    name="passportNumber"
+                    label="International Passport Number"
+                    placeholder="Enter international passport number"
+                    required
+                    maxLength={9}
+                    filterType="alphanumeric"
+                />
+            )
         }
     ];
 
@@ -98,25 +140,28 @@ export default function CreateTouristScreen() {
     const documentFields = [
         {
             label: 'International Passport',
-            onUpload: () => console.log('Upload Passport'),
+            onUpload: () => uploadFile('PASSPORT'),
+            fileName: docs.passport.file?.name,
+            fileUri: docs.passport.file?.uri,            fileUrl: docs.passport.meta?.fileUrl,
+            fileType: docs.passport.file?.type,
             required: true,
             associatedInputs: (
                 <View style={{ flexDirection: 'row', gap: 12 }}>
                     <View style={{ flex: 1 }}>
-                        <DatePickerField
-                            label='Passport Issue Date'
+                        <ControlledDatePicker
+                            control={control}
+                            name="passportIssueDate"
+                            label="Passport Issue Date"
                             required
-                            value={passportIssueDate}
-                            onDateChange={setPassportIssueDate}
                             maximumDate={new Date()}
                         />
                     </View>
                     <View style={{ flex: 1 }}>
-                        <DatePickerField
-                            label='Passport Expiry Date'
+                        <ControlledDatePicker
+                            control={control}
+                            name="passportExpiryDate"
+                            label="Passport Expiry Date"
                             required
-                            value={passportExpiryDate}
-                            onDateChange={setPassportExpiryDate}
                             minimumDate={new Date()}
                         />
                     </View>
@@ -125,43 +170,85 @@ export default function CreateTouristScreen() {
         },
         {
             label: 'Valid Visa',
-            onUpload: () => console.log('Upload Visa'),
+            onUpload: () => uploadFile('VISA'),
+            fileName: docs.visa.file?.name,
+            fileUri: docs.visa.file?.uri,            fileUrl: docs.visa.meta?.fileUrl,
+            fileType: docs.visa.file?.type,
             required: true,
             associatedInputs: (
                 <View>
-                    <InputField
-                        label='Valid Visa'
+                    <ControlledInput
+                        control={control}
+                        name="visaNumber"
+                        label="Valid Visa"
+                        placeholder="Enter visa number"
                         required
-                        placeholder='Enter visa number'
-                        value={visaNumber}
-                        onChangeText={setVisaNumber}
                     />
                 </View>
             )
         },
         {
             label: 'Valid Return Ticket',
-            onUpload: () => console.log('Upload Ticket'),
+            onUpload: () => uploadFile('RETURN_TICKET'),
+            fileName: docs.ticket.file?.name,
+            fileUri: docs.ticket.file?.uri,            fileUrl: docs.ticket.meta?.fileUrl,
+            fileType: docs.ticket.file?.type,
             required: true,
             associatedInputs: (
                 <View>
-                    <InputField
-                        label='Valid Return Ticket'
+                    <ControlledInput
+                        control={control}
+                        name="ticketNumber"
+                        label="Valid Return Ticket"
+                        placeholder="Enter ticket number"
                         required
-                        placeholder='Enter ticket number'
-                        value={''}
-                        onChangeText={() => { }}
                     />
                 </View>
             )
-        }
+        },
+        {
+            label: 'Receipt for Initial Naira Purchase',
+            onUpload: () => uploadFile('RECEIPT'),
+            fileName: docs.receipt.file?.name,
+            fileUri: docs.receipt.file?.uri,            fileUrl: docs.receipt.meta?.fileUrl,
+            fileType: docs.receipt.file?.type,
+            required: true,
+        },
     ];
 
-    const handleNext = () => {
-        if (currentStep < 3) {
-            setCurrentStep(currentStep + 1);
-        } else {
-            setInitiateSheetVisible(true);
+    const handleNext = async () => {
+        if (isUploading) {
+            showToast('Please wait for files to finish uploading', 'warning');
+            return;
+        }
+
+        let isStepValid = false;
+
+        if (currentStep === 0) {
+            isStepValid = await trigger(['passportNumber']);
+        } else if (currentStep === 1) {
+            if (!docs.passport.file || !docs.visa.file || !docs.ticket.file || !docs.receipt.file) {
+                showToast('Please upload all required documents', 'error');
+                return;
+            }
+            isStepValid = await trigger(['passportIssueDate', 'passportExpiryDate', 'visaNumber', 'ticketNumber']);
+        } else if (currentStep === 2) {
+            setValue('amount', parseFloat(amountSend.replace(/,/g, '')) || 0);
+            isStepValid = await trigger(['amount']);
+        } else if (currentStep === 3) {
+            if (paymentMethod === 'transfer') {
+                isStepValid = await trigger(['accountName', 'bankName']);
+            } else {
+                isStepValid = await trigger(['selectedState', 'selectedCity', 'selectedLocation', 'pickupDate', 'pickupTime']);
+            }
+        }
+
+        if (isStepValid) {
+            if (currentStep < 3) {
+                setCurrentStep(currentStep + 1);
+            } else {
+                setInitiateSheetVisible(true);
+            }
         }
     };
 
@@ -173,161 +260,239 @@ export default function CreateTouristScreen() {
         }
     };
 
-    const handleConfirmInitiate = () => {
-        setInitiateSheetVisible(false);
-        router.push('/(sell-fx)/(tourist)/success');
+    const onSubmit = (data: TouristFormValues) => {
+        const formatDateForApi = (dateStr: string): string => {
+            if (!dateStr) return '';
+            const parts = dateStr.split('/');
+            if (parts.length === 3) {
+                return `${parts[2]}-${parts[1]}-${parts[0]}`;
+            }
+            return dateStr;
+        };
+
+        const payload: any = {
+            type: 'TOURIST_FX',
+            mode: 'SELL',
+            currency: currencySend.code,
+            amount: data.amount,
+            purpose: 'I am touring Nigeria and want Naira',
+            destinationCountry: currencySend.country,
+            documents: [
+                ...(docs.passport.meta ? [docs.passport.meta] : []),
+                ...(docs.visa.meta ? [docs.visa.meta] : []),
+                ...(docs.ticket.meta ? [docs.ticket.meta] : []),
+                ...(docs.receipt.meta ? [docs.receipt.meta] : []),
+            ],
+            identificationNumber: data.passportNumber,
+            passportIssueDate: data.passportIssueDate,
+            passportExpiryDate: data.passportExpiryDate,
+            visaNumber: data.visaNumber,
+            ticketNumber: data.ticketNumber,
+        };
+
+        if (paymentMethod === 'transfer') {
+            payload.beneficiaryDetails = {
+                name: data.accountName,
+                accountNumber: '',
+                accountName: data.accountName,
+                bankName: data.bankName,
+                iban: '',
+            };
+        } else {
+            if (data.selectedLocation) {
+                payload.pickupLocation = {
+                    name: data.selectedLocation.title,
+                    address: data.selectedLocation.subtitle || '',
+                    state: data.selectedState?.title || '',
+                    city: data.selectedCity?.title || '',
+                    scheduledPickupDate: formatDateForApi(data.pickupDate),
+                    scheduledPickupTime: data.pickupTime,
+                };
+            }
+        }
+
+        createTransaction.mutate(payload, {
+            onSuccess: (response) => {
+                if (response.success) {
+                    setInitiateSheetVisible(false);
+                    router.push({
+                        pathname: '/(sell-fx)/(tourist)/success',
+                        params: {
+                            transactionId: response.data.transactionId,
+                        },
+                    });
+                }
+            },
+        });
     };
 
+    const selectedState = watch('selectedState');
+    const selectedCity = watch('selectedCity');
+    const selectedLocation = watch('selectedLocation');
+    const pickupDate = watch('pickupDate');
+    const pickupTime = watch('pickupTime');
+
     return (
-        <TransactionLayout
-            title={"Tourist"}
-            currentStep={currentStep}
-            totalSteps={4}
-            onBack={handleBack}
-            onNext={handleNext}
-            nextLabel={currentStep === 3 ? "Initiate Transaction Request" : "Continue"}
-        >
-            {currentStep === 0 && (
-                <CredentialStep fields={credentialFields} />
-            )}
+        <>
+            <LoadingBackdrop visible={isUploading || createTransaction.isPending} />
+            <TransactionLayout
+                title={"Tourist"}
+                currentStep={currentStep}
+                totalSteps={4}
+                onBack={handleBack}
+                onNext={handleNext}
+                nextLabel={currentStep === 3 ? "Initiate Transaction Request" : "Continue"}
+            >
+                {currentStep === 0 && (
+                    <CredentialStep fields={credentialFields} />
+                )}
 
-            {currentStep === 1 && (
-                <DocumentStep documents={documentFields} />
-            )}
+                {currentStep === 1 && (
+                    <DocumentStep documents={documentFields} />
+                )}
 
-            {currentStep === 2 && (
-                <ExchangeStep
-                    transactionType={transactionType}
-                    onTransactionTypeChange={setTransactionType}
-                    currencyGet={currencyGet}
-                    onCurrencyGetChange={setCurrencyGet}
-                    currencySend={currencySend}
-                    onCurrencySendChange={setCurrencySend}
-                    amountGet={amountGet}
-                    amountSend={amountSend}
-                    rate={`1 ${currencySend.code} = 1500 ${currencyGet.code}`}
-                    onAmountGetChange={setAmountGet}
-                    onAmountSendChange={setAmountSend}
-                    allowedModes={['sell']}
-                    showLimitWarning
-                    // ={parseFloat(amountSend.replace(/,/g, '')) > 10000}
-                    onLimitWarningPress={() => setShowSourceOfFundsSheet(true)}
-                />
-            )}
+                {currentStep === 2 && (
+                    <ExchangeStep
+                        transactionType={transactionType}
+                        onTransactionTypeChange={setTransactionType}
+                        currencyGet={currencyGet}
+                        onCurrencyGetChange={setCurrencyGet}
+                        currencySend={currencySend}
+                        onCurrencySendChange={setCurrencySend}
+                        amountGet={amountGet}
+                        amountSend={amountSend}
+                        rate={`1 ${currencySend.code} = ${currentRate.toLocaleString()} ${currencyGet.code}`}
+                        onAmountGetChange={setAmountGet}
+                        onAmountSendChange={setAmountSend}
+                        allowedModes={['sell']}
+                        error={errors.amount?.message as string | undefined}
+                        showLimitWarning
+                        onLimitWarningPress={() => setShowSourceOfFundsSheet(true)}
+                    />
+                )}
 
-            {currentStep === 3 && (
-                <View style={{ gap: moderateScale(24) }}>
-                    <View style={styles.toggleContainer}>
-                        <Pressable
-                            style={[
-                                styles.toggleButton,
-                                paymentMethod === 'transfer' && styles.activeToggleButton
-                            ]}
-                            onPress={() => setPaymentMethod('transfer')}
-                        >
-                            <Text style={[
-                                styles.toggleText,
-                                paymentMethod === 'transfer' && styles.activeToggleText
-                            ]}>Transfer to Account</Text>
-                        </Pressable>
-                        <Pressable
-                            style={[
-                                styles.toggleButton,
-                                paymentMethod === 'card' && styles.activeToggleButton
-                            ]}
-                            onPress={() => setPaymentMethod('card')}
-                        >
-                            <Text style={[
-                                styles.toggleText,
-                                paymentMethod === 'card' && styles.activeToggleText
-                            ]}>Prepaid Card</Text>
-                        </Pressable>
-                    </View>
-
-                    {paymentMethod === 'transfer' ? (
-                        <View style={{ gap: moderateScale(16) }}>
-                            <Text style={styles.sectionTitle}>Select Pick Up Point</Text>
-                            <InputField
-                                label="Account Name"
-                                placeholder="Enter account name"
-                                value={accountName}
-                                onChangeText={setAccountName}
-                                required
-                            />
-                            <InputField
-                                label="Bank Name"
-                                placeholder="Enter bank name"
-                                value={bankName}
-                                onChangeText={setBankName}
-                                required
-                            />
+                {currentStep === 3 && (
+                    <View style={{ gap: moderateScale(24) }}>
+                        <View style={styles.toggleContainer}>
+                            <Pressable
+                                style={[
+                                    styles.toggleButton,
+                                    paymentMethod === 'transfer' && styles.activeToggleButton
+                                ]}
+                                onPress={() => setPaymentMethod('transfer')}
+                            >
+                                <Text style={[
+                                    styles.toggleText,
+                                    paymentMethod === 'transfer' && styles.activeToggleText
+                                ]}>Transfer to Account</Text>
+                            </Pressable>
+                            <Pressable
+                                style={[
+                                    styles.toggleButton,
+                                    paymentMethod === 'card' && styles.activeToggleButton
+                                ]}
+                                onPress={() => setPaymentMethod('card')}
+                            >
+                                <Text style={[
+                                    styles.toggleText,
+                                    paymentMethod === 'card' && styles.activeToggleText
+                                ]}>Prepaid Card</Text>
+                            </Pressable>
                         </View>
-                    ) : (
-                        <LocationStep
-                            states={STATES}
-                            cities={CITIES}
-                            locations={LOCATIONS}
-                            selectedState={selectedState}
-                            onSelectState={(item) => {
-                                setSelectedState(item);
-                                setSelectedCity(null);
-                                setSelectedLocation(null);
-                            }}
-                            selectedCity={selectedCity}
-                            onSelectCity={(item) => {
-                                setSelectedCity(item);
-                                setSelectedLocation(null);
-                            }}
-                            selectedLocation={selectedLocation}
-                            onSelectLocation={setSelectedLocation}
-                            title="Select Pick Up Point"
-                            pickupDate={pickupDate}
-                            onPickupDateChange={setPickupDate}
-                            pickupTime={pickupTime}
-                            onPickupTimeChange={setPickupTime}
-                        />
-                    )}
-                </View>
-            )}
 
-            <InitiateTransactionSheet
-                visible={initiateSheetVisible}
-                onClose={() => setInitiateSheetVisible(false)}
-                onConfirm={handleConfirmInitiate}
-                title="Initiate Tourist Transaction request?"
-                items={[
-                    {
-                        title: "Verification before approval",
-                        description: "Your travel documents (passport, visa, and return ticket) must be verified before your tourist FX request can be approved.",
-                        iconType: 'verify'
-                    }
-                ]}
-            />
+                        {paymentMethod === 'transfer' ? (
+                            <View style={{ gap: moderateScale(16) }}>
+                                <Text style={styles.sectionTitle}>Select Pick Up Point</Text>
+                                <ControlledInput
+                                    control={control}
+                                    name="accountName"
+                                    label="Account Name"
+                                    placeholder="Enter account name"
+                                    required
+                                />
+                                <ControlledInput
+                                    control={control}
+                                    name="bankName"
+                                    label="Bank Name"
+                                    placeholder="Enter bank name"
+                                    required
+                                />
+                            </View>
+                        ) : (
+                            <LocationStep
+                                states={STATES}
+                                cities={CITIES}
+                                locations={LOCATIONS}
+                                selectedState={selectedState}
+                                onSelectState={(item) => {
+                                    setValue('selectedState', item);
+                                    setValue('selectedCity', undefined as unknown as LocationItem);
+                                    setValue('selectedLocation', undefined as unknown as LocationItem);
+                                }}
+                                selectedCity={selectedCity}
+                                onSelectCity={(item) => {
+                                    setValue('selectedCity', item);
+                                    setValue('selectedLocation', undefined as unknown as LocationItem);
+                                }}
+                                selectedLocation={selectedLocation}
+                                onSelectLocation={(item) => setValue('selectedLocation', item)}
+                                title="Select Pick Up Point"
+                                pickupDate={pickupDate}
+                                onPickupDateChange={(v) => setValue('pickupDate', v)}
+                                pickupTime={pickupTime}
+                                onPickupTimeChange={(v) => setValue('pickupTime', v)}
+                                errors={{
+                                    state: errors.selectedState?.message as string | undefined,
+                                    city: errors.selectedCity?.message as string | undefined,
+                                    location: errors.selectedLocation?.message as string | undefined,
+                                    pickupDate: errors.pickupDate?.message as string | undefined,
+                                    pickupTime: errors.pickupTime?.message as string | undefined
+                                }}
+                            />
+                        )}
+                    </View>
+                )}
 
-            <SourceOfFundsSheet
-                visible={showSourceOfFundsSheet}
-                onClose={() => setShowSourceOfFundsSheet(false)}
-                onSubmit={() => {
-                    setShowSourceOfFundsSheet(false);
-                   
-                    console.log('Source of Funds Declaration Submitted');
-                }}
-                customerInfo={{
-                    fullName: 'Feubode Gesikeme', // Placeholder
-                    phoneNumber: '09042136679', // Placeholder
-                    email: 'kemef@gmail.com', // Placeholder
-                    bvn: '55544332278554', // Placeholder
-                    address: '16a Alexandre drive', // Placeholder
-                    passportNumber: passportNumberInput || '102234556777776'
-                }}
-                transactionDetails={{
-                    type: 'Tourist',
-                    currency: currencySend.currencyName,
-                    amount: `${currencySend.code} ${amountSend}`,
-                    purpose: 'Travel'
-                }}
-            />
-        </TransactionLayout>
+                <InitiateTransactionSheet
+                    visible={initiateSheetVisible}
+                    onClose={() => setInitiateSheetVisible(false)}
+                    onConfirm={handleSubmit(onSubmit)}
+                    title="Initiate Tourist Transaction request?"
+                    loading={createTransaction.isPending}
+                    items={[
+                        {
+                            title: "Verification before approval",
+                            description: "Your travel documents (passport, visa, and return ticket) must be verified before your tourist FX request can be approved.",
+                            iconType: 'verify'
+                        }
+                    ]}
+                />
+
+                <SourceOfFundsSheet
+                    visible={showSourceOfFundsSheet}
+                    onClose={() => setShowSourceOfFundsSheet(false)}
+                    onSubmit={() => {
+                        setShowSourceOfFundsSheet(false);
+
+                        console.log('Source of Funds Declaration Submitted');
+                    }}
+                    customerInfo={{
+                        fullName: 'Feubode Gesikeme', // Placeholder
+                        phoneNumber: '09042136679', // Placeholder
+                        email: 'kemef@gmail.com', // Placeholder
+                        bvn: '55544332278554', // Placeholder
+                        address: '16a Alexandre drive', // Placeholder
+                        passportNumber: watch('passportNumber') || '102234556777776'
+                    }}
+                    transactionDetails={{
+                        type: 'Tourist',
+                        currency: currencySend.currencyName,
+                        amount: `${currencySend.code} ${amountSend}`,
+                        purpose: 'Travel'
+                    }}
+                />
+            </TransactionLayout>
+        </>
     );
 }
 

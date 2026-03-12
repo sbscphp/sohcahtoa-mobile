@@ -11,7 +11,7 @@ export default function AuthLayout() {
         >
             <Stack.Screen name="login" />
             <Stack.Screen name="signup" />
-            <Stack.Screen name="bvn-verification" />
+            <Stack.Screen name="passport-verification" />
             <Stack.Screen name="otp-verification" />
             <Stack.Screen name="bvn-confirmation" />
             <Stack.Screen name="secure-account" />

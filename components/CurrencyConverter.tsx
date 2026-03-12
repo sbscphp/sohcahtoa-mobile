@@ -32,6 +32,7 @@ export interface CurrencyConverterProps {
     onAmountSendChange?: (amount: string) => void;
     showLimitWarning?: boolean;
     onLimitWarningPress?: () => void;
+    error?: string;
 }
 
 export default function CurrencyConverter({
@@ -48,7 +49,8 @@ export default function CurrencyConverter({
     onAmountGetChange,
     onAmountSendChange,
     showLimitWarning = false,
-    onLimitWarningPress
+    onLimitWarningPress,
+    error
 }: CurrencyConverterProps) {
     const [currencySheetVisible, setCurrencySheetVisible] = useState(false);
     const [activeCurrencyField, setActiveCurrencyField] = useState<'get' | 'send' | null>(null);
@@ -83,6 +85,9 @@ export default function CurrencyConverter({
             default: return code;
         }
     };
+
+    const foreignAmountStr = transactionType === 'sell' ? amountGet : amountSend;
+    const foreignAmount = parseFloat(foreignAmountStr.replace(/,/g, '')) || 0;
 
     return (
         <View style={styles.container}>
@@ -143,11 +148,12 @@ export default function CurrencyConverter({
                                     {getCurrencySymbol(currencyGet.code)}
                                 </Text>
                             }
+                            error={error}
                         />
                     </View>
-                    {showLimitWarning && (
+                    {(showLimitWarning && foreignAmount >= 10000) && (
                         <TouchableOpacity
-                            style={{ backgroundColor: '#F1F1F1', padding: 10, borderRadius: 10 }}
+                            style={{ backgroundColor: '#F1F1F1', padding: 10, borderRadius: 10, marginTop: moderateScale(20) }}
                             onPress={onLimitWarningPress}
                         >
                             <Text style={{ fontSize: moderateScale(12), color: 'rgba(217, 45, 32, 1)', fontWeight: '400' }}>

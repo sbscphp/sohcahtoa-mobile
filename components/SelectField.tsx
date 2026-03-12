@@ -12,6 +12,7 @@ interface SelectFieldProps {
     required?: boolean;
     disabled?: boolean;
     onPress: () => void;
+    error?: string;
 }
 
 const SelectField: React.FC<SelectFieldProps> = ({
@@ -22,7 +23,8 @@ const SelectField: React.FC<SelectFieldProps> = ({
     rightIcon,
     required,
     disabled,
-    onPress
+    onPress,
+    error
 }) => {
     const renderIcon = (iconProp: Icon | ReactNode, style?: any) => {
         if (!iconProp) return null;
@@ -47,7 +49,11 @@ const SelectField: React.FC<SelectFieldProps> = ({
             <TouchableOpacity
                 onPress={onPress}
                 disabled={disabled}
-                style={disabled ? styles.inputDisabledWrapper : styles.inputWrapper}
+                testID="select-field-touchable"
+                style={[
+                    disabled ? styles.inputDisabledWrapper : styles.inputWrapper,
+                    error ? styles.inputError : undefined
+                ]}
             >
                 {renderIcon(icon, styles.leftIcon)}
 
@@ -57,6 +63,7 @@ const SelectField: React.FC<SelectFieldProps> = ({
 
                 {renderIcon(rightIcon, { marginLeft: moderateScale(12) })}
             </TouchableOpacity>
+            {error && <Text style={styles.errorText}>{error}</Text>}
         </View>
     );
 };
@@ -104,6 +111,15 @@ const styles = ScaledSheet.create({
     },
     placeholder: {
         color: '#94A3B8',
+    },
+    inputError: {
+        borderColor: '#EF4444',
+    },
+    errorText: {
+        fontSize: '11@ms',
+        color: '#EF4444',
+        marginTop: '4@vs',
+        marginLeft: '14@s',
     },
 });
 

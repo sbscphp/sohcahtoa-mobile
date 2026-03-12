@@ -15,15 +15,18 @@ import BiometricSelectionSheet from '../../components/BiometricSelectionSheet';
 import InputField from '../../components/InputField';
 import PrimaryButton from '../../components/PrimaryButton';
 import { Colors } from '../../constants/theme';
+import { useAuthStore } from '@/stores/useAuthStore';
 
 export default function LoginScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
+    const user = useAuthStore((state) => state.user);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [errors, setErrors] = useState<Partial<Record<keyof LoginFormData, string>>>({});
     const [showBiometricSheet, setShowBiometricSheet] = useState(false);
     const [showBiometricBottomSheet, setShowBiometricBottomSheet] = useState(false);
+     const userName =  `${user?.profile?.firstName} ${user?.profile?.lastName}`;
 
     const { mutate: login, isPending } = useLoginMutation();
 
@@ -141,7 +144,7 @@ export default function LoginScreen() {
                     </View>
 
                     <View style={styles.signUpFooter}>
-                        <Text style={styles.notUserText}>Not Emmanuel Isreal ? </Text>
+                        <Text style={styles.notUserText}>{user ? `Not ${userName} ?` : 'Don\'t have an account?'} </Text>
                         <TouchableOpacity onPress={handleSignUp}>
                             <Text style={styles.signUpText}>Sign Up</Text>
                         </TouchableOpacity>

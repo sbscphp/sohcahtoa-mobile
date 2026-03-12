@@ -16,7 +16,6 @@ interface AuthState {
     setUser: (user: any) => void;
     setTempUserInfo: (info: any) => void;
     logout: () => void;
-
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -33,7 +32,16 @@ export const useAuthStore = create<AuthState>()(
             setVerificationToken: (verificationToken) => set({ verificationToken }),
             setUser: (user) => set({ user }),
             setTempUserInfo: (tempUserInfo) => set({ tempUserInfo }),
-            logout: () => set({ token: null, refreshToken: null, verificationToken: null, user: null, isAuthenticated: false, tempUserInfo: null }),
+            logout: () => {
+                set({
+                    token: null,
+                    refreshToken: null,
+                    verificationToken: null,
+                    user: null,
+                    isAuthenticated: false,
+                    tempUserInfo: null
+                });
+            },
 
         }),
         {

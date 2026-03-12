@@ -1,139 +1,225 @@
-import DatePickerField from '@/components/DatePickerField';
+import ControlledDatePicker from '@/components/ControlledDatePicker';
+import ControlledInput from '@/components/ControlledInput';
 import InitiateTransactionSheet from '@/components/InitiateTransactionSheet';
-import InputField from '@/components/InputField';
+import LoadingBackdrop from '@/components/LoadingBackdrop';
 import { LocationItem } from '@/components/LocationSelectionSheet';
 import CredentialStep from '@/components/transaction-flow/CredentialStep';
 import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import LocationStep from '@/components/transaction-flow/LocationStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
+import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
+import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDocumentUpload';
+import { useExchangeLogic } from '@/hooks/useExchangeLogic';
+import { useToastStore } from '@/stores/useToastStore';
+import { CITIES, LOCATIONS, STATES } from '@/utils/locations';
+import { btaStep0Schema, btaStep1Schema, btaStep2Schema, btaStep3Schema } from '@/utils/validations/bta';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { View } from 'react-native';
+import { z } from 'zod';
 
-const STATES: LocationItem[] = [
-    { id: '1', title: 'Lagos State' },
-    { id: '2', title: 'Ogun State' },
-    { id: '3', title: 'Rivers State' },
-    { id: '4', title: 'Kaduna State' },
-    { id: '5', title: 'Enugu State' },
-    { id: '6', title: 'Kano State' },
-];
+const btaFormSchema = z.object({
+    ...btaStep0Schema.shape,
+    ...btaStep1Schema.shape,
+    ...btaStep2Schema.shape,
+    ...btaStep3Schema.shape
+});
 
-const CITIES: LocationItem[] = [
-    { id: '1', title: 'Ajeromi Local Government' },
-    { id: '2', title: 'Agege Local Government' },
-    { id: '3', title: 'Alimosho Local Government' },
-    { id: '4', title: 'Amuwo Odofin Local Government' },
-    { id: '5', title: 'Apapa Local Government' },
-    { id: '6', title: 'Badagry Local Government' },
-];
-
-const LOCATIONS: LocationItem[] = [
-    { id: '1', title: 'Ajeromi Local Government', subtitle: 'Femi Areola Street, Ikeja GRA.' },
-    { id: '2', title: 'Agege Local Government', subtitle: 'Femi Areola Street, Ikeja GRA.' },
-    { id: '3', title: 'Ikorodu Local Government', subtitle: '23 T.O.S Benson Avenue, Ikorodu.' },
-    { id: '4', title: 'Festac Local Government', subtitle: '1st Avenue, Festac Town.' },
-];
+type BtaFormValues = z.infer<typeof btaFormSchema>;
 
 export default function BusinessTravelAllowanceScreen() {
     const router = useRouter();
+    const createTransaction = useCreateTransactionMutation();
+    const showToast = useToastStore(s => s.showToast);
+
     const [currentStep, setCurrentStep] = useState(0);
-
-    // Step 0: Credentials State
-    const [bvn, setBvn] = useState('');
-    const [nin, setNin] = useState('');
-    const [formAId, setFormAId] = useState('');
-    const [tin, setTin] = useState('');
-    const [passportNumber, setPassportNumber] = useState('');
-    const [passportIssueDate, setPassportIssueDate] = useState('');
-    const [passportExpiryDate, setPassportExpiryDate] = useState('');
-    const [tccNumber, setTccNumber] = useState('');
-
-    // Step 2: Exchange State
-    const [transactionType, setTransactionType] = useState<'buy' | 'sell'>('buy');
-    const [currencyGet, setCurrencyGet] = useState({
-        code: 'USD',
-        country: 'United States',
-        currencyName: 'Dollar',
-        flagUrl: 'https://flagcdn.com/w80/us.png'
-    });
-    const [currencySend, setCurrencySend] = useState({
-        code: 'NGN',
-        country: 'Nigeria',
-        currencyName: 'Naira',
-        flagUrl: 'https://flagcdn.com/w80/ng.png'
-    });
-
-    const [amountGet, setAmountGet] = useState('1'); // Placeholder
-    const [amountSend, setAmountSend] = useState('1,500'); // Placeholder
-
-    // Step 3: Location State
-    const [selectedState, setSelectedState] = useState<LocationItem | null>(null);
-    const [selectedCity, setSelectedCity] = useState<LocationItem | null>(null);
-    const [selectedLocation, setSelectedLocation] = useState<LocationItem | null>(null);
-    const [pickupDate, setPickupDate] = useState('');
-    const [pickupTime, setPickupTime] = useState('');
-
     const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
 
-    // --- Configuration ---
+    const {
+        control,
+        handleSubmit,
+        trigger,
+        watch,
+        setValue,
+        formState: { errors }
+    } = useForm<BtaFormValues>({
+        resolver: zodResolver(btaFormSchema),
+        defaultValues: {
+            bvn: '',
+            nin: '',
+            formAId: '',
+            tin: '',
+            passportNumber: '',
+            passportIssueDate: '',
+            passportExpiryDate: '',
+            visaNumber: '',
+            tccNumber: '',
+            amount: 0,
+            selectedState: undefined as unknown as LocationItem,
+            selectedCity: undefined as unknown as LocationItem,
+            selectedLocation: undefined as unknown as LocationItem,
+            pickupDate: '',
+            pickupTime: '',
+        },
+        mode: 'onChange'
+    });
 
-    // Fields for Step 0
+    const {
+        transactionType,
+        setTransactionType,
+        currencyGet,
+        setCurrencyGet,
+        currencySend,
+        setCurrencySend,
+        amountGetStr,
+        setAmountGetStr,
+        amountSendStr,
+        setAmountSendStr,
+        currentRate,
+    } = useExchangeLogic({ setValue, initialAmount: '1' });
+
+    // Document upload files state
+    const [docs, setDocs] = useState({
+        tcc: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        passport: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        tin: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        visa: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        returnTicket: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        corporateBodyLetter: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        partnerInvitationLetter: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+    });
+
+    const updateDoc = (key: keyof typeof docs, file: UploadedFile, metadata: UploadedMetadata) => {
+        setDocs(prev => ({ ...prev, [key]: { file, meta: metadata } }));
+    };
+
+    const { upload: uploadFile, isPending: isUploading } = useDocumentUpload({
+        onSuccess: (documentType, { file, metadata }) => {
+            if (documentType === 'TCC') updateDoc('tcc', file, metadata);
+            else if (documentType === 'PASSPORT') updateDoc('passport', file, metadata);
+            else if (documentType === 'TIN') updateDoc('tin', file, metadata);
+            else if (documentType === 'VISA') updateDoc('visa', file, metadata);
+            else if (documentType === 'RETURN_TICKET') updateDoc('returnTicket', file, metadata);
+            else if (documentType === 'CORPORATE_BODY_LETTER') updateDoc('corporateBodyLetter', file, metadata);
+            else if (documentType === 'PARTNER_INVITATION_LETTER') updateDoc('partnerInvitationLetter', file, metadata);
+        },
+        onError: () => showToast('Failed to upload document. Please try again.', 'error'),
+    });
+
     const credentialFields = [
-        { label: 'Bank Verification Number(BVN)', placeholder: 'Enter your BVN', value: bvn, onChangeText: setBvn, required: true, keyboardType: 'numeric' as const },
-        { label: 'Tax Identification Number(TIN)', placeholder: 'Enter your TIN', value: tin, onChangeText: setTin, required: true, keyboardType: 'numeric' as const },
-        { label: 'National Identification Number(NIN)', placeholder: 'Enter your NIN', value: nin, onChangeText: setNin, required: true, keyboardType: 'numeric' as const },
-        { label: 'Form A ID', placeholder: 'Enter Form A ID', value: formAId, onChangeText: setFormAId, required: true, keyboardType: 'numeric' as const },
-        { label: 'International Passport Number', placeholder: 'Enter international passport', value: passportNumber, onChangeText: setPassportNumber, required: true },
+        { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number(BVN)" placeholder="Enter your BVN" required keyboardType="numeric" maxLength={11} filterType="numeric" /> },
+        { customComponent: <ControlledInput control={control} name="tin" label="Tax Identification Number(TIN)" placeholder="Enter your TIN" required keyboardType="numeric" maxLength={11} filterType="numeric" /> },
+        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number(NIN)" placeholder="Enter your NIN" required keyboardType="numeric" maxLength={11} filterType="numeric" /> },
+        { customComponent: <ControlledInput control={control} name="formAId" label="Form A ID" placeholder="Enter Form A ID" required /> },
+        { customComponent: <ControlledInput control={control} name="passportNumber" label="International Passport Number" placeholder="Enter international passport" required maxLength={9} filterType="alphanumeric" /> }
     ];
 
-    // Documents for Step 1
     const documentFields = [
         {
             label: 'Tax Clearance Certificate (TCC)',
-            onUpload: () => console.log('Upload Letter'),
+            onUpload: () => uploadFile('TCC'),
+            fileName: docs.tcc.file?.name,
+            fileUri: docs.tcc.file?.uri,            fileUrl: docs.tcc.meta?.fileUrl,
+            fileType: docs.tcc.file?.type,
             required: true,
             associatedInputs: (
                 <View>
-                    <InputField label='Tax Clearance Certificate (TCC)' required placeholder='Enter TCC number' value={tccNumber} onChangeText={setTccNumber} keyboardType='numeric' />
+                    <ControlledInput control={control} name="tccNumber" label="Tax Clearance Certificate (TCC)" required placeholder="Enter TCC number" keyboardType="numeric" />
                 </View>
             )
         },
         {
             label: 'International Passport',
-            onUpload: () => console.log('Upload Passport'),
+            onUpload: () => uploadFile('PASSPORT'),
+            fileName: docs.passport.file?.name,
+            fileUri: docs.passport.file?.uri,            fileUrl: docs.passport.meta?.fileUrl,
+            fileType: docs.passport.file?.type,
             required: true,
             associatedInputs: (
                 <View style={{ flexDirection: 'row', gap: 12 }}>
                     <View style={{ flex: 1 }}>
-                        <DatePickerField label='Passport Issue Date' value={passportIssueDate} onDateChange={setPassportIssueDate} required maximumDate={new Date()} />
+                        <ControlledDatePicker control={control} name="passportIssueDate" label="Passport Issue Date" required maximumDate={new Date()} />
                     </View>
                     <View style={{ flex: 1 }}>
-                        <DatePickerField label='Passport Expiry Date' value={passportExpiryDate} onDateChange={setPassportExpiryDate} required minimumDate={new Date()} />
+                        <ControlledDatePicker control={control} name="passportExpiryDate" label="Passport Expiry Date" required minimumDate={new Date()} />
                     </View>
                 </View>
             )
         },
         {
             label: 'Tax Identification Number (TIN)',
-            onUpload: () => console.log('Upload Letter'),
+            onUpload: () => uploadFile('TIN'),
+            fileName: docs.tin.file?.name,
+            fileUri: docs.tin.file?.uri,            fileUrl: docs.tin.meta?.fileUrl,
+            fileType: docs.tin.file?.type,
+            required: true,
+        },
+        {
+            label: 'Valid Visa',
+            onUpload: () => uploadFile('VISA'),
+            fileName: docs.visa.file?.name,
+            fileUri: docs.visa.file?.uri,            fileUrl: docs.visa.meta?.fileUrl,
+            fileType: docs.visa.file?.type,
             required: true,
             associatedInputs: (
-                <View>
-                    <InputField label='Tax Identification Number (TIN)' required placeholder='Enter TIN number' value={tccNumber} onChangeText={setTccNumber} keyboardType='numeric' />
+                <View >
+                    <ControlledInput control={control} name="visaNumber" label="Visa Number" required placeholder="Enter visa number" keyboardType="numeric" />
                 </View>
             )
         },
+        {
+            label: 'Return Ticket',
+            onUpload: () => uploadFile('RETURN_TICKET'),
+            fileName: docs.returnTicket.file?.name,
+            fileUri: docs.returnTicket.file?.uri,            fileUrl: docs.returnTicket.meta?.fileUrl,
+            fileType: docs.returnTicket.file?.type,
+            required: true,
+        },
+        {
+            label: 'Letter of Request from Corporate Body',
+            onUpload: () => uploadFile('CORPORATE_BODY_LETTER'),
+            fileName: docs.corporateBodyLetter.file?.name,
+            fileUri: docs.corporateBodyLetter.file?.uri,            fileUrl: docs.corporateBodyLetter.meta?.fileUrl,
+            fileType: docs.corporateBodyLetter.file?.type,
+            required: true,
+        },
+        {
+            label: 'Letter of Invitation from Partner',
+            onUpload: () => uploadFile('PARTNER_INVITATION_LETTER'),
+            fileName: docs.partnerInvitationLetter.file?.name,
+            fileUri: docs.partnerInvitationLetter.file?.uri,            fileUrl: docs.partnerInvitationLetter.meta?.fileUrl,
+            fileType: docs.partnerInvitationLetter.file?.type,
+            required: true,
+        },
     ];
 
-    // --- Handlers ---
+    const handleNext = async () => {
+        if (isUploading) {
+            showToast('Please wait for files to finish uploading', 'warning');
+            return;
+        }
 
-    const handleNext = () => {
-        if (currentStep < 3) {
-            setCurrentStep(currentStep + 1);
-        } else {
-            setInitiateSheetVisible(true);
+        let isStepValid = false;
+
+        if (currentStep === 0) {
+            isStepValid = await trigger(['bvn', 'tin', 'nin', 'formAId', 'passportNumber']);
+        } else if (currentStep === 1) {
+            isStepValid = await trigger(['tccNumber', 'passportIssueDate', 'passportExpiryDate', 'visaNumber']);
+        } else if (currentStep === 2) {
+            isStepValid = await trigger(['amount']);
+        } else if (currentStep === 3) {
+            isStepValid = await trigger(['selectedState', 'selectedCity', 'selectedLocation', 'pickupDate', 'pickupTime']);
+        }
+
+        if (isStepValid) {
+            if (currentStep < 3) {
+                setCurrentStep(currentStep + 1);
+            } else {
+                setInitiateSheetVisible(true);
+            }
         }
     };
 
@@ -145,87 +231,157 @@ export default function BusinessTravelAllowanceScreen() {
         }
     };
 
-    const handleConfirmInitiate = () => {
-        setInitiateSheetVisible(false);
-        router.push('/(buy-fx)/(bta)/request-initiated-success');
+    const onSubmit = (data: BtaFormValues) => {
+        const formatDateForApi = (dateStr: string): string => {
+            if (!dateStr) return '';
+            const parts = dateStr.split('/');
+            if (parts.length === 3) {
+                return `${parts[2]}-${parts[1]}-${parts[0]}`;
+            }
+            return dateStr;
+        };
+
+        const payload = {
+            type: 'BTA',
+            currency: currencyGet.code,
+            amount: data.amount,
+            purpose: 'Business Travel Allowance (BTA)',
+            destinationCountry: currencyGet.country,
+            bvn: data.bvn,
+            nin: data.nin,
+            formAId: data.formAId,
+            passportNumber: data.passportNumber,
+            passportIssueDate: data.passportIssueDate,
+            passportExpiryDate: data.passportExpiryDate,
+            visaNumber: data.visaNumber,
+            tccNumber: data.tccNumber,
+            documents: [
+                ...(docs.tcc.meta ? [docs.tcc.meta] : []),
+                ...(docs.passport.meta ? [docs.passport.meta] : []),
+                ...(docs.tin.meta ? [docs.tin.meta] : []),
+                ...(docs.visa.meta ? [docs.visa.meta] : []),
+                ...(docs.returnTicket.meta ? [docs.returnTicket.meta] : []),
+                ...(docs.corporateBodyLetter.meta ? [docs.corporateBodyLetter.meta] : []),
+                ...(docs.partnerInvitationLetter.meta ? [docs.partnerInvitationLetter.meta] : []),
+            ],
+            pickupLocation: data.selectedLocation ? {
+                name: data.selectedLocation.title,
+                address: data.selectedLocation.subtitle || '',
+                state: data.selectedState?.title || '',
+                city: data.selectedCity?.title || '',
+                scheduledPickupDate: formatDateForApi(data.pickupDate),
+                scheduledPickupTime: data.pickupTime,
+            } : undefined,
+        };
+
+        createTransaction.mutate(payload, {
+            onSuccess: (response) => {
+                if (response.success) {
+                    setInitiateSheetVisible(false);
+                    router.push({
+                        pathname: '/(buy-fx)/(bta)/request-initiated-success',
+                        params: { transactionId: response.data?.transactionId }
+                    });
+                }
+            },
+        });
     };
 
+    const selectedState = watch('selectedState');
+    const selectedCity = watch('selectedCity');
+    const selectedLocation = watch('selectedLocation');
+    const pickupDate = watch('pickupDate');
+    const pickupTime = watch('pickupTime');
+
     return (
-        <TransactionLayout
-            title="Business Travel Allowance"
-            currentStep={currentStep}
-            totalSteps={4}
-            onBack={handleBack}
-            onNext={handleNext}
-            nextLabel={currentStep === 3 ? (selectedState && selectedCity ? "Initiate Transaction Request" : "Continue") : "Continue"}
-        >
-            {currentStep === 0 && (
-                <CredentialStep fields={credentialFields} />
-            )}
+        <>
+            <LoadingBackdrop visible={isUploading || createTransaction.isPending} />
+            <TransactionLayout
+                title="Business Travel Allowance"
+                currentStep={currentStep}
+                totalSteps={4}
+                onBack={handleBack}
+                onNext={handleNext}
+                nextLabel={currentStep === 3 ? (selectedState && selectedCity ? "Initiate Transaction Request" : "Continue") : "Continue"}
+            >
+                {currentStep === 0 && (
+                    <CredentialStep fields={credentialFields} />
+                )}
 
-            {currentStep === 1 && (
-                <DocumentStep documents={documentFields} />
-            )}
+                {currentStep === 1 && (
+                    <DocumentStep documents={documentFields} />
+                )}
 
-            {currentStep === 2 && (
-                <ExchangeStep
-                    transactionType={transactionType}
-                    onTransactionTypeChange={setTransactionType}
-                    currencyGet={currencyGet}
-                    onCurrencyGetChange={setCurrencyGet}
-                    currencySend={currencySend}
-                    onCurrencySendChange={setCurrencySend}
-                    amountGet={amountGet}
-                    amountSend={amountSend}
-                    rate={`1 ${currencyGet.code} = 1500 ${currencySend.code}`}
-                    onAmountGetChange={setAmountGet}
-                    onAmountSendChange={setAmountSend}
+                {currentStep === 2 && (
+                    <ExchangeStep
+                        transactionType={transactionType}
+                        onTransactionTypeChange={setTransactionType}
+                        currencyGet={currencyGet}
+                        onCurrencyGetChange={setCurrencyGet}
+                        currencySend={currencySend}
+                        onCurrencySendChange={setCurrencySend}
+                        amountGet={amountGetStr}
+                        amountSend={amountSendStr}
+                        rate={`1 ${currencyGet.code} = ${currentRate.toLocaleString()} ${currencySend.code}`}
+                        onAmountGetChange={setAmountGetStr}
+                        onAmountSendChange={setAmountSendStr}
+                        allowedModes={['buy']}
+                        error={errors.amount?.message}
+                    />
+                )}
+
+                {currentStep === 3 && (
+                    <LocationStep
+                        states={STATES}
+                        cities={CITIES}
+                        locations={LOCATIONS}
+                        selectedState={selectedState}
+                        onSelectState={(item) => {
+                            setValue('selectedState', item);
+                            setValue('selectedCity', undefined as unknown as LocationItem);
+                            setValue('selectedLocation', undefined as unknown as LocationItem);
+                        }}
+                        selectedCity={selectedCity}
+                        onSelectCity={(item) => {
+                            setValue('selectedCity', item);
+                            setValue('selectedLocation', undefined as unknown as LocationItem);
+                        }}
+                        selectedLocation={selectedLocation}
+                        onSelectLocation={(item) => setValue('selectedLocation', item)}
+                        pickupDate={pickupDate}
+                        onPickupDateChange={(v: string) => setValue('pickupDate', v)}
+                        pickupTime={pickupTime}
+                        onPickupTimeChange={(v: string) => setValue('pickupTime', v)}
+                        errors={{
+                            state: errors.selectedState?.message as string | undefined,
+                            city: errors.selectedCity?.message as string | undefined,
+                            location: errors.selectedLocation?.message as string | undefined,
+                            pickupDate: errors.pickupDate?.message as string | undefined,
+                            pickupTime: errors.pickupTime?.message as string | undefined
+                        }}
+                    />
+                )}
+
+                <InitiateTransactionSheet
+                    visible={initiateSheetVisible}
+                    loading={createTransaction.isPending}
+                    onClose={() => setInitiateSheetVisible(false)}
+                    onConfirm={handleSubmit(onSubmit)}
+                    title="Initiate BTA Transaction request?"
+                    items={[
+                        {
+                            title: "Verification before approval",
+                            description: "You will be able to process your BTA once your documents are verified and approved.",
+                            iconType: 'verify'
+                        },
+                        {
+                            title: "Maximum of $5,000 per quarter",
+                            description: "The maximum you can transact under BTA is $5,000 per quarter for each eligible business traveler.",
+                            iconType: 'limit'
+                        }
+                    ]}
                 />
-            )}
-
-            {currentStep === 3 && (
-                <LocationStep
-                    states={STATES}
-                    cities={CITIES}
-                    locations={LOCATIONS}
-                    selectedState={selectedState}
-                    onSelectState={(item) => {
-                        setSelectedState(item);
-                        setSelectedCity(null);
-                        setSelectedLocation(null);
-                    }}
-                    selectedCity={selectedCity}
-                    onSelectCity={(item) => {
-                        setSelectedCity(item);
-                        setSelectedLocation(null);
-                    }}
-                    selectedLocation={selectedLocation}
-                    onSelectLocation={setSelectedLocation}
-                    pickupDate={pickupDate}
-                    onPickupDateChange={setPickupDate}
-                    pickupTime={pickupTime}
-                    onPickupTimeChange={setPickupTime}
-                />
-            )}
-
-            <InitiateTransactionSheet
-                visible={initiateSheetVisible}
-                onClose={() => setInitiateSheetVisible(false)}
-                onConfirm={handleConfirmInitiate}
-                title="Initiate BTA Transaction request?"
-                items={[
-                    {
-                        title: "Verification before approval",
-                        description: "You will be able to process your BTA once your documents are verified and approved.",
-                        iconType: 'verify'
-                    },
-                    {
-                        title: "Maximum of $5,000 per quarter",
-                        description: "The maximum you can transact under BTA is $5,000 per quarter for each eligible business traveler.",
-                        iconType: 'limit'
-                    }
-                ]}
-            />
-        </TransactionLayout>
+            </TransactionLayout>
+        </>
     );
 }

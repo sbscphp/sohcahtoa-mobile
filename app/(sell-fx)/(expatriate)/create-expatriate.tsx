@@ -1,91 +1,141 @@
-import DatePickerField from '@/components/DatePickerField';
+import ControlledDatePicker from '@/components/ControlledDatePicker';
+import ControlledInput from '@/components/ControlledInput';
 import FileUpload from '@/components/FileUpload';
 import InitiateTransactionSheet from '@/components/InitiateTransactionSheet';
-import InputField from '@/components/InputField';
+import LoadingBackdrop from '@/components/LoadingBackdrop';
 import { LocationItem } from '@/components/LocationSelectionSheet';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import LocationStep from '@/components/transaction-flow/LocationStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
+import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
+import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDocumentUpload';
+import { useExchangeLogic } from '@/hooks/useExchangeLogic';
+import { useToastStore } from '@/stores/useToastStore';
+import {
+    expatriateStep0Schema,
+    expatriateStep1Schema,
+    expatriateStep2Schema,
+    expatriateStep3Schema,
+} from '@/utils/validations/expatriate';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { Text, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
+import { z } from 'zod';
 
-const STATES: LocationItem[] = [
-    { id: '1', title: 'Lagos State' },
-    { id: '2', title: 'Ogun State' },
-    { id: '3', title: 'Rivers State' },
-    { id: '4', title: 'Kaduna State' },
-    { id: '5', title: 'Enugu State' },
-    { id: '6', title: 'Kano State' },
-];
+import { CITIES, LOCATIONS, STATES } from '@/utils/locations';
 
-const CITIES: LocationItem[] = [
-    { id: '1', title: 'Ajeromi Local Government' },
-    { id: '2', title: 'Agege Local Government' },
-    { id: '3', title: 'Alimosho Local Government' },
-    { id: '4', title: 'Amuwo Odofin Local Government' },
-    { id: '5', title: 'Apapa Local Government' },
-    { id: '6', title: 'Badagry Local Government' },
-];
+const expatriateFormSchema = z.object({
+    ...expatriateStep0Schema.shape,
+    ...expatriateStep1Schema.shape,
+    ...expatriateStep2Schema.shape,
+    ...expatriateStep3Schema.shape
+});
 
-const LOCATIONS: LocationItem[] = [
-    { id: '1', title: 'Ajeromi Local Government', subtitle: 'Femi Areola Street, Ikeja GRA.' },
-    { id: '2', title: 'Agege Local Government', subtitle: 'Femi Areola Street, Ikeja GRA.' },
-    { id: '3', title: 'Ikorodu Local Government', subtitle: '23 T.O.S Benson Avenue, Ikorodu.' },
-    { id: '4', title: 'Festac Local Government', subtitle: '1st Avenue, Festac Town.' },
-];
+type ExpatriateFormValues = z.infer<typeof expatriateFormSchema>;
 
 export default function CreateExpatriateScreen() {
     const router = useRouter();
+    const createTransaction = useCreateTransactionMutation();
     const [currentStep, setCurrentStep] = useState(0);
 
-    // Step 0: Credentials - TIN and Form "A" ID
-    const [bvnNumber, setBvnNumber] = useState('');
-    const [ninNumber, setNinNumber] = useState('');
-    const [passportNumber, setPassportNumber] = useState('');
-
-    // Step 1: Document Uploads
-    const [workPermitFile, setWorkPermitFile] = useState<string | null>(null);
-    const [workPermitNumber, setWorkPermitNumber] = useState('');
-    const [passportFile, setPassportFile] = useState<string | null>(null);
-    const [passportIssueDate, setPassportIssueDate] = useState('');
-    const [passportExpiryDate, setPassportExpiryDate] = useState('');
-    const [utilityBillFile, setUtilityBillFile] = useState<string | null>(null);
-    const [utilityBillNumber, setUtilityBillNumber] = useState('');
-
-    // Step 2: Exchange State
-    const [transactionType, setTransactionType] = useState<'buy' | 'sell'>('sell');
-    const [currencyGet, setCurrencyGet] = useState({
-        code: 'NGN',
-        country: 'Nigeria',
-        currencyName: 'Naira',
-        flagUrl: 'https://flagcdn.com/w80/ng.png'
-    });
-    const [currencySend, setCurrencySend] = useState({
-        code: 'USD',
-        country: 'United States',
-        currencyName: 'Dollar',
-        flagUrl: 'https://flagcdn.com/w80/us.png'
+    const {
+        control,
+        handleSubmit,
+        trigger,
+        watch,
+        setValue,
+        formState: { errors }
+    } = useForm<ExpatriateFormValues>({
+        resolver: zodResolver(expatriateFormSchema),
+        defaultValues: {
+            bvn: '',
+            nin: '',
+            passportNumber: '',
+            workPermitNumber: '',
+            passportIssueDate: '',
+            passportExpiryDate: '',
+            utilityBillNumber: '',
+            amount: 0,
+            selectedState: undefined as unknown as LocationItem,
+            selectedCity: undefined as unknown as LocationItem,
+            selectedLocation: undefined as unknown as LocationItem,
+            pickupDate: '',
+            pickupTime: '',
+        },
+        mode: 'onChange'
     });
 
-    const [amountGet, setAmountGet] = useState('');
-    const [amountSend, setAmountSend] = useState('1,500');
+    // Step 1: Uploaded files
+    const [docs, setDocs] = useState({
+        workPermit: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        passport: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        utility: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+    });
 
-    // Step 3: Pickup Location
-    const [selectedState, setSelectedState] = useState<LocationItem | null>(null);
-    const [selectedCity, setSelectedCity] = useState<LocationItem | null>(null);
-    const [selectedLocation, setSelectedLocation] = useState<LocationItem | null>(null);
-    const [pickupDate, setPickupDate] = useState('');
-    const [pickupTime, setPickupTime] = useState('');
+    const updateDoc = (key: keyof typeof docs, file: UploadedFile, metadata: UploadedMetadata) => {
+        setDocs(prev => ({ ...prev, [key]: { file, meta: metadata } }));
+    };
 
+    const showToast = useToastStore(s => s.showToast);
+
+    const { upload: uploadFile, isPending: isUploading } = useDocumentUpload({
+        onSuccess: (documentType, { file, metadata }) => {
+            if (documentType === 'WORK_PERMIT') updateDoc('workPermit', file, metadata);
+            else if (documentType === 'PASSPORT') updateDoc('passport', file, metadata);
+            else if (documentType === 'UTILITY_BILL') updateDoc('utility', file, metadata);
+        },
+        onError: () => showToast('Failed to upload document. Please try again.', 'error'),
+    });
+
+    // Step 2: Exchange
+    const {
+        transactionType,
+        setTransactionType,
+        currencyGet,
+        setCurrencyGet,
+        currencySend,
+        setCurrencySend,
+        amountGetStr: amountGet,
+        setAmountGetStr: setAmountGet,
+        amountSendStr: amountSend,
+        setAmountSendStr: setAmountSend,
+        currentRate,
+    } = useExchangeLogic({ setValue, initialAmount: '' });
+
+    // Step 3: Pickup
     const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
 
-    const handleNext = () => {
-        if (currentStep < 3) {
-            setCurrentStep(currentStep + 1);
-        } else {
-            setInitiateSheetVisible(true);
+    const handleNext = async () => {
+        if (isUploading) {
+            showToast('Please wait for files to finish uploading', 'warning');
+            return;
+        }
+
+        let isStepValid = false;
+
+        if (currentStep === 0) {
+            isStepValid = await trigger(['bvn', 'nin', 'passportNumber']);
+        } else if (currentStep === 1) {
+            if (!docs.workPermit.file || !docs.passport.file || !docs.utility.file) {
+                showToast('Please upload all required documents', 'error');
+                return;
+            }
+            isStepValid = await trigger(['workPermitNumber', 'passportIssueDate', 'passportExpiryDate', 'utilityBillNumber']);
+        } else if (currentStep === 2) {
+            isStepValid = await trigger(['amount']);
+        } else if (currentStep === 3) {
+            isStepValid = await trigger(['selectedState', 'selectedCity', 'selectedLocation', 'pickupDate', 'pickupTime']);
+        }
+
+        if (isStepValid) {
+            if (currentStep < 3) {
+                setCurrentStep(currentStep + 1);
+            } else {
+                setInitiateSheetVisible(true);
+            }
         }
     };
 
@@ -97,181 +147,260 @@ export default function CreateExpatriateScreen() {
         }
     };
 
-    const handleConfirmInitiate = () => {
-        setInitiateSheetVisible(false);
-        router.push('/(sell-fx)/(expatriate)/success');
+    const onSubmit = (data: ExpatriateFormValues) => {
+        const formatDateForApi = (dateStr: string): string => {
+            if (!dateStr) return '';
+            const parts = dateStr.split('/');
+            if (parts.length === 3) {
+                return `${parts[2]}-${parts[1]}-${parts[0]}`;
+            }
+            return dateStr;
+        };
+
+        const payload = {
+            type: 'EXPATRIATE_FX',
+            currency: currencySend.code,
+            amount: data.amount,
+            purpose: 'I am a foreigner living or working in Nigeria',
+            destinationCountry: currencySend.country,
+            bvn: data.bvn,
+            nin: data.nin,
+            passportNumber: data.passportNumber,
+            workPermitNumber: data.workPermitNumber,
+            passportIssueDate: data.passportIssueDate,
+            passportExpiryDate: data.passportExpiryDate,
+            utilityBillNumber: data.utilityBillNumber,
+            documents: [
+                ...(docs.workPermit.meta ? [docs.workPermit.meta] : []),
+                ...(docs.passport.meta ? [docs.passport.meta] : []),
+                ...(docs.utility.meta ? [docs.utility.meta] : []),
+            ],
+            pickupLocation: data.selectedLocation ? {
+                name: data.selectedLocation.title,
+                address: data.selectedLocation.subtitle || '',
+                state: data.selectedState?.title || '',
+                city: data.selectedCity?.title || '',
+                scheduledPickupDate: formatDateForApi(data.pickupDate),
+                scheduledPickupTime: data.pickupTime,
+            } : undefined,
+        };
+
+        createTransaction.mutate(payload, {
+            onSuccess: (response) => {
+                if (response.success) {
+                    setInitiateSheetVisible(false);
+                    router.push({
+                        pathname: '/(sell-fx)/(expatriate)/success',
+                        params: {
+                            transactionId: response.data.transactionId,
+                        },
+                    });
+                }
+            },
+        });
     };
 
+    const selectedState = watch('selectedState');
+    const selectedCity = watch('selectedCity');
+    const selectedLocation = watch('selectedLocation');
+    const pickupDate = watch('pickupDate');
+    const pickupTime = watch('pickupTime');
+
     return (
-        <TransactionLayout
-            title="Expatriate"
-            currentStep={currentStep}
-            totalSteps={4}
-            onBack={handleBack}
-            onNext={handleNext}
-            nextLabel={currentStep === 3 ? "Initiate Transaction Request" : "Continue"}
-        >
-            {currentStep === 0 && (
-                <View style={styles.container}>
-                    <Text style={styles.sectionTitle}>Enter Tax Identification Number (TIN) and Form "A" ID</Text>
+        <>
+            <LoadingBackdrop visible={isUploading || createTransaction.isPending} />
+            <TransactionLayout
+                title="Expatriate"
+                currentStep={currentStep}
+                totalSteps={4}
+                onBack={handleBack}
+                onNext={handleNext}
+                nextLabel={currentStep === 3 ? "Initiate Transaction Request" : "Continue"}
+            >
+                {currentStep === 0 && (
+                    <View style={styles.container}>
+                        <Text style={styles.sectionTitle}>Enter Tax Identification Number (TIN) and Form "A" ID</Text>
 
-                    <InputField
-                        label="Bank Verification Number (BVN)"
-                        placeholder="Enter form A"
-                        value={bvnNumber}
-                        onChangeText={setBvnNumber}
-                        required
-                        keyboardType="numeric"
-                    />
-
-                    <InputField
-                        label="National Identification Number (NIN)"
-                        placeholder="Enter form A"
-                        value={ninNumber}
-                        onChangeText={setNinNumber}
-                        required
-                        keyboardType="numeric"
-                    />
-
-                    <InputField
-                        label="International Passport Number"
-                        placeholder="Enter international passport number"
-                        value={passportNumber}
-                        onChangeText={setPassportNumber}
-                        required
-                    />
-                </View>
-            )}
-
-            {currentStep === 1 && (
-                <View style={styles.container}>
-                    <Text style={styles.sectionTitle}>Upload Relevant Documents</Text>
-
-                    {/* Work Permit */}
-                    <View style={styles.documentSection}>
-                        <Text style={styles.documentLabel}>
-                            Work Permit <Text style={styles.required}>*</Text>
-                        </Text>
-                        <FileUpload
-                            onUpload={() => setWorkPermitFile('work_permit.pdf')}
-                            fileName={workPermitFile}
-                        />
-                        <InputField
-                            label="Work Permit"
-                            placeholder="Enter work permit"
-                            value={workPermitNumber}
-                            onChangeText={setWorkPermitNumber}
+                        <ControlledInput
+                            control={control}
+                            name="bvn"
+                            label="Bank Verification Number (BVN)"
+                            placeholder="Enter BVN"
                             required
+                            keyboardType="numeric"
+                            maxLength={11}
+                            filterType="numeric"
+                        />
+
+                        <ControlledInput
+                            control={control}
+                            name="nin"
+                            label="National Identification Number (NIN)"
+                            placeholder="Enter NIN"
+                            required
+                            keyboardType="numeric"
+                            maxLength={11}
+                            filterType="numeric"
+                        />
+
+                        <ControlledInput
+                            control={control}
+                            name="passportNumber"
+                            label="International Passport Number"
+                            placeholder="Enter international passport number"
+                            required
+                            maxLength={9}
+                            filterType="alphanumeric"
                         />
                     </View>
+                )}
 
-                    {/* International Passport */}
-                    <View style={styles.documentSection}>
-                        <Text style={styles.documentLabel}>
-                            International Passport <Text style={styles.required}>*</Text>
-                        </Text>
-                        <FileUpload
-                            onUpload={() => setPassportFile('passport.pdf')}
-                            fileName={passportFile}
-                        />
-                        <View style={{ flexDirection: 'row', gap: moderateScale(12) }}>
-                            <View style={{ flex: 1 }}>
-                                <DatePickerField
-                                    label="Passport Issue Date"
-                                    value={passportIssueDate}
-                                    onDateChange={setPassportIssueDate}
-                                    required
-                                    maximumDate={new Date()}
-                                />
-                            </View>
-                            <View style={{ flex: 1 }}>
-                                <DatePickerField
-                                    label="Passport Expiry Date"
-                                    value={passportExpiryDate}
-                                    onDateChange={setPassportExpiryDate}
-                                    required
-                                    minimumDate={new Date()}
-                                />
+                {currentStep === 1 && (
+                    <View style={styles.container}>
+                        <Text style={styles.sectionTitle}>Upload Relevant Documents</Text>
+
+                        {/* Work Permit */}
+                        <View style={styles.documentSection}>
+                            <Text style={styles.documentLabel}>
+                                Work Permit <Text style={styles.required}>*</Text>
+                            </Text>
+                            <FileUpload
+                                onUpload={() => uploadFile('WORK_PERMIT')}
+                                fileName={docs.workPermit.file?.name ?? null}
+                                fileUri={docs.workPermit.file?.uri ?? null}                                fileUrl={docs.workPermit.meta?.fileUrl ?? null}
+                                fileType={docs.workPermit.file?.type ?? null}
+                            />
+                            <ControlledInput
+                                control={control}
+                                name="workPermitNumber"
+                                label="Work Permit Number"
+                                placeholder="Enter work permit number"
+                                required
+                            />
+                        </View>
+
+                        {/* International Passport */}
+                        <View style={styles.documentSection}>
+                            <Text style={styles.documentLabel}>
+                                International Passport <Text style={styles.required}>*</Text>
+                            </Text>
+                            <FileUpload
+                                onUpload={() => uploadFile('PASSPORT')}
+                                fileName={docs.passport.file?.name ?? null}
+                                fileUri={docs.passport.file?.uri ?? null}                                fileUrl={docs.passport.meta?.fileUrl ?? null}
+                                fileType={docs.passport.file?.type ?? null}
+                            />
+                            <View style={{ flexDirection: 'row', gap: moderateScale(12) }}>
+                                <View style={{ flex: 1 }}>
+                                    <ControlledDatePicker
+                                        control={control}
+                                        name="passportIssueDate"
+                                        label="Passport Issue Date"
+                                        required
+                                        maximumDate={new Date()}
+                                    />
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                    <ControlledDatePicker
+                                        control={control}
+                                        name="passportExpiryDate"
+                                        label="Passport Expiry Date"
+                                        required
+                                        minimumDate={new Date()}
+                                    />
+                                </View>
                             </View>
                         </View>
+
+                        {/* Utility Bill */}
+                        <View style={styles.documentSection}>
+                            <Text style={styles.documentLabel}>
+                                Utility Bill <Text style={styles.required}>*</Text>
+                            </Text>
+                            <FileUpload
+                                onUpload={() => uploadFile('UTILITY_BILL')}
+                                fileName={docs.utility.file?.name ?? null}
+                                fileUri={docs.utility.file?.uri ?? null}                                fileUrl={docs.utility.meta?.fileUrl ?? null}
+                                fileType={docs.utility.file?.type ?? null}
+                            />
+                            <ControlledInput
+                                control={control}
+                                name="utilityBillNumber"
+                                label="Utility Bill Number"
+                                placeholder="Enter utility bill number"
+                                required
+                            />
+                        </View>
                     </View>
+                )}
 
-                    {/* Utility Bill */}
-                    <View style={styles.documentSection}>
-                        <Text style={styles.documentLabel}>
-                            Utility Bill <Text style={styles.required}>*</Text>
-                        </Text>
-                        <FileUpload
-                            onUpload={() => setUtilityBillFile('utility_bill.pdf')}
-                            fileName={utilityBillFile}
-                        />
-                        <InputField
-                            label="Utility Bill"
-                            placeholder="Enter utility bill number"
-                            value={utilityBillNumber}
-                            onChangeText={setUtilityBillNumber}
-                            required
-                        />
-                    </View>
-                </View>
-            )}
+                {currentStep === 2 && (
+                    <ExchangeStep
+                        transactionType={transactionType}
+                        onTransactionTypeChange={setTransactionType}
+                        currencyGet={currencyGet}
+                        onCurrencyGetChange={setCurrencyGet}
+                        currencySend={currencySend}
+                        onCurrencySendChange={setCurrencySend}
+                        amountGet={amountGet}
+                        amountSend={amountSend}
+                        rate={`1 ${currencySend.code} = ${currentRate.toLocaleString()} ${currencyGet.code}`}
+                        onAmountGetChange={setAmountGet}
+                        onAmountSendChange={setAmountSend}
+                        allowedModes={['sell']}
+                        error={errors.amount?.message as string | undefined}
+                    />
+                )}
 
-            {currentStep === 2 && (
-                <ExchangeStep
-                    transactionType={transactionType}
-                    onTransactionTypeChange={setTransactionType}
-                    currencyGet={currencyGet}
-                    onCurrencyGetChange={setCurrencyGet}
-                    currencySend={currencySend}
-                    onCurrencySendChange={setCurrencySend}
-                    amountGet={amountGet}
-                    amountSend={amountSend}
-                    rate={`1 ${currencySend.code} = 1500 ${currencyGet.code}`}
-                    onAmountGetChange={setAmountGet}
-                    onAmountSendChange={setAmountSend}
+                {currentStep === 3 && (
+                    <LocationStep
+                        states={STATES}
+                        cities={CITIES}
+                        locations={LOCATIONS}
+                        selectedState={selectedState}
+                        onSelectState={(item) => {
+                            setValue('selectedState', item);
+                            setValue('selectedCity', undefined as unknown as LocationItem);
+                            setValue('selectedLocation', undefined as unknown as LocationItem);
+                        }}
+                        selectedCity={selectedCity}
+                        onSelectCity={(item) => {
+                            setValue('selectedCity', item);
+                            setValue('selectedLocation', undefined as unknown as LocationItem);
+                        }}
+                        selectedLocation={selectedLocation}
+                        onSelectLocation={(item) => setValue('selectedLocation', item)}
+                        title="Where would you like to receive your funds?"
+                        pickupDate={pickupDate}
+                        onPickupDateChange={(v) => setValue('pickupDate', v)}
+                        pickupTime={pickupTime}
+                        onPickupTimeChange={(v) => setValue('pickupTime', v)}
+                        errors={{
+                            state: errors.selectedState?.message as string | undefined,
+                            city: errors.selectedCity?.message as string | undefined,
+                            location: errors.selectedLocation?.message as string | undefined,
+                            pickupDate: errors.pickupDate?.message as string | undefined,
+                            pickupTime: errors.pickupTime?.message as string | undefined
+                        }}
+                    />
+                )}
+
+                <InitiateTransactionSheet
+                    visible={initiateSheetVisible}
+                    onClose={() => setInitiateSheetVisible(false)}
+                    onConfirm={handleSubmit(onSubmit)}
+                    title="Initiate Expatriate Transaction request?"
+                    loading={createTransaction.isPending}
+                    items={[
+                        {
+                            title: "Verification before approval",
+                            description: "Work permit documents, employer letter, and passport details must be verified before your request can be processed.",
+                            iconType: 'verify'
+                        }
+                    ]}
                 />
-            )}
-
-            {currentStep === 3 && (
-                <LocationStep
-                    states={STATES}
-                    cities={CITIES}
-                    locations={LOCATIONS}
-                    selectedState={selectedState}
-                    onSelectState={(item) => {
-                        setSelectedState(item);
-                        setSelectedCity(null);
-                        setSelectedLocation(null);
-                    }}
-                    selectedCity={selectedCity}
-                    onSelectCity={(item) => {
-                        setSelectedCity(item);
-                        setSelectedLocation(null);
-                    }}
-                    selectedLocation={selectedLocation}
-                    onSelectLocation={setSelectedLocation}
-                    title="Where would you like to receive your funds?"
-                    pickupDate={pickupDate}
-                    onPickupDateChange={setPickupDate}
-                    pickupTime={pickupTime}
-                    onPickupTimeChange={setPickupTime}
-                />
-            )}
-
-            <InitiateTransactionSheet
-                visible={initiateSheetVisible}
-                onClose={() => setInitiateSheetVisible(false)}
-                onConfirm={handleConfirmInitiate}
-                title="Initiate Expatriate Transaction request?"
-                items={[
-                    {
-                        title: "Verification before approval",
-                        description: "Work permit documents, employer letter, and passport details must be verified before your request can be processed.",
-                        iconType: 'verify'
-                    }
-                ]}
-            />
-        </TransactionLayout>
+            </TransactionLayout>
+        </>
     );
 }
 

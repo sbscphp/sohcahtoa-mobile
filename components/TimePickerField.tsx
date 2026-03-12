@@ -1,6 +1,6 @@
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Clock } from 'iconsax-react-nativejs';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Modal, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { moderateScale, ScaledSheet } from 'react-native-size-matters';
 import PrimaryButton from './PrimaryButton';
@@ -11,6 +11,28 @@ interface TimePickerFieldProps {
     onTimeChange: (time: string) => void;
     placeholder?: string;
     required?: boolean;
+    error?: string;
+}
+
+
+function parseTime(timeString: string): Date {
+    const d = new Date();
+    if (!timeString) {
+        return d;
+    }
+    const parts = timeString.split(':');
+    const h = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10);
+    d.setHours(isNaN(h) ? d.getHours() : h, isNaN(m) ? d.getMinutes() : m, 0, 0);
+    return d;
+}
+
+/** Date → "HH:mm" */
+function formatTime(date: Date): string {
+    return [
+        String(date.getHours()).padStart(2, '0'),
+        String(date.getMinutes()).padStart(2, '0'),
+    ].join(':');
 }
 
 const TimePickerField: React.FC<TimePickerFieldProps> = ({
@@ -19,70 +41,45 @@ const TimePickerField: React.FC<TimePickerFieldProps> = ({
     onTimeChange,
     placeholder = 'hh:mm',
     required = false,
+    error,
 }) => {
     const [showPicker, setShowPicker] = useState(false);
-    const [selectedTime, setSelectedTime] = useState<Date | undefined>(
-        value ? parseTime(value) : undefined
-    );
-    const [tempTime, setTempTime] = useState<Date | undefined>(
-        value ? parseTime(value) : new Date()
-    );
+    const [tempTime, setTempTime] = useState<Date>(value ? parseTime(value) : new Date());
+    const [pickerKey, setPickerKey] = useState(0);
 
-    // Parse hh:mm to Date
-    function parseTime(timeString: string): Date | undefined {
-        if (!timeString) return undefined;
-        const parts = timeString.split(':');
-        if (parts.length >= 2) {
-            const hours = parseInt(parts[0], 10);
-            const minutes = parseInt(parts[1], 10);
-            const date = new Date();
-            date.setHours(hours);
-            date.setMinutes(minutes);
-            date.setSeconds(0);
-            return date;
+    useEffect(() => {
+        if (!showPicker) {
+            setTempTime(parseTime(value));
         }
-        return undefined;
-    }
+    }, [value, showPicker]);
 
-    // Format Date to hh:mm
-    function formatTime(date: Date): string {
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
-        return `${hours}:${minutes}`;
-    }
-
-    const handleTimeChange = (event: any, time?: Date) => {
-        if (Platform.OS === 'android') {
-            setShowPicker(false);
-            if (time) {
-                setSelectedTime(time);
-                setTempTime(time);
-                const formattedTime = formatTime(time);
-                onTimeChange(formattedTime);
-            }
-        } else {
-            // iOS - always update temp time when scrolling
-            if (time) {
-                setTempTime(time);
-            }
-        }
-    };
-
-    const handlePress = () => {
+    const handleOpen = () => {
+        setTempTime(parseTime(value));
+        setPickerKey(k => k + 1);
         setShowPicker(true);
     };
 
-    const handleCancel = () => {
-        setTempTime(selectedTime || new Date());
-        setShowPicker(false);
+    const handleChange = (event: any, date?: Date) => {
+        if (Platform.OS === 'android') {
+            setShowPicker(false);
+            if (date) {
+                setTempTime(date);
+                onTimeChange(formatTime(date));
+            }
+        } else {
+            // iOS
+            if (date) {
+                setTempTime(date);
+            }
+        }
     };
 
     const handleConfirm = () => {
-        if (tempTime) {
-            setSelectedTime(tempTime);
-            const formattedTime = formatTime(tempTime);
-            onTimeChange(formattedTime);
-        }
+        onTimeChange(formatTime(tempTime));
+        setShowPicker(false);
+    };
+
+    const handleCancel = () => {
         setShowPicker(false);
     };
 
@@ -91,9 +88,10 @@ const TimePickerField: React.FC<TimePickerFieldProps> = ({
             <Text style={styles.label}>
                 {label} {required && <Text style={styles.required}>*</Text>}
             </Text>
+
             <TouchableOpacity
-                style={styles.inputWrapper}
-                onPress={handlePress}
+                style={[styles.inputWrapper, error ? styles.inputError : undefined]}
+                onPress={handleOpen}
                 activeOpacity={0.7}
             >
                 <Text style={[styles.input, !value && styles.placeholder]}>
@@ -106,11 +104,13 @@ const TimePickerField: React.FC<TimePickerFieldProps> = ({
                 />
             </TouchableOpacity>
 
-            {/* Bottom Sheet Modal for iOS, Native Dialog for Android */}
-            {Platform.OS === 'ios' && showPicker && (
+            {error && <Text style={styles.errorText}>{error}</Text>}
+
+            {/* iOS Bottom Sheet Picker */}
+            {Platform.OS === 'ios' && (
                 <Modal
                     animationType="slide"
-                    transparent={true}
+                    transparent
                     visible={showPicker}
                     onRequestClose={handleCancel}
                 >
@@ -127,22 +127,19 @@ const TimePickerField: React.FC<TimePickerFieldProps> = ({
                             </View>
 
                             <DateTimePicker
-                                value={tempTime || new Date()}
+                                key={pickerKey}
+                                value={tempTime}
                                 mode="time"
                                 display="spinner"
-                                onChange={handleTimeChange}
+                                is24Hour={true}
+                                onChange={handleChange}
                                 textColor="#0F172A"
+                                style={{ width: '100%' }}
                             />
 
                             <View style={styles.buttonContainer}>
-                                <PrimaryButton
-                                    title="Confirm"
-                                    onPress={handleConfirm}
-                                />
-                                <TouchableOpacity
-                                    style={styles.cancelButton}
-                                    onPress={handleCancel}
-                                >
+                                <PrimaryButton title="Confirm" onPress={handleConfirm} />
+                                <TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
                                     <Text style={styles.cancelButtonText}>Cancel</Text>
                                 </TouchableOpacity>
                             </View>
@@ -154,10 +151,12 @@ const TimePickerField: React.FC<TimePickerFieldProps> = ({
             {/* Android Native Picker */}
             {Platform.OS === 'android' && showPicker && (
                 <DateTimePicker
-                    value={tempTime || new Date()}
+                    key={pickerKey}
+                    value={tempTime}
                     mode="time"
                     display="default"
-                    onChange={handleTimeChange}
+                    is24Hour={true}
+                    onChange={handleChange}
                 />
             )}
         </View>
@@ -200,7 +199,15 @@ const styles = ScaledSheet.create({
     icon: {
         marginLeft: '12@s',
     },
-    // Bottom Sheet Styles
+    inputError: {
+        borderColor: '#EF4444',
+    },
+    errorText: {
+        fontSize: '11@ms',
+        color: '#EF4444',
+        marginTop: '4@vs',
+        marginLeft: '4@s',
+    },
     overlay: {
         flex: 1,
         backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -218,7 +225,7 @@ const styles = ScaledSheet.create({
         paddingBottom: '40@vs',
     },
     sheetHeader: {
-        marginBottom: '16@vs',
+        marginBottom: '4@vs',
         alignItems: 'center',
     },
     sheetTitle: {

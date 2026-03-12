@@ -1,127 +1,207 @@
+import ControlledInput from '@/components/ControlledInput';
 import InitiateTransactionSheet from '@/components/InitiateTransactionSheet';
-import InputField from '@/components/InputField';
-import { LocationItem } from '@/components/LocationSelectionSheet';
+import LoadingBackdrop from '@/components/LoadingBackdrop';
 import CredentialStep from '@/components/transaction-flow/CredentialStep';
 import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import MedicalBankDetailsStep from '@/components/transaction-flow/MedicalBankDetailsStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
+import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
+import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDocumentUpload';
+import { useExchangeLogic } from '@/hooks/useExchangeLogic';
+import { useToastStore } from '@/stores/useToastStore';
+import { medicalStep0Schema, medicalStep1Schema, medicalStep2Schema, medicalStep3Schema } from '@/utils/validations/medical';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { View } from 'react-native';
+import { z } from 'zod';
 
-const STATES: LocationItem[] = [
-    { id: '1', title: 'Lagos State' },
-    { id: '2', title: 'Ogun State' },
-    { id: '3', title: 'Rivers State' },
-    { id: '4', title: 'Kaduna State' },
-    { id: '5', title: 'Enugu State' },
-    { id: '6', title: 'Kano State' },
-];
+const medicalFormSchema = z.object({
+    ...medicalStep0Schema.shape,
+    ...medicalStep1Schema.shape,
+    ...medicalStep2Schema.shape,
+    ...medicalStep3Schema.shape
+});
 
-const CITIES: LocationItem[] = [
-    { id: '1', title: 'Ajeromi Local Government' },
-    { id: '2', title: 'Agege Local Government' },
-    { id: '3', title: 'Alimosho Local Government' },
-    { id: '4', title: 'Amuwo Odofin Local Government' },
-    { id: '5', title: 'Apapa Local Government' },
-    { id: '6', title: 'Badagry Local Government' },
-];
-
-const LOCATIONS: LocationItem[] = [
-    { id: '1', title: 'Ajeromi Local Government', subtitle: 'Femi Areola Street, Ikeja GRA.' },
-    { id: '2', title: 'Agege Local Government', subtitle: 'Femi Areola Street, Ikeja GRA.' },
-    { id: '3', title: 'Ikorodu Local Government', subtitle: '23 T.O.S Benson Avenue, Ikorodu.' },
-    { id: '4', title: 'Festac Local Government', subtitle: '1st Avenue, Festac Town.' },
-];
+type MedicalFormValues = z.infer<typeof medicalFormSchema>;
 
 export default function MedicalPaymentScreen() {
     const router = useRouter();
+    const createTransaction = useCreateTransactionMutation();
+    const showToast = useToastStore(s => s.showToast);
+
     const [currentStep, setCurrentStep] = useState(0);
-
-    // Step 0: Credentials State
-    const [bvn, setBvn] = useState('');
-    const [nin, setNin] = useState('');
-    const [formAId, setFormAId] = useState('');
-    const [passportNumber, setPassportNumber] = useState('');
-
-    // Step 2: Exchange State
-    const [transactionType, setTransactionType] = useState<'buy' | 'sell'>('buy');
-    const [currencyGet, setCurrencyGet] = useState({
-        code: 'USD',
-        country: 'United States',
-        currencyName: 'Dollar',
-        flagUrl: 'https://flagcdn.com/w80/us.png'
-    });
-    const [currencySend, setCurrencySend] = useState({
-        code: 'NGN',
-        country: 'Nigeria',
-        currencyName: 'Naira',
-        flagUrl: 'https://flagcdn.com/w80/ng.png'
-    });
-
-    const [amountGet, setAmountGet] = useState('1'); // Placeholder
-    const [amountSend, setAmountSend] = useState('1,500'); // Placeholder
-
-    // Step 3: Bank Details State (Replacing Location)
-    const [beneficiaryName, setBeneficiaryName] = useState('');
-    const [beneficiaryAddress, setBeneficiaryAddress] = useState('');
-    const [beneficiaryBank, setBeneficiaryBank] = useState('');
-    const [routingNumber, setRoutingNumber] = useState('');
-    const [accountNumber, setAccountNumber] = useState('');
-    const [bankAddress, setBankAddress] = useState('');
-    const [swiftCode, setSwiftCode] = useState('');
-
-    // Keeping these for now if needed else where
-    const [selectedState, setSelectedState] = useState<LocationItem | null>(null);
-    const [selectedCity, setSelectedCity] = useState<LocationItem | null>(null);
-    const [selectedLocation, setSelectedLocation] = useState<LocationItem | null>(null);
-
     const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
 
-    // --- Configuration ---
+    const {
+        control,
+        handleSubmit,
+        trigger,
+        watch,
+        setValue,
+        formState: { errors }
+    } = useForm<MedicalFormValues>({
+        resolver: zodResolver(medicalFormSchema),
+        defaultValues: {
+            bvn: '',
+            nin: '',
+            formAId: '',
+            passportNumber: '',
+            visaNumber: '',
+            returnTicketNumber: '',
+            amount: 0,
+            beneficiaryName: '',
+            beneficiaryAddress: '',
+            beneficiaryBank: '',
+            routingNumber: '',
+            accountNumber: '',
+            bankAddress: '',
+            swiftCode: '',
+            iban: '',
+        },
+        mode: 'onChange'
+    });
 
-    // Fields for Step 0
+    const {
+        transactionType,
+        setTransactionType,
+        currencyGet,
+        setCurrencyGet,
+        currencySend,
+        setCurrencySend,
+        amountGetStr,
+        setAmountGetStr,
+        amountSendStr,
+        setAmountSendStr,
+        currentRate,
+        calculateExchangeRate,
+    } = useExchangeLogic({ setValue, initialAmount: '1' });
+
+    // Document upload state
+    const [docs, setDocs] = useState({
+        formA: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        passport: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        visa: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        returnTicket: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        referenceLetter: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        overseaDoctorLetter: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+    });
+
+    const updateDoc = (key: keyof typeof docs, file: UploadedFile, metadata: UploadedMetadata) => {
+        setDocs(prev => ({ ...prev, [key]: { file, meta: metadata } }));
+    };
+
+    const { upload: uploadFile, isPending: isUploading } = useDocumentUpload({
+        onSuccess: (documentType, { file, metadata }) => {
+            if (documentType === 'FORM_A_DOCUMENT') updateDoc('formA', file, metadata);
+            else if (documentType === 'PASSPORT') updateDoc('passport', file, metadata);
+            else if (documentType === 'VISA') updateDoc('visa', file, metadata);
+            else if (documentType === 'RETURN_TICKET') updateDoc('returnTicket', file, metadata);
+            else if (documentType === 'MEDICAL_LETTER') updateDoc('referenceLetter', file, metadata);
+            else if (documentType === 'OVERSEAS_MEDICAL_LETTER') updateDoc('overseaDoctorLetter', file, metadata);
+        },
+        onError: () => showToast('Failed to upload document. Please try again.', 'error'),
+    });
+
     const credentialFields = [
-        { label: 'Bank Verification Number (BVN)', placeholder: 'Enter your BVN', value: bvn, onChangeText: setBvn, required: true, keyboardType: 'numeric' as const },
-        { label: 'National Identification Number (NIN)', placeholder: 'Enter your NIN', value: nin, onChangeText: setNin, required: true, keyboardType: 'numeric' as const },
-        { label: 'Form A ID', placeholder: 'Enter Form A ID', value: formAId, onChangeText: setFormAId, required: true },
-        { label: 'International Passport Number', placeholder: 'Enter international passport', value: passportNumber, onChangeText: setPassportNumber, required: true },
+        { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number (BVN)" placeholder="Enter your BVN" required keyboardType="numeric" /> },
+        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number (NIN)" placeholder="Enter your NIN" required keyboardType="numeric" /> },
+        { customComponent: <ControlledInput control={control} name="formAId" label="Form A ID" placeholder="Enter Form A ID" required /> },
+        { customComponent: <ControlledInput control={control} name="passportNumber" label="International Passport Number" placeholder="Enter international passport" required /> },
     ];
 
-    // Documents for Step 1
     const documentFields = [
         {
             label: 'Form A',
-            onUpload: () => console.log('Upload Invoice'),
+            onUpload: () => uploadFile('FORM_A_DOCUMENT'),
+            fileName: docs.formA.file?.name,
+            fileUri: docs.formA.file?.uri,            fileUrl: docs.formA.meta?.fileUrl,
+            fileType: docs.formA.file?.type,
             required: true,
         },
         {
             label: 'International Passport',
-            onUpload: () => console.log('Upload Report'),
+            onUpload: () => uploadFile('PASSPORT'),
+            fileName: docs.passport.file?.name,
+            fileUri: docs.passport.file?.uri,            fileUrl: docs.passport.meta?.fileUrl,
+            fileType: docs.passport.file?.type,
             required: true,
         },
         {
             label: 'Valid Visa',
-            onUpload: () => console.log('Upload Passport'),
+            onUpload: () => uploadFile('VISA'),
+            fileName: docs.visa.file?.name,
+            fileUri: docs.visa.file?.uri,            fileUrl: docs.visa.meta?.fileUrl,
+            fileType: docs.visa.file?.type,
             required: true,
             associatedInputs: (
                 <View>
-                    <View style={{ flex: 1 }}>
-                        <InputField label='Valid Visa' required placeholder='Enter valid visa number' />
-                    </View>
+                    <ControlledInput control={control} name="visaNumber" label="Visa Number" required placeholder="Enter visa number" keyboardType="numeric" />
                 </View>
             )
+
+        },
+        {
+            label: 'Return Ticket',
+            onUpload: () => uploadFile('RETURN_TICKET'),
+            fileName: docs.returnTicket.file?.name,
+            fileUri: docs.returnTicket.file?.uri,            fileUrl: docs.returnTicket.meta?.fileUrl,
+            fileType: docs.returnTicket.file?.type,
+            required: true,
+            associatedInputs: (
+                <View>
+                    <ControlledInput control={control} name="returnTicketNumber" label="Return Ticket Number" required placeholder="Enter return ticket number" keyboardType="numeric" />
+                </View>
+            )
+
+        },
+        {
+            label: 'Reference Letter (Nigerian Specialist Doctor or Hospital)',
+            onUpload: () => uploadFile('MEDICAL_LETTER'),
+            fileName: docs.referenceLetter.file?.name,
+            fileUri: docs.referenceLetter.file?.uri,            fileUrl: docs.referenceLetter.meta?.fileUrl,
+            fileType: docs.referenceLetter.file?.type,
+            required: true,
+        },
+        {
+            label: 'Letter from oversea doctor stating treatment cost',
+            onUpload: () => uploadFile('OVERSEAS_MEDICAL_LETTER'),
+            fileName: docs.overseaDoctorLetter.file?.name,
+            fileUri: docs.overseaDoctorLetter.file?.uri,            fileUrl: docs.overseaDoctorLetter.meta?.fileUrl,
+            fileType: docs.overseaDoctorLetter.file?.type,
+            required: true,
         },
     ];
 
-    // --- Handlers ---
+    const handleNext = async () => {
+        if (isUploading) {
+            showToast('Please wait for files to finish uploading', 'warning');
+            return;
+        }
 
-    const handleNext = () => {
-        if (currentStep < 3) {
-            setCurrentStep(currentStep + 1);
-        } else {
-            setInitiateSheetVisible(true);
+        let isStepValid = false;
+        if (currentStep === 0) {
+            isStepValid = await trigger(['bvn', 'nin', 'formAId', 'passportNumber']);
+        } else if (currentStep === 1) {
+            if (!docs.formA.file || !docs.passport.file || !docs.visa.file || !docs.returnTicket.file || !docs.referenceLetter.file || !docs.overseaDoctorLetter.file) {
+                showToast('Please upload all required documents', 'error');
+                return;
+            }
+            isStepValid = await trigger(['visaNumber', 'returnTicketNumber']);
+        } else if (currentStep === 2) {
+            isStepValid = await trigger(['amount']);
+        } else if (currentStep === 3) {
+            isStepValid = await trigger(['beneficiaryName', 'beneficiaryAddress', 'beneficiaryBank', 'routingNumber', 'accountNumber', 'bankAddress', 'swiftCode', 'iban']);
+        }
+
+        if (isStepValid) {
+            if (currentStep < 3) {
+                setCurrentStep(currentStep + 1);
+            } else {
+                setInitiateSheetVisible(true);
+            }
         }
     };
 
@@ -133,81 +213,117 @@ export default function MedicalPaymentScreen() {
         }
     };
 
-    const handleConfirmInitiate = () => {
-        setInitiateSheetVisible(false);
-        router.push('/(buy-fx)/(medical)/request-initiated-success');
+    const onSubmit = (data: MedicalFormValues) => {
+        const payload = {
+            type: 'MEDICAL',
+            currency: currencyGet.code,
+            amount: data.amount,
+            purpose: 'Medical Fee Payment',
+            destinationCountry: currencyGet.country,
+            bvn: data.bvn,
+            nin: data.nin,
+            formAId: data.formAId,
+            passportNumber: data.passportNumber,
+            visaNumber: data.visaNumber,
+            returnTicketNumber: data.returnTicketNumber,
+            documents: [
+                ...(docs.formA.meta ? [docs.formA.meta] : []),
+                ...(docs.passport.meta ? [docs.passport.meta] : []),
+                ...(docs.visa.meta ? [docs.visa.meta] : []),
+                ...(docs.returnTicket.meta ? [docs.returnTicket.meta] : []),
+                ...(docs.referenceLetter.meta ? [docs.referenceLetter.meta] : []),
+                ...(docs.overseaDoctorLetter.meta ? [docs.overseaDoctorLetter.meta] : []),
+            ],
+            beneficiaryDetails: {
+                name: data.beneficiaryName,
+                address: data.beneficiaryAddress,
+                swiftCode: data.swiftCode,
+                routingNumber: data.routingNumber,
+                bankAddress: data.bankAddress,
+                accountNumber: data.accountNumber,
+                accountName: data.beneficiaryName,
+                bankName: data.beneficiaryBank,
+                iban: data.iban,
+            },
+        };
+
+        createTransaction.mutate(payload, {
+            onSuccess: (response) => {
+                if (response.success) {
+                    setInitiateSheetVisible(false);
+                    router.push({
+                        pathname: '/(buy-fx)/(medical)/request-initiated-success',
+                        params: { transactionId: response.data?.transactionId }
+                    });
+                }
+            },
+        });
     };
 
+    const beneficiaryName = watch('beneficiaryName');
+
     return (
-        <TransactionLayout
-            title="Medical Fee"
-            currentStep={currentStep}
-            totalSteps={4}
-            onBack={handleBack}
-            onNext={handleNext}
-            nextLabel={currentStep === 3 ? (beneficiaryName && accountNumber ? "Initiate Transaction Request" : "Continue") : "Continue"}
-        >
-            {currentStep === 0 && (
-                <CredentialStep fields={credentialFields} />
-            )}
+        <View style={{ flex: 1 }}>
+            <LoadingBackdrop visible={isUploading || createTransaction.isPending} />
+            <TransactionLayout
+                title="Medical Payment"
+                currentStep={currentStep}
+                totalSteps={4}
+                onBack={handleBack}
+                onNext={handleNext}
+                nextLabel={currentStep === 3 ? (beneficiaryName ? "Initiate Transaction Request" : "Continue") : "Continue"}
+            >
+                {currentStep === 0 && (
+                    <CredentialStep fields={credentialFields} />
+                )}
 
-            {currentStep === 1 && (
-                <DocumentStep documents={documentFields} />
-            )}
+                {currentStep === 1 && (
+                    <DocumentStep documents={documentFields} />
+                )}
 
-            {currentStep === 2 && (
-                <ExchangeStep
-                    transactionType={transactionType}
-                    onTransactionTypeChange={setTransactionType}
-                    currencyGet={currencyGet}
-                    onCurrencyGetChange={setCurrencyGet}
-                    currencySend={currencySend}
-                    onCurrencySendChange={setCurrencySend}
-                    amountGet={amountGet}
-                    amountSend={amountSend}
-                    rate={`1 ${currencyGet.code} = 1500 ${currencySend.code}`}
-                    onAmountGetChange={setAmountGet}
-                    onAmountSendChange={setAmountSend}
+                {currentStep === 2 && (
+                    <ExchangeStep
+                        transactionType={transactionType}
+                        onTransactionTypeChange={setTransactionType}
+                        currencyGet={currencyGet}
+                        onCurrencyGetChange={setCurrencyGet}
+                        currencySend={currencySend}
+                        onCurrencySendChange={setCurrencySend}
+                        amountGet={amountGetStr}
+                        amountSend={amountSendStr}
+                        rate={`1 ${currencyGet.code} = ${currentRate.toLocaleString()} ${currencySend.code}`}
+                        onAmountGetChange={setAmountGetStr}
+                        onAmountSendChange={setAmountSendStr}
+                        allowedModes={['buy']}
+                        error={errors.amount?.message as string | undefined}
+                    />
+                )}
+
+                {currentStep === 3 && (
+                    <MedicalBankDetailsStep control={control} />
+                )}
+
+                <InitiateTransactionSheet
+                    visible={initiateSheetVisible}
+
+                    onClose={() => setInitiateSheetVisible(false)}
+                    onConfirm={handleSubmit(onSubmit)}
+                    title="Initiate Medical Transaction request?"
+                    loading={createTransaction.isPending}
+                    items={[
+                        {
+                            title: "Verification before approval",
+                            description: "Your supporting documents must be verified before your request can be processed.",
+                            iconType: 'verify'
+                        },
+                        {
+                            title: "Required medical documentation",
+                            description: "A reference letter from a recognized Nigerian hospital and an acceptance letter from the overseas hospital are mandatory.",
+                            iconType: 'limit' // Placeholder icon logic
+                        }
+                    ]}
                 />
-            )}
-
-            {currentStep === 3 && (
-                <MedicalBankDetailsStep
-                    beneficiaryName={beneficiaryName}
-                    setBeneficiaryName={setBeneficiaryName}
-                    beneficiaryAddress={beneficiaryAddress}
-                    setBeneficiaryAddress={setBeneficiaryAddress}
-                    beneficiaryBank={beneficiaryBank}
-                    setBeneficiaryBank={setBeneficiaryBank}
-                    routingNumber={routingNumber}
-                    setRoutingNumber={setRoutingNumber}
-                    accountNumber={accountNumber}
-                    setAccountNumber={setAccountNumber}
-                    bankAddress={bankAddress}
-                    setBankAddress={setBankAddress}
-                    swiftCode={swiftCode}
-                    setSwiftCode={setSwiftCode}
-                />
-            )}
-
-            <InitiateTransactionSheet
-                visible={initiateSheetVisible}
-                onClose={() => setInitiateSheetVisible(false)}
-                onConfirm={handleConfirmInitiate}
-                title="Initiate Medical FX request?"
-                items={[
-                    {
-                        title: "Verification before approval",
-                        description: "Your medical documents, hospital invoice, and referral letter must be verified and approved before your request can be processed.",
-                        iconType: 'verify'
-                    },
-                    {
-                        title: "Maximum of $5,000 per quarter",
-                        description: "The maximum amount you can request for foreign medical payments is $5,000 per quarter, in line with CBN guidelines.",
-                        iconType: 'limit'
-                    }
-                ]}
-            />
-        </TransactionLayout>
+            </TransactionLayout>
+        </View>
     );
 }

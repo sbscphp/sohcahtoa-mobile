@@ -3,9 +3,11 @@ import Header from '@/components/Header';
 import InputField from '@/components/InputField';
 import PrimaryButton from '@/components/PrimaryButton';
 import SelectField from '@/components/SelectField';
+import SupportSuccessDialog from '@/components/SupportSuccessDialog';
+import { useCreateSupportTicketMutation } from '@/hooks/queries/support/useCreateSupportTicketMutation';
 import * as DocumentPicker from 'expo-document-picker';
 import { useRouter } from 'expo-router';
-import { Trash } from 'iconsax-react-nativejs';
+import { Messages1, Trash } from 'iconsax-react-nativejs';
 import { ChevronDown } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
@@ -59,14 +61,20 @@ export default function SupportScreen() {
     const [description, setDescription] = useState('');
     const [attachment, setAttachment] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
     const [isCategorySheetVisible, setCategorySheetVisible] = useState(false);
+    const [errors, setErrors] = useState<{ customerId?: string; category?: string; description?: string }>({});
 
     const categories: SelectionItem[] = [
-        { id: '1', label: 'Failed login/password reset', value: 'login_issue' },
-        { id: '2', label: 'Transaction failed', value: 'transaction_failed' },
-        { id: '3', label: 'Account verification pending', value: 'verification_pending' },
-        { id: '4', label: 'App bugs/crashes', value: 'bug_report' },
-        { id: '5', label: 'Other', value: 'other' },
+        { id: '1', label: 'Issues related to transactions', value: 'TRANSACTION_ISSUE' },
+        { id: '2', label: 'Problems accessing account', value: 'ACCOUNT_ACCESS' },
+        { id: '3', label: 'Payment-related problems', value: 'PAYMENT_ISSUE' },
+        { id: '4', label: 'Document verification issues', value: 'DOCUMENT_VERIFICATION' },
+        { id: '5', label: 'Technical problems with the platform', value: 'TECHNICAL_ISSUE' },
+        { id: '6', label: 'Compliance or regulatory questions', value: 'COMPLIANCE_INQUIRY' },
+        { id: '7', label: 'General questions', value: 'GENERAL_INQUIRY' },
+        { id: '8', label: 'Other issues', value: 'OTHER' },
     ];
+
+    const [isSuccessDialogVisible, setSuccessDialogVisible] = useState(false);
 
     const handleFilePick = async () => {
         try {
@@ -88,31 +96,45 @@ export default function SupportScreen() {
         setAttachment(null);
     };
 
+    const { mutate: createSupportTicket, isPending } = useCreateSupportTicketMutation();
+
     const handleSubmit = () => {
+        const newErrors: { customerId?: string; category?: string; description?: string } = {};
+
         if (!customerId.trim()) {
-            Alert.alert('Validation Error', 'Please enter your Customer ID');
-            return;
+            newErrors.customerId = 'Please enter your Customer ID';
         }
         if (!category) {
-            Alert.alert('Validation Error', 'Please select a category');
-            return;
+            newErrors.category = 'Please select a category';
         }
         if (!description.trim()) {
-            Alert.alert('Validation Error', 'Please enter a description');
+            newErrors.description = 'Please enter a description';
+        }
+
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
             return;
         }
 
-        // Mock submission
-        console.log('Submitting Support Request:', {
-            customerId,
-            category: category.value,
-            description,
-            attachment: attachment ? attachment.name : 'None'
-        });
+        setErrors({});
 
-        // Alert.alert('Success', 'Your support request has been submitted successfully.', [
-        //     { text: 'OK', onPress: () => router.back() }
-        // ]);
+        const payload = {
+            category: category!.value,
+            description,
+            ...(attachment ? {
+                file: {
+                    uri: attachment.uri,
+                    type: attachment.mimeType || 'application/octet-stream',
+                    name: attachment.name
+                }
+            } : {})
+        };
+
+        createSupportTicket(payload, {
+            onSuccess: () => {
+                setSuccessDialogVisible(true);
+            }
+        });
     };
 
     return (
@@ -129,15 +151,19 @@ export default function SupportScreen() {
                     showsVerticalScrollIndicator={false}
                 >
                     <Text style={styles.instructionText}>
-                        Need help? Fill out this form to contact support for assistances
+                        Need help? Fill out this form to contact support for assistance
                     </Text>
 
                     <InputField
                         label="Customer ID"
                         placeholder="Enter customer id"
                         value={customerId}
-                        onChangeText={setCustomerId}
+                        onChangeText={(text) => {
+                            setCustomerId(text);
+                            if (errors.customerId) setErrors(prev => ({ ...prev, customerId: undefined }));
+                        }}
                         required
+                        error={errors.customerId}
                     />
 
                     <SelectField
@@ -147,19 +173,29 @@ export default function SupportScreen() {
                         onPress={() => setCategorySheetVisible(true)}
                         required
                         rightIcon={<ChevronDown size={moderateScale(20)} color="#0F172A" />}
+                        error={errors.category}
                     />
 
                     <InputField
                         label="Description"
                         placeholder="Start typing your description"
                         value={description}
-                        onChangeText={setDescription}
+                        onChangeText={(text) => {
+                            setDescription(text);
+                            if (errors.description) setErrors(prev => ({ ...prev, description: undefined }));
+                        }}
                         required
+                        multiline
+                        numberOfLines={5}
+                        height={moderateScale(120)}
+                        style={styles.descriptionInput}
+                        wrapperStyle={styles.descriptionWrapper}
+                        error={errors.description}
                     />
 
                     <View style={styles.attachmentContainer}>
                         <Text style={styles.label}>
-                            Attachment (optional) <Text style={styles.required}>*</Text>
+                            Attachment (optional)
                         </Text>
                         <SupportFileUpload
                             onUpload={handleFilePick}
@@ -176,9 +212,19 @@ export default function SupportScreen() {
                         title="Submit Form"
                         onPress={handleSubmit}
                         style={styles.submitButton}
+                        loading={isPending}
+                        disabled={!category || !description.trim()}
                     />
                 </ScrollView>
             </KeyboardAvoidingView>
+
+            <TouchableOpacity
+                style={styles.fab}
+                onPress={() => router.push('/(more)/support-history')}
+                activeOpacity={0.8}
+            >
+                <Messages1 size={moderateScale(18)} color="#FFFFFF" variant="Bold" />
+            </TouchableOpacity>
 
             <GenericSelectionSheet
                 visible={isCategorySheetVisible}
@@ -189,8 +235,17 @@ export default function SupportScreen() {
                 onSelect={(item) => {
                     setCategory(item);
                     setCategorySheetVisible(false);
+                    if (errors.category) setErrors(prev => ({ ...prev, category: undefined }));
                 }}
                 confirmButtonText="Confirm Selection"
+            />
+
+            <SupportSuccessDialog
+                visible={isSuccessDialogVisible}
+                onClose={() => {
+                    setSuccessDialogVisible(false);
+                    router.back();
+                }}
             />
         </View>
     );
@@ -216,6 +271,16 @@ const styles = ScaledSheet.create({
         marginBottom: '24@vs',
         lineHeight: '22@ms'
     },
+    descriptionInput: {
+        textAlignVertical: 'top',
+        paddingTop: '12@ms',
+        height: '100%',
+    },
+    descriptionWrapper: {
+        borderRadius: '12@ms',
+        alignItems: 'flex-start',
+        paddingVertical: '4@vs',
+    },
     attachmentContainer: {
         marginBottom: '16@vs'
     },
@@ -232,11 +297,27 @@ const styles = ScaledSheet.create({
         fontSize: '13@ms',
         color: '#64748B',
         marginTop: '2@vs',
-        marginBottom: '32@vs',
+        marginBottom: '24@vs',
         lineHeight: '20@ms'
     },
+    fab: {
+        position: 'absolute',
+        bottom: '100@vs',
+        right: '20@ms',
+        width: '44@ms',
+        height: '44@ms',
+        borderRadius: '32@ms',
+        backgroundColor: '#F97316',
+        justifyContent: 'center',
+        alignItems: 'center',
+        elevation: 8,
+        shadowColor: '#F97316',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+    },
     submitButton: {
-        marginTop: 'auto'
+        marginTop: '40@vs'
     },
 
     fileEmptyContainer: {

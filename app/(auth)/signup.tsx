@@ -15,13 +15,11 @@ export default function SignupScreen() {
     const [selectedType, setSelectedType] = useState<UserType>(null);
 
     const handleContinue = () => {
-        if (selectedType === 'tourist' || selectedType === 'expatriate') {
+        if (selectedType) {
             router.push({
                 pathname: '/(auth)/passport-verification',
                 params: { userType: selectedType }
             });
-        } else if (selectedType === 'citizen') {
-            router.push('/(auth)/bvn-verification');
         }
     };
 
@@ -58,7 +56,7 @@ export default function SignupScreen() {
                     <SelectionCard
                         title="Expatriate"
                         description="A foreign national living or working in Nigeria"
-                        iconSource={require('../../assets/images/map.png')}
+                        iconSource={require('../../assets/images/expatriate-onboarding.png')}
                         selected={selectedType === 'expatriate'}
                         onPress={() => setSelectedType('expatriate')}
                     />

@@ -1,5 +1,6 @@
 import CurrencyConverter from '@/components/CurrencyConverter';
 import Header from '@/components/Header';
+import { useRouter } from 'expo-router';
 import { Notification } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
@@ -21,6 +22,7 @@ const currencies: Currency[] = [
 ];
 
 export default function FxRateScreen() {
+    const router = useRouter();
     const [transactionType, setTransactionType] = useState<'buy' | 'sell'>('buy');
     const [currencyGet, setCurrencyGet] = useState<Currency>(currencies[0]); // USD
     const [currencySend, setCurrencySend] = useState<Currency>(currencies[1]); // NGN
@@ -35,7 +37,16 @@ export default function FxRateScreen() {
 
     return (
         <View style={styles.container}>
-            <Header title="FX Rate" rightIcon={<Notification size={moderateScale(28)} color="rgba(143, 139, 139, 1)" variant="Linear" />}/>
+            <Header
+                title="FX Rate"
+                rightIcon={
+                    <View>
+                        <Notification size={moderateScale(24)} color="rgba(143, 139, 139, 1)" variant="Linear" />
+                        <View style={styles.notificationDot} />
+                    </View>
+                }
+                onRightPress={() => router.push('/notifications')}
+            />
             <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent}>
                 <CurrencyConverter
                     transactionType={transactionType}
@@ -123,5 +134,16 @@ const styles = ScaledSheet.create({
         fontSize: '14@ms',
         fontWeight: '500',
         color: '#334155',
+    },
+    notificationDot: {
+        position: 'absolute',
+        top: 0,
+        right: 0,
+        width: '8@ms',
+        height: '8@ms',
+        borderRadius: '4@ms',
+        backgroundColor: '#FF6B2C',
+        borderWidth: 1.5,
+        borderColor: '#FFFFFF',
     },
 });

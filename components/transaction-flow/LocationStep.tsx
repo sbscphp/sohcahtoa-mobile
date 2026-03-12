@@ -27,6 +27,13 @@ interface LocationStepProps {
     pickupTime?: string;
     onPickupTimeChange?: (time: string) => void;
 
+    errors?: {
+        state?: string;
+        city?: string;
+        location?: string;
+        pickupDate?: string;
+        pickupTime?: string;
+    };
     title?: string;
 }
 
@@ -44,6 +51,7 @@ export default function LocationStep({
     onPickupDateChange = () => { },
     pickupTime = '',
     onPickupTimeChange = () => { },
+    errors,
     title = "Where would you like to pick up your card and cash?"
 }: LocationStepProps) {
     const [stateSheetVisible, setStateSheetVisible] = useState(false);
@@ -64,6 +72,7 @@ export default function LocationStep({
                     </Text>
                     <ArrowDown2 size={moderateScale(20)} color="#64748B" />
                 </TouchableOpacity>
+                {errors?.state && <Text style={styles.errorText}>{errors.state}</Text>}
             </View>
 
             <View style={styles.inputGroup}>
@@ -78,6 +87,7 @@ export default function LocationStep({
                     </Text>
                     <ArrowDown2 size={moderateScale(20)} color="#64748B" />
                 </TouchableOpacity>
+                {errors?.city && <Text style={styles.errorText}>{errors.city}</Text>}
             </View>
 
             <View style={{ flexDirection: 'row', gap: moderateScale(12) }}>
@@ -88,6 +98,7 @@ export default function LocationStep({
                         onDateChange={onPickupDateChange}
                         required
                         minimumDate={new Date()}
+                        error={errors?.pickupDate}
                     />
                 </View>
                 <View style={{ flex: 1 }}>
@@ -96,6 +107,7 @@ export default function LocationStep({
                         value={pickupTime}
                         onTimeChange={onPickupTimeChange}
                         required
+                        error={errors?.pickupTime}
                     />
                 </View>
             </View>
@@ -146,6 +158,7 @@ export default function LocationStep({
                     <Edit2 size={moderateScale(20)} color="#64748B" />
                 </TouchableOpacity>
             )}
+            {errors?.location && <Text style={styles.errorText}>{errors.location}</Text>}
 
             <LocationSelectionSheet
                 visible={stateSheetVisible}
@@ -253,5 +266,11 @@ const styles = ScaledSheet.create({
         backgroundColor: '#FFFFFF',
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    errorText: {
+        fontSize: '11@ms',
+        color: '#EF4444',
+        marginTop: '4@vs',
+        marginLeft: '4@s',
     },
 });

@@ -2,11 +2,17 @@ import Header from '@/components/Header';
 import InputField from '@/components/InputField';
 import PrimaryButton from '@/components/PrimaryButton';
 import ProgressBar from '@/components/ProgressBar';
+import { imtoSchema } from '@/utils/validations/imto';
 import { useRouter } from 'expo-router';
 import { InfoCircle, MoneyRecive } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
+import { z } from 'zod';
+
+interface ValidationErrors {
+    [key: string]: string | undefined;
+}
 
 // Placeholder icons since we don't have the exact SVGs
 const MoneyGramIcon = () => (
@@ -28,10 +34,27 @@ export default function ImtoScreen() {
 
     // Mock error state for demonstration as per design (Image 3)
     const [showError, setShowError] = useState(false);
+    const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
 
     const router = useRouter();
 
     const handleValidate = () => {
+        const errors: ValidationErrors = {};
+        const result = imtoSchema.safeParse({
+            selectedImto: selectedImto ?? '',
+            referenceNumber,
+            senderName,
+        });
+        if (!result.success) {
+            result.error.issues.forEach((e: z.ZodIssue) => {
+                const key = e.path[0] as string;
+                if (!errors[key]) errors[key] = e.message;
+            });
+            setValidationErrors(errors);
+            return;
+        }
+        setValidationErrors({});
+
         if (referenceNumber === '4585776465353') {
             setShowError(true);
         } else if (referenceNumber === 'FAILURE') {
@@ -90,12 +113,15 @@ export default function ImtoScreen() {
                                 styles.optionCard,
                                 selectedImto === 'moneygram' && styles.optionCardSelected
                             ]}
-                            onPress={() => setSelectedImto('moneygram')}
+                            onPress={() => { setSelectedImto('moneygram'); setValidationErrors(prev => ({ ...prev, selectedImto: undefined })); }}
                             activeOpacity={0.8}
                         >
                             <MoneyGramIcon />
                             <Text style={styles.optionText}>MoneyGram</Text>
                         </TouchableOpacity>
+                        {validationErrors.selectedImto && (
+                            <Text style={styles.errorText}>{validationErrors.selectedImto}</Text>
+                        )}
 
                         {selectedImto === 'moneygram' && (
                             <View style={styles.formContainer}>
@@ -106,9 +132,11 @@ export default function ImtoScreen() {
                                     onChangeText={(text) => {
                                         setReferenceNumber(text);
                                         setShowError(false);
+                                        setValidationErrors(prev => ({ ...prev, referenceNumber: undefined }));
                                     }}
                                     required
                                     wrapperStyle={showError ? styles.inputError : {}}
+                                    error={validationErrors.referenceNumber}
                                 />
                                 {showError && (
                                     <Text style={styles.errorText}>
@@ -133,7 +161,7 @@ export default function ImtoScreen() {
                                 styles.optionCard,
                                 selectedImto === 'western_union' && styles.optionCardSelected
                             ]}
-                            onPress={() => setSelectedImto('western_union')}
+                            onPress={() => { setSelectedImto('western_union'); setValidationErrors(prev => ({ ...prev, selectedImto: undefined })); }}
                             activeOpacity={0.8}
                         >
                             <WesternUnionIcon />
@@ -146,16 +174,18 @@ export default function ImtoScreen() {
                                     label="MTCN"
                                     placeholder="Enter MTCN"
                                     value={referenceNumber}
-                                    onChangeText={setReferenceNumber}
+                                    onChangeText={(v) => { setReferenceNumber(v); setValidationErrors(prev => ({ ...prev, referenceNumber: undefined })); }}
                                     required
+                                    error={validationErrors.referenceNumber}
                                 />
                                 <View style={{ height: moderateScale(16) }} />
                                 <InputField
-                                    label="Sender’s Name"
-                                    placeholder="Enter Sender’s Name"
+                                    label="Sender's Name"
+                                    placeholder="Enter Sender's Name"
                                     value={senderName}
-                                    onChangeText={setSenderName}
+                                    onChangeText={(v) => { setSenderName(v); setValidationErrors(prev => ({ ...prev, senderName: undefined })); }}
                                     required
+                                    error={validationErrors.senderName}
                                 />
                             </View>
                         )}

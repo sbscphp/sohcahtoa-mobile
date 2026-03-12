@@ -3,6 +3,7 @@ import InputField from '@/components/InputField';
 import PasswordStrengthValidator, { validatePassword } from '@/components/PasswordStrengthValidator';
 import PrimaryButton from '@/components/PrimaryButton';
 import ProgressBar from '@/components/ProgressBar';
+import { useChangePasswordMutation } from '@/hooks/queries/user/useChangePasswordMutation';
 import { useRouter } from 'expo-router';
 import { Lock } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
@@ -14,17 +15,15 @@ export default function ChangePasswordScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const [step, setStep] = useState(1);
-
-    // Step 1 State
     const [currentPassword, setCurrentPassword] = useState('');
     const [confirmCurrentPassword, setConfirmCurrentPassword] = useState('');
-
-    // Step 2 State
     const [newPassword, setNewPassword] = useState('');
     const [confirmNewPassword, setConfirmNewPassword] = useState('');
 
+    const { mutate: changePassword, isPending } = useChangePasswordMutation();
+
     const handleContinue = () => {
-        // Mock validation for Step 1
+
         if (currentPassword && currentPassword === confirmCurrentPassword) {
             setStep(2);
         } else {
@@ -37,9 +36,12 @@ export default function ChangePasswordScreen() {
         const isValid = Object.values(validations).every(Boolean);
 
         if (isValid && newPassword === confirmNewPassword) {
-            // Mock API call
-            console.log("Password Changed Successfully");
-            router.back();
+
+            changePassword({ oldPassword: currentPassword, newPassword }, {
+                onSuccess: () => {
+                    router.back();
+                }
+            });
         } else {
             console.warn("Invalid new password");
         }
@@ -130,6 +132,7 @@ export default function ChangePasswordScreen() {
                             onPress={handleChangePassword}
                             disabled={!isNewPasswordValid || newPassword !== confirmNewPassword}
                             style={{ backgroundColor: (isNewPasswordValid && newPassword === confirmNewPassword) ? '#FF6B2C' : '#FFCCB4' }} // Assuming primary color
+                            loading={isPending}
                         />
                     )}
                 </View>

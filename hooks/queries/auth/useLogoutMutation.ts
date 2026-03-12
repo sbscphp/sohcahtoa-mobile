@@ -12,7 +12,7 @@ export const useLogoutMutation = () => {
         mutationFn: () => logoutUser({ refreshToken: refreshToken || '' }),
         onSuccess: (response) => {
             if (response.success) {
-                // logout();
+                logout();
                 showToast(response.data.message || 'Logged out successfully', 'success');
             }
         },

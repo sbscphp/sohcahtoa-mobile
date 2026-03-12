@@ -1,12 +1,16 @@
 import SuccessScreen from '@/components/SuccessScreen';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import React from 'react';
 
 export default function RequestSuccessScreen() {
     const router = useRouter();
+    const { transactionId } = useLocalSearchParams();
 
     const handleViewTransaction = () => {
-        router.push('/(buy-fx)/(medical)/view-medical');
+        router.push({
+            pathname: '/(buy-fx)/(medical)/view-medical',
+            params: { transactionId }
+        });
     };
 
     const handleGoHome = () => {

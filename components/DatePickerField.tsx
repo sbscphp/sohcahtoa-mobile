@@ -13,6 +13,7 @@ interface DatePickerFieldProps {
     required?: boolean;
     minimumDate?: Date;
     maximumDate?: Date;
+    error?: string;
 }
 
 const DatePickerField: React.FC<DatePickerFieldProps> = ({
@@ -23,6 +24,7 @@ const DatePickerField: React.FC<DatePickerFieldProps> = ({
     required = false,
     minimumDate,
     maximumDate,
+    error
 }) => {
     const [showPicker, setShowPicker] = useState(false);
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(
@@ -94,7 +96,10 @@ const DatePickerField: React.FC<DatePickerFieldProps> = ({
                 {label} {required && <Text style={styles.required}>*</Text>}
             </Text>
             <TouchableOpacity
-                style={styles.inputWrapper}
+                style={[
+                    styles.inputWrapper,
+                    error ? styles.inputError : undefined
+                ]}
                 onPress={handlePress}
                 activeOpacity={0.7}
             >
@@ -107,6 +112,7 @@ const DatePickerField: React.FC<DatePickerFieldProps> = ({
                     style={styles.icon}
                 />
             </TouchableOpacity>
+            {error && <Text style={styles.errorText}>{error}</Text>}
 
             {/* Bottom Sheet Modal for iOS, Native Dialog for Android */}
             {Platform.OS === 'ios' && showPicker && (
@@ -187,11 +193,11 @@ const styles = ScaledSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        height: '48@vs',
+        height: '45@vs',
         borderWidth: 1,
         borderColor: '#E2E8F0',
         borderRadius: '30@ms',
-        paddingHorizontal: '16@s',
+        paddingHorizontal: '14@s',
         backgroundColor: '#FFFFFF',
     },
     input: {
@@ -202,9 +208,20 @@ const styles = ScaledSheet.create({
     },
     placeholder: {
         color: '#94A3B8',
+        fontWeight: '400',
+        fontSize: '13@ms',
     },
     icon: {
         marginLeft: '12@s',
+    },
+    inputError: {
+        borderColor: '#EF4444',
+    },
+    errorText: {
+        fontSize: '11@ms',
+        color: '#EF4444',
+        marginTop: '4@vs',
+        marginLeft: '4@s',
     },
     // Bottom Sheet Styles
     overlay: {

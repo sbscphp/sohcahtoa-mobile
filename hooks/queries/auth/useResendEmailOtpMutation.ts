@@ -18,7 +18,7 @@ export const useResendEmailOtpMutation = (options?: UseResendEmailOtpMutationOpt
                 showToast(data.data.message || 'Email OTP resent successfully', 'success');
                 options?.onSuccess?.(data);
             }
-            // console.log(data, "RESEND EMAIL OTP SUCCESS");
+            console.log(data, "RESEND EMAIL OTP SUCCESS");
 
         },
         onError: (error: any) => {

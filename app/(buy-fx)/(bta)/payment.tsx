@@ -1,6 +1,6 @@
 import Header from '@/components/Header';
 import PrimaryButton from '@/components/PrimaryButton';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Copy, InfoCircle } from 'iconsax-react-nativejs';
 import React, { useEffect, useState } from 'react';
 import { Image, KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
@@ -9,6 +9,7 @@ import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 
 export default function PaymentScreen() {
     const router = useRouter();
+    const { transactionId } = useLocalSearchParams<{ transactionId: string }>();
     const insets = useSafeAreaInsets();
     const [timeLeft, setTimeLeft] = useState(1770);
 
@@ -30,7 +31,10 @@ export default function PaymentScreen() {
     };
 
     const handleSent = () => {
-        router.push('/(buy-fx)/(bta)/payment-success');
+        router.push({
+            pathname: '/(buy-fx)/(bta)/payment-success',
+            params: { transactionId }
+        });
     };
 
     return (

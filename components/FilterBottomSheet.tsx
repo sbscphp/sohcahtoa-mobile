@@ -1,13 +1,46 @@
 import DatePickerField from '@/components/DatePickerField';
 import { CloseCircle, TickSquare, WalletMinus } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
-import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
+
+const STATUS_OPTIONS = [
+    { label: 'Draft', value: 'DRAFT' },
+    { label: 'Pending', value: 'AWAITING_VERIFICATION' },
+    { label: 'In Progress', value: 'VERIFICATION_IN_PROGRESS' },
+    { label: 'Approved', value: 'APPROVED' },
+    { label: 'Completed', value: 'COMPLETED' },
+    { label: 'Declined', value: 'REJECTED' },
+];
+
+const TYPE_OPTIONS = [
+    { label: 'PTA', value: 'PTA' },
+    { label: 'BTA', value: 'BTA' },
+];
+
+const GROUP_OPTIONS = [
+    { label: 'Buy FX', value: 'BUY' },
+    { label: 'Sell FX', value: 'SELL' },
+    { label: 'Receive FX', value: 'REMITTANCE' },
+];
+
+const CURRENCY_OPTIONS = [
+    { label: 'USD', value: 'USD' },
+    { label: 'GBP', value: 'GBP' },
+    { label: 'EUR', value: 'EUR' },
+];
 
 interface FilterBottomSheetProps {
     visible: boolean;
     onClose: () => void;
-    onFilter: (filters: { startDate: string; endDate: string; statusSelected: boolean; typeSelected: boolean }) => void;
+    onFilter: (filters: {
+        startDate: string;
+        endDate: string;
+        status: string;
+        type: string;
+        group: string;
+        currency: string;
+    }) => void;
 }
 
 const FilterBottomSheet: React.FC<FilterBottomSheetProps> = ({
@@ -15,14 +48,60 @@ const FilterBottomSheet: React.FC<FilterBottomSheetProps> = ({
     onClose,
     onFilter
 }) => {
-    const [startDate, setStartDate] = useState('01/12/2025');
-    const [endDate, setEndDate] = useState('09/12/2025');
-    const [statusSelected, setStatusSelected] = useState(false);
-    const [typeSelected, setTypeSelected] = useState(false);
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
+    const [selectedStatus, setSelectedStatus] = useState('');
+    const [selectedType, setSelectedType] = useState('');
+    const [selectedGroup, setSelectedGroup] = useState('');
+    const [selectedCurrency, setSelectedCurrency] = useState('');
+
+    const toggle = (setter: React.Dispatch<React.SetStateAction<string>>) => (value: string) => {
+        setter((prev) => prev === value ? '' : value);
+    };
 
     const handleFilter = () => {
-        onFilter({ startDate, endDate, statusSelected, typeSelected });
+        onFilter({
+            startDate,
+            endDate,
+            status: selectedStatus,
+            type: selectedType,
+            group: selectedGroup,
+            currency: selectedCurrency,
+        });
     };
+
+    const handleReset = () => {
+        setStartDate('');
+        setEndDate('');
+        setSelectedStatus('');
+        setSelectedType('');
+        setSelectedGroup('');
+        setSelectedCurrency('');
+        onFilter({ startDate: '', endDate: '', status: '', type: '', group: '', currency: '' });
+    };
+
+    const renderChips = (
+        options: { label: string; value: string }[],
+        selected: string,
+        onToggle: (value: string) => void
+    ) => (
+        <View style={styles.chipRow}>
+            {options.map((opt) => (
+                <TouchableOpacity
+                    key={opt.value}
+                    style={styles.checkboxOption}
+                    onPress={() => onToggle(opt.value)}
+                >
+                    {selected === opt.value ? (
+                        <TickSquare size={moderateScale(20)} color="#FF6B2C" variant="Bold" />
+                    ) : (
+                        <View style={styles.checkbox} />
+                    )}
+                    <Text style={styles.optionText}>{opt.label}</Text>
+                </TouchableOpacity>
+            ))}
+        </View>
+    );
 
     return (
         <Modal
@@ -49,69 +128,63 @@ const FilterBottomSheet: React.FC<FilterBottomSheetProps> = ({
                         <Text style={styles.subtitle}>Select an option below</Text>
                     </View>
 
-
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Filter by Date</Text>
-                        <View style={styles.dateRow}>
-                            <View style={styles.dateInputContainer}>
-                                <DatePickerField
-                                    label="Start Date"
-                                    value={startDate}
-                                    onDateChange={setStartDate}
-                                    placeholder="DD/MM/YYYY"
-                                // rightIcon={Calendar} // DatePickerField handles icon
-                                />
-                            </View>
-                            <View style={styles.dateInputContainer}>
-                                <DatePickerField
-                                    label="End Date"
-                                    value={endDate}
-                                    onDateChange={setEndDate}
-                                    placeholder="DD/MM/YYYY"
-                                // rightIcon={Calendar}
-                                />
+                    <ScrollView showsVerticalScrollIndicator={false}>
+                        {/* Date Filter */}
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>Filter by Date</Text>
+                            <View style={styles.dateRow}>
+                                <View style={styles.dateInputContainer}>
+                                    <DatePickerField
+                                        label="Start Date"
+                                        value={startDate}
+                                        onDateChange={setStartDate}
+                                        placeholder="DD/MM/YYYY"
+                                    />
+                                </View>
+                                <View style={styles.dateInputContainer}>
+                                    <DatePickerField
+                                        label="End Date"
+                                        value={endDate}
+                                        onDateChange={setEndDate}
+                                        placeholder="DD/MM/YYYY"
+                                    />
+                                </View>
                             </View>
                         </View>
-                    </View>
 
-                    {/* Others */}
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Others</Text>
-                        <View style={styles.othersRow}>
-                            <TouchableOpacity
-                                style={styles.checkboxOption}
-                                onPress={() => setStatusSelected(!statusSelected)}
-                            >
-                                {statusSelected ? (
-                                    <TickSquare size={moderateScale(20)} color="#FF6B2C" variant="Bold" />
-                                ) : (
-                                    <View style={styles.checkbox} />
-                                )}
-                                <Text style={styles.optionText}>Status (Pending)</Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
-                                style={styles.checkboxOption}
-                                onPress={() => setTypeSelected(!typeSelected)}
-                            >
-                                {typeSelected ? (
-                                    <TickSquare size={moderateScale(20)} color="#FF6B2C" variant="Bold" />
-                                ) : (
-                                    <View style={styles.checkbox} />
-                                )}
-                                <Text style={styles.optionText}>Type (Debit)</Text>
-                            </TouchableOpacity>
+                        {/* Status Filter */}
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>Status</Text>
+                            {renderChips(STATUS_OPTIONS, selectedStatus, toggle(setSelectedStatus))}
                         </View>
-                    </View>
+
+                        {/* Type Filter */}
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>Transaction Type</Text>
+                            {renderChips(TYPE_OPTIONS, selectedType, toggle(setSelectedType))}
+                        </View>
+
+                        {/* Group Filter */}
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>Transaction Group</Text>
+                            {renderChips(GROUP_OPTIONS, selectedGroup, toggle(setSelectedGroup))}
+                        </View>
+
+                        {/* Currency Filter */}
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>Currency</Text>
+                            {renderChips(CURRENCY_OPTIONS, selectedCurrency, toggle(setSelectedCurrency))}
+                        </View>
+                    </ScrollView>
 
                     {/* Actions */}
                     <View style={styles.actions}>
                         <TouchableOpacity style={styles.filterBtn} onPress={handleFilter}>
-                            <Text style={styles.filterBtnText}>Filter</Text>
+                            <Text style={styles.filterBtnText}>Apply Filter</Text>
                         </TouchableOpacity>
 
-                        <TouchableOpacity style={styles.closeActionBtn} onPress={onClose}>
-                            <Text style={styles.closeActionBtnText}>No, Close</Text>
+                        <TouchableOpacity style={styles.closeActionBtn} onPress={handleReset}>
+                            <Text style={styles.closeActionBtnText}>Reset Filters</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -137,6 +210,7 @@ const styles = ScaledSheet.create({
         paddingBottom: '24@vs',
         marginHorizontal: '12@s',
         marginBottom: '40@vs',
+        maxHeight: '80%',
     },
     header: {
         marginBottom: '24@vs',
@@ -184,9 +258,10 @@ const styles = ScaledSheet.create({
     dateInputContainer: {
         flex: 1,
     },
-    othersRow: {
+    chipRow: {
         flexDirection: 'row',
-        gap: '12@s',
+        flexWrap: 'wrap',
+        gap: '10@s',
     },
     checkboxOption: {
         flexDirection: 'row',
@@ -195,7 +270,6 @@ const styles = ScaledSheet.create({
         paddingHorizontal: '12@s',
         paddingVertical: '10@vs',
         borderRadius: '8@ms',
-        minWidth: '100@s',
         gap: '8@s',
     },
     checkbox: {
@@ -205,10 +279,6 @@ const styles = ScaledSheet.create({
         borderWidth: 1.5,
         borderColor: '#CBD5E1',
     },
-    checkboxChecked: {
-        backgroundColor: '#FF6B2C',
-        borderColor: '#FF6B2C',
-    },
     optionText: {
         fontSize: '14@ms',
         color: '#0F172A',
@@ -216,6 +286,7 @@ const styles = ScaledSheet.create({
     },
     actions: {
         gap: '12@vs',
+        marginTop: '8@vs',
     },
     filterBtn: {
         backgroundColor: '#FF6B2C',

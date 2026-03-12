@@ -9,6 +9,7 @@ import { useEffect } from 'react';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useProtectedRoute } from '@/hooks/useProtectedRoute';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -16,6 +17,25 @@ SplashScreen.preventAutoHideAsync();
 export const unstable_settings = {
   anchor: '(tabs)',
 };
+
+function InitialLayout() {
+  useProtectedRoute();
+
+  return (
+    <Stack>
+      <Stack.Screen name="index" options={{ headerShown: false }} />
+      <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="(buy-fx)" options={{ headerShown: false }} />
+      <Stack.Screen name="(sell-fx)" options={{ headerShown: false }} />
+      <Stack.Screen name="all-transactions" options={{ headerShown: false }} />
+      <Stack.Screen name="security/change-password" options={{ headerShown: false }} />
+      <Stack.Screen name="(more)" options={{ headerShown: false }} />
+      <Stack.Screen name="(receive-fx)" options={{ headerShown: false }} />
+      <Stack.Screen name="notifications" options={{ headerShown: false }} />
+    </Stack>
+  );
+}
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -44,18 +64,7 @@ export default function RootLayout() {
   return (
     <QueryProvider>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack>
-          <Stack.Screen name="index" options={{ headerShown: false }} />
-          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="(buy-fx)" options={{ headerShown: false }} />
-          <Stack.Screen name="(sell-fx)" options={{ headerShown: false }} />
-          <Stack.Screen name="all-transactions" options={{ headerShown: false }} />
-          <Stack.Screen name="security/change-password" options={{ headerShown: false }} />
-          <Stack.Screen name="(more)" options={{ headerShown: false }} />
-          <Stack.Screen name="(receive-fx)" options={{ headerShown: false }} />
-          <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-        </Stack>
+        <InitialLayout />
         <GlobalToast />
         <StatusBar style="auto" />
       </ThemeProvider>
