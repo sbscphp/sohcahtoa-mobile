@@ -55,6 +55,7 @@ const InputField: React.FC<InputFieldProps> = ({
                     secureTextEntry={isPassword && !isPasswordVisible}
                     placeholderTextColor="#94A3B8"
                     testID="input-field"
+                    editable={!disabled && (props.editable !== undefined ? props.editable : true)}
                     {...props}
                 />
                 {isPassword && (
@@ -95,7 +96,7 @@ const styles = ScaledSheet.create({
     inputWrapper: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'inherit',
+        backgroundColor: 'transparent',
         borderWidth: 1,
         borderColor: 'rgba(143, 139, 139, 1)',
         borderRadius: '28@ms',
@@ -105,7 +106,7 @@ const styles = ScaledSheet.create({
     inputDisabledWrapper: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'inherit',
+        backgroundColor: 'transparent',
         borderWidth: 1,
         borderColor: 'rgba(204, 202, 202, 1)',
         borderRadius: '28@ms',

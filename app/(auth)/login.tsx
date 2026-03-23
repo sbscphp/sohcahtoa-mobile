@@ -49,7 +49,7 @@ export default function LoginScreen() {
             login({ email, password }, {
                 onSuccess: (response) => {
                     if (response.success) {
-                        router.push('/(tabs)');
+                        router.replace('/(tabs)');
                     }
                 }
             });

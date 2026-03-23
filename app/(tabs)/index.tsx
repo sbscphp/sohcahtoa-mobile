@@ -8,10 +8,11 @@ import { useAuthStore } from '@/stores/useAuthStore';
 import { formatCurrency, formatDate, formatTime } from '@/utils/helpers';
 import { useRouter } from 'expo-router';
 import { Add, ArrowDown2, Bank, Buildings, Eye, EyeSlash, Hospital, ImportCircle, Notification, People, Refresh, Teacher, User, WalletAdd1, WalletMinus } from 'iconsax-react-nativejs';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
+import { useGetUnreadCountQuery } from '@/hooks/queries/notifications/useGetUnreadCountQuery';
 import Passport from '../../assets/images/passport.svg';
 import StandingUser from '../../assets/images/standing-user.svg';
 import { Colors } from '../../constants/theme';
@@ -91,6 +92,8 @@ export default function HomeScreen() {
     const [selectedCurrency, setSelectedCurrency] = useState<CurrencyItem>({ id: '4', code: 'USD', flag: '🇺🇸' });
 
     const { mutate: getTotals, data: totalsData, isPending: isLoadingTotals } = useGetTransactionTotalsMutation();
+    const { data: unreadData } = useGetUnreadCountQuery();
+    const unreadCount = unreadData?.data?.count || 0;
 
     useEffect(() => {
         getTotals({});
@@ -206,7 +209,7 @@ export default function HomeScreen() {
 
     const balanceData = getBalanceData();
 
-    const getQueryParams = () => {
+    const queryParams = useMemo(() => {
         const params: any = { limit: 5 };
         if (selectedFilter === 'All' && selectedTxFilter === 'All') {
             return params;
@@ -243,9 +246,9 @@ export default function HomeScreen() {
         }
 
         return params;
-    };
+    }, [selectedFilter, selectedTxFilter]);
 
-    const { data: transactionsData, isLoading: isLoadingTransactions } = useGetTransactionsQuery(getQueryParams());
+    const { data: transactionsData, isLoading: isLoadingTransactions } = useGetTransactionsQuery(queryParams);
     const transactions = transactionsData?.data || [];
 
     const FILTERS = ['All', 'FX bought', 'FX sold', 'Received FX'];
@@ -264,12 +267,14 @@ export default function HomeScreen() {
                         <Text style={styles.username}>{user?.profile ? `${user.profile.firstName} ${user.profile.lastName}` : 'User'}</Text>
                     </View>
                 </View>
-                <TouchableOpacity style={styles.notificationBtn} onPress={() => router.push('/notifications')}>
-                    <View>
+                <TouchableOpacity onPress={() => router.push('/notifications')}>
                         <Notification size={moderateScale(24)} color="#1E293B" variant="Linear" />
-                        <View style={styles.notificationDot} />
-                    </View>
-                </TouchableOpacity>
+                        {unreadCount > 0 && (
+                            <View style={styles.unreadBadge}>
+                                <Text style={styles.unreadText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                            </View>
+                        )}
+                    </TouchableOpacity>
             </View>
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterContainer}>
@@ -381,10 +386,11 @@ export default function HomeScreen() {
                                 expiry="08/27"
                             />
                         </View>
-
+                        
                         <TouchableOpacity style={styles.addCardButton}>
                             <Add size={moderateScale(26)} color="#1E293B" />
                         </TouchableOpacity>
+                        
                     </ScrollView>
                 </View>
 
@@ -478,7 +484,7 @@ const styles = ScaledSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: '10@s',
+        paddingHorizontal: '16@s',
         marginBottom: '20@vs',
     },
     headerLeft: {
@@ -542,6 +548,29 @@ const styles = ScaledSheet.create({
     filterChipActive: {
         backgroundColor: '#FFF7ED',
         borderColor: '#FFEDD5',
+    },
+    emptyStateText: {
+        fontSize: '14@ms',
+        color: '#94A3B8',
+    },
+    unreadBadge: {
+        position: 'absolute',
+        top: -moderateScale(4),
+        right: -moderateScale(4),
+        backgroundColor: '#EF4444',
+        minWidth: moderateScale(16),
+        height: moderateScale(16),
+        borderRadius: moderateScale(8),
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1.5,
+        borderColor: '#FFFFFF',
+        paddingHorizontal: moderateScale(2),
+    },
+    unreadText: {
+        color: '#FFFFFF',
+        fontSize: moderateScale(9),
+        fontWeight: 'bold',
     },
     filterText: {
         fontSize: '12@ms',

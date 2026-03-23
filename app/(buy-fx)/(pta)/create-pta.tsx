@@ -77,7 +77,7 @@ export default function PersonalTravelAllowanceScreen() {
         currentRate,
     } = useExchangeLogic({ setValue, initialAmount: '1' });
 
-    // Document upload files state
+ 
     const [docs, setDocs] = useState({
         visa: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
         ticket: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
