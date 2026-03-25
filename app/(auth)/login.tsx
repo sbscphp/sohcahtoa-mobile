@@ -1,19 +1,20 @@
-import { authenticateWithBiometrics, clearStoredCredentials, getStoredCredentials, isBiometricsAvailable } from '../../utils/biometrics';
-import { useToastStore } from '@/stores/useToastStore';
-import { useLoginMutation } from '@/hooks/queries/auth/useLoginMutation';
-import { LoginFormData, loginSchema } from '@/lib/validations/auth';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { Lock, Sms } from 'iconsax-react-nativejs';
 import { Fingerprint, ScanFaceIcon } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import { z } from 'zod';
+
+import { useToastStore } from '@/stores/useToastStore';
+import { useLoginMutation } from '@/hooks/queries/auth/useLoginMutation';
+import { LoginFormData, loginSchema } from '@/lib/validations/auth';
 import UserSharing from '../../assets/icons/user-sharing.svg';
 import AuthHeader from '../../components/AuthHeader';
 import InputField from '../../components/InputField';
 import PrimaryButton from '../../components/PrimaryButton';
+import { authenticateWithBiometrics, clearStoredCredentials, getStoredCredentials, isBiometricsAvailable } from '../../utils/biometrics';
 import { Colors } from '../../constants/theme';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { getSupportedAuthenticationTypes } from '@/utils/biometrics';
@@ -21,19 +22,23 @@ import { getSupportedAuthenticationTypes } from '@/utils/biometrics';
 export default function LoginScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
-    const user = useAuthStore((state) => state.user);
+   
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [errors, setErrors] = useState<Partial<Record<keyof LoginFormData, string>>>({});
+    const [biometricsSupported, setBiometricsSupported] = useState(false);
+
+    const user = useAuthStore((state) => state.user)
     const isBiometricEnabled = useAuthStore((state) => state.isBiometricEnabled);
     const biometricType = useAuthStore((state) => state.biometricType);
     const setBiometricType = useAuthStore((state) => state.setBiometricType);
     const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
     const hasCredentials = useAuthStore((state) => state.hasCredentials);
     const checkCredentials = useAuthStore((state) => state.checkCredentials);
-    const [biometricsSupported, setBiometricsSupported] = useState(false);
     const showToast = useToastStore((state) => state.showToast);
+
     const userName =  `${user?.profile?.firstName} ${user?.profile?.lastName}`;
+
     const { mutate: login, isPending } = useLoginMutation();
 
     useEffect(() => {
@@ -60,6 +65,7 @@ export default function LoginScreen() {
         };
         checkBiometrics();
     }, [isAuthenticated, isBiometricEnabled]);
+
 
     const handleBiometricLogin = async () => {
         const success = await authenticateWithBiometrics();
