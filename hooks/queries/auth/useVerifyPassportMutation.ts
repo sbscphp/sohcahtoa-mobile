@@ -2,6 +2,7 @@ import { useToastStore } from '@/stores/useToastStore';
 import { useMutation } from '@tanstack/react-query';
 import { verifyPassport } from '../../../services/auth';
 import { useAuthStore } from '../../../stores/useAuthStore';
+import { VerifyPassportResponse } from '@/types/api/auth';
 
 export const useVerifyPassportMutation = () => {
     const setVerificationToken = useAuthStore((state) => state.setVerificationToken);
@@ -9,7 +10,7 @@ export const useVerifyPassportMutation = () => {
 
     return useMutation({
         mutationFn: verifyPassport,
-        onSuccess: (response) => {
+        onSuccess: (response: VerifyPassportResponse) => {
             if (response.success && response.data.verificationToken) {
                 setVerificationToken(response.data.verificationToken);
                 showToast(response.data.message || 'Passport Verified Successfully', 'success');

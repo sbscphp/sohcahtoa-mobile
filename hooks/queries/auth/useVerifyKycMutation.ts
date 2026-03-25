@@ -2,6 +2,7 @@ import { useToastStore } from '@/stores/useToastStore';
 import { useMutation } from '@tanstack/react-query';
 import { verifyKyc } from '../../../services/auth';
 import { useAuthStore } from '../../../stores/useAuthStore';
+import { VerifyKycResponse } from '@/types/api/auth';
 
 export const useVerifyKycMutation = () => {
     const setVerificationToken = useAuthStore((state) => state.setVerificationToken);
@@ -9,7 +10,7 @@ export const useVerifyKycMutation = () => {
 
     return useMutation({
         mutationFn: verifyKyc,
-        onSuccess: (response) => {
+        onSuccess: (response: VerifyKycResponse) => {
             if (response.success && response.data.verificationToken) {
                 setVerificationToken(response.data.verificationToken);
                 showToast(response.data.message || 'KYC Verification Successful', 'success');

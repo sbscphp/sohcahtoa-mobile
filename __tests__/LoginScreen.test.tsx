@@ -1,8 +1,8 @@
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import LoginScreen from '../app/(auth)/login';
 import { useRouter } from 'expo-router';
-import { useLoginMutation } from '@/hooks/queries/auth/useLoginMutation';
-import { useAuthStore } from '@/stores/useAuthStore';
+import { useLoginMutation } from '../hooks/queries/auth/useLoginMutation';
+import { useAuthStore } from '../stores/useAuthStore';
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
@@ -18,10 +18,6 @@ jest.mock('react-native-safe-area-context', () => ({
 }));
 
 // Mock icons to avoid rendering issues in tests
-jest.mock('iconsax-react-nativejs', () => ({
-    Lock: () => null,
-    Sms: () => null,
-}));
 jest.mock('lucide-react-native', () => ({
     ScanFaceIcon: () => null,
 }));
@@ -59,12 +55,12 @@ describe('LoginScreen', () => {
     });
 
     it('should render the login form correctly', () => {
-        const { getByText, getByPlaceholderText } = render(<LoginScreen />, { wrapper });
+        const { getByText, getByPlaceholderText, getByRole } = render(<LoginScreen />, { wrapper });
 
         expect(getByText('Welcome to SohCahToa BDC')).toBeTruthy();
         expect(getByPlaceholderText('Enter your email address')).toBeTruthy();
         expect(getByPlaceholderText('Enter your password')).toBeTruthy();
-        expect(getByText('Login')).toBeTruthy();
+        expect(getByRole('button', { name: 'Login' })).toBeTruthy();
     });
 
     it('should show validation errors for invalid input', async () => {
@@ -79,12 +75,12 @@ describe('LoginScreen', () => {
     });
 
     it('should call login mutation on valid form submission', async () => {
-        const { getByText, getByPlaceholderText } = render(<LoginScreen />, { wrapper });
+        const { getByPlaceholderText, getByRole } = render(<LoginScreen />, { wrapper });
 
         fireEvent.changeText(getByPlaceholderText('Enter your email address'), 'test@example.com');
         fireEvent.changeText(getByPlaceholderText('Enter your password'), 'Password123!');
         
-        const loginButton = getByText('Login');
+        const loginButton = getByRole('button', { name: 'Login' });
         fireEvent.press(loginButton);
 
         await waitFor(() => {

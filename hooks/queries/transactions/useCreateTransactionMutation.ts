@@ -1,13 +1,14 @@
 import { useToastStore } from '@/stores/useToastStore';
 import { useMutation } from '@tanstack/react-query';
 import { createTransaction } from '../../../services/transactions';
+import { CreateTransactionPayload, CreateTransactionResponse } from '../../../types/api/transactions';
 
 export const useCreateTransactionMutation = () => {
     const showToast = useToastStore((state) => state.showToast);
 
-    return useMutation({
+    return useMutation<CreateTransactionResponse, any, CreateTransactionPayload>({
         mutationFn: createTransaction,
-        onSuccess: (response) => {
+        onSuccess: (response: CreateTransactionResponse) => {
             if (response.success && response.data) {
                 showToast(response.data.message || 'Transaction initiated successfully', 'success');
             }

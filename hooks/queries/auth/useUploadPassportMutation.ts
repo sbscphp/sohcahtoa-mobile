@@ -1,13 +1,14 @@
 import { useToastStore } from '@/stores/useToastStore';
 import { useMutation } from '@tanstack/react-query';
 import { uploadPassport } from '../../../services/auth';
+import { UploadPassportResponse } from '@/types/api/auth';
 
 export const useUploadPassportMutation = () => {
     const showToast = useToastStore((state) => state.showToast);
 
     return useMutation({
         mutationFn: uploadPassport,
-        onSuccess: (response) => {
+        onSuccess: (response: UploadPassportResponse) => {
             if (response.success && response.data.passportDocumentUrl) {
                 showToast('Passport Uploaded Successfully', 'success');
             }

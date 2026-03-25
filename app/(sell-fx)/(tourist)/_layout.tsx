@@ -8,6 +8,8 @@ export default function TouristLayout() {
             <Stack.Screen name="create-tourist" options={{ headerShown: false }} />
             <Stack.Screen name="success" options={{ headerShown: false }} />
             <Stack.Screen name="view-tourist" options={{ headerShown: false }} />
+            <Stack.Screen name="payment" options={{ headerShown: false }} />
+            <Stack.Screen name="payment-success" options={{ headerShown: false }} />
         </Stack>
     );
 }

@@ -1,7 +1,7 @@
 import { renderHook, act } from '@testing-library/react-native';
 import { useDocumentUpload } from '../hooks/useDocumentUpload';
-import { useAuthStore } from '@/stores/useAuthStore';
-import { useUploadTransactionDocumentMutation } from '@/hooks/queries/transactions/useUploadTransactionDocumentMutation';
+import { useAuthStore } from '../stores/useAuthStore';
+import { useUploadTransactionDocumentMutation } from '../hooks/queries/transactions/useUploadTransactionDocumentMutation';
 import * as DocumentPicker from 'expo-document-picker';
 
 // Mock dependencies

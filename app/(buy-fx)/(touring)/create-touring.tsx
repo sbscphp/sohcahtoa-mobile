@@ -113,7 +113,7 @@ export default function TouringScreen() {
             label: 'International Passport',
             onUpload: () => uploadFile('PASSPORT'),
             fileName: docs.passport.file?.name,
-            fileUri: docs.passport.file?.uri,            fileUrl: docs.passport.meta?.fileUrl,
+            fileUri: docs.passport.file?.uri, fileUrl: docs.passport.meta?.fileUrl,
             fileType: docs.passport.file?.type,
             required: true,
             associatedInputs: (
@@ -131,7 +131,7 @@ export default function TouringScreen() {
             label: 'Valid Visa ',
             onUpload: () => uploadFile('VISA'),
             fileName: docs.visa.file?.name,
-            fileUri: docs.visa.file?.uri,            fileUrl: docs.visa.meta?.fileUrl,
+            fileUri: docs.visa.file?.uri, fileUrl: docs.visa.meta?.fileUrl,
             fileType: docs.visa.file?.type,
             required: true,
             associatedInputs: (
@@ -142,7 +142,7 @@ export default function TouringScreen() {
             label: 'Return Ticket',
             onUpload: () => uploadFile('RETURN_TICKET'),
             fileName: docs.ticket.file?.name,
-            fileUri: docs.ticket.file?.uri,            fileUrl: docs.ticket.meta?.fileUrl,
+            fileUri: docs.ticket.file?.uri, fileUrl: docs.ticket.meta?.fileUrl,
             fileType: docs.ticket.file?.type,
             required: true,
         },
@@ -150,7 +150,7 @@ export default function TouringScreen() {
             label: 'Receipt for Initial Naira Purchase',
             onUpload: () => uploadFile('RECEIPT'),
             fileName: docs.receipt.file?.name,
-            fileUri: docs.receipt.file?.uri,            fileUrl: docs.receipt.meta?.fileUrl,
+            fileUri: docs.receipt.file?.uri, fileUrl: docs.receipt.meta?.fileUrl,
             fileType: docs.receipt.file?.type,
             required: true,
         },
@@ -235,7 +235,7 @@ export default function TouringScreen() {
         };
 
         createTransaction.mutate(payload, {
-            onSuccess: (response) => {
+            onSuccess: (response: any) => {
                 if (response.success) {
                     setInitiateSheetVisible(false);
                     router.push({

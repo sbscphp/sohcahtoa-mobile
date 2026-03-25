@@ -8,7 +8,7 @@ export const useCalculateExchangeRateMutation = () => {
 
     return useMutation<CalculateExchangeRateResponse, any, CalculateExchangeRatePayload>({
         mutationFn: calculateExchangeRate,
-        onSuccess: (response) => {
+        onSuccess: (response: CalculateExchangeRateResponse) => {
             if (response.success && response.data) {
                 // Not showing toast by default here as this might be called frequently on input change
                 // But logging it for debugging

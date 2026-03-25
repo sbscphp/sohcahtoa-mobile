@@ -122,7 +122,7 @@ export default function BusinessTravelAllowanceScreen() {
             label: 'Tax Clearance Certificate (TCC)',
             onUpload: () => uploadFile('TCC'),
             fileName: docs.tcc.file?.name,
-            fileUri: docs.tcc.file?.uri,            fileUrl: docs.tcc.meta?.fileUrl,
+            fileUri: docs.tcc.file?.uri, fileUrl: docs.tcc.meta?.fileUrl,
             fileType: docs.tcc.file?.type,
             required: true,
             associatedInputs: (
@@ -135,7 +135,7 @@ export default function BusinessTravelAllowanceScreen() {
             label: 'International Passport',
             onUpload: () => uploadFile('PASSPORT'),
             fileName: docs.passport.file?.name,
-            fileUri: docs.passport.file?.uri,            fileUrl: docs.passport.meta?.fileUrl,
+            fileUri: docs.passport.file?.uri, fileUrl: docs.passport.meta?.fileUrl,
             fileType: docs.passport.file?.type,
             required: true,
             associatedInputs: (
@@ -153,7 +153,7 @@ export default function BusinessTravelAllowanceScreen() {
             label: 'Tax Identification Number (TIN)',
             onUpload: () => uploadFile('TIN'),
             fileName: docs.tin.file?.name,
-            fileUri: docs.tin.file?.uri,            fileUrl: docs.tin.meta?.fileUrl,
+            fileUri: docs.tin.file?.uri, fileUrl: docs.tin.meta?.fileUrl,
             fileType: docs.tin.file?.type,
             required: true,
         },
@@ -161,7 +161,7 @@ export default function BusinessTravelAllowanceScreen() {
             label: 'Valid Visa',
             onUpload: () => uploadFile('VISA'),
             fileName: docs.visa.file?.name,
-            fileUri: docs.visa.file?.uri,            fileUrl: docs.visa.meta?.fileUrl,
+            fileUri: docs.visa.file?.uri, fileUrl: docs.visa.meta?.fileUrl,
             fileType: docs.visa.file?.type,
             required: true,
             associatedInputs: (
@@ -174,7 +174,7 @@ export default function BusinessTravelAllowanceScreen() {
             label: 'Return Ticket',
             onUpload: () => uploadFile('RETURN_TICKET'),
             fileName: docs.returnTicket.file?.name,
-            fileUri: docs.returnTicket.file?.uri,            fileUrl: docs.returnTicket.meta?.fileUrl,
+            fileUri: docs.returnTicket.file?.uri, fileUrl: docs.returnTicket.meta?.fileUrl,
             fileType: docs.returnTicket.file?.type,
             required: true,
         },
@@ -182,7 +182,7 @@ export default function BusinessTravelAllowanceScreen() {
             label: 'Letter of Request from Corporate Body',
             onUpload: () => uploadFile('CORPORATE_BODY_LETTER'),
             fileName: docs.corporateBodyLetter.file?.name,
-            fileUri: docs.corporateBodyLetter.file?.uri,            fileUrl: docs.corporateBodyLetter.meta?.fileUrl,
+            fileUri: docs.corporateBodyLetter.file?.uri, fileUrl: docs.corporateBodyLetter.meta?.fileUrl,
             fileType: docs.corporateBodyLetter.file?.type,
             required: true,
         },
@@ -190,7 +190,7 @@ export default function BusinessTravelAllowanceScreen() {
             label: 'Letter of Invitation from Partner',
             onUpload: () => uploadFile('PARTNER_INVITATION_LETTER'),
             fileName: docs.partnerInvitationLetter.file?.name,
-            fileUri: docs.partnerInvitationLetter.file?.uri,            fileUrl: docs.partnerInvitationLetter.meta?.fileUrl,
+            fileUri: docs.partnerInvitationLetter.file?.uri, fileUrl: docs.partnerInvitationLetter.meta?.fileUrl,
             fileType: docs.partnerInvitationLetter.file?.type,
             required: true,
         },
@@ -275,7 +275,7 @@ export default function BusinessTravelAllowanceScreen() {
         };
 
         createTransaction.mutate(payload, {
-            onSuccess: (response) => {
+            onSuccess: (response: any) => {
                 if (response.success) {
                     setInitiateSheetVisible(false);
                     router.push({

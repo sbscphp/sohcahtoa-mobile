@@ -65,7 +65,7 @@ export const useExchangeLogic = ({ setValue, initialAmount = '1' }: UseExchangeL
                 toCurrency: currencySend.code,
                 amount: parseFloat(cleanAmount)
             }, {
-                onSuccess: (response) => {
+                onSuccess: (response: any) => {
                     if (response.success && response.data) {
                         setAmountSendStr(response.data.convertedAmount.toLocaleString());
                         setCurrentRate(response.data.sellRate);
@@ -91,7 +91,7 @@ export const useExchangeLogic = ({ setValue, initialAmount = '1' }: UseExchangeL
                 toCurrency: type === 'SEND' ? currency.code : currencySend.code,
                 amount: parseFloat(cleanAmount)
             }, {
-                onSuccess: (response) => {
+                onSuccess: (response: any) => {
                     if (response.success && response.data) {
                         setAmountSendStr(response.data.convertedAmount.toLocaleString());
                         setCurrentRate(response.data.sellRate);

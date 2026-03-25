@@ -13,7 +13,7 @@ export const useResendOtpMutation = (options?: UseResendOtpMutationOptions) => {
 
     return useMutation({
         mutationFn: (payload: ResendOtpPayload) => resendOtp(payload),
-        onSuccess: (data) => {
+        onSuccess: (data: ResendOtpResponse) => {
             if (data.success) {
                 showToast(data.data.message || 'OTP resent successfully', 'success');
                 options?.onSuccess?.(data);

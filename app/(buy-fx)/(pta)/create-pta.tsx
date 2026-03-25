@@ -77,7 +77,7 @@ export default function PersonalTravelAllowanceScreen() {
         currentRate,
     } = useExchangeLogic({ setValue, initialAmount: '1' });
 
- 
+
     const [docs, setDocs] = useState({
         visa: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
         ticket: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
@@ -107,7 +107,7 @@ export default function PersonalTravelAllowanceScreen() {
             label: 'Valid Visa',
             onUpload: () => uploadFile('VISA'),
             fileName: docs.visa.file?.name,
-            fileUri: docs.visa.file?.uri,            fileUrl: docs.visa.meta?.fileUrl,
+            fileUri: docs.visa.file?.uri, fileUrl: docs.visa.meta?.fileUrl,
             fileType: docs.visa.file?.type,
             required: true,
             associatedInputs: (
@@ -120,7 +120,7 @@ export default function PersonalTravelAllowanceScreen() {
             label: 'Return Ticket',
             onUpload: () => uploadFile('RETURN_TICKET'),
             fileName: docs.ticket.file?.name,
-            fileUri: docs.ticket.file?.uri,            fileUrl: docs.ticket.meta?.fileUrl,
+            fileUri: docs.ticket.file?.uri, fileUrl: docs.ticket.meta?.fileUrl,
             fileType: docs.ticket.file?.type,
             required: true,
             associatedInputs: (
@@ -208,7 +208,7 @@ export default function PersonalTravelAllowanceScreen() {
         };
 
         createTransaction.mutate(payload, {
-            onSuccess: (response) => {
+            onSuccess: (response: any) => {
                 if (response.success) {
                     setInitiateSheetVisible(false);
                     router.push({

@@ -454,7 +454,7 @@ export default function HomeScreen() {
                         )}
                     </View>
                 </View>
-
+ 
             </ScrollView>
 
             {activeConfig && (
@@ -484,8 +484,8 @@ const styles = ScaledSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: '16@s',
-        marginBottom: '20@vs',
+        paddingHorizontal: '14@s',
+        marginVertical: '12@vs',
     },
     headerLeft: {
         flexDirection: 'row',
@@ -706,7 +706,7 @@ const styles = ScaledSheet.create({
     },
     card: {
         width: '275@s',
-        height: '125@vs',
+        height: '145@vs',
         borderRadius: '20@ms',
         overflow: 'hidden',
     },

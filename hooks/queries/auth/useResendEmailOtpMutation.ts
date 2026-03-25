@@ -13,7 +13,7 @@ export const useResendEmailOtpMutation = (options?: UseResendEmailOtpMutationOpt
 
     return useMutation({
         mutationFn: (payload: ResendEmailOtpPayload) => resendEmailOtp(payload),
-        onSuccess: (data) => {
+        onSuccess: (data: ResendEmailOtpResponse) => {
             if (data.success) {
                 showToast(data.data.message || 'Email OTP resent successfully', 'success');
                 options?.onSuccess?.(data);

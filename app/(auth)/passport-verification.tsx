@@ -12,10 +12,11 @@ import Toast from '../../components/Toast';
 import { useVerifyBvnMutation } from '@/hooks/queries/auth/useVerifyBvnMutation';
 import { useVerifyExpatriatePassportMutation } from '@/hooks/queries/auth/useVerifyExpatriatePassportMutation';
 import { useVerifyPassportMutation } from '@/hooks/queries/auth/useVerifyPassportMutation';
-import { PassportFormData, passportSchema } from '@/lib/validations/auth';
+import { bvnValidation, PassportFormData, passportValidation } from '@/lib/validations/auth';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
+import { z } from 'zod';
 
 export default function PassportVerificationScreen() {
     const router = useRouter();
@@ -32,12 +33,16 @@ export default function PassportVerificationScreen() {
     const maxLength = isTourist ? 9 : 11;
     const filterType = isTourist ? 'alphanumeric' : 'numeric';
 
+    const schema = z.object({
+        passportNumber: isCitizen || isExpatriate ? bvnValidation : passportValidation
+    });
+
     const {
         control,
         handleSubmit,
         formState: { errors, isValid }
     } = useForm<PassportFormData>({
-        resolver: zodResolver(passportSchema),
+        resolver: zodResolver(schema),
         defaultValues: {
             passportNumber: '',
         },

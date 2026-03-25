@@ -6,7 +6,7 @@ export const usePassportStatusQuery = () => {
         queryKey: ['passportStatus'],
         queryFn: getPassportStatus,
         // Refetch frequently if pending, or keep it manual depending on UI needs
-        refetchInterval: (query) => {
+        refetchInterval: (query: any) => {
             return query.state.data?.data.status === 'PENDING' ? 5000 : false;
         },
 

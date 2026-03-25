@@ -9,7 +9,7 @@ export const useCreateSupportTicketMutation = () => {
 
     return useMutation<CreateSupportTicketResponse, any, CreateSupportTicketPayload>({
         mutationFn: createSupportTicket,
-        onSuccess: (response) => {
+        onSuccess: (response: CreateSupportTicketResponse) => {
             if (response.success && response.data) {
                 showToast(response.data.message || response.message || 'Support ticket created successfully', 'success');
                 queryClient.invalidateQueries({ queryKey: ['supportTickets'] });

@@ -2,6 +2,7 @@ import { useToastStore } from '@/stores/useToastStore';
 import { useMutation } from '@tanstack/react-query';
 import { sendTouristOtp } from '../../../services/auth';
 import { useAuthStore } from '../../../stores/useAuthStore';
+import { SendTouristOtpResponse } from '@/types/api/auth';
 
 export const useSendTouristOtpMutation = () => {
     const setUser = useAuthStore((state) => state.setUser);
@@ -10,7 +11,7 @@ export const useSendTouristOtpMutation = () => {
 
     return useMutation({
         mutationFn: sendTouristOtp,
-        onSuccess: (response) => {
+        onSuccess: (response: SendTouristOtpResponse) => {
             if (response.success && response.data) {
                 if ((response.data as any).verificationToken) {
                     setVerificationToken((response.data as any).verificationToken);

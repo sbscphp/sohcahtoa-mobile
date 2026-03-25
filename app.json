@@ -18,7 +18,10 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.iamkennis.sohcahtoa",
-      "googleServicesFile": "./GoogleService-Info.plist"
+      "googleServicesFile": "./GoogleService-Info.plist",
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "Allows $(PRODUCT_NAME) to use Face ID for secure login."
+      }
     },
     "android": {
       "adaptiveIcon": {

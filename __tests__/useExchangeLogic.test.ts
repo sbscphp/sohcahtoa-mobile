@@ -1,11 +1,11 @@
 import { renderHook, act } from '@testing-library/react-native';
 import { useExchangeLogic, DEFAULT_GET_CURRENCY, DEFAULT_SEND_CURRENCY } from '../hooks/useExchangeLogic';
-import { useCalculateExchangeRateMutation } from '@/hooks/queries/transactions/useCalculateExchangeRateMutation';
-import { useGetExchangeRatesQuery } from '@/hooks/queries/transactions/useGetExchangeRatesQuery';
+import { useCalculateExchangeRateMutation } from '../hooks/queries/transactions/useCalculateExchangeRateMutation';
+import { useGetExchangeRatesQuery } from '../hooks/queries/transactions/useGetExchangeRatesQuery';
 
 // Mock the query and mutation hooks
-jest.mock('@/hooks/queries/transactions/useCalculateExchangeRateMutation');
-jest.mock('@/hooks/queries/transactions/useGetExchangeRatesQuery');
+jest.mock('../hooks/queries/transactions/useCalculateExchangeRateMutation');
+jest.mock('../hooks/queries/transactions/useGetExchangeRatesQuery');
 
 describe('useExchangeLogic', () => {
     const mockMutate = jest.fn();

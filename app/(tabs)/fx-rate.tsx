@@ -48,7 +48,7 @@ export default function FxRateScreen() {
                 toCurrency: currencySend.code,
                 amount: parseFloat(debouncedAmountGet)
             }, {
-                onSuccess: (response) => {
+                onSuccess: (response: any) => {
                     if (response.success && response.data) {
                         setAmountSend(response.data.convertedAmount.toString());
                     }
@@ -91,7 +91,7 @@ export default function FxRateScreen() {
                     onAmountGetChange={setAmountGet}
                     amountSend={amountSend}
                     isLoading={isCalculating}
-                    rate={`${currencyGet.code} 1 - ${currencySend.code} ${amountSend && amountGet && parseFloat(amountGet) > 0 ? (parseFloat(amountSend) / parseFloat(amountGet)).toFixed(2) : '...' }`}
+                    rate={`${currencyGet.code} 1 - ${currencySend.code} ${amountSend && amountGet && parseFloat(amountGet) > 0 ? (parseFloat(amountSend) / parseFloat(amountGet)).toFixed(2) : '...'}`}
                 />
 
                 <View style={styles.otherRatesContainer}>

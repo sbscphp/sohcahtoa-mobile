@@ -147,7 +147,7 @@ export default function CreateResidentScreen() {
             label: 'International Passport',
             onUpload: () => uploadFile('PASSPORT'),
             fileName: docs.passport.file?.name,
-            fileUri: docs.passport.file?.uri,            fileUrl: docs.passport.meta?.fileUrl,
+            fileUri: docs.passport.file?.uri, fileUrl: docs.passport.meta?.fileUrl,
             fileType: docs.passport.file?.type,
             required: true,
             associatedInputs: (
@@ -177,7 +177,7 @@ export default function CreateResidentScreen() {
             label: 'Utility bill  (Not more than 3 months old)',
             onUpload: () => uploadFile('UTILITY_BILL'),
             fileName: docs.utility.file?.name,
-            fileUri: docs.utility.file?.uri,            fileUrl: docs.utility.meta?.fileUrl,
+            fileUri: docs.utility.file?.uri, fileUrl: docs.utility.meta?.fileUrl,
             fileType: docs.utility.file?.type,
             required: true,
             associatedInputs: (
@@ -269,7 +269,7 @@ export default function CreateResidentScreen() {
         };
 
         createTransaction.mutate(payload, {
-            onSuccess: (response) => {
+            onSuccess: (response: any) => {
                 if (response.success) {
                     setInitiateSheetVisible(false);
                     router.push({

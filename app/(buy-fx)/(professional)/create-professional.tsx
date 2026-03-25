@@ -104,7 +104,7 @@ export default function ProfessionalScreen() {
             label: 'Evidence of Membership',
             onUpload: () => uploadFile('MEMBERSHIP_CARD'),
             fileName: docs.membership.file?.name,
-            fileUri: docs.membership.file?.uri,            fileUrl: docs.membership.meta?.fileUrl,
+            fileUri: docs.membership.file?.uri, fileUrl: docs.membership.meta?.fileUrl,
             fileType: docs.membership.file?.type,
             required: true,
             associatedInputs: (
@@ -117,7 +117,7 @@ export default function ProfessionalScreen() {
             label: 'Invoice from Professional Body',
             onUpload: () => uploadFile('INVOICE'),
             fileName: docs.invoice.file?.name,
-            fileUri: docs.invoice.file?.uri,            fileUrl: docs.invoice.meta?.fileUrl,
+            fileUri: docs.invoice.file?.uri, fileUrl: docs.invoice.meta?.fileUrl,
             fileType: docs.invoice.file?.type,
             required: true,
             associatedInputs: (
@@ -193,7 +193,7 @@ export default function ProfessionalScreen() {
         };
 
         createTransaction.mutate(payload, {
-            onSuccess: (response) => {
+            onSuccess: (response: any) => {
                 if (response.success) {
                     setInitiateSheetVisible(false);
                     router.push({

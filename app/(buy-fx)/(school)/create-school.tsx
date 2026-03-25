@@ -138,7 +138,7 @@ export default function SchoolFeesScreen() {
             label: 'Evidence of Admission',
             onUpload: () => uploadFile('SCHOOL_ADMISSION'),
             fileName: docs.admission.file?.name,
-            fileUri: docs.admission.file?.uri,            fileUrl: docs.admission.meta?.fileUrl,
+            fileUri: docs.admission.file?.uri, fileUrl: docs.admission.meta?.fileUrl,
             fileType: docs.admission.file?.type,
             required: true,
         },
@@ -146,7 +146,7 @@ export default function SchoolFeesScreen() {
             label: 'School Invoice',
             onUpload: () => uploadFile('INVOICE'),
             fileName: docs.invoice.file?.name,
-            fileUri: docs.invoice.file?.uri,            fileUrl: docs.invoice.meta?.fileUrl,
+            fileUri: docs.invoice.file?.uri, fileUrl: docs.invoice.meta?.fileUrl,
             fileType: docs.invoice.file?.type,
             required: true,
             associatedInputs: (
@@ -159,7 +159,7 @@ export default function SchoolFeesScreen() {
             label: 'International Passport',
             onUpload: () => uploadFile('PASSPORT'),
             fileName: docs.passport.file?.name,
-            fileUri: docs.passport.file?.uri,            fileUrl: docs.passport.meta?.fileUrl,
+            fileUri: docs.passport.file?.uri, fileUrl: docs.passport.meta?.fileUrl,
             fileType: docs.passport.file?.type,
             required: true,
             associatedInputs: (
@@ -177,7 +177,7 @@ export default function SchoolFeesScreen() {
             label: 'International Passport',
             onUpload: () => uploadFile('PASSPORT'),
             fileName: docs.passport.file?.name,
-            fileUri: docs.passport.file?.uri,            fileUrl: docs.passport.meta?.fileUrl,
+            fileUri: docs.passport.file?.uri, fileUrl: docs.passport.meta?.fileUrl,
             fileType: docs.passport.file?.type,
             required: true,
             associatedInputs: (
@@ -195,7 +195,7 @@ export default function SchoolFeesScreen() {
             label: 'School Invoice',
             onUpload: () => uploadFile('INVOICE'),
             fileName: docs.invoice.file?.name,
-            fileUri: docs.invoice.file?.uri,            fileUrl: docs.invoice.meta?.fileUrl,
+            fileUri: docs.invoice.file?.uri, fileUrl: docs.invoice.meta?.fileUrl,
             fileType: docs.invoice.file?.type,
             required: true,
             associatedInputs: (
@@ -208,7 +208,7 @@ export default function SchoolFeesScreen() {
             label: 'Statement Of Result',
             onUpload: () => uploadFile('RECEIPT'),
             fileName: docs.result.file?.name,
-            fileUri: docs.result.file?.uri,            fileUrl: docs.result.meta?.fileUrl,
+            fileUri: docs.result.file?.uri, fileUrl: docs.result.meta?.fileUrl,
             fileType: docs.result.file?.type,
             required: true,
         },
@@ -216,7 +216,7 @@ export default function SchoolFeesScreen() {
             label: 'First Degree Certificate',
             onUpload: () => uploadFile('MEMBERSHIP_CARD'),
             fileName: docs.degree.file?.name,
-            fileUri: docs.degree.file?.uri,            fileUrl: docs.degree.meta?.fileUrl,
+            fileUri: docs.degree.file?.uri, fileUrl: docs.degree.meta?.fileUrl,
             fileType: docs.degree.file?.type,
             required: true,
         },
@@ -308,7 +308,7 @@ export default function SchoolFeesScreen() {
         };
 
         createTransaction.mutate(payload, {
-            onSuccess: (response) => {
+            onSuccess: (response: any) => {
                 if (response.success) {
                     setInitiateSheetVisible(false);
                     router.push({
