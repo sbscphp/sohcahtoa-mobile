@@ -1,7 +1,7 @@
 import ControlledInput from '@/components/ControlledInput';
 import InitiateTransactionSheet from '@/components/InitiateTransactionSheet';
 import LoadingBackdrop from '@/components/LoadingBackdrop';
-import { LocationItem } from '@/components/LocationSelectionSheet';
+import { LocationItem } from '@/utils/locations';
 import CredentialStep from '@/components/transaction-flow/CredentialStep';
 import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
@@ -20,12 +20,10 @@ import { useForm } from 'react-hook-form';
 import { View } from 'react-native';
 import { z } from 'zod';
 
-const ptaFormSchema = z.object({
-    ...ptaStep0Schema.shape,
-    ...ptaStep1Schema.shape,
-    ...ptaStep2Schema.shape,
-    ...ptaStep3Schema.shape
-});
+const ptaFormSchema = ptaStep0Schema
+    .merge(ptaStep1Schema)
+    .merge(ptaStep2Schema)
+    .merge(ptaStep3Schema);
 
 type PtaFormValues = z.infer<typeof ptaFormSchema>;
 
@@ -99,7 +97,7 @@ export default function PersonalTravelAllowanceScreen() {
         { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number(BVN)" placeholder="Enter your BVN" required keyboardType="numeric" maxLength={11} filterType="numeric" /> },
         { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number(NIN)" placeholder="Enter your NIN" required keyboardType="numeric" maxLength={11} filterType="numeric" /> },
         { customComponent: <ControlledInput control={control} name="formAId" label="Form A ID" placeholder="Enter Form A ID" required /> },
-        { customComponent: <ControlledInput control={control} name="passportNumber" label="International Passport Number" placeholder="Enter international passport" required maxLength={9} filterType="alphanumeric" /> }
+        { customComponent: <ControlledInput control={control} name="passportNumber" label="International Passport Number" placeholder="Enter international passport" required maxLength={9} filterType="alphanumeric" /> },
     ];
 
     const documentFields = [
@@ -112,7 +110,7 @@ export default function PersonalTravelAllowanceScreen() {
             required: true,
             associatedInputs: (
                 <View>
-                    <ControlledInput control={control} name="visaNumber" label="Valid Visa Number" required placeholder="Enter valid visa number" keyboardType="numeric" />
+                    <ControlledInput control={control} name="visaNumber" label="Valid Visa Number" required placeholder="Enter valid visa number" maxLength={8} filterType="alphanumeric" />
                 </View>
             )
         },
@@ -125,7 +123,7 @@ export default function PersonalTravelAllowanceScreen() {
             required: true,
             associatedInputs: (
                 <View>
-                    <ControlledInput control={control} name="ticketNumber" label="Return Ticket Number" required placeholder="Enter return ticket number" />
+                    <ControlledInput control={control} name="ticketNumber" label="Return Ticket Number" required placeholder="Enter return ticket number" maxLength={13} filterType="numeric" keyboardType="numeric" />
                 </View>
             )
         }
@@ -198,10 +196,10 @@ export default function PersonalTravelAllowanceScreen() {
                 ...(docs.ticket.meta ? [docs.ticket.meta] : [])
             ],
             pickupLocation: data.selectedLocation ? {
-                name: data.selectedLocation.title,
-                address: data.selectedLocation.subtitle || '',
-                state: data.selectedState?.title || '',
-                city: data.selectedCity?.title || '',
+                name: (data.selectedLocation as LocationItem).title,
+                address: (data.selectedLocation as LocationItem).subtitle || '',
+                state: (data.selectedState as LocationItem)?.title || '',
+                city: (data.selectedCity as LocationItem)?.title || '',
                 scheduledPickupDate: formatDateForApi(data.pickupDate),
                 scheduledPickupTime: data.pickupTime,
             } : undefined
@@ -220,31 +218,36 @@ export default function PersonalTravelAllowanceScreen() {
         });
     };
 
-    const selectedState = watch('selectedState');
-    const selectedCity = watch('selectedCity');
-    const selectedLocation = watch('selectedLocation');
-    const pickupDate = watch('pickupDate');
-    const pickupTime = watch('pickupTime');
+    const watchedFields = watch();
+    const isStep0Valid = watchedFields.bvn && watchedFields.nin && watchedFields.formAId && watchedFields.passportNumber;
+    const isStep1Valid = docs.visa.meta && docs.ticket.meta && watchedFields.visaNumber && watchedFields.ticketNumber;
+    const isStep2Valid = watchedFields.amount > 0;
+    const isStep3Valid = watchedFields.selectedState && watchedFields.selectedCity && watchedFields.selectedLocation && watchedFields.pickupDate && watchedFields.pickupTime;
+
+    const isNextDisabled =
+        (currentStep === 0 && !isStep0Valid) ||
+        (currentStep === 1 && !isStep1Valid) ||
+        (currentStep === 2 && !isStep2Valid) ||
+        (currentStep === 3 && !isStep3Valid);
 
     return (
         <View style={{ flex: 1 }}>
-            <LoadingBackdrop visible={isUploading} />
+            <LoadingBackdrop visible={isUploading || createTransaction.isPending} />
             <TransactionLayout
                 title="Personal Travel Allowance"
                 currentStep={currentStep}
                 totalSteps={4}
                 onBack={handleBack}
                 onNext={handleNext}
-                nextLabel={currentStep === 3 ? (selectedState && selectedCity ? "Initiate Transaction Request" : "Continue") : "Continue"}
+                isNextDisabled={isNextDisabled}
+                nextLabel={currentStep === 3 ? (watchedFields.selectedState && watchedFields.selectedCity ? "Initiate Transaction Request" : "Continue") : "Continue"}
             >
                 {currentStep === 0 && (
                     <CredentialStep fields={credentialFields} />
                 )}
-
                 {currentStep === 1 && (
                     <DocumentStep documents={documentFields} />
                 )}
-
                 {currentStep === 2 && (
                     <ExchangeStep
                         transactionType={transactionType}
@@ -262,28 +265,27 @@ export default function PersonalTravelAllowanceScreen() {
                         error={errors.amount?.message}
                     />
                 )}
-
                 {currentStep === 3 && (
                     <LocationStep
                         states={STATES}
                         cities={CITIES}
                         locations={LOCATIONS}
-                        selectedState={selectedState}
-                        onSelectState={(v) => {
-                            setValue('selectedState', v);
+                        selectedState={watchedFields.selectedState}
+                        onSelectState={(item) => {
+                            setValue('selectedState', item);
                             setValue('selectedCity', undefined as unknown as LocationItem);
                             setValue('selectedLocation', undefined as unknown as LocationItem);
                         }}
-                        selectedCity={selectedCity}
-                        onSelectCity={(v) => {
-                            setValue('selectedCity', v);
+                        selectedCity={watchedFields.selectedCity}
+                        onSelectCity={(item) => {
+                            setValue('selectedCity', item);
                             setValue('selectedLocation', undefined as unknown as LocationItem);
                         }}
-                        selectedLocation={selectedLocation}
-                        onSelectLocation={(v) => setValue('selectedLocation', v)}
-                        pickupDate={pickupDate}
+                        selectedLocation={watchedFields.selectedLocation}
+                        onSelectLocation={(item) => setValue('selectedLocation', item)}
+                        pickupDate={watchedFields.pickupDate}
                         onPickupDateChange={(v: string) => setValue('pickupDate', v)}
-                        pickupTime={pickupTime}
+                        pickupTime={watchedFields.pickupTime}
                         onPickupTimeChange={(v: string) => setValue('pickupTime', v)}
                         errors={{
                             state: errors.selectedState?.message as string | undefined,

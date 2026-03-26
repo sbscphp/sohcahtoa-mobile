@@ -1,4 +1,8 @@
-import { LocationItem } from '@/components/LocationSelectionSheet';
+export interface LocationItem {
+    id: string;
+    title: string;
+    subtitle?: string;
+}
 
 export const STATES: LocationItem[] = [
     { id: '1', title: 'Lagos' },

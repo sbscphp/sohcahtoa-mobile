@@ -18,12 +18,10 @@ import { useForm } from 'react-hook-form';
 import { View } from 'react-native';
 import { z } from 'zod';
 
-const medicalFormSchema = z.object({
-    ...medicalStep0Schema.shape,
-    ...medicalStep1Schema.shape,
-    ...medicalStep2Schema.shape,
-    ...medicalStep3Schema.shape
-});
+const medicalFormSchema = medicalStep0Schema
+    .merge(medicalStep1Schema)
+    .merge(medicalStep2Schema)
+    .merge(medicalStep3Schema);
 
 type MedicalFormValues = z.infer<typeof medicalFormSchema>;
 
@@ -106,10 +104,10 @@ export default function MedicalPaymentScreen() {
     });
 
     const credentialFields = [
-        { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number (BVN)" placeholder="Enter your BVN" required keyboardType="numeric" /> },
-        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number (NIN)" placeholder="Enter your NIN" required keyboardType="numeric" /> },
+        { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number (BVN)" placeholder="Enter your BVN" required keyboardType="numeric" maxLength={11} filterType="numeric" /> },
+        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number (NIN)" placeholder="Enter your NIN" required keyboardType="numeric" maxLength={11} filterType="numeric" /> },
         { customComponent: <ControlledInput control={control} name="formAId" label="Form A ID" placeholder="Enter Form A ID" required /> },
-        { customComponent: <ControlledInput control={control} name="passportNumber" label="International Passport Number" placeholder="Enter international passport" required /> },
+        { customComponent: <ControlledInput control={control} name="passportNumber" label="International Passport Number" placeholder="Enter international passport" required maxLength={9} filterType="alphanumeric" /> },
     ];
 
     const documentFields = [
@@ -138,7 +136,7 @@ export default function MedicalPaymentScreen() {
             required: true,
             associatedInputs: (
                 <View>
-                    <ControlledInput control={control} name="visaNumber" label="Visa Number" required placeholder="Enter visa number" keyboardType="numeric" />
+                    <ControlledInput control={control} name="visaNumber" label="Visa Number" required placeholder="Enter visa number" maxLength={8} filterType="alphanumeric" />
                 </View>
             )
 
@@ -152,7 +150,7 @@ export default function MedicalPaymentScreen() {
             required: true,
             associatedInputs: (
                 <View>
-                    <ControlledInput control={control} name="returnTicketNumber" label="Return Ticket Number" required placeholder="Enter return ticket number" keyboardType="numeric" />
+                    <ControlledInput control={control} name="returnTicketNumber" label="Return Ticket Number" required placeholder="Enter return ticket number" maxLength={13} filterType="numeric" keyboardType="numeric" />
                 </View>
             )
 
@@ -260,7 +258,19 @@ export default function MedicalPaymentScreen() {
         });
     };
 
-    const beneficiaryName = watch('beneficiaryName');
+    const watchedFields = watch() as any;
+    const isStep0Valid = watchedFields.bvn && watchedFields.nin && watchedFields.formAId && watchedFields.passportNumber;
+    const isStep1Valid = docs.formA.meta && docs.passport.meta && docs.visa.meta && docs.returnTicket.meta && docs.referenceLetter.meta && docs.overseaDoctorLetter.meta &&
+        watchedFields.visaNumber && watchedFields.returnTicketNumber;
+    const isStep2Valid = watchedFields.amount > 0;
+    const isStep3Valid = watchedFields.beneficiaryName && watchedFields.beneficiaryAddress && watchedFields.beneficiaryBank && 
+        watchedFields.routingNumber && watchedFields.accountNumber && watchedFields.bankAddress && watchedFields.swiftCode && watchedFields.iban;
+
+    const isNextDisabled =
+        (currentStep === 0 && !isStep0Valid) ||
+        (currentStep === 1 && !isStep1Valid) ||
+        (currentStep === 2 && !isStep2Valid) ||
+        (currentStep === 3 && !isStep3Valid);
 
     return (
         <View style={{ flex: 1 }}>
@@ -271,7 +281,8 @@ export default function MedicalPaymentScreen() {
                 totalSteps={4}
                 onBack={handleBack}
                 onNext={handleNext}
-                nextLabel={currentStep === 3 ? (beneficiaryName ? "Initiate Transaction Request" : "Continue") : "Continue"}
+                isNextDisabled={isNextDisabled}
+                nextLabel={currentStep === 3 ? (watchedFields.beneficiaryName ? "Initiate Transaction Request" : "Continue") : "Continue"}
             >
                 {currentStep === 0 && (
                     <CredentialStep fields={credentialFields} />

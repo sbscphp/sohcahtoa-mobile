@@ -2,7 +2,7 @@ import ControlledDatePicker from '@/components/ControlledDatePicker';
 import ControlledInput from '@/components/ControlledInput';
 import InitiateTransactionSheet from '@/components/InitiateTransactionSheet';
 import LoadingBackdrop from '@/components/LoadingBackdrop';
-import { LocationItem } from '@/components/LocationSelectionSheet';
+import { LocationItem } from '@/utils/locations';
 import CredentialStep from '@/components/transaction-flow/CredentialStep';
 import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
@@ -21,12 +21,10 @@ import { useForm } from 'react-hook-form';
 import { View } from 'react-native';
 import { z } from 'zod';
 
-const touringFormSchema = z.object({
-    ...touringStep0Schema.shape,
-    ...touringStep1Schema.shape,
-    ...touringStep2Schema.shape,
-    ...touringStep3Schema.shape
-});
+const touringFormSchema = touringStep0Schema
+    .merge(touringStep1Schema)
+    .merge(touringStep2Schema)
+    .merge(touringStep3Schema);
 
 type TouringFormValues = z.infer<typeof touringFormSchema>;
 
@@ -102,10 +100,10 @@ export default function TouringScreen() {
     });
 
     const credentialFields = [
-        { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number (BVN)" placeholder="Enter your BVN" required keyboardType="numeric" /> },
-        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number (NIN)" placeholder="Enter your NIN" required keyboardType="numeric" /> },
+        { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number (BVN)" placeholder="Enter your BVN" required keyboardType="numeric" maxLength={11} filterType="numeric" /> },
+        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number (NIN)" placeholder="Enter your NIN" required keyboardType="numeric" maxLength={11} filterType="numeric" /> },
         { customComponent: <ControlledInput control={control} name="formAId" label="Form A ID" placeholder="Enter Form A ID" required /> },
-        { customComponent: <ControlledInput control={control} name="passportNumber" label="International Passport Number" placeholder="Enter international passport" required /> },
+        { customComponent: <ControlledInput control={control} name="passportNumber" label="International Passport Number" placeholder="Enter international passport" required maxLength={9} filterType="alphanumeric" /> },
     ];
 
     const documentFields = [
@@ -135,7 +133,7 @@ export default function TouringScreen() {
             fileType: docs.visa.file?.type,
             required: true,
             associatedInputs: (
-                <ControlledInput control={control} name="visaNumber" label="Visa Number" placeholder="Enter visa number" required />
+                <ControlledInput control={control} name="visaNumber" label="Visa Number" placeholder="Enter visa number" required maxLength={8} filterType="alphanumeric" />
             )
         },
         {
@@ -225,10 +223,10 @@ export default function TouringScreen() {
                 ...(docs.receipt.meta ? [docs.receipt.meta] : []),
             ],
             pickupLocation: data.selectedLocation ? {
-                name: data.selectedLocation.title,
-                address: data.selectedLocation.subtitle || '',
-                state: data.selectedState?.title || '',
-                city: data.selectedCity?.title || '',
+                name: (data.selectedLocation as LocationItem).title,
+                address: (data.selectedLocation as LocationItem).subtitle || '',
+                state: (data.selectedState as LocationItem)?.title || '',
+                city: (data.selectedCity as LocationItem)?.title || '',
                 scheduledPickupDate: formatDateForApi(data.pickupDate),
                 scheduledPickupTime: data.pickupTime,
             } : undefined,
@@ -247,31 +245,37 @@ export default function TouringScreen() {
         });
     };
 
-    const selectedState = watch('selectedState');
-    const selectedCity = watch('selectedCity');
-    const selectedLocation = watch('selectedLocation');
-    const pickupDate = watch('pickupDate');
-    const pickupTime = watch('pickupTime');
+    const watchedFields = watch() as any;
+    const isStep0Valid = watchedFields.bvn && watchedFields.nin && watchedFields.formAId && watchedFields.passportNumber;
+    const isStep1Valid = docs.passport.meta && docs.visa.meta && docs.ticket.meta && docs.receipt.meta &&
+        watchedFields.passportIssueDate && watchedFields.passportExpiryDate && watchedFields.visaNumber;
+    const isStep2Valid = watchedFields.amount > 0;
+    const isStep3Valid = watchedFields.selectedState && watchedFields.selectedCity && watchedFields.selectedLocation && watchedFields.pickupDate && watchedFields.pickupTime;
+
+    const isNextDisabled =
+        (currentStep === 0 && !isStep0Valid) ||
+        (currentStep === 1 && !isStep1Valid) ||
+        (currentStep === 2 && !isStep2Valid) ||
+        (currentStep === 3 && !isStep3Valid);
 
     return (
         <View style={{ flex: 1 }}>
             <LoadingBackdrop visible={isUploading || createTransaction.isPending} />
             <TransactionLayout
-                title="Touring Payment"
+                title="Touring"
                 currentStep={currentStep}
                 totalSteps={4}
                 onBack={handleBack}
                 onNext={handleNext}
-                nextLabel={currentStep === 3 ? (selectedState && selectedCity && selectedLocation && pickupDate && pickupTime ? "Initiate Transaction Request" : "Continue") : "Continue"}
+                isNextDisabled={isNextDisabled}
+                nextLabel={currentStep === 3 ? (watchedFields.selectedState && watchedFields.selectedCity ? "Initiate Transaction Request" : "Continue") : "Continue"}
             >
                 {currentStep === 0 && (
                     <CredentialStep fields={credentialFields} />
                 )}
-
                 {currentStep === 1 && (
                     <DocumentStep documents={documentFields} />
                 )}
-
                 {currentStep === 2 && (
                     <ExchangeStep
                         transactionType={transactionType}
@@ -289,28 +293,27 @@ export default function TouringScreen() {
                         error={errors.amount?.message}
                     />
                 )}
-
                 {currentStep === 3 && (
                     <LocationStep
                         states={STATES}
                         cities={CITIES}
                         locations={LOCATIONS}
-                        selectedState={selectedState}
+                        selectedState={watchedFields.selectedState}
                         onSelectState={(item) => {
                             setValue('selectedState', item);
                             setValue('selectedCity', undefined as unknown as LocationItem);
                             setValue('selectedLocation', undefined as unknown as LocationItem);
                         }}
-                        selectedCity={selectedCity}
+                        selectedCity={watchedFields.selectedCity}
                         onSelectCity={(item) => {
                             setValue('selectedCity', item);
                             setValue('selectedLocation', undefined as unknown as LocationItem);
                         }}
-                        selectedLocation={selectedLocation}
+                        selectedLocation={watchedFields.selectedLocation}
                         onSelectLocation={(item) => setValue('selectedLocation', item)}
-                        pickupDate={pickupDate}
+                        pickupDate={watchedFields.pickupDate}
                         onPickupDateChange={(v: string) => setValue('pickupDate', v)}
-                        pickupTime={pickupTime}
+                        pickupTime={watchedFields.pickupTime}
                         onPickupTimeChange={(v: string) => setValue('pickupTime', v)}
                         errors={{
                             state: errors.selectedState?.message as string | undefined,

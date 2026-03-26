@@ -16,6 +16,8 @@ export default function ViewTouringScreen() {
     const { data: txResponse, isLoading } = useGetTransactionByIdQuery(transactionId || '');
     const tx = txResponse?.data;
 
+    console.log(JSON.stringify(tx, null, 2), "TRANSACTION");
+
     const mapStatus = (s: string): TransactionStatus => {
         const map: Record<string, TransactionStatus> = { 'DRAFT': 'pending', 'AWAITING_VERIFICATION': 'pending', 'VERIFICATION_IN_PROGRESS': 'pending', 'VERIFICATION_COMPLETED': 'pending', 'AWAITING_DEPOSIT': 'awaiting_disbursement', 'DEPOSIT_PENDING': 'awaiting_disbursement', 'DEPOSIT_CONFIRMED': 'awaiting_disbursement', 'COMPLIANCE_REVIEW': 'pending', 'ADMIN_APPROVAL_PENDING': 'pending', 'APPROVED': 'approved', 'DISBURSEMENT_IN_PROGRESS': 'awaiting_disbursement', 'COMPLETED': 'settled', 'REJECTED': 'rejected', 'CANCELLED': 'rejected' };
         return map[s] || 'pending';

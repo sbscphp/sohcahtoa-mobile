@@ -37,15 +37,13 @@ export default function SchoolFeesScreen() {
 
     const resolver = (data: any, context: any, options: any) => {
         const isPostGrad = data.admissionType === 'Post-Graduate';
-        const dynamicSchema = z.object({
-            ...schoolStep0Schema.shape,
-            ...(isPostGrad ? schoolStep1Schema.shape : {
+        const dynamicSchema = schoolStep0Schema
+            .merge(isPostGrad ? schoolStep1Schema : schoolStep1Schema.extend({
                 passportIssueDate: z.string().optional(),
                 passportExpiryDate: z.string().optional()
-            }),
-            ...schoolStep2Schema(isPostGrad).shape,
-            ...schoolStep3Schema.shape
-        });
+            }))
+            .merge(schoolStep2Schema(isPostGrad))
+            .merge(schoolStep3Schema);
         return zodResolver(dynamicSchema)(data, context, options);
     };
 
@@ -118,10 +116,10 @@ export default function SchoolFeesScreen() {
     });
 
     const credentialFields = [
-        { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number(BVN)" placeholder="Enter your BVN" required keyboardType="numeric" /> },
-        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number(NIN)" placeholder="Enter your NIN" required keyboardType="numeric" /> },
+        { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number(BVN)" placeholder="Enter your BVN" required keyboardType="numeric" maxLength={11} filterType="numeric" /> },
+        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number(NIN)" placeholder="Enter your NIN" required keyboardType="numeric" maxLength={11} filterType="numeric" /> },
         { customComponent: <ControlledInput control={control} name="formAId" label="Form A ID" placeholder="Enter Form A ID" required /> },
-        { customComponent: <ControlledInput control={control} name="passportNumber" label="International Passport" placeholder="Enter international passport" required /> },
+        { customComponent: <ControlledInput control={control} name="passportNumber" label="International Passport" placeholder="Enter international passport" required maxLength={9} filterType="alphanumeric" /> },
         {
             customComponent: (
                 <TouchableOpacity onPress={() => setAdmissionSheetVisible(true)} activeOpacity={0.8}>
@@ -151,7 +149,7 @@ export default function SchoolFeesScreen() {
             required: true,
             associatedInputs: (
                 <View>
-                    <ControlledInput control={control} name="invoiceNumber" label="School Invoice Number" placeholder="Enter invoice number" required />
+                    <ControlledInput control={control} name="invoiceNumber" label="School Invoice Number" placeholder="Enter invoice number" required maxLength={20} />
                 </View>
             )
         },
@@ -200,7 +198,7 @@ export default function SchoolFeesScreen() {
             required: true,
             associatedInputs: (
                 <View>
-                    <ControlledInput control={control} name="invoiceNumber" label="School Invoice Number" placeholder="Enter invoice number" required />
+                    <ControlledInput control={control} name="invoiceNumber" label="School Invoice Number" placeholder="Enter invoice number" required maxLength={20} />
                 </View>
             )
         },
@@ -323,19 +321,37 @@ export default function SchoolFeesScreen() {
         });
     };
 
-    const bankName = watch('bankName');
-    const accountNumber = watch('accountNumber');
+    const watchedFields = watch() as any;
+    const isStep0Valid = watchedFields.bvn && watchedFields.nin && watchedFields.formAId && watchedFields.passportNumber && watchedFields.admissionType;
+    
+    let isStep1Valid = false;
+    if (watchedFields.admissionType === 'Post-Graduate') {
+        isStep1Valid = !!(docs.passport.meta && docs.invoice.meta && docs.result.meta && docs.degree.meta && 
+            watchedFields.passportIssueDate && watchedFields.passportExpiryDate);
+    } else {
+        isStep1Valid = !!(docs.admission.meta && docs.invoice.meta && docs.passport.meta);
+    }
+
+    const isStep2Valid = watchedFields.amount > 0;
+    const isStep3Valid = watchedFields.bankName && watchedFields.accountNumber && watchedFields.accountName && watchedFields.iban;
+
+    const isNextDisabled =
+        (currentStep === 0 && !isStep0Valid) ||
+        (currentStep === 1 && !isStep1Valid) ||
+        (currentStep === 2 && !isStep2Valid) ||
+        (currentStep === 3 && !isStep3Valid);
 
     return (
         <View style={{ flex: 1 }}>
-            <LoadingBackdrop visible={isUploading || createTransaction.isPending} />
+            <LoadingBackdrop visible={isUploading} />
             <TransactionLayout
-                title={currentStep === 0 ? "School Fees Payment" : (admissionType ? `${admissionType} Fees` : "School Fees Payment")}
+                title="School Fees"
                 currentStep={currentStep}
                 totalSteps={4}
                 onBack={handleBack}
                 onNext={handleNext}
-                nextLabel={currentStep === 3 ? (bankName && accountNumber ? "Initiate Transaction Request" : "Continue") : "Continue"}
+                isNextDisabled={isNextDisabled}
+                nextLabel={currentStep === 3 ? (watchedFields.bankName && watchedFields.accountNumber ? "Initiate Transaction Request" : "Continue") : "Continue"}
             >
                 {currentStep === 0 && (
                     <CredentialStep fields={credentialFields} />

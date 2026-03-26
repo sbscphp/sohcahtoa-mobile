@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { locationStepSchema } from './shared';
+import { locationStepSchema, utilityNumberField, workPermitNumberField } from './shared';
 
 /** Step 0: Expatriate credentials */
 export const expatriateStep0Schema = z.object({
@@ -10,10 +10,10 @@ export const expatriateStep0Schema = z.object({
 
 /** Step 1: Expatriate documents */
 export const expatriateStep1Schema = z.object({
-    workPermitNumber: z.string().min(1, 'Please enter your Work Permit number'),
+    workPermitNumber: workPermitNumberField,
     passportIssueDate: z.string().min(1, 'Please select Passport Issue Date'),
     passportExpiryDate: z.string().min(1, 'Please select Passport Expiry Date'),
-    utilityBillNumber: z.string().min(1, 'Please enter your Utility Bill number'),
+    utilityBillNumber: utilityNumberField,
 });
 
 /** Step 2: Expatriate amount */

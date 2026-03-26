@@ -3,14 +3,9 @@ import React, { useState } from 'react';
 import { FlatList, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
+import { LocationItem } from '@/utils/locations';
 import LocationIcon from '../assets/icons/location-08.svg';
 import PrimaryButton from './PrimaryButton';
-
-export interface LocationItem {
-    id: string;
-    title: string;
-    subtitle?: string;
-}
 
 interface LocationSelectionSheetProps {
     visible: boolean;

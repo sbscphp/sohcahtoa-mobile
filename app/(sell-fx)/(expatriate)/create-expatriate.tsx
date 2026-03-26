@@ -200,14 +200,21 @@ export default function CreateExpatriateScreen() {
         });
     };
 
-    const selectedState = watch('selectedState');
-    const selectedCity = watch('selectedCity');
-    const selectedLocation = watch('selectedLocation');
-    const pickupDate = watch('pickupDate');
-    const pickupTime = watch('pickupTime');
+    const watchedFields = watch();
+    const isStep0Valid = !!(watchedFields.bvn && watchedFields.nin && watchedFields.passportNumber);
+    const isStep1Valid = !!(docs.workPermit.meta && docs.passport.meta && docs.utility.meta &&
+        watchedFields.workPermitNumber && watchedFields.passportIssueDate && watchedFields.passportExpiryDate && watchedFields.utilityBillNumber);
+    const isStep2Valid = watchedFields.amount > 0;
+    const isStep3Valid = !!(watchedFields.selectedState && watchedFields.selectedCity && watchedFields.selectedLocation && watchedFields.pickupDate && watchedFields.pickupTime);
+
+    const isNextDisabled =
+        (currentStep === 0 && !isStep0Valid) ||
+        (currentStep === 1 && !isStep1Valid) ||
+        (currentStep === 2 && !isStep2Valid) ||
+        (currentStep === 3 && !isStep3Valid);
 
     return (
-        <>
+        <View style={{ flex: 1 }}>
             <LoadingBackdrop visible={isUploading || createTransaction.isPending} />
             <TransactionLayout
                 title="Expatriate"
@@ -215,6 +222,7 @@ export default function CreateExpatriateScreen() {
                 totalSteps={4}
                 onBack={handleBack}
                 onNext={handleNext}
+                isNextDisabled={isNextDisabled}
                 nextLabel={currentStep === 3 ? "Initiate Transaction Request" : "Continue"}
             >
                 {currentStep === 0 && (
@@ -357,24 +365,23 @@ export default function CreateExpatriateScreen() {
                         states={STATES}
                         cities={CITIES}
                         locations={LOCATIONS}
-                        selectedState={selectedState}
+                        selectedState={watchedFields.selectedState}
                         onSelectState={(item) => {
                             setValue('selectedState', item);
                             setValue('selectedCity', undefined as unknown as LocationItem);
                             setValue('selectedLocation', undefined as unknown as LocationItem);
                         }}
-                        selectedCity={selectedCity}
+                        selectedCity={watchedFields.selectedCity}
                         onSelectCity={(item) => {
                             setValue('selectedCity', item);
                             setValue('selectedLocation', undefined as unknown as LocationItem);
                         }}
-                        selectedLocation={selectedLocation}
+                        selectedLocation={watchedFields.selectedLocation}
                         onSelectLocation={(item) => setValue('selectedLocation', item)}
-                        title="Where would you like to receive your funds?"
-                        pickupDate={pickupDate}
-                        onPickupDateChange={(v) => setValue('pickupDate', v)}
-                        pickupTime={pickupTime}
-                        onPickupTimeChange={(v) => setValue('pickupTime', v)}
+                        pickupDate={watchedFields.pickupDate}
+                        onPickupDateChange={(v: string) => setValue('pickupDate', v)}
+                        pickupTime={watchedFields.pickupTime}
+                        onPickupTimeChange={(v: string) => setValue('pickupTime', v)}
                         errors={{
                             state: errors.selectedState?.message as string | undefined,
                             city: errors.selectedCity?.message as string | undefined,
@@ -400,7 +407,7 @@ export default function CreateExpatriateScreen() {
                     ]}
                 />
             </TransactionLayout>
-        </>
+        </View>
     );
 }
 

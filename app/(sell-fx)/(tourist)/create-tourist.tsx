@@ -326,14 +326,27 @@ export default function CreateTouristScreen() {
         });
     };
 
-    const selectedState = watch('selectedState');
-    const selectedCity = watch('selectedCity');
-    const selectedLocation = watch('selectedLocation');
-    const pickupDate = watch('pickupDate');
-    const pickupTime = watch('pickupTime');
+    const watchedFields = watch();
+    const isStep0Valid = !!watchedFields.passportNumber;
+    const isStep1Valid = !!(docs.passport.meta && docs.visa.meta && docs.ticket.meta && docs.receipt.meta &&
+        watchedFields.passportIssueDate && watchedFields.passportExpiryDate && watchedFields.visaNumber && watchedFields.ticketNumber);
+    const isStep2Valid = watchedFields.amount > 0;
+    
+    let isStep3Valid = false;
+    if (paymentMethod === 'transfer') {
+        isStep3Valid = !!(watchedFields.accountName && watchedFields.bankName);
+    } else {
+        isStep3Valid = !!(watchedFields.selectedState && watchedFields.selectedCity && watchedFields.selectedLocation && watchedFields.pickupDate && watchedFields.pickupTime);
+    }
+
+    const isNextDisabled =
+        (currentStep === 0 && !isStep0Valid) ||
+        (currentStep === 1 && !isStep1Valid) ||
+        (currentStep === 2 && !isStep2Valid) ||
+        (currentStep === 3 && !isStep3Valid);
 
     return (
-        <>
+        <View style={{ flex: 1 }}>
             <LoadingBackdrop visible={isUploading || createTransaction.isPending} />
             <TransactionLayout
                 title={"Tourist"}
@@ -341,7 +354,8 @@ export default function CreateTouristScreen() {
                 totalSteps={4}
                 onBack={handleBack}
                 onNext={handleNext}
-                nextLabel={currentStep === 3 ? "Initiate Transaction Request" : "Continue"}
+                isNextDisabled={isNextDisabled}
+                nextLabel={currentStep === 3 ? (paymentMethod === 'transfer' ? (watchedFields.accountName ? "Initiate Transaction Request" : "Continue") : (watchedFields.selectedState && watchedFields.selectedCity ? "Initiate Transaction Request" : "Continue")) : "Continue"}
             >
                 {currentStep === 0 && (
                     <CredentialStep fields={credentialFields} />
@@ -423,24 +437,24 @@ export default function CreateTouristScreen() {
                                 states={STATES}
                                 cities={CITIES}
                                 locations={LOCATIONS}
-                                selectedState={selectedState}
+                                selectedState={watchedFields.selectedState}
                                 onSelectState={(item) => {
                                     setValue('selectedState', item);
                                     setValue('selectedCity', undefined as unknown as LocationItem);
                                     setValue('selectedLocation', undefined as unknown as LocationItem);
                                 }}
-                                selectedCity={selectedCity}
+                                selectedCity={watchedFields.selectedCity}
                                 onSelectCity={(item) => {
                                     setValue('selectedCity', item);
                                     setValue('selectedLocation', undefined as unknown as LocationItem);
                                 }}
-                                selectedLocation={selectedLocation}
+                                selectedLocation={watchedFields.selectedLocation}
                                 onSelectLocation={(item) => setValue('selectedLocation', item)}
                                 title="Select Pick Up Point"
-                                pickupDate={pickupDate}
-                                onPickupDateChange={(v) => setValue('pickupDate', v)}
-                                pickupTime={pickupTime}
-                                onPickupTimeChange={(v) => setValue('pickupTime', v)}
+                                pickupDate={watchedFields.pickupDate}
+                                onPickupDateChange={(v: string) => setValue('pickupDate', v)}
+                                pickupTime={watchedFields.pickupTime}
+                                onPickupTimeChange={(v: string) => setValue('pickupTime', v)}
                                 errors={{
                                     state: errors.selectedState?.message as string | undefined,
                                     city: errors.selectedCity?.message as string | undefined,
@@ -482,7 +496,7 @@ export default function CreateTouristScreen() {
                         email: 'kemef@gmail.com', // Placeholder
                         bvn: '55544332278554', // Placeholder
                         address: '16a Alexandre drive', // Placeholder
-                        passportNumber: watch('passportNumber') || '102234556777776'
+                        passportNumber: watchedFields.passportNumber || '102234556777776'
                     }}
                     transactionDetails={{
                         type: 'Tourist',
@@ -492,7 +506,7 @@ export default function CreateTouristScreen() {
                     }}
                 />
             </TransactionLayout>
-        </>
+        </View>
     );
 }
 

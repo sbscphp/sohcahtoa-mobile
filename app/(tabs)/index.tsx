@@ -53,6 +53,23 @@ const getStatusLabel = (status: string): string => {
     return map[status] || status;
 };
 
+const getTransactionRoute = (type: string): string => {
+    const routes: Record<string, string> = {
+        'PTA': '/(buy-fx)/(pta)/view-pta',
+        'BTA': '/(buy-fx)/(bta)/view-bta',
+        'MEDICAL': '/(buy-fx)/(medical)/view-medical',
+        'SCHOOL_FEES': '/(buy-fx)/(school)/view-school',
+        'PROFESSIONAL_BODY': '/(buy-fx)/(professional)/view-professional',
+        'TOURING': '/(buy-fx)/(touring)/view-touring',
+        'EXPATRIATE_FX': '/(sell-fx)/(expatriate)/view-expatriate',
+        'RESIDENT_FX': '/(sell-fx)/(resident)/view-resident',
+        'TOURIST_FX': '/(sell-fx)/(tourist)/view-tourist',
+        'IMTO_REMITTANCE': '/(receive-fx)/view-receive-fx',
+        'CASH_REMITTANCE': '/(receive-fx)/view-receive-fx',
+    };
+    return routes[type] || '/(buy-fx)/(pta)/view-pta';
+};
+
 const getStatusStyle = (status: string) => {
     switch (status) {
         case 'Pending':
@@ -77,6 +94,8 @@ const getGreeting = () => {
     if (hour < 17) return 'Good afternoon ☀️';
     return 'Good evening 🌙';
 };
+
+import { Transaction } from '@/types/api/transactions';
 
 export default function HomeScreen() {
     const router = useRouter();
@@ -424,11 +443,18 @@ export default function HomeScreen() {
                     )}
                     <View style={styles.transactionList}>
                         {transactions.length > 0 ? (
-                            transactions.map((tx: any) => {
+                            transactions.map((tx: Transaction) => {
                                 const statusLabel = getStatusLabel(tx.status);
                                 const statusStyle = getStatusStyle(statusLabel);
                                 return (
-                                    <View key={tx.id} style={styles.transactionItem}>
+                                    <TouchableOpacity 
+                                        key={tx.id} 
+                                        style={styles.transactionItem}
+                                        onPress={() => router.push({ 
+                                            pathname: getTransactionRoute(tx.type) as any, 
+                                            params: { transactionId: tx.id } 
+                                        })}
+                                    >
                                         <View style={[styles.transactionIcon, { backgroundColor: '#F8FAFC' }]}>
                                             <Refresh size={moderateScale(16)} color="#64748B" />
                                         </View>
@@ -444,7 +470,7 @@ export default function HomeScreen() {
                                                 </Text>
                                             </View>
                                         </View>
-                                    </View>
+                                    </TouchableOpacity>
                                 );
                             })
                         ) : !isLoadingTransactions && (
