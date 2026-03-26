@@ -16,6 +16,8 @@ export default function ViewSchoolFeesScreen() {
     const { data: txResponse, isLoading } = useGetTransactionByIdQuery(transactionId || '');
     const tx = txResponse?.data;
 
+    console.log(JSON.stringify(tx, null, 2), "TX");
+
     const mapStatus = (s: string): TransactionStatus => {
         const map: Record<string, TransactionStatus> = { 'DRAFT': 'pending', 'AWAITING_VERIFICATION': 'pending', 'VERIFICATION_IN_PROGRESS': 'pending', 'VERIFICATION_COMPLETED': 'pending', 'AWAITING_DEPOSIT': 'awaiting_disbursement', 'DEPOSIT_PENDING': 'awaiting_disbursement', 'DEPOSIT_CONFIRMED': 'awaiting_disbursement', 'COMPLIANCE_REVIEW': 'pending', 'ADMIN_APPROVAL_PENDING': 'pending', 'APPROVED': 'approved', 'DISBURSEMENT_IN_PROGRESS': 'awaiting_disbursement', 'COMPLETED': 'settled', 'REJECTED': 'rejected', 'CANCELLED': 'rejected' };
         return map[s] || 'pending';
@@ -52,6 +54,18 @@ export default function ViewSchoolFeesScreen() {
         }));
         return [...docs, ...uploadedDocs];
     }, [tx]);
+    
+    const beneficiaryItems = useMemo(() => {
+        const details = tx?.beneficiaryDetails || tx?.paymentDetails;
+        if (!tx || !details) return undefined;
+        return [
+            { label: 'Beneficiary Name', value: details.name },
+            { label: 'Account Name', value: (details as any).accountName },
+            { label: 'Account Number', value: details.accountNumber },
+            { label: 'Bank Name', value: details.bankName },
+            { label: 'IBAN', value: details.iban },
+        ];
+    }, [tx]);
 
     const docsItems = useMemo(() => {
         if (!tx) return [];
@@ -83,7 +97,7 @@ export default function ViewSchoolFeesScreen() {
             onActionPress={handleProceed}
         >
             {activeTab === 'overview' && (<TransactionStatusView status={status} id={tx?.referenceNumber?.slice(-6) || ''} date={tx ? fmtDate(tx.createdAt) : ''} time={tx ? fmtTime(tx.createdAt) : ''} message={getMessage()} />)}
-            {activeTab === 'details' && (<TransactionDetailsView details={detailsItems} documents={detailsDocuments} />)}
+            {activeTab === 'details' && (<TransactionDetailsView details={detailsItems} documents={detailsDocuments} beneficiaryDetails={beneficiaryItems} />)}
             {activeTab === 'docs' && (<TransactionDocsView status={status} documents={docsItems} />)}
         </TransactionViewLayout>
     );

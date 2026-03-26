@@ -64,6 +64,21 @@ export default function ViewMedicalPaymentScreen() {
         }));
         return [...docs, ...uploadedDocs];
     }, [tx]);
+    
+    const beneficiaryItems = useMemo(() => {
+        const details = tx?.beneficiaryDetails || tx?.paymentDetails;
+        if (!tx || !details) return undefined;
+        return [
+            { label: 'Beneficiary Name', value: details.name },
+            { label: 'Account Name', value: (details as any).accountName },
+            { label: 'Account Number', value: details.accountNumber },
+            { label: 'Bank Name', value: details.bankName },
+            { label: 'Bank Address', value: (details as any).bankAddress },
+            { label: 'IBAN', value: details.iban },
+            { label: 'SWIFT Code', value: (details as any).swiftCode },
+            { label: 'Routing Number', value: (details as any).routingNumber },
+        ];
+    }, [tx]);
 
     const docsItems = useMemo(() => {
         if (!tx) return [];
@@ -122,6 +137,7 @@ export default function ViewMedicalPaymentScreen() {
                 <TransactionDetailsView
                     details={detailsItems}
                     documents={detailsDocuments}
+                    beneficiaryDetails={beneficiaryItems}
                 />
             )}
 

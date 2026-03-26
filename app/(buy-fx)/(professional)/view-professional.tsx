@@ -51,6 +51,18 @@ export default function ViewProfessionalScreen() {
         }));
         return [...docs, ...uploadedDocs];
     }, [tx]);
+    
+    const beneficiaryItems = useMemo(() => {
+        const details = tx?.beneficiaryDetails || tx?.paymentDetails;
+        if (!tx || !details) return undefined;
+        return [
+            { label: 'Beneficiary Name', value: details.name },
+            { label: 'Account Name', value: (details as any).accountName },
+            { label: 'Account Number', value: details.accountNumber },
+            { label: 'Bank Name', value: details.bankName },
+            { label: 'IBAN', value: details.iban },
+        ];
+    }, [tx]);
 
     const docsItems = useMemo(() => {
         if (!tx) return [];
@@ -81,7 +93,7 @@ export default function ViewProfessionalScreen() {
             onActionPress={handleProceed}
         >
             {activeTab === 'overview' && (<TransactionStatusView status={status} id={tx?.referenceNumber?.slice(-6) || ''} date={tx ? fmtDate(tx.createdAt) : ''} time={tx ? fmtTime(tx.createdAt) : ''} message={getMessage()} />)}
-            {activeTab === 'details' && (<TransactionDetailsView details={detailsItems} documents={detailsDocuments} />)}
+            {activeTab === 'details' && (<TransactionDetailsView details={detailsItems} documents={detailsDocuments} beneficiaryDetails={beneficiaryItems} />)}
             {activeTab === 'docs' && (<TransactionDocsView status={status} documents={docsItems} />)}
         </TransactionViewLayout>
     );
