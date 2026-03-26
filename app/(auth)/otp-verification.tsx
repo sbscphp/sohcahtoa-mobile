@@ -30,7 +30,7 @@ export default function OtpVerificationScreen() {
     const insets = useSafeAreaInsets();
     const [otp, setOtp] = useState(['', '', '', '', '', '']);
     const inputs = useRef<TextInput[]>([]);
-    const [timer, setTimer] = useState(900);
+    const [timer, setTimer] = useState(300);
 
     const { mutate: validateOtp, isPending: isValidatingNigerian } = useValidateOtpMutation();
     const { mutate: validateNigerianEmailOtp, isPending: isValidatingNigerianEmail } = useValidateNigerianEmailOtpMutation();
@@ -148,7 +148,7 @@ export default function OtpVerificationScreen() {
         const verificationToken = useAuthStore.getState().verificationToken;
 
         const onSuccess = () => {
-            setTimer(900);
+            setTimer(300);
         };
 
         if (type === 'reset-password' && contactInfo) {

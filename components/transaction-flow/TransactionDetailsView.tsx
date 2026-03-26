@@ -164,7 +164,7 @@ export default function TransactionDetailsView({ details, documents = [], docume
                                             <Text style={styles.detailLabel}>{doc.label}</Text>
                                             <View style={styles.downloadContainer}>
                                                 <Text style={styles.docName} numberOfLines={1}>{truncateFileName(doc.fileName)}</Text>
-                                                <Download size={moderateScale(14)} color="rgba(152, 162, 179, 1)" />
+                                                {/* <Download size={moderateScale(14)} color="rgba(152, 162, 179, 1)" /> */}
                                             </View>
                                         </View>
                                     )}

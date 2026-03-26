@@ -3,7 +3,7 @@ import { useSendOtpMutation } from '@/hooks/queries/auth/useSendOtpMutation';
 import { useVerifyBvnMutation } from '@/hooks/queries/auth/useVerifyBvnMutation';
 import { bvnSchema } from '@/lib/validations/auth';
 import { useAuthStore } from '@/stores/useAuthStore';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,12 +17,15 @@ import PrimaryButton from '../../components/PrimaryButton';
 export default function BvnVerificationScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
+    const { userType } = useLocalSearchParams<{ userType?: string }>();
     const [bvn, setBvn] = useState('');
     const [error, setError] = useState<string>();
     const [isSheetVisible, setIsSheetVisible] = useState(false);
 
-    const { mutate: verifyBvn, isPending } = useVerifyBvnMutation();
+    const { mutate: verifyBvn, isPending: isVerifyingCitizen } = useVerifyBvnMutation();
     const { mutate: sendOtp, isPending: isSendingOtp } = useSendOtpMutation();
+
+    const isPending = isVerifyingCitizen 
 
 
 
@@ -42,11 +45,13 @@ export default function BvnVerificationScreen() {
             bvnSchema.parse({ bvn });
             setError(undefined);
 
-            verifyBvn({ bvn }, {
-                onSuccess: () => {
-                    setIsSheetVisible(true);
-                }
-            });
+            if (userType === 'citizen' || userType === 'expatriate') {
+                verifyBvn({ bvn }, {
+                    onSuccess: () => {
+                        setIsSheetVisible(true);
+                    }
+                });
+            }
         } catch (err) {
             if (err instanceof z.ZodError) {
                 setError(err.issues[0]?.message);
@@ -81,7 +86,7 @@ export default function BvnVerificationScreen() {
                         params: {
                             context: 'bvn',
                             target: option,
-                            userType: 'citizen',
+                            userType: userType || 'citizen',
                             contactInfo: option === 'email' ? response.data.email : response.data.phoneNumber
                         }
                     });

@@ -12,7 +12,7 @@ interface FileUploadProps {
     fileType?: string | null;
     title?: string;
     subtitle?: string;
-    status?: 'default' | 'approved' | 'pending' | 'error';
+    status?: 'default' | 'approved' | 'pending' | 'error' | 'rejected';
     error?: string;
 }
 
@@ -30,6 +30,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
     const getContainerBorderColor = () => {
         switch (status) {
             case 'approved': return '#86EFAC';
+            case 'rejected':
             case 'error': return '#FCA5A5';
             case 'pending': return '#FDBA74';
             default: return error ? '#EF4444' : '#E2E8F0';
@@ -40,6 +41,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
         switch (status) {
             case 'approved': return '#86EFAC';
             case 'pending': return '#7c807eff';
+            case 'rejected':
             case 'error': return '#FCA5A5';
             default: return '#7c807eff';
         }
@@ -88,9 +90,11 @@ const FileUpload: React.FC<FileUploadProps> = ({
                     </View>
                 )}
 
-                <TouchableOpacity style={styles.changeButton} onPress={onUpload}>
-                    <Text style={styles.changeButtonText}>Change</Text>
-                </TouchableOpacity>
+                {status === 'rejected' && (
+                    <TouchableOpacity style={styles.changeButton} onPress={onUpload}>
+                        <Text style={styles.changeButtonText}>Change</Text>
+                    </TouchableOpacity>
+                )}
             </View>
             {error && <Text style={styles.errorText}>{error}</Text>}
         </View>

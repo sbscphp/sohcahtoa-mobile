@@ -8,11 +8,8 @@ import AuthHeader from '../../components/AuthHeader';
 import ControlledInput from '../../components/ControlledInput';
 import PrimaryButton from '../../components/PrimaryButton';
 import Toast from '../../components/Toast';
-
-import { useVerifyBvnMutation } from '@/hooks/queries/auth/useVerifyBvnMutation';
-import { useVerifyExpatriatePassportMutation } from '@/hooks/queries/auth/useVerifyExpatriatePassportMutation';
 import { useVerifyPassportMutation } from '@/hooks/queries/auth/useVerifyPassportMutation';
-import { bvnValidation, PassportFormData, passportValidation } from '@/lib/validations/auth';
+import { PassportFormData, passportValidation } from '@/lib/validations/auth';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -24,17 +21,8 @@ export default function PassportVerificationScreen() {
     const { userType } = useLocalSearchParams<{ userType?: string }>();
     const [showToast, setShowToast] = useState(false);
 
-    const isTourist = userType === 'tourist';
-    const isExpatriate = userType === 'expatriate';
-    const isCitizen = userType === 'citizen';
-
-    const label = isTourist ? 'International Passport Number' : 'BVN Number';
-    const placeholder = isTourist ? 'Enter your Passport Number' : 'Enter your BVN Number';
-    const maxLength = isTourist ? 9 : 11;
-    const filterType = isTourist ? 'alphanumeric' : 'numeric';
-
     const schema = z.object({
-        passportNumber: isCitizen || isExpatriate ? bvnValidation : passportValidation
+        passportNumber: passportValidation
     });
 
     const {
@@ -48,11 +36,7 @@ export default function PassportVerificationScreen() {
         },
         mode: 'onChange'
     });
-    const { mutate: verifyPassport, isPending: isVerifyingTourist } = useVerifyPassportMutation();
-    const { mutate: verifyExpatriatePassport, isPending: isVerifyingExpatriate } = useVerifyExpatriatePassportMutation();
-    const { mutate: verifyBvn, isPending: isVerifyingCitizen } = useVerifyBvnMutation();
-
-    const isVerifying = isVerifyingTourist || isVerifyingExpatriate || isVerifyingCitizen;
+    const { mutate: verifyPassport, isPending } = useVerifyPassportMutation();
 
     const onSubmit = (data: PassportFormData) => {
         const onSuccess = (response: any) => {
@@ -67,7 +51,7 @@ export default function PassportVerificationScreen() {
                 router.push({
                     pathname: '/(auth)/bvn-confirmation',
                     params: {
-                        userType: userType || 'expatriate',
+                        userType: userType || 'tourist',
                         verificationToken: response.data.verificationToken,
                         firstName: response.data.firstName || '',
                         lastName: response.data.lastName || '',
@@ -80,15 +64,7 @@ export default function PassportVerificationScreen() {
             }
         };
 
-        if (isCitizen) {
-            verifyBvn({ bvn: data.passportNumber }, { onSuccess });
-        } else if (isExpatriate) {
-            verifyExpatriatePassport({
-                bvnNumber: data.passportNumber
-            }, { onSuccess });
-        } else {
-            verifyPassport({ passportNumber: data.passportNumber }, { onSuccess });
-        }
+        verifyPassport({ passportNumber: data.passportNumber }, { onSuccess });
     };
 
     return (
@@ -96,21 +72,19 @@ export default function PassportVerificationScreen() {
             <AuthHeader title="Sign up" />
             <ScrollView contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
                 <ProgressBar step={1} totalSteps={3} />
-                {isCitizen ||isExpatriate ? <Text style={styles.title}>
-                    Enter your Bank verification Number (BVN).
-                </Text> : <Text style={styles.title}>
+                <Text style={styles.title}>
                     Enter your International Passport Number.
-                </Text>}
+                </Text>
                 <View style={styles.formSection}>
                     <View style={styles.inputSpacing}>
                         <ControlledInput
                             control={control}
                             name="passportNumber"
-                            label={label}
-                            placeholder={placeholder}
+                            label="International Passport Number"
+                            placeholder="Enter your Passport Number"
                             required
-                            maxLength={maxLength}
-                            filterType={filterType}
+                            maxLength={9}
+                            filterType="alphanumeric"
                             autoCapitalize="characters"
                         />
                     </View>
@@ -119,10 +93,10 @@ export default function PassportVerificationScreen() {
 
             <View style={styles.footer}>
                 <PrimaryButton
-                    title={`Verify ${isTourist ? 'Passport' : 'BVN'}`}
+                    title="Verify Passport"
                     onPress={handleSubmit(onSubmit)}
-                    loading={isVerifying}
-                    disabled={isVerifying || !isValid}
+                    loading={isPending}
+                    disabled={isPending || !isValid}
                 />
             </View>
 

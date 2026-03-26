@@ -24,10 +24,9 @@ export const bvnValidation = z
 // Passport validation
 export const passportValidation = z
     .string()
-    .min(1, 'Identification number is required')
-    .min(9, 'Identification number must be at least 9 characters')
-    .max(11, 'Identification number must not exceed 11 characters')
-    .regex(/^[A-Z0-9]+$/, 'Identification number must contain only uppercase letters and numbers');
+    .min(1, 'International Passport number is required')
+    .length(9, 'International Passport number must be exactly 9 characters')
+    .regex(/^[A-Z]\d{8}$/, 'International Passport number must be 1 letter followed by 8 numbers');
 
 // BVN validation schema
 export const bvnSchema = z.object({

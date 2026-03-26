@@ -21,9 +21,9 @@ interface TransactionDocsViewProps {
 
 export default function TransactionDocsView({ status, documents }: TransactionDocsViewProps) {
 
-    const getDocStatus = (docStatus?: string): 'approved' | 'error' | 'pending' => {
+    const getDocStatus = (docStatus?: string): 'approved' | 'rejected' | 'pending' => {
         if (docStatus === 'APPROVED') return 'approved';
-        if (docStatus === 'REJECTED') return 'error';
+        if (docStatus === 'REJECTED') return 'rejected';
         return 'pending';
     };
 
@@ -32,7 +32,7 @@ export default function TransactionDocsView({ status, documents }: TransactionDo
         if (s === 'approved') {
             return <TickCircle size={moderateScale(16)} color="#16A34A" variant="Bold" />;
         }
-        if (s === 'error') {
+        if (s === 'rejected') {
             return <CloseCircle size={moderateScale(16)} color="#EF4444" variant="Bold" />;
         }
         // pending
@@ -42,14 +42,14 @@ export default function TransactionDocsView({ status, documents }: TransactionDo
     const getStatusText = (docStatus?: string) => {
         const s = getDocStatus(docStatus);
         if (s === 'approved') return 'Approved';
-        if (s === 'error') return 'Rejected';
+        if (s === 'rejected') return 'Rejected';
         return 'Pending';
     };
 
     const getStatusTextStyle = (docStatus?: string) => {
         const s = getDocStatus(docStatus);
         if (s === 'approved') return styles.docStatusTextApproved;
-        if (s === 'error') return styles.docStatusTextError;
+        if (s === 'rejected') return styles.docStatusTextError;
         return styles.docStatusTextPending;
     };
 
