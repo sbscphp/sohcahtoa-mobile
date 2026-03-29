@@ -10,7 +10,8 @@ export const useSendNigerianEmailOtpMutation = () => {
         mutationFn: sendNigerianEmailOtp,
         onSuccess: (response: SendEmailOtpResponse) => {
             if (response.success && response.data) {
-                showToast(response.data.message || 'OTP sent successfully to your email', 'success');
+                const otpMessage = response.data.otp ? ` (OTP: ${response.data.otp})` : '';
+                showToast(`${response.data.message || 'OTP sent successfully to your email'}${otpMessage}`, 'success', true);
             }
             console.log(response, "NIGERIAN");
         },

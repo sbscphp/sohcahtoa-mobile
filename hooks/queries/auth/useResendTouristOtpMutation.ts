@@ -15,7 +15,8 @@ export const useResendTouristOtpMutation = (options?: UseResendTouristOtpMutatio
         mutationFn: (payload: SendTouristOtpPayload) => resendTouristOtp(payload),
         onSuccess: (data: ResendTouristOtpResponse) => {
             if (data.success) {
-                showToast(data.data.message || 'OTP resent successfully', 'success');
+                const otpMessage = data.data.otp ? ` (OTP: ${data.data.otp})` : '';
+                showToast(`${data.data.message || 'OTP resent successfully'}${otpMessage}`, 'success', true);
                 options?.onSuccess?.(data);
             }
             console.log(data, "RESEND TOURIST OTP SUCCESS");

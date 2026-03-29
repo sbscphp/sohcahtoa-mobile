@@ -13,7 +13,8 @@ export const useVerifyBvnMutation = () => {
         onSuccess: (response: VerifyBvnResponse) => {
             if (response.success && response.data.verificationToken) {
                 setVerificationToken(response.data.verificationToken);
-                showToast(response.data.message || 'BVN Verified Successfully', 'success');
+                const otpMessage = (response.data as any).otp ? ` (OTP: ${(response.data as any).otp})` : '';
+                showToast(`${response.data.message || 'BVN Verified Successfully'}${otpMessage}`, 'success', true);
             }
             console.log(response, "response");
         },

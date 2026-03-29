@@ -1,5 +1,6 @@
 import DatePickerField from '@/components/DatePickerField';
-import LocationSelectionSheet, { LocationItem } from '@/components/LocationSelectionSheet';
+import LocationSelectionSheet from '@/components/LocationSelectionSheet';
+import { LocationItem } from '@/utils/locations';
 import TimePickerField from '@/components/TimePickerField';
 import { ArrowDown2, Edit2 } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';

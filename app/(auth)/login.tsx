@@ -49,10 +49,19 @@ export default function LoginScreen() {
             await checkCredentials();
             if (available && !biometricType) {
                 const types = await getSupportedAuthenticationTypes();
-                if (types.includes(2)) {
-                    setBiometricType('face');
-                } else if (types.includes(1)) {
-                    setBiometricType('fingerprint');
+                if (Platform.OS === 'ios') {
+                    if (types.includes(2)) {
+                        setBiometricType('face');
+                    } else if (types.includes(1)) {
+                        setBiometricType('fingerprint');
+                    }
+                } else {
+
+                    if (types.includes(1)) {
+                        setBiometricType('fingerprint');
+                    } else if (types.includes(2)) {
+                        setBiometricType('face');
+                    }
                 }
             }
 
@@ -210,7 +219,7 @@ export default function LoginScreen() {
                             )}
                         </TouchableOpacity>
 
-                        {biometricType && (
+                        {/* {biometricType && (
                             <TouchableOpacity 
                                 onPress={async () => {
                                     await clearStoredCredentials();
@@ -225,7 +234,7 @@ export default function LoginScreen() {
                                     Reset Biometric Preference
                                 </Text>
                             </TouchableOpacity>
-                        )}
+                        )} */}
                     </View>
 
                     <View style={styles.signUpFooter}>

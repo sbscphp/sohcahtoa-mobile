@@ -88,7 +88,7 @@ export default function CurrencyConverter({
         }
     };
 
-    const foreignAmountStr = transactionType === 'sell' ? amountGet : amountSend;
+    const foreignAmountStr = currencyGet.code !== 'NGN' ? amountGet : amountSend;
     const foreignAmount = parseFloat(foreignAmountStr.replace(/,/g, '')) || 0;
 
     return (

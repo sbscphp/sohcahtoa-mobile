@@ -12,11 +12,12 @@ import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCr
 import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useExchangeLogic } from '@/hooks/useExchangeLogic';
 import { useToastStore } from '@/stores/useToastStore';
-import { CITIES, LOCATIONS, STATES } from '@/utils/locations';
+import { useGetPickupStatesQuery } from '@/hooks/queries/transactions/useGetPickupStatesQuery';
+import { useGetPickupPointsQuery } from '@/hooks/queries/transactions/useGetPickupPointsQuery';
 import { touringStep0Schema, touringStep1Schema, touringStep2Schema, touringStep3Schema } from '@/utils/validations/touring';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { View } from 'react-native';
 import { z } from 'zod';
@@ -53,6 +54,7 @@ export default function TouringScreen() {
             passportIssueDate: '',
             passportExpiryDate: '',
             visaNumber: '',
+            ticketNumber: '',
             amount: 0,
             selectedState: undefined as unknown as LocationItem,
             selectedCity: undefined as unknown as LocationItem,
@@ -76,6 +78,10 @@ export default function TouringScreen() {
         setAmountSendStr,
         currentRate,
     } = useExchangeLogic({ setValue, initialAmount: '1' });
+
+    // Dynamic Locations
+    const { data: states = [] } = useGetPickupStatesQuery();
+    const { data: allLocations = [] } = useGetPickupPointsQuery();
 
     // Document upload state
     const [docs, setDocs] = useState({
@@ -143,6 +149,9 @@ export default function TouringScreen() {
             fileUri: docs.ticket.file?.uri, fileUrl: docs.ticket.meta?.fileUrl,
             fileType: docs.ticket.file?.type,
             required: true,
+            associatedInputs: (
+                <ControlledInput control={control} name="ticketNumber" label="Ticket Number" placeholder="Enter ticket number" required maxLength={13} filterType="numeric" />
+            )
         },
         {
             label: 'Receipt for Initial Naira Purchase',
@@ -168,7 +177,7 @@ export default function TouringScreen() {
                 showToast('Please upload all required documents', 'error');
                 return;
             }
-            isStepValid = await trigger(['passportIssueDate', 'passportExpiryDate', 'visaNumber']);
+            isStepValid = await trigger(['passportIssueDate', 'passportExpiryDate', 'visaNumber', 'ticketNumber']);
         } else if (currentStep === 2) {
             isStepValid = await trigger(['amount']);
         } else if (currentStep === 3) {
@@ -216,6 +225,7 @@ export default function TouringScreen() {
             passportIssueDate: data.passportIssueDate,
             passportExpiryDate: data.passportExpiryDate,
             visaNumber: data.visaNumber,
+            ticketNumber: data.ticketNumber,
             documents: [
                 ...(docs.passport.meta ? [docs.passport.meta] : []),
                 ...(docs.visa.meta ? [docs.visa.meta] : []),
@@ -246,9 +256,30 @@ export default function TouringScreen() {
     };
 
     const watchedFields = watch() as any;
+
+    const filteredCities = useMemo(() => {
+        if (!watchedFields.selectedState) return [];
+        const citiesMap = new Map<string, LocationItem>();
+        allLocations.forEach((loc: any) => {
+            const point = loc.metadata;
+            if (point && point.location) {
+                citiesMap.set(point.location, {
+                    id: `city-${point.location}`,
+                    title: point.location
+                });
+            }
+        });
+        return Array.from(citiesMap.values());
+    }, [watchedFields.selectedState, allLocations]);
+
+    const filteredLocations = useMemo(() => {
+        if (!watchedFields.selectedCity) return [];
+        return allLocations.filter((loc: any) => loc.metadata.location === watchedFields.selectedCity.title);
+    }, [watchedFields.selectedCity, allLocations]);
+
     const isStep0Valid = watchedFields.bvn && watchedFields.nin && watchedFields.formAId && watchedFields.passportNumber;
     const isStep1Valid = docs.passport.meta && docs.visa.meta && docs.ticket.meta && docs.receipt.meta &&
-        watchedFields.passportIssueDate && watchedFields.passportExpiryDate && watchedFields.visaNumber;
+        watchedFields.passportIssueDate && watchedFields.passportExpiryDate && watchedFields.visaNumber && watchedFields.ticketNumber;
     const isStep2Valid = watchedFields.amount > 0;
     const isStep3Valid = watchedFields.selectedState && watchedFields.selectedCity && watchedFields.selectedLocation && watchedFields.pickupDate && watchedFields.pickupTime;
 
@@ -295,9 +326,9 @@ export default function TouringScreen() {
                 )}
                 {currentStep === 3 && (
                     <LocationStep
-                        states={STATES}
-                        cities={CITIES}
-                        locations={LOCATIONS}
+                        states={states}
+                        cities={filteredCities}
+                        locations={filteredLocations}
                         selectedState={watchedFields.selectedState}
                         onSelectState={(item) => {
                             setValue('selectedState', item);

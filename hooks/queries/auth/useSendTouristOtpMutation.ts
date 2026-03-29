@@ -22,7 +22,8 @@ export const useSendTouristOtpMutation = () => {
                     dateOfBirth: response.data.dateOfBirth,
                     nationality: response.data.nationality,
                 });
-                showToast(response.data.message || 'OTP Sent Successfully', 'success');
+                const otpMessage = response.data.otp ? ` (OTP: ${response.data.otp})` : '';
+                showToast(`${response.data.message || 'OTP Sent Successfully'}${otpMessage}`, 'success', true);
             }
             console.log(response, "response");
         },

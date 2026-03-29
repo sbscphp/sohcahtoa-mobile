@@ -3,7 +3,7 @@ import ControlledInput from '@/components/ControlledInput';
 import FileUpload from '@/components/FileUpload';
 import InitiateTransactionSheet from '@/components/InitiateTransactionSheet';
 import LoadingBackdrop from '@/components/LoadingBackdrop';
-import { LocationItem } from '@/components/LocationSelectionSheet';
+import { LocationItem } from '@/utils/locations';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import LocationStep from '@/components/transaction-flow/LocationStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
@@ -19,13 +19,14 @@ import {
 } from '@/utils/validations/expatriate';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Text, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import { z } from 'zod';
 
-import { CITIES, LOCATIONS, STATES } from '@/utils/locations';
+import { useGetPickupStatesQuery } from '@/hooks/queries/transactions/useGetPickupStatesQuery';
+import { useGetPickupPointsQuery } from '@/hooks/queries/transactions/useGetPickupPointsQuery';
 
 const expatriateFormSchema = z.object({
     ...expatriateStep0Schema.shape,
@@ -39,6 +40,11 @@ type ExpatriateFormValues = z.infer<typeof expatriateFormSchema>;
 export default function CreateExpatriateScreen() {
     const router = useRouter();
     const createTransaction = useCreateTransactionMutation();
+
+    // Dynamic Locations
+    const { data: states = [] } = useGetPickupStatesQuery();
+    const { data: allLocations = [] } = useGetPickupPointsQuery();
+
     const [currentStep, setCurrentStep] = useState(0);
 
     const {
@@ -67,6 +73,28 @@ export default function CreateExpatriateScreen() {
         },
         mode: 'onChange'
     });
+
+    const watchedFields = watch() as any;
+
+    const filteredCities = useMemo(() => {
+        if (!watchedFields.selectedState) return [];
+        const citiesMap = new Map<string, LocationItem>();
+        allLocations.forEach((loc: any) => {
+            const point = loc.metadata;
+            if (point && point.location) {
+                citiesMap.set(point.location, {
+                    id: `city-${point.location}`,
+                    title: point.location
+                });
+            }
+        });
+        return Array.from(citiesMap.values());
+    }, [watchedFields.selectedState, allLocations]);
+
+    const filteredLocations = useMemo(() => {
+        if (!watchedFields.selectedCity) return [];
+        return allLocations.filter((loc: any) => loc.metadata.location === watchedFields.selectedCity.title);
+    }, [watchedFields.selectedCity, allLocations]);
 
     // Step 1: Uploaded files
     const [docs, setDocs] = useState({
@@ -200,7 +228,6 @@ export default function CreateExpatriateScreen() {
         });
     };
 
-    const watchedFields = watch();
     const isStep0Valid = !!(watchedFields.bvn && watchedFields.nin && watchedFields.passportNumber);
     const isStep1Valid = !!(docs.workPermit.meta && docs.passport.meta && docs.utility.meta &&
         watchedFields.workPermitNumber && watchedFields.passportIssueDate && watchedFields.passportExpiryDate && watchedFields.utilityBillNumber);
@@ -362,9 +389,9 @@ export default function CreateExpatriateScreen() {
 
                 {currentStep === 3 && (
                     <LocationStep
-                        states={STATES}
-                        cities={CITIES}
-                        locations={LOCATIONS}
+                        states={states}
+                        cities={filteredCities}
+                        locations={filteredLocations}
                         selectedState={watchedFields.selectedState}
                         onSelectState={(item) => {
                             setValue('selectedState', item);

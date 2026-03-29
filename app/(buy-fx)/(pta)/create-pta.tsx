@@ -1,3 +1,4 @@
+import ControlledDatePicker from '@/components/ControlledDatePicker';
 import ControlledInput from '@/components/ControlledInput';
 import InitiateTransactionSheet from '@/components/InitiateTransactionSheet';
 import LoadingBackdrop from '@/components/LoadingBackdrop';
@@ -11,19 +12,22 @@ import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCr
 import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useExchangeLogic } from '@/hooks/useExchangeLogic';
 import { useToastStore } from '@/stores/useToastStore';
-import { CITIES, LOCATIONS, STATES } from '@/utils/locations';
 import { ptaStep0Schema, ptaStep1Schema, ptaStep2Schema, ptaStep3Schema } from '@/utils/validations/pta';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { View } from 'react-native';
 import { z } from 'zod';
+import { useGetPickupStatesQuery } from '@/hooks/queries/transactions/useGetPickupStatesQuery';
+import { useGetPickupPointsQuery } from '@/hooks/queries/transactions/useGetPickupPointsQuery';
 
-const ptaFormSchema = ptaStep0Schema
-    .merge(ptaStep1Schema)
-    .merge(ptaStep2Schema)
-    .merge(ptaStep3Schema);
+const ptaFormSchema = z.object({
+    ...ptaStep0Schema.shape,
+    ...ptaStep1Schema.shape,
+    ...ptaStep2Schema.shape,
+    ...ptaStep3Schema.shape
+});
 
 type PtaFormValues = z.infer<typeof ptaFormSchema>;
 
@@ -75,7 +79,33 @@ export default function PersonalTravelAllowanceScreen() {
         currentRate,
     } = useExchangeLogic({ setValue, initialAmount: '1' });
 
+    // Dynamic Locations
+    const { data: states = [] } = useGetPickupStatesQuery();
+    const { data: allLocations = [] } = useGetPickupPointsQuery();
 
+    const watchedFields = watch() as any;
+
+    const filteredCities = useMemo(() => {
+        if (!watchedFields.selectedState) return [];
+        const citiesMap = new Map<string, LocationItem>();
+        allLocations.forEach((loc: any) => {
+            const point = loc.metadata;
+            if (point && point.location) {
+                citiesMap.set(point.location, {
+                    id: `city-${point.location}`,
+                    title: point.location
+                });
+            }
+        });
+        return Array.from(citiesMap.values());
+    }, [watchedFields.selectedState, allLocations]);
+
+    const filteredLocations = useMemo(() => {
+        if (!watchedFields.selectedCity) return [];
+        return allLocations.filter((loc: any) => loc.metadata.location === watchedFields.selectedCity.title);
+    }, [watchedFields.selectedCity, allLocations]);
+
+    // Document upload files state
     const [docs, setDocs] = useState({
         visa: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
         ticket: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
@@ -130,30 +160,12 @@ export default function PersonalTravelAllowanceScreen() {
     ];
 
     const handleNext = async () => {
-        if (isUploading) {
-            showToast('Please wait for files to finish uploading', 'warning');
-            return;
-        }
+        const stepSchemas = [ptaStep0Schema, ptaStep1Schema, ptaStep2Schema, ptaStep3Schema];
+        const isValid = await trigger(Object.keys(stepSchemas[currentStep].shape) as any);
 
-        let isStepValid = false;
-
-        if (currentStep === 0) {
-            isStepValid = await trigger(['bvn', 'nin', 'formAId', 'passportNumber']);
-        } else if (currentStep === 1) {
-            if (!docs.visa.file || !docs.ticket.file) {
-                showToast('Please upload all required documents (Visa and Return Ticket)', 'error');
-                return;
-            }
-            isStepValid = await trigger(['visaNumber', 'ticketNumber']);
-        } else if (currentStep === 2) {
-            isStepValid = await trigger(['amount']);
-        } else if (currentStep === 3) {
-            isStepValid = await trigger(['selectedState', 'selectedCity', 'selectedLocation', 'pickupDate', 'pickupTime']);
-        }
-
-        if (isStepValid) {
+        if (isValid) {
             if (currentStep < 3) {
-                setCurrentStep(currentStep + 1);
+                setCurrentStep(prev => prev + 1);
             } else {
                 setInitiateSheetVisible(true);
             }
@@ -162,28 +174,18 @@ export default function PersonalTravelAllowanceScreen() {
 
     const handleBack = () => {
         if (currentStep > 0) {
-            setCurrentStep(currentStep - 1);
+            setCurrentStep(prev => prev - 1);
         } else {
             router.back();
         }
     };
 
-    const onSubmit = (data: PtaFormValues) => {
-        console.log(data, "PTA");
-        const formatDateForApi = (dateStr: string): string => {
-            if (!dateStr) return '';
-            const parts = dateStr.split('/');
-            if (parts.length === 3) {
-                return `${parts[2]}-${parts[1]}-${parts[0]}`;
-            }
-            return dateStr;
-        };
-
+    const handleInitiate = (data: PtaFormValues) => {
         const payload = {
             type: 'PTA',
             currency: currencyGet.code,
             amount: data.amount,
-            purpose: 'I am going on a Vacation (PTA)',
+            purpose: 'Personal Travel Allowance (PTA)',
             destinationCountry: currencyGet.country,
             bvn: data.bvn,
             nin: data.nin,
@@ -193,16 +195,17 @@ export default function PersonalTravelAllowanceScreen() {
             ticketNumber: data.ticketNumber,
             documents: [
                 ...(docs.visa.meta ? [docs.visa.meta] : []),
-                ...(docs.ticket.meta ? [docs.ticket.meta] : [])
+                ...(docs.ticket.meta ? [docs.ticket.meta] : []),
             ],
-            pickupLocation: data.selectedLocation ? {
-                name: (data.selectedLocation as LocationItem).title,
-                address: (data.selectedLocation as LocationItem).subtitle || '',
-                state: (data.selectedState as LocationItem)?.title || '',
-                city: (data.selectedCity as LocationItem)?.title || '',
-                scheduledPickupDate: formatDateForApi(data.pickupDate),
-                scheduledPickupTime: data.pickupTime,
-            } : undefined
+            pickupLocation: {
+                state: data.selectedState.title,
+                city: data.selectedCity.title,
+                name: data.selectedLocation.title,
+                address: data.selectedLocation.subtitle || '',
+                locationId: data.selectedLocation.id,
+                date: data.pickupDate,
+                time: data.pickupTime,
+            }
         };
 
         createTransaction.mutate(payload, {
@@ -214,27 +217,22 @@ export default function PersonalTravelAllowanceScreen() {
                         params: { transactionId: response.data?.transactionId }
                     });
                 }
+            },
+            onError: (error: any) => {
+                showToast(error?.response?.data?.message || 'Failed to initiate transaction', 'error');
             }
         });
     };
 
-    const watchedFields = watch();
-    const isStep0Valid = watchedFields.bvn && watchedFields.nin && watchedFields.formAId && watchedFields.passportNumber;
-    const isStep1Valid = docs.visa.meta && docs.ticket.meta && watchedFields.visaNumber && watchedFields.ticketNumber;
-    const isStep2Valid = watchedFields.amount > 0;
-    const isStep3Valid = watchedFields.selectedState && watchedFields.selectedCity && watchedFields.selectedLocation && watchedFields.pickupDate && watchedFields.pickupTime;
-
-    const isNextDisabled =
-        (currentStep === 0 && !isStep0Valid) ||
-        (currentStep === 1 && !isStep1Valid) ||
-        (currentStep === 2 && !isStep2Valid) ||
-        (currentStep === 3 && !isStep3Valid);
+    const isNextDisabled = currentStep === 1
+        ? !docs.visa.file || !docs.ticket.file
+        : false;
 
     return (
         <View style={{ flex: 1 }}>
             <LoadingBackdrop visible={isUploading || createTransaction.isPending} />
             <TransactionLayout
-                title="Personal Travel Allowance"
+                title="Personal Travel Allowance (PTA)"
                 currentStep={currentStep}
                 totalSteps={4}
                 onBack={handleBack}
@@ -267,9 +265,9 @@ export default function PersonalTravelAllowanceScreen() {
                 )}
                 {currentStep === 3 && (
                     <LocationStep
-                        states={STATES}
-                        cities={CITIES}
-                        locations={LOCATIONS}
+                        states={states}
+                        cities={filteredCities}
+                        locations={filteredLocations}
                         selectedState={watchedFields.selectedState}
                         onSelectState={(item) => {
                             setValue('selectedState', item);
@@ -284,39 +282,20 @@ export default function PersonalTravelAllowanceScreen() {
                         selectedLocation={watchedFields.selectedLocation}
                         onSelectLocation={(item) => setValue('selectedLocation', item)}
                         pickupDate={watchedFields.pickupDate}
-                        onPickupDateChange={(v: string) => setValue('pickupDate', v)}
+                        onPickupDateChange={(date) => setValue('pickupDate', date)}
                         pickupTime={watchedFields.pickupTime}
-                        onPickupTimeChange={(v: string) => setValue('pickupTime', v)}
-                        errors={{
-                            state: errors.selectedState?.message as string | undefined,
-                            city: errors.selectedCity?.message as string | undefined,
-                            location: errors.selectedLocation?.message as string | undefined,
-                            pickupDate: errors.pickupDate?.message as string | undefined,
-                            pickupTime: errors.pickupTime?.message as string | undefined
-                        }}
+                        onPickupTimeChange={(time) => setValue('pickupTime', time)}
+                        errors={errors as any}
                     />
                 )}
-
-                <InitiateTransactionSheet
-                    visible={initiateSheetVisible}
-                    onClose={() => setInitiateSheetVisible(false)}
-                    onConfirm={handleSubmit(onSubmit)}
-                    title="Initiate PTA Transaction request?"
-                    loading={createTransaction.isPending}
-                    items={[
-                        {
-                            title: "Verification before approval",
-                            description: "You will be able to process your PTA once your documents are verified and approved.",
-                            iconType: 'verify'
-                        },
-                        {
-                            title: "Maximum of $4,000 per quarter",
-                            description: "The maximum you can transact is $4,000 per quarter.",
-                            iconType: 'limit'
-                        }
-                    ]}
-                />
             </TransactionLayout>
+
+            <InitiateTransactionSheet
+                visible={initiateSheetVisible}
+                onClose={() => setInitiateSheetVisible(false)}
+                onConfirm={handleSubmit(handleInitiate)}
+                loading={createTransaction.isPending}
+            />
         </View>
     );
 }

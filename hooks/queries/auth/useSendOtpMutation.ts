@@ -22,7 +22,8 @@ export const useSendOtpMutation = () => {
                     dateOfBirth: response.data.dateOfBirth,
                     gender: response.data.gender,
                 });
-                showToast(response.data.message || 'OTP Sent Successfully', 'success');
+                const otpMessage = response.data.otp ? ` (OTP: ${response.data.otp})` : '';
+                showToast(`${response.data.message || 'OTP Sent Successfully'}${otpMessage}`, 'success', true);
             }
             console.log(response, "response");
         },

@@ -2,7 +2,7 @@ import ControlledDatePicker from '@/components/ControlledDatePicker';
 import ControlledInput from '@/components/ControlledInput';
 import InitiateTransactionSheet from '@/components/InitiateTransactionSheet';
 import LoadingBackdrop from '@/components/LoadingBackdrop';
-import { LocationItem } from '@/components/LocationSelectionSheet';
+import { LocationItem } from '@/utils/locations';
 import CredentialStep from '@/components/transaction-flow/CredentialStep';
 import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
@@ -20,12 +20,13 @@ import {
 } from '@/utils/validations/resident';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { View } from 'react-native';
 import { z } from 'zod';
 
-import { CITIES, LOCATIONS, STATES } from '@/utils/locations';
+import { useGetPickupStatesQuery } from '@/hooks/queries/transactions/useGetPickupStatesQuery';
+import { useGetPickupPointsQuery } from '@/hooks/queries/transactions/useGetPickupPointsQuery';
 
 const residentFormSchema = z.object({
     ...residentStep0Schema.shape,
@@ -39,6 +40,11 @@ type ResidentFormValues = z.infer<typeof residentFormSchema>;
 export default function CreateResidentScreen() {
     const router = useRouter();
     const createTransaction = useCreateTransactionMutation();
+
+    // Dynamic Locations
+    const { data: states = [] } = useGetPickupStatesQuery();
+    const { data: allLocations = [] } = useGetPickupPointsQuery();
+
     const [currentStep, setCurrentStep] = useState(0);
 
     const {
@@ -66,6 +72,28 @@ export default function CreateResidentScreen() {
         },
         mode: 'onChange'
     });
+
+    const watchedFields = watch() as any;
+
+    const filteredCities = useMemo(() => {
+        if (!watchedFields.selectedState) return [];
+        const citiesMap = new Map<string, LocationItem>();
+        allLocations.forEach((loc: any) => {
+            const point = loc.metadata;
+            if (point && point.location) {
+                citiesMap.set(point.location, {
+                    id: `city-${point.location}`,
+                    title: point.location
+                });
+            }
+        });
+        return Array.from(citiesMap.values());
+    }, [watchedFields.selectedState, allLocations]);
+
+    const filteredLocations = useMemo(() => {
+        if (!watchedFields.selectedCity) return [];
+        return allLocations.filter((loc: any) => loc.metadata.location === watchedFields.selectedCity.title);
+    }, [watchedFields.selectedCity, allLocations]);
 
     // Step 1 — uploaded files
     const [docs, setDocs] = useState({
@@ -283,7 +311,6 @@ export default function CreateResidentScreen() {
         });
     };
 
-    const watchedFields = watch();
     const isStep0Valid = watchedFields.bvn && watchedFields.nin && watchedFields.passportNumber;
     const isStep1Valid = docs.passport.meta && docs.utility.meta && 
         watchedFields.passportIssueDate && watchedFields.passportExpiryDate && watchedFields.utilityNumber;
@@ -336,9 +363,9 @@ export default function CreateResidentScreen() {
 
                 {currentStep === 3 && (
                     <LocationStep
-                        states={STATES}
-                        cities={CITIES}
-                        locations={LOCATIONS}
+                        states={states}
+                        cities={filteredCities}
+                        locations={filteredLocations}
                         selectedState={watchedFields.selectedState}
                         onSelectState={(item) => {
                             setValue('selectedState', item);

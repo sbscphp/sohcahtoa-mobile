@@ -3,7 +3,7 @@ import ControlledDatePicker from '@/components/ControlledDatePicker';
 import ControlledInput from '@/components/ControlledInput';
 import InitiateTransactionSheet from '@/components/InitiateTransactionSheet';
 import LoadingBackdrop from '@/components/LoadingBackdrop';
-import { LocationItem } from '@/components/LocationSelectionSheet';
+import { LocationItem } from '@/utils/locations';
 import SourceOfFundsSheet from '@/components/SourceOfFundsSheet';
 import CredentialStep from '@/components/transaction-flow/CredentialStep';
 import DocumentStep from '@/components/transaction-flow/DocumentStep';
@@ -23,13 +23,14 @@ import {
 } from '@/utils/validations/tourist';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Pressable, Text, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import { z } from 'zod';
 
-import { CITIES, LOCATIONS, STATES } from '@/utils/locations';
+import { useGetPickupStatesQuery } from '@/hooks/queries/transactions/useGetPickupStatesQuery';
+import { useGetPickupPointsQuery } from '@/hooks/queries/transactions/useGetPickupPointsQuery';
 
 const touristFormSchema = z.object({
     ...touristStep0Schema.shape,
@@ -112,6 +113,32 @@ export default function CreateTouristScreen() {
         setAmountSendStr: setAmountSend,
         currentRate,
     } = useExchangeLogic({ setValue, initialAmount: '' });
+
+    // Dynamic Locations
+    const { data: states = [] } = useGetPickupStatesQuery();
+    const { data: allLocations = [] } = useGetPickupPointsQuery();
+
+    const watchedFields = watch() as any;
+
+    const filteredCities = useMemo(() => {
+        if (!watchedFields.selectedState) return [];
+        const citiesMap = new Map<string, LocationItem>();
+        allLocations.forEach((loc: any) => {
+            const point = loc.metadata;
+            if (point && point.location) {
+                citiesMap.set(point.location, {
+                    id: `city-${point.location}`,
+                    title: point.location
+                });
+            }
+        });
+        return Array.from(citiesMap.values());
+    }, [watchedFields.selectedState, allLocations]);
+
+    const filteredLocations = useMemo(() => {
+        if (!watchedFields.selectedCity) return [];
+        return allLocations.filter((loc: any) => loc.metadata.location === watchedFields.selectedCity.title);
+    }, [watchedFields.selectedCity, allLocations]);
 
     // Step 3: Payment Method
     const [paymentMethod, setPaymentMethod] = useState<'transfer' | 'card'>('transfer');
@@ -326,7 +353,6 @@ export default function CreateTouristScreen() {
         });
     };
 
-    const watchedFields = watch();
     const isStep0Valid = !!watchedFields.passportNumber;
     const isStep1Valid = !!(docs.passport.meta && docs.visa.meta && docs.ticket.meta && docs.receipt.meta &&
         watchedFields.passportIssueDate && watchedFields.passportExpiryDate && watchedFields.visaNumber && watchedFields.ticketNumber);
@@ -434,9 +460,9 @@ export default function CreateTouristScreen() {
                             </View>
                         ) : (
                             <LocationStep
-                                states={STATES}
-                                cities={CITIES}
-                                locations={LOCATIONS}
+                                states={states}
+                                cities={filteredCities}
+                                locations={filteredLocations}
                                 selectedState={watchedFields.selectedState}
                                 onSelectState={(item) => {
                                     setValue('selectedState', item);

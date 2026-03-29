@@ -1,16 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useRef } from 'react';
-import { Animated, Text, View } from 'react-native';
+import { Animated, Text, TouchableOpacity, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 
 interface ToastProps {
     visible: boolean;
     message: string;
     onDismiss?: () => void;
-    type?: 'success' | 'error' | 'warning'; // Expandable for future
+    type?: 'success' | 'error' | 'warning';
+    persistent?: boolean;
 }
 
-const Toast: React.FC<ToastProps> = ({ visible, message, onDismiss, type = 'success' }) => {
+const Toast: React.FC<ToastProps> = ({ visible, message, onDismiss, type = 'success', persistent = false }) => {
     const [show, setShow] = React.useState(visible);
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const translateY = useRef(new Animated.Value(-20)).current;
@@ -31,7 +32,7 @@ const Toast: React.FC<ToastProps> = ({ visible, message, onDismiss, type = 'succ
                 }),
             ]).start();
 
-            if (onDismiss) {
+            if (onDismiss && !persistent) {
                 const timer = setTimeout(() => {
                     onDismiss();
                 }, 3000);
@@ -95,6 +96,17 @@ const Toast: React.FC<ToastProps> = ({ visible, message, onDismiss, type = 'succ
 
                 {/* Message */}
                 <Text style={styles.messageText}>{message}</Text>
+
+                {/* Close Button */}
+                {(persistent || onDismiss) && (
+                    <TouchableOpacity 
+                        onPress={onDismiss} 
+                        style={styles.closeButton}
+                        activeOpacity={0.7}
+                    >
+                        <Ionicons name="close" size={moderateScale(20)} color="#FFFFFF" />
+                    </TouchableOpacity>
+                )}
             </View>
         </Animated.View>
     );
@@ -144,6 +156,13 @@ const styles = ScaledSheet.create({
         fontSize: '14@ms',
         fontWeight: '500',
         color: '#FFFFFF',
+        marginRight: '8@s',
+    },
+    closeButton: {
+        padding: '4@ms',
+        marginLeft: '4@s',
+        borderRadius: '12@ms',
+        backgroundColor: 'rgba(255, 255, 255, 0.15)',
     },
 });
 

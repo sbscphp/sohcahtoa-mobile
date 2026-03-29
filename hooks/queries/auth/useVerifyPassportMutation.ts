@@ -13,7 +13,8 @@ export const useVerifyPassportMutation = () => {
         onSuccess: (response: VerifyPassportResponse) => {
             if (response.success && response.data.verificationToken) {
                 setVerificationToken(response.data.verificationToken);
-                showToast(response.data.message || 'Passport Verified Successfully', 'success');
+                const otpMessage = (response.data as any).otp ? ` (OTP: ${(response.data as any).otp})` : '';
+                showToast(`${response.data.message || 'Passport Verified Successfully'}${otpMessage}`, 'success', true);
             }
             console.log(response, 'Response');
         },
