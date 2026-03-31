@@ -389,6 +389,7 @@ export default function CreateExpatriateScreen() {
 
                 {currentStep === 3 && (
                     <LocationStep
+                        title="Where would you like to receive your funds"
                         states={states}
                         cities={filteredCities}
                         locations={filteredLocations}

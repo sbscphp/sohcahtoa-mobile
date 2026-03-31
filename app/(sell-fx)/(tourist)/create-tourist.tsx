@@ -13,6 +13,7 @@ import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
 import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
 import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useExchangeLogic } from '@/hooks/useExchangeLogic';
+import { useAuthStore } from '@/stores/useAuthStore';
 import { useToastStore } from '@/stores/useToastStore';
 import {
     touristStep0Schema,
@@ -46,6 +47,7 @@ type TouristFormValues = z.infer<typeof touristFormSchema>;
 export default function CreateTouristScreen() {
     const router = useRouter();
     const createTransaction = useCreateTransactionMutation();
+    const user = useAuthStore(s => s.user);
     const [currentStep, setCurrentStep] = useState(0);
 
     const {
@@ -81,6 +83,7 @@ export default function CreateTouristScreen() {
         visa: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
         ticket: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
         receipt: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        signature: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
     });
 
     const updateDoc = (key: keyof typeof docs, file: UploadedFile, metadata: UploadedMetadata) => {
@@ -95,6 +98,7 @@ export default function CreateTouristScreen() {
             else if (documentType === 'VISA') updateDoc('visa', file, metadata);
             else if (documentType === 'RETURN_TICKET') updateDoc('ticket', file, metadata);
             else if (documentType === 'RECEIPT') updateDoc('receipt', file, metadata);
+            else if (documentType === 'DIGITAL_SIGNATURE') updateDoc('signature', file, metadata);
         },
         onError: () => showToast('Failed to upload document. Please try again.', 'error'),
     });
@@ -442,7 +446,7 @@ export default function CreateTouristScreen() {
 
                         {paymentMethod === 'transfer' ? (
                             <View style={{ gap: moderateScale(16) }}>
-                                <Text style={styles.sectionTitle}>Select Pick Up Point</Text>
+                                <Text style={styles.sectionTitle}>Where would you like to receive your funds</Text>
                                 <ControlledInput
                                     control={control}
                                     name="accountName"
@@ -476,7 +480,7 @@ export default function CreateTouristScreen() {
                                 }}
                                 selectedLocation={watchedFields.selectedLocation}
                                 onSelectLocation={(item) => setValue('selectedLocation', item)}
-                                title="Select Pick Up Point"
+                                title="Where would you like to receive your funds"
                                 pickupDate={watchedFields.pickupDate}
                                 onPickupDateChange={(v: string) => setValue('pickupDate', v)}
                                 pickupTime={watchedFields.pickupTime}
@@ -517,12 +521,12 @@ export default function CreateTouristScreen() {
                         console.log('Source of Funds Declaration Submitted');
                     }}
                     customerInfo={{
-                        fullName: 'Feubode Gesikeme', // Placeholder
-                        phoneNumber: '09042136679', // Placeholder
-                        email: 'kemef@gmail.com', // Placeholder
-                        bvn: '55544332278554', // Placeholder
-                        address: '16a Alexandre drive', // Placeholder
-                        passportNumber: watchedFields.passportNumber || '102234556777776'
+                        fullName: `${user?.profile?.firstName || ''} ${user?.profile?.lastName || ''}`,
+                        phoneNumber: user?.phoneNumber || '',
+                        email: user?.email || '',
+                        bvn: user?.kyc?.bvn || '',
+                        address: user?.profile?.address || '',
+                        passportNumber: watchedFields.passportNumber || user?.kyc?.passportNumber || ''
                     }}
                     transactionDetails={{
                         type: 'Tourist',
@@ -530,6 +534,9 @@ export default function CreateTouristScreen() {
                         amount: `${currencySend.code} ${amountSend}`,
                         purpose: 'Travel'
                     }}
+                    onUploadSignature={() => uploadFile('DIGITAL_SIGNATURE')}
+                    signatureFile={docs.signature.file?.name}
+                    isUploadingSignature={isUploading}
                 />
             </TransactionLayout>
         </View>
@@ -572,8 +579,7 @@ const styles = ScaledSheet.create({
     sectionTitle: {
         fontSize: '14@ms',
         fontWeight: '600',
-        color: '#0F172A',
-        // marginBottom: '16@vs', // InputField has its own spacing but section needs title spacing
+        color: '#0F172A'
     },
 });
 

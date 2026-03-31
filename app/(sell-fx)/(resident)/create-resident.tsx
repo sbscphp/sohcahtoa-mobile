@@ -379,7 +379,7 @@ export default function CreateResidentScreen() {
                         }}
                         selectedLocation={watchedFields.selectedLocation}
                         onSelectLocation={(item) => setValue('selectedLocation', item)}
-                        title="Select Pick Up Point"
+                        title="Where would you like to receive your funds"
                         pickupDate={watchedFields.pickupDate}
                         onPickupDateChange={(v: string) => setValue('pickupDate', v)}
                         pickupTime={watchedFields.pickupTime}
