@@ -2,7 +2,6 @@ import ControlledDatePicker from '@/components/ControlledDatePicker';
 import ControlledInput from '@/components/ControlledInput';
 import InitiateTransactionSheet from '@/components/InitiateTransactionSheet';
 import LoadingBackdrop from '@/components/LoadingBackdrop';
-import { LocationItem } from '@/utils/locations';
 import CredentialStep from '@/components/transaction-flow/CredentialStep';
 import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
@@ -12,6 +11,7 @@ import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCr
 import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useExchangeLogic } from '@/hooks/useExchangeLogic';
 import { useToastStore } from '@/stores/useToastStore';
+import { LocationItem } from '@/utils/locations';
 import {
     residentStep0Schema,
     residentStep1Schema,
@@ -25,8 +25,8 @@ import { useForm } from 'react-hook-form';
 import { View } from 'react-native';
 import { z } from 'zod';
 
-import { useGetPickupStatesQuery } from '@/hooks/queries/transactions/useGetPickupStatesQuery';
 import { useGetPickupPointsQuery } from '@/hooks/queries/transactions/useGetPickupPointsQuery';
+import { useGetPickupStatesQuery } from '@/hooks/queries/transactions/useGetPickupStatesQuery';
 
 const residentFormSchema = z.object({
     ...residentStep0Schema.shape,
@@ -128,7 +128,7 @@ export default function CreateResidentScreen() {
         amountSendStr: amountSend,
         setAmountSendStr: setAmountSend,
         currentRate,
-    } = useExchangeLogic({ setValue, initialAmount: '1' });
+    } = useExchangeLogic({ setValue, initialAmount: '0' });
 
     const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
 
@@ -312,7 +312,7 @@ export default function CreateResidentScreen() {
     };
 
     const isStep0Valid = watchedFields.bvn && watchedFields.nin && watchedFields.passportNumber;
-    const isStep1Valid = docs.passport.meta && docs.utility.meta && 
+    const isStep1Valid = docs.passport.meta && docs.utility.meta &&
         watchedFields.passportIssueDate && watchedFields.passportExpiryDate && watchedFields.utilityNumber;
     const isStep2Valid = watchedFields.amount > 0;
     const isStep3Valid = watchedFields.selectedState && watchedFields.selectedCity && watchedFields.selectedLocation && watchedFields.pickupDate && watchedFields.pickupTime;

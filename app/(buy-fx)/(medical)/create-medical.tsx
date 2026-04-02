@@ -75,7 +75,7 @@ export default function MedicalPaymentScreen() {
         setAmountSendStr,
         currentRate,
         calculateExchangeRate,
-    } = useExchangeLogic({ setValue, initialAmount: '1' });
+    } = useExchangeLogic({ setValue, initialAmount: '0' });
 
     // Document upload state
     const [docs, setDocs] = useState({
@@ -263,7 +263,7 @@ export default function MedicalPaymentScreen() {
     const isStep1Valid = docs.formA.meta && docs.passport.meta && docs.visa.meta && docs.returnTicket.meta && docs.referenceLetter.meta && docs.overseaDoctorLetter.meta &&
         watchedFields.visaNumber && watchedFields.returnTicketNumber;
     const isStep2Valid = watchedFields.amount > 0;
-    const isStep3Valid = watchedFields.beneficiaryName && watchedFields.beneficiaryAddress && watchedFields.beneficiaryBank && 
+    const isStep3Valid = watchedFields.beneficiaryName && watchedFields.beneficiaryAddress && watchedFields.beneficiaryBank &&
         watchedFields.routingNumber && watchedFields.accountNumber && watchedFields.bankAddress && watchedFields.swiftCode && watchedFields.iban;
 
     const isNextDisabled =

@@ -69,7 +69,7 @@ export default function ProfessionalScreen() {
         amountSendStr,
         setAmountSendStr,
         currentRate,
-    } = useExchangeLogic({ setValue, initialAmount: '1' });
+    } = useExchangeLogic({ setValue, initialAmount: '0' });
 
     // Document upload state
     const [docs, setDocs] = useState({

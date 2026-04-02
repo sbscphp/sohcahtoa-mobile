@@ -2,19 +2,18 @@ import ControlledDatePicker from '@/components/ControlledDatePicker';
 import ControlledInput from '@/components/ControlledInput';
 import InitiateTransactionSheet from '@/components/InitiateTransactionSheet';
 import LoadingBackdrop from '@/components/LoadingBackdrop';
-import { LocationItem } from '@/utils/locations';
 import CredentialStep from '@/components/transaction-flow/CredentialStep';
 import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import LocationStep from '@/components/transaction-flow/LocationStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
 import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
+import { useGetPickupPointsQuery } from '@/hooks/queries/transactions/useGetPickupPointsQuery';
+import { useGetPickupStatesQuery } from '@/hooks/queries/transactions/useGetPickupStatesQuery';
 import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useExchangeLogic } from '@/hooks/useExchangeLogic';
 import { useToastStore } from '@/stores/useToastStore';
-import { CITIES, LOCATIONS, STATES } from '@/utils/locations';
-import { useGetPickupStatesQuery } from '@/hooks/queries/transactions/useGetPickupStatesQuery';
-import { useGetPickupPointsQuery } from '@/hooks/queries/transactions/useGetPickupPointsQuery';
+import { LocationItem } from '@/utils/locations';
 import { btaStep0Schema, btaStep1Schema, btaStep2Schema, btaStep3Schema } from '@/utils/validations/bta';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
@@ -81,7 +80,7 @@ export default function BusinessTravelAllowanceScreen() {
         amountSendStr,
         setAmountSendStr,
         currentRate,
-    } = useExchangeLogic({ setValue, initialAmount: '1' });
+    } = useExchangeLogic({ setValue, initialAmount: '0' });
 
     // Dynamic Locations
     const { data: states = [] } = useGetPickupStatesQuery();
@@ -319,12 +318,12 @@ export default function BusinessTravelAllowanceScreen() {
 
 
     const isStep0Valid = watchedFields.bvn && watchedFields.tin && watchedFields.nin && watchedFields.formAId && watchedFields.passportNumber;
-    const isStep1Valid = docs.tcc.meta && docs.passport.meta && docs.tin.meta && docs.visa.meta && docs.returnTicket.meta && docs.corporateBodyLetter.meta && docs.partnerInvitationLetter.meta && 
+    const isStep1Valid = docs.tcc.meta && docs.passport.meta && docs.tin.meta && docs.visa.meta && docs.returnTicket.meta && docs.corporateBodyLetter.meta && docs.partnerInvitationLetter.meta &&
         watchedFields.tccNumber && watchedFields.passportIssueDate && watchedFields.passportExpiryDate && watchedFields.visaNumber;
     const isStep2Valid = watchedFields.amount > 0;
     const isStep3Valid = watchedFields.selectedState && watchedFields.selectedCity && watchedFields.selectedLocation && watchedFields.pickupDate && watchedFields.pickupTime;
 
-    const isNextDisabled = 
+    const isNextDisabled =
         (currentStep === 0 && !isStep0Valid) ||
         (currentStep === 1 && !isStep1Valid) ||
         (currentStep === 2 && !isStep2Valid) ||

@@ -39,7 +39,7 @@ const LocationSelectionSheet: React.FC<LocationSelectionSheetProps> = ({
         item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (item.subtitle && item.subtitle.toLowerCase().includes(searchQuery.toLowerCase()))
     );
-
+console.log(filteredData,"data")
     const renderItem = ({ item }: { item: LocationItem }) => {
         const isSelected = selectedId === item.id;
         return (

@@ -89,7 +89,7 @@ export default function SchoolFeesScreen() {
         amountSendStr,
         setAmountSendStr,
         currentRate,
-    } = useExchangeLogic({ setValue, initialAmount: '1' });
+    } = useExchangeLogic({ setValue, initialAmount: '0' });
 
     // Document upload state
     const [docs, setDocs] = useState({
@@ -323,10 +323,10 @@ export default function SchoolFeesScreen() {
 
     const watchedFields = watch() as any;
     const isStep0Valid = watchedFields.bvn && watchedFields.nin && watchedFields.formAId && watchedFields.passportNumber && watchedFields.admissionType;
-    
+
     let isStep1Valid = false;
     if (watchedFields.admissionType === 'Post-Graduate') {
-        isStep1Valid = !!(docs.passport.meta && docs.invoice.meta && docs.result.meta && docs.degree.meta && 
+        isStep1Valid = !!(docs.passport.meta && docs.invoice.meta && docs.result.meta && docs.degree.meta &&
             watchedFields.passportIssueDate && watchedFields.passportExpiryDate);
     } else {
         isStep1Valid = !!(docs.admission.meta && docs.invoice.meta && docs.passport.meta);
