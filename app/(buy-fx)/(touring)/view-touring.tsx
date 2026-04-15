@@ -1,8 +1,11 @@
+import LoadingBackdrop from '@/components/LoadingBackdrop';
 import TransactionDetailsView from '@/components/transaction-flow/TransactionDetailsView';
 import TransactionDocsView from '@/components/transaction-flow/TransactionDocsView';
 import TransactionStatusView, { TransactionStatus } from '@/components/transaction-flow/TransactionStatusView';
 import TransactionViewLayout from '@/components/transaction-flow/TransactionViewLayout';
 import { useGetTransactionByIdQuery } from '@/hooks/queries/transactions/useGetTransactionByIdQuery';
+import { useDocumentUpload } from '@/hooks/useDocumentUpload';
+import { useToastStore } from '@/stores/useToastStore';
 import { commonDocTypeLabels, getTransactionDocuments } from '@/utils/helpers';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
@@ -15,6 +18,13 @@ export default function ViewTouringScreen() {
 
     const { data: txResponse, isLoading } = useGetTransactionByIdQuery(transactionId || '');
     const tx = txResponse?.data;
+    const showToast = useToastStore(s => s.showToast);
+
+    const { upload: uploadFile, isPending: isUploading } = useDocumentUpload({
+        transactionId: transactionId || undefined,
+        onSuccess: () => {},
+        onError: () => showToast('Failed to upload document. Please try again.', 'error'),
+    });
 
     console.log(JSON.stringify(tx, null, 2), "TRANSACTION");
 
@@ -66,9 +76,10 @@ export default function ViewTouringScreen() {
             label: commonDocTypeLabels[d.type] || d.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
             fileName: d.uploaded!.fileName,
             docStatus: d.uploaded!.status,
-            required: true
+            required: true,
+            onUpload: d.uploaded!.status === 'FAILED' ? () => uploadFile(d.type) : undefined,
         }));
-    }, [tx]);
+    }, [tx, uploadFile]);
     const getMessage = () => {
         if (!tx) return '';
         if (status === 'approved' || status === 'awaiting_disbursement' || status === 'settled') return "Congratulations! Your touring allowance request has been approved. Please proceed to payment.";
@@ -78,6 +89,8 @@ export default function ViewTouringScreen() {
     if (isLoading) return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}><ActivityIndicator size="large" color="#FF6B2C" /></View>;
 
     return (
+        <>
+        <LoadingBackdrop visible={isUploading} />
         <TransactionViewLayout
             title="Transaction"
             activeTab={activeTab}
@@ -88,9 +101,10 @@ export default function ViewTouringScreen() {
             actionButtonTitle={status === 'approved' || status === 'awaiting_disbursement' ? "Proceed to Payment" : "Resubmit Request"}
             onActionPress={handleProceed}
         >
-            {activeTab === 'overview' && (<TransactionStatusView status={status} id={tx?.referenceNumber?.slice(-6) || ''} date={tx ? fmtDate(tx.createdAt) : ''} time={tx ? fmtTime(tx.createdAt) : ''} message={getMessage()} />)}
+            {activeTab === 'overview' && (<TransactionStatusView status={status} id={tx?.referenceNumber?.slice(-6) || ''} date={tx ? fmtDate(tx.createdAt) : ''} time={tx ? fmtTime(tx.createdAt) : ''} message={getMessage()} comments={tx?.comments} />)}
             {activeTab === 'details' && (<TransactionDetailsView details={detailsItems} documents={detailsDocuments} />)}
             {activeTab === 'docs' && (<TransactionDocsView status={status} documents={docsItems} />)}
         </TransactionViewLayout>
+        </>
     );
 }

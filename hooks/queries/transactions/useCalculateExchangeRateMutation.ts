@@ -10,8 +10,6 @@ export const useCalculateExchangeRateMutation = () => {
         mutationFn: calculateExchangeRate,
         onSuccess: (response: CalculateExchangeRateResponse) => {
             if (response.success && response.data) {
-                // Not showing toast by default here as this might be called frequently on input change
-                // But logging it for debugging
                 console.log(response, "calculate exchange rate response");
             }
         },

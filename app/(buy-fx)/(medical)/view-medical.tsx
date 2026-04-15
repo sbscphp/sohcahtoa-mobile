@@ -1,8 +1,11 @@
+import LoadingBackdrop from '@/components/LoadingBackdrop';
 import TransactionDetailsView from '@/components/transaction-flow/TransactionDetailsView';
 import TransactionDocsView from '@/components/transaction-flow/TransactionDocsView';
 import TransactionStatusView, { TransactionStatus } from '@/components/transaction-flow/TransactionStatusView';
 import TransactionViewLayout from '@/components/transaction-flow/TransactionViewLayout';
 import { useGetTransactionByIdQuery } from '@/hooks/queries/transactions/useGetTransactionByIdQuery';
+import { useDocumentUpload } from '@/hooks/useDocumentUpload';
+import { useToastStore } from '@/stores/useToastStore';
 import { commonDocTypeLabels, getTransactionDocuments } from '@/utils/helpers';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
@@ -15,6 +18,13 @@ export default function ViewMedicalPaymentScreen() {
 
     const { data: txResponse, isLoading } = useGetTransactionByIdQuery(transactionId || '');
     const tx = txResponse?.data;
+    const showToast = useToastStore(s => s.showToast);
+
+    const { upload: uploadFile, isPending: isUploading } = useDocumentUpload({
+        transactionId: transactionId || undefined,
+        onSuccess: () => {},
+        onError: () => showToast('Failed to upload document. Please try again.', 'error'),
+    });
 
     console.log(tx, "MEDI");
 
@@ -89,8 +99,9 @@ export default function ViewMedicalPaymentScreen() {
                 fileName: doc.uploaded!.fileName,
                 docStatus: doc.uploaded!.status,
                 required: true,
+                onUpload: doc.uploaded!.status === 'FAILED' ? () => uploadFile(doc.type) : undefined,
             }));
-    }, [tx]);
+    }, [tx, uploadFile]);
 
     const getMessage = () => {
         if (!tx) return '';
@@ -109,6 +120,8 @@ export default function ViewMedicalPaymentScreen() {
     }
 
     return (
+        <>
+        <LoadingBackdrop visible={isUploading} />
         <TransactionViewLayout
             title="Transaction"
             activeTab={activeTab}
@@ -130,6 +143,7 @@ export default function ViewMedicalPaymentScreen() {
                     date={tx ? formatDate(tx.createdAt) : ''}
                     time={tx ? formatTime(tx.createdAt) : ''}
                     message={getMessage()}
+                    comments={tx?.comments}
                 />
             )}
 
@@ -148,5 +162,6 @@ export default function ViewMedicalPaymentScreen() {
                 />
             )}
         </TransactionViewLayout>
+        </>
     );
 }

@@ -1,8 +1,11 @@
+import LoadingBackdrop from '@/components/LoadingBackdrop';
 import TransactionDetailsView from '@/components/transaction-flow/TransactionDetailsView';
 import TransactionDocsView from '@/components/transaction-flow/TransactionDocsView';
 import TransactionStatusView, { TransactionStatus } from '@/components/transaction-flow/TransactionStatusView';
 import TransactionViewLayout from '@/components/transaction-flow/TransactionViewLayout';
 import { useGetTransactionByIdQuery } from '@/hooks/queries/transactions/useGetTransactionByIdQuery';
+import { useDocumentUpload } from '@/hooks/useDocumentUpload';
+import { useToastStore } from '@/stores/useToastStore';
 import { commonDocTypeLabels, getTransactionDocuments } from '@/utils/helpers';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
@@ -15,8 +18,15 @@ export default function ViewSchoolFeesScreen() {
 
     const { data: txResponse, isLoading } = useGetTransactionByIdQuery(transactionId || '');
     const tx = txResponse?.data;
+    const showToast = useToastStore(s => s.showToast);
 
     console.log(JSON.stringify(tx, null, 2), "TX");
+
+    const { upload: uploadFile, isPending: isUploading } = useDocumentUpload({
+        transactionId: transactionId || undefined,
+        onSuccess: () => { /* query auto-invalidated by the mutation */ },
+        onError: () => showToast('Failed to upload document. Please try again.', 'error'),
+    });
 
     const mapStatus = (s: string): TransactionStatus => {
         const map: Record<string, TransactionStatus> = { 'DRAFT': 'pending', 'AWAITING_VERIFICATION': 'pending', 'VERIFICATION_IN_PROGRESS': 'pending', 'VERIFICATION_COMPLETED': 'pending', 'AWAITING_DEPOSIT': 'awaiting_disbursement', 'DEPOSIT_PENDING': 'awaiting_disbursement', 'DEPOSIT_CONFIRMED': 'awaiting_disbursement', 'COMPLIANCE_REVIEW': 'pending', 'ADMIN_APPROVAL_PENDING': 'pending', 'APPROVED': 'approved', 'DISBURSEMENT_IN_PROGRESS': 'awaiting_disbursement', 'COMPLETED': 'settled', 'REJECTED': 'rejected', 'CANCELLED': 'rejected' };
@@ -73,9 +83,10 @@ export default function ViewSchoolFeesScreen() {
             label: commonDocTypeLabels[d.type] || d.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
             fileName: d.uploaded!.fileName,
             docStatus: d.uploaded!.status,
-            required: true
+            required: true,
+            onUpload: d.uploaded!.status === 'FAILED' ? () => uploadFile(d.type) : undefined,
         }));
-    }, [tx]);
+    }, [tx, uploadFile]);
     console.log(docsItems, "DOCS");
     const getMessage = () => {
         if (!tx) return '';
@@ -85,7 +96,10 @@ export default function ViewSchoolFeesScreen() {
     };
     if (isLoading) return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}><ActivityIndicator size="large" color="#FF6B2C" /></View>;
 
+
     return (
+        <>
+        <LoadingBackdrop visible={isUploading} />
         <TransactionViewLayout
             title="Transaction"
             activeTab={activeTab}
@@ -96,9 +110,10 @@ export default function ViewSchoolFeesScreen() {
             actionButtonTitle={status === 'approved' || status === 'awaiting_disbursement' ? "Proceed to Payment" : "Resubmit Request"}
             onActionPress={handleProceed}
         >
-            {activeTab === 'overview' && (<TransactionStatusView status={status} id={tx?.referenceNumber?.slice(-6) || ''} date={tx ? fmtDate(tx.createdAt) : ''} time={tx ? fmtTime(tx.createdAt) : ''} message={getMessage()} />)}
+            {activeTab === 'overview' && (<TransactionStatusView status={status} id={tx?.referenceNumber?.slice(-6) || ''} date={tx ? fmtDate(tx.createdAt) : ''} time={tx ? fmtTime(tx.createdAt) : ''} message={getMessage()} comments={tx?.comments} />)}
             {activeTab === 'details' && (<TransactionDetailsView details={detailsItems} documents={detailsDocuments} beneficiaryDetails={beneficiaryItems} />)}
             {activeTab === 'docs' && (<TransactionDocsView status={status} documents={docsItems} />)}
         </TransactionViewLayout>
+        </>  
     );
 }

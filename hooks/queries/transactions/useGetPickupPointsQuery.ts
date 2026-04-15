@@ -12,7 +12,6 @@ export const useGetPickupPointsQuery = () => {
                 id: point.id,
                 title: point.name,
                 subtitle: `${point.address}${point.branch ? `, ${point.branch}` : ''}`,
-                // We keep original data for filtering in component if needed
                 metadata: point 
             })) as LocationItem[];
         }

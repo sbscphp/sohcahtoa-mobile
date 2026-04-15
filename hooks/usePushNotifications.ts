@@ -27,11 +27,11 @@ export const usePushNotifications = () => {
         });
 
         notificationListener.current = Notifications.addNotificationReceivedListener((notification: Notifications.Notification) => {
-            // Handle notification arrival
+            
         });
 
         responseListener.current = Notifications.addNotificationResponseReceivedListener((response: Notifications.NotificationResponse) => {
-            // Handle notification interaction
+            
         });
 
         return () => {

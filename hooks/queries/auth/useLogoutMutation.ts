@@ -20,8 +20,6 @@ export const useLogoutMutation = () => {
         onError: (error: any) => {
             const message = error.response?.data?.error?.message || error.message || 'Logout Failed';
             showToast(message, 'error');
-            // Proactive state clearing even on failure to ensure user is logged out locally
-            // logout();
         },
     });
 };

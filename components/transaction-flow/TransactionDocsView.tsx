@@ -11,7 +11,7 @@ interface DocItem {
     fileName?: string | null;
     onUpload?: () => void;
     required?: boolean;
-    docStatus?: 'PENDING' | 'APPROVED' | 'REJECTED' | string;
+    docStatus?: 'VERIFIED' | 'REQUIRES_MANUAL_REVIEW' | 'FAILED' | 'APPROVED' | 'REJECTED' | 'PENDING' | string;
 }
 
 interface TransactionDocsViewProps {
@@ -21,9 +21,10 @@ interface TransactionDocsViewProps {
 
 export default function TransactionDocsView({ status, documents }: TransactionDocsViewProps) {
 
-    const getDocStatus = (docStatus?: string): 'approved' | 'rejected' | 'pending' => {
-        if (docStatus === 'APPROVED') return 'approved';
-        if (docStatus === 'REJECTED') return 'rejected';
+    const getDocStatus = (docStatus?: string): 'approved' | 'rejected' | 'review' | 'pending' => {
+        if (docStatus === 'VERIFIED' || docStatus === 'APPROVED') return 'approved';
+        if (docStatus === 'FAILED' || docStatus === 'REJECTED') return 'rejected';
+        if (docStatus === 'REQUIRES_MANUAL_REVIEW') return 'review';
         return 'pending';
     };
 
@@ -35,14 +36,18 @@ export default function TransactionDocsView({ status, documents }: TransactionDo
         if (s === 'rejected') {
             return <CloseCircle size={moderateScale(16)} color="#EF4444" variant="Bold" />;
         }
+        if (s === 'review') {
+            return <TickCircle size={moderateScale(16)} color="#F97316" variant="Bold" />;
+        }
         // pending
         return <TickCircle size={moderateScale(16)} color="#FDBA74" variant="Bold" />;
     };
 
     const getStatusText = (docStatus?: string) => {
         const s = getDocStatus(docStatus);
-        if (s === 'approved') return 'Approved';
-        if (s === 'rejected') return 'Rejected';
+        if (s === 'approved') return 'Verified';
+        if (s === 'rejected') return 'Failed';
+        if (s === 'review') return 'Requires Manual Review';
         return 'Pending';
     };
 
@@ -50,6 +55,7 @@ export default function TransactionDocsView({ status, documents }: TransactionDo
         const s = getDocStatus(docStatus);
         if (s === 'approved') return styles.docStatusTextApproved;
         if (s === 'rejected') return styles.docStatusTextError;
+        if (s === 'review') return styles.docStatusTextReview;
         return styles.docStatusTextPending;
     };
 
@@ -71,7 +77,7 @@ export default function TransactionDocsView({ status, documents }: TransactionDo
                                 onUpload={doc.onUpload || (() => { })}
                                 fileName={doc.fileName}
                                 title={`Upload ${doc.label}`}
-                                status={getDocStatus(doc.docStatus)}
+                                status={((): 'default' | 'approved' | 'pending' | 'error' | 'rejected' => { const s = getDocStatus(doc.docStatus); return s === 'review' ? 'pending' : s; })()}
                             />
                             {doc.fileName && (
                                 <View style={[styles.docStatusRow, { marginTop: 0 }]}>
@@ -121,6 +127,11 @@ const styles = ScaledSheet.create({
     docStatusTextPending: {
         fontSize: '12@ms',
         color: '#FDBA74',
+        fontWeight: '500',
+    },
+    docStatusTextReview: {
+        fontSize: '12@ms',
+        color: '#F97316',
         fontWeight: '500',
     },
     docStatusTextError: {

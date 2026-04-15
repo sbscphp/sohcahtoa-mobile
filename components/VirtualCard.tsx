@@ -6,7 +6,7 @@ import Chip from '../assets/images/chip.svg';
 
 interface VirtualCardProps {
     name: string;
-    balance?: string; // Optional if we want to show it
+    balance?: string; 
     last4Digits: string;
     expiry: string;
 }
@@ -26,7 +26,6 @@ const CardBackground = () => (
                 <Stop offset="100%" stopColor="#DF9457" stopOpacity="1" />
             </LinearGradient>
 
-            {/* Subtle overlay shapes for the "sheen" effect */}
             <LinearGradient id="sheen" x1="0%" y1="0%" x2="0%" y2="100%">
                 <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.1" />
                 <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
@@ -34,7 +33,6 @@ const CardBackground = () => (
         </Defs>
         <Rect width="100%" height="100%" fill="url(#grad)" />
 
-        {/* Decorative geometrical shapes to mimic the design */}
         <Path
             d="M0,100 L100,60 L200,140 L0,140 Z"
             fill="white"
@@ -65,8 +63,6 @@ const VirtualCard: React.FC<VirtualCardProps> = ({
                     <View style={{ flex: 1 }} />
                     <VisaLogo />
                 </View>
-
-                {/* Bottom Section */}
                 <View style={styles.bottomSection}>
                     <View style={styles.detailsRow}>
                         <View style={styles.numberContainer}>

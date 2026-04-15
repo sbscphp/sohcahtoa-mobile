@@ -21,7 +21,6 @@ export const useLoginMutation = () => {
                     response.data.user
                 );
 
-                // Save credentials for biometrics if enabled or a preference is set
                 const isBiometricEnabled = useAuthStore.getState().isBiometricEnabled;
                 const biometricType = useAuthStore.getState().biometricType;
                 const checkCredentials = useAuthStore.getState().checkCredentials;

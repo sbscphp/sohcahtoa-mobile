@@ -11,10 +11,8 @@ export function useProtectedRoute() {
         const inAuthGroup = segments[0] === '(auth)';
 
         if (!isAuthenticated && !inAuthGroup && segments[0] !== undefined) {
-            // If the user is not signed in and the initial segment is not auth, redirect to onboarding
             router.replace('/');
         } else if (isAuthenticated && inAuthGroup) {
-            // Redirect away from auth pages if authenticated
             router.replace('/(tabs)');
         }
     }, [isAuthenticated, segments]);

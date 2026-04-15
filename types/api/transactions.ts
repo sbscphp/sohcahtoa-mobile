@@ -81,6 +81,14 @@ export interface TransactionCashPickup {
     status: string;
 }
 
+export interface TransactionComment {
+    id: string;
+    action: string;
+    message: string;
+    addedBy: string;
+    createdAt: string;
+}
+
 export interface Transaction {
     id: string;
     referenceNumber: string;
@@ -127,6 +135,7 @@ export interface Transaction {
     };
     documents: TransactionDocument[];
     cashPickup: TransactionCashPickup | null;
+    comments?: TransactionComment[];
 }
 
 export interface PaginationMeta {
@@ -295,6 +304,7 @@ export interface GetTransactionByIdResponse {
         cashPickup?: any;
         prepaidCard?: any;
         steps?: any[];
+        comments?: TransactionComment[];
         createdAt: string;
         updatedAt: string;
     };

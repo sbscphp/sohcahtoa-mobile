@@ -25,14 +25,11 @@ export interface DocumentUploadResult {
 interface UseDocumentUploadOptions {
     onSuccess: (documentType: string, result: DocumentUploadResult) => void;
     onError?: (error: unknown) => void;
+    transactionId?: string;
 }
 
-/**
- * Reusable hook for picking and uploading a document.
- * Each screen passes its own `onSuccess` to handle the result
- * (e.g. storing it in transaction-specific store fields).
- */
-export function useDocumentUpload({ onSuccess, onError }: UseDocumentUploadOptions) {
+
+export function useDocumentUpload({ onSuccess, onError, transactionId }: UseDocumentUploadOptions) {
     const user = useAuthStore((state) => state.user);
     const uploadDocument = useUploadTransactionDocumentMutation();
 
@@ -55,6 +52,7 @@ export function useDocumentUpload({ onSuccess, onError }: UseDocumentUploadOptio
             uploadDocument.mutate(
                 {
                     userId: user.id,
+                    transactionId,
                     documentType,
                     document: {
                         uri: asset.uri,

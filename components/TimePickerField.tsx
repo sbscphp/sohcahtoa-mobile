@@ -13,13 +13,9 @@ import {
 import { moderateScale, ScaledSheet, verticalScale } from 'react-native-size-matters';
 import PrimaryButton from './PrimaryButton';
 
-// ─── Constants ──────────────────────────────────────────────────────────────
-
 const ITEM_HEIGHT = verticalScale(44);
 const VISIBLE_ITEMS = 5;
 const PICKER_HEIGHT = ITEM_HEIGHT * VISIBLE_ITEMS;
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function pad(n: number | string): string {
     return String(n).padStart(2, '0');
@@ -60,8 +56,6 @@ function convert12To24(h12: number, period: typeof PERIODS[number]): number {
     return h24;
 }
 
-// ─── Memoized Item ───────────────────────────────────────────────────────────
-
 const DrumItem = React.memo(({ item, isSelected }: { item: string, isSelected: boolean }) => (
     <View style={[drumStyles.item, { height: ITEM_HEIGHT }]}>
         <Text style={[drumStyles.itemText, isSelected && drumStyles.itemTextSelected]}>
@@ -69,8 +63,6 @@ const DrumItem = React.memo(({ item, isSelected }: { item: string, isSelected: b
         </Text>
     </View>
 ));
-
-// ─── Drum Column ─────────────────────────────────────────────────────────────
 
 interface DrumColumnProps {
     items: string[];
@@ -83,7 +75,6 @@ function DrumColumn({ items, selectedIndex, onIndexChange, width }: DrumColumnPr
     const listRef = useRef<FlatList>(null);
     const isScrolling = useRef(false);
 
-    // Initial scroll and external sync
     useEffect(() => {
         if (!isScrolling.current) {
             listRef.current?.scrollToOffset({
@@ -103,7 +94,6 @@ function DrumColumn({ items, selectedIndex, onIndexChange, width }: DrumColumnPr
             onIndexChange(clamped);
         }
         
-        // Ensure snap is perfect
         listRef.current?.scrollToOffset({
             offset: clamped * ITEM_HEIGHT,
             animated: true,
@@ -151,7 +141,6 @@ function DrumColumn({ items, selectedIndex, onIndexChange, width }: DrumColumnPr
                 initialNumToRender={VISIBLE_ITEMS + 2}
                 maxToRenderPerBatch={VISIBLE_ITEMS}
                 windowSize={3}
-                // Important for preventing momentum re-entry
                 disableIntervalMomentum={true}
                 scrollEventThrottle={16}
             />
