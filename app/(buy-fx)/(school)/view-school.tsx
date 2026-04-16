@@ -20,7 +20,7 @@ export default function ViewSchoolFeesScreen() {
     const tx = txResponse?.data;
     const showToast = useToastStore(s => s.showToast);
 
-    console.log(JSON.stringify(tx, null, 2), "TX");
+    // console.log(JSON.stringify(tx, null, 2), "TX");
 
     const { upload: uploadFile, isPending: isUploading } = useDocumentUpload({
         transactionId: transactionId || undefined,
