@@ -9,9 +9,10 @@ import Constants from 'expo-constants';
 export const usePushNotifications = () => {
     const { mutate: register } = useRegisterDeviceMutation();
     const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+    const hasSeenPrompt = useAuthStore((state) => state.hasSeenNotificationPrompt);
     const notificationListener = useRef<Notifications.EventSubscription | undefined>(undefined);
     const responseListener = useRef<Notifications.EventSubscription | undefined>(undefined);
-
+ 
     useEffect(() => {
         registerForPushNotificationsAsync().then(token => {
             if (token && isAuthenticated) {
@@ -42,7 +43,7 @@ export const usePushNotifications = () => {
                 Notifications.removeNotificationSubscription(responseListener.current);
             }
         };
-    }, [isAuthenticated]);
+    }, [isAuthenticated, hasSeenPrompt]);
 };
 
 async function registerForPushNotificationsAsync() {
@@ -59,12 +60,7 @@ async function registerForPushNotificationsAsync() {
 
     if (Device.isDevice) {
         const { status: existingStatus } = await Notifications.getPermissionsAsync();
-        let finalStatus = existingStatus;
         if (existingStatus !== 'granted') {
-            const { status } = await Notifications.requestPermissionsAsync();
-            finalStatus = status;
-        }
-        if (finalStatus !== 'granted') {
             return;
         }
         

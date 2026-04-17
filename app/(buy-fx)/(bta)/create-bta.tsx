@@ -105,10 +105,14 @@ export default function BusinessTravelAllowanceScreen() {
         return Array.from(citiesMap.values());
     }, [watchedFields.selectedState, allLocations]);
 
+    console.log(filteredCities, "filteredCities")
+
     const filteredLocations = useMemo(() => {
         if (!watchedFields.selectedCity) return [];
         return allLocations.filter((loc: any) => loc.metadata.location === watchedFields.selectedCity.title);
     }, [watchedFields.selectedCity, allLocations]);
+
+    console.log(filteredLocations, "filteredLocations")
 
     // Document upload files state
     const [docs, setDocs] = useState({

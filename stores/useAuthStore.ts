@@ -23,6 +23,8 @@ interface AuthState {
     hasCredentials: boolean;
     setHasCredentials: (has: boolean) => void;
     checkCredentials: () => Promise<void>;
+    hasSeenNotificationPrompt: boolean;
+    setHasSeenNotificationPrompt: (seen: boolean) => void;
     logout: () => void;
 }
 
@@ -38,7 +40,9 @@ export const useAuthStore = create<AuthState>()(
             isBiometricEnabled: false,
             biometricType: null,
             hasCredentials: false,
+            hasSeenNotificationPrompt: false,
             setHasCredentials: (hasCredentials) => set({ hasCredentials }),
+            setHasSeenNotificationPrompt: (seen) => set({ hasSeenNotificationPrompt: seen }),
             checkCredentials: async () => {
                 const { getStoredCredentials } = await import('@/utils/biometrics');
                 const credentials = await getStoredCredentials();
