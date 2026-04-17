@@ -2,6 +2,7 @@ import { useToastStore } from '@/stores/useToastStore';
 import { useMutation } from '@tanstack/react-query';
 import { validateNigerianEmailOtp } from '../../../services/auth';
 import { useRouter } from 'expo-router';
+import { ValidateNigerianEmailOtpResponse } from '@/types/api/auth';
 
 export const useValidateNigerianEmailOtpMutation = () => {
     const showToast = useToastStore((state) => state.showToast);
@@ -9,7 +10,7 @@ export const useValidateNigerianEmailOtpMutation = () => {
 
     return useMutation({
         mutationFn: validateNigerianEmailOtp,
-        onSuccess: (response) => {
+        onSuccess: (response: ValidateNigerianEmailOtpResponse) => {
             if (response.success && response.data) {
                 router.push({
                     pathname: '/(auth)/secure-account',

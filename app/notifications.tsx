@@ -5,59 +5,38 @@ import React, { useMemo, useState } from 'react';
 import { SectionList, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
-
-// ── Mock data (replace with API hook later) ──────────────────────────
-const MOCK_NOTIFICATIONS: Notification[] = [
-    {
-        id: '1',
-        title: 'Transaction Initiated',
-        message: 'Your PTA transaction has been initiated',
-        date: 'Nov 18 2025',
-        time: '11:00 am',
-        isRead: false,
-        type: 'transaction',
-    },
-    {
-        id: '2',
-        title: 'Document Uploaded',
-        message: 'Your visa document has been uploaded',
-        date: 'Nov 18 2025',
-        time: '11:00 am',
-        isRead: false,
-        type: 'transaction',
-    },
-    {
-        id: '3',
-        title: 'KYC Approved',
-        message: 'Your identity verification is complete',
-        date: 'Nov 18 2025',
-        time: '11:00 am',
-        isRead: false,
-        type: 'system',
-    },
-    {
-        id: '4',
-        title: 'Transaction Completed',
-        message: 'Your BTA transaction has been completed',
-        date: 'Nov 17 2025',
-        time: '11:00 am',
-        isRead: true,
-        type: 'transaction',
-    },
-];
+import { useGetNotificationsQuery } from '@/hooks/queries/notifications/useGetNotificationsQuery';
+import { useMarkAsReadMutation } from '@/hooks/queries/notifications/useMarkAsReadMutation';
+import { useMarkAllAsReadMutation } from '@/hooks/queries/notifications/useMarkAllAsReadMutation';
+import { ActivityIndicator } from 'react-native';
+import { formatDate, formatTime } from '@/utils/helpers';
 
 type FilterTab = 'all' | 'unread' | 'transactions';
-
-// ── Helpers ──────────────────────────────────────────────────────────
-const getDateLabel = (dateStr: string): string => {
+ 
+const isToday = (date: Date) => {
     const today = new Date();
-    const yesterday = new Date();
-    yesterday.setDate(today.getDate() - 1);
+    return date.getDate() === today.getDate() &&
+        date.getMonth() === today.getMonth() &&
+        date.getFullYear() === today.getFullYear();
+};
 
-    // For mock data we simply pattern match; with real dates use date-fns / dayjs
-    if (dateStr.includes('18')) return 'Today';
-    if (dateStr.includes('17')) return 'Yesterday';
-    return dateStr;
+const isYesterday = (date: Date) => {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    return date.getDate() === yesterday.getDate() &&
+        date.getMonth() === yesterday.getMonth() &&
+        date.getFullYear() === yesterday.getFullYear();
+};
+
+const getDateLabel = (dateStr: string): string => {
+    try {
+        const date = new Date(dateStr);
+        if (isToday(date)) return 'Today';
+        if (isYesterday(date)) return 'Yesterday';
+        return formatDate(dateStr);
+    } catch (e) {
+        return dateStr;
+    }
 };
 
 interface Section {
@@ -67,54 +46,75 @@ interface Section {
 
 const groupByDate = (notifications: Notification[]): Section[] => {
     const groups: Record<string, Notification[]> = {};
-    notifications.forEach((n) => {
-        const label = getDateLabel(n.date);
-        if (!groups[label]) groups[label] = [];
-        groups[label].push(n);
-    });
+    if (Array.isArray(notifications)) {
+        notifications.forEach((n) => {
+            const label = getDateLabel(n.createdAt);
+            if (!groups[label]) groups[label] = [];
+            groups[label].push(n);
+        });
+    }
     return Object.entries(groups).map(([title, data]) => ({ title, data }));
 };
 
-// ── Component ────────────────────────────────────────────────────────
 export default function NotificationsScreen() {
     const insets = useSafeAreaInsets();
     const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
 
+    const { data: notificationsData, isLoading } = useGetNotificationsQuery();
+    const { mutate: markRead } = useMarkAsReadMutation();
+    const { mutate: markAllRead } = useMarkAllAsReadMutation();
+
+    // console.log(JSON.stringify(notificationsData, null, 2));
+
+    const notifications = useMemo(() => {
+        if (!notificationsData) return [];
+        if (notificationsData.data && Array.isArray(notificationsData.data.notifications)) {
+            return notificationsData.data.notifications;
+        }
+        if (Array.isArray(notificationsData.data)) return notificationsData.data;
+        if (Array.isArray(notificationsData)) return notificationsData;
+        return [];
+    }, [notificationsData]);
+
     const filtered = useMemo(() => {
+        if (!Array.isArray(notifications)) return [];
         switch (activeFilter) {
             case 'unread':
-                return MOCK_NOTIFICATIONS.filter((n) => !n.isRead);
+                return notifications.filter((n) => !n.isRead);
             case 'transactions':
-                return MOCK_NOTIFICATIONS.filter((n) => n.type === 'transaction');
+                return notifications.filter((n) => n.actionUrl?.includes('/transactions') || n.type === 'transaction');
             default:
-                return MOCK_NOTIFICATIONS;
+                return notifications;
         }
-    }, [activeFilter]);
+    }, [activeFilter, notifications]);
 
-    const unreadCount = MOCK_NOTIFICATIONS.filter((n) => !n.isRead).length;
+    const unreadCount = notifications.filter((n) => !n.isRead).length;
     const sections = useMemo(() => groupByDate(filtered), [filtered]);
 
     const tabs: { key: FilterTab; label: string }[] = [
-        { key: 'all', label: `All ${MOCK_NOTIFICATIONS.length}` },
+        { key: 'all', label: `All ${notifications.length}` },
         { key: 'unread', label: `Unread ${unreadCount}` },
         { key: 'transactions', label: 'Transactions' },
     ];
 
-    // ── Renderers ────────────────────────────────────────────────────
     const renderSectionHeader = ({ section }: { section: Section }) => (
         <Text style={styles.sectionHeader}>{section.title}</Text>
     );
 
     const renderItem = ({ item }: { item: Notification }) => (
-        <TouchableOpacity style={styles.card} activeOpacity={0.7}>
+        <TouchableOpacity 
+            style={styles.card} 
+            activeOpacity={0.7}
+            onPress={() => !item.isRead && markRead(item.id)}
+        >
             <View style={styles.cardContent}>
                 <Text style={styles.cardTitle}>{item.title}</Text>
-                <Text style={styles.cardMessage}>{item.message}</Text>
+                <Text style={styles.cardMessage}>{item.body}</Text>
                 <View style={styles.cardMeta}>
                     <Calendar1 size={moderateScale(14)} color="#94A3B8" />
-                    <Text style={styles.cardMetaText}>{item.date}</Text>
+                    <Text style={styles.cardMetaText}>{formatDate(item.createdAt)}</Text>
                     <Clock size={moderateScale(14)} color="#94A3B8" />
-                    <Text style={styles.cardMetaText}>{item.time}</Text>
+                    <Text style={styles.cardMetaText}>{formatTime(item.createdAt)}</Text>
                 </View>
             </View>
             <View style={styles.cardRight}>
@@ -131,11 +131,20 @@ export default function NotificationsScreen() {
         </TouchableOpacity>
     );
 
+    const MarkAllReadIcon = (
+        <Text style={{ fontSize: moderateScale(12), color: '#FF6B2C', fontWeight: '600' }}>
+            Mark All
+        </Text>
+    );
+
     return (
         <View style={[styles.container, { paddingTop: insets.top }]}>
-            <Header title="Notifications" />
+            <Header 
+                title="Notifications" 
+                rightIcon={unreadCount > 0 ? MarkAllReadIcon : undefined}
+                onRightPress={() => markAllRead()}
+            />
 
-            {/* Filter Tabs */}
             <View style={styles.tabRow}>
                 {tabs.map((tab) => (
                     <TouchableOpacity
@@ -156,20 +165,26 @@ export default function NotificationsScreen() {
             </View>
 
             {/* Notification List */}
-            <SectionList
-                sections={sections}
-                keyExtractor={(item) => item.id}
-                renderSectionHeader={renderSectionHeader}
-                renderItem={renderItem}
-                contentContainerStyle={styles.listContent}
-                showsVerticalScrollIndicator={false}
-                stickySectionHeadersEnabled={false}
-                ListEmptyComponent={
-                    <View style={styles.emptyState}>
-                        <Text style={styles.emptyStateText}>No notifications</Text>
-                    </View>
-                }
-            />
+            {isLoading ? (
+                <View style={styles.emptyState}>
+                    <ActivityIndicator color="#FF6B2C" />
+                </View>
+            ) : (
+                <SectionList
+                    sections={sections}
+                    keyExtractor={(item) => item.id}
+                    renderSectionHeader={renderSectionHeader}
+                    renderItem={renderItem}
+                    contentContainerStyle={styles.listContent}
+                    showsVerticalScrollIndicator={false}
+                    stickySectionHeadersEnabled={false}
+                    ListEmptyComponent={
+                        <View style={styles.emptyState}>
+                            <Text style={styles.emptyStateText}>No notifications</Text>
+                        </View>
+                    }
+                />
+            )}
         </View>
     );
 }

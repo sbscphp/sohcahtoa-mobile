@@ -1,8 +1,10 @@
 import * as LocalAuthentication from 'expo-local-authentication';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Fingerprint } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { Alert, Text, View } from 'react-native';
+import { useAuthStore } from '@/stores/useAuthStore';
+import { saveCredentials } from '../../utils/biometrics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import AuthHeader from '../../components/AuthHeader';
@@ -14,9 +16,14 @@ type Status = 'idle' | 'scanning' | 'success' | 'failure' | 'unsupported';
 export default function FingerprintSetupScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
+    const { email, password } = useLocalSearchParams<{ email: string; password: string }>();
+    const setBiometricEnabled = useAuthStore((state) => state.setBiometricEnabled);
+    const setBiometricType = useAuthStore((state) => state.setBiometricType);
+    const checkCredentials = useAuthStore((state) => state.checkCredentials);
     const [status, setStatus] = useState<Status>('idle');
     const [hasHardware, setHasHardware] = useState(false);
     const [isEnrolled, setIsEnrolled] = useState(false);
+    const [isContinuing, setIsContinuing] = useState(false);
 
     // Check biometric hardware availability on mount
     useEffect(() => {
@@ -63,6 +70,13 @@ export default function FingerprintSetupScreen() {
             return;
         }
 
+        // Validate email and password before proceeding with fingerprint setup
+        if (!email || !password) {
+            Alert.alert('Setup Error', 'Email and password are required to set up biometrics. Please go back and ensure both are filled.');
+            setStatus('idle');
+            return;
+        }
+
         setStatus('scanning');
 
         try {
@@ -73,7 +87,21 @@ export default function FingerprintSetupScreen() {
             });
 
             if (result.success) {
-                setStatus('success');
+                if (email && password) {
+                    const saved = await saveCredentials(email, password);
+                    if (saved) {
+                        setBiometricEnabled(true);
+                        setBiometricType('fingerprint');
+                        await checkCredentials();
+                        setStatus('success');
+                    } else {
+                        Alert.alert('Save Error', 'Failed to securely store credentials. Please try again.');
+                        setStatus('failure');
+                    }
+                } else {
+                    Alert.alert('Setup Error', 'Email and password are required. Please go back and ensure both are filled.');
+                    setStatus('idle');
+                }
             } else {
                 // Authentication failed or was cancelled
                 if (result.error === 'user_cancel') {
@@ -93,6 +121,7 @@ export default function FingerprintSetupScreen() {
     };
 
     const handleContinue = () => {
+        setIsContinuing(true);
         // Navigate to the next screen, presumably tabs as this completes setup
         router.push('/(tabs)');
     };
@@ -190,17 +219,19 @@ export default function FingerprintSetupScreen() {
                         ]} />
                     )}
 
-                    <View style={[
-                        styles.circleInner,
-                        {
-                            backgroundColor: status === 'idle' ? Colors.light.primary : 'transparent',
-                        }
-                    ]}>
-                        <Fingerprint
-                            size={moderateScale(64)}
-                            color={status === 'idle' ? '#FFFFFF' : uiState.iconColor}
-                        />
-                    </View>
+                    {status !== 'scanning' && (
+                        <View style={[
+                            styles.circleInner,
+                            {
+                                backgroundColor: status === 'idle' ? Colors.light.primary : 'transparent',
+                            }
+                        ]}>
+                            <Fingerprint
+                                size={moderateScale(64)}
+                                color={status === 'idle' ? '#FFFFFF' : uiState.iconColor}
+                            />
+                        </View>
+                    )}
                 </View>
 
                 <View style={styles.footer}>
@@ -221,6 +252,7 @@ export default function FingerprintSetupScreen() {
                         <PrimaryButton
                             title="Continue"
                             onPress={handleContinue}
+                            loading={isContinuing}
                         />
                     )}
                     {status === 'failure' && (

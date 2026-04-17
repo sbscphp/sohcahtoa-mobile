@@ -2,21 +2,22 @@ import ControlledDatePicker from '@/components/ControlledDatePicker';
 import ControlledInput from '@/components/ControlledInput';
 import InitiateTransactionSheet from '@/components/InitiateTransactionSheet';
 import LoadingBackdrop from '@/components/LoadingBackdrop';
-import { LocationItem } from '@/components/LocationSelectionSheet';
 import CredentialStep from '@/components/transaction-flow/CredentialStep';
 import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import LocationStep from '@/components/transaction-flow/LocationStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
 import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
+import { useGetPickupPointsQuery } from '@/hooks/queries/transactions/useGetPickupPointsQuery';
+import { useGetPickupStatesQuery } from '@/hooks/queries/transactions/useGetPickupStatesQuery';
 import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useExchangeLogic } from '@/hooks/useExchangeLogic';
 import { useToastStore } from '@/stores/useToastStore';
-import { CITIES, LOCATIONS, STATES } from '@/utils/locations';
+import { LocationItem } from '@/utils/locations';
 import { btaStep0Schema, btaStep1Schema, btaStep2Schema, btaStep3Schema } from '@/utils/validations/bta';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { View } from 'react-native';
 import { z } from 'zod';
@@ -79,7 +80,39 @@ export default function BusinessTravelAllowanceScreen() {
         amountSendStr,
         setAmountSendStr,
         currentRate,
-    } = useExchangeLogic({ setValue, initialAmount: '1' });
+    } = useExchangeLogic({ setValue, initialAmount: '0' });
+
+    // Dynamic Locations
+    const { data: states = [] } = useGetPickupStatesQuery();
+    const { data: allLocations = [] } = useGetPickupPointsQuery();
+
+    const watchedFields = watch() as any;
+
+    const filteredCities = useMemo(() => {
+        if (!watchedFields.selectedState) return [];
+        // Extract unique cities (location field) from points in the selected state
+        const citiesMap = new Map<string, LocationItem>();
+        allLocations.forEach((loc: any) => {
+            const point = loc.metadata;
+            // Assuming the state name matches or we just show all cities for now if API doesn't filter
+            if (point && point.location) {
+                citiesMap.set(point.location, {
+                    id: `city-${point.location}`,
+                    title: point.location
+                });
+            }
+        });
+        return Array.from(citiesMap.values());
+    }, [watchedFields.selectedState, allLocations]);
+
+    console.log(filteredCities, "filteredCities")
+
+    const filteredLocations = useMemo(() => {
+        if (!watchedFields.selectedCity) return [];
+        return allLocations.filter((loc: any) => loc.metadata.location === watchedFields.selectedCity.title);
+    }, [watchedFields.selectedCity, allLocations]);
+
+    console.log(filteredLocations, "filteredLocations")
 
     // Document upload files state
     const [docs, setDocs] = useState({
@@ -122,7 +155,7 @@ export default function BusinessTravelAllowanceScreen() {
             label: 'Tax Clearance Certificate (TCC)',
             onUpload: () => uploadFile('TCC'),
             fileName: docs.tcc.file?.name,
-            fileUri: docs.tcc.file?.uri,            fileUrl: docs.tcc.meta?.fileUrl,
+            fileUri: docs.tcc.file?.uri, fileUrl: docs.tcc.meta?.fileUrl,
             fileType: docs.tcc.file?.type,
             required: true,
             associatedInputs: (
@@ -135,7 +168,7 @@ export default function BusinessTravelAllowanceScreen() {
             label: 'International Passport',
             onUpload: () => uploadFile('PASSPORT'),
             fileName: docs.passport.file?.name,
-            fileUri: docs.passport.file?.uri,            fileUrl: docs.passport.meta?.fileUrl,
+            fileUri: docs.passport.file?.uri, fileUrl: docs.passport.meta?.fileUrl,
             fileType: docs.passport.file?.type,
             required: true,
             associatedInputs: (
@@ -153,7 +186,7 @@ export default function BusinessTravelAllowanceScreen() {
             label: 'Tax Identification Number (TIN)',
             onUpload: () => uploadFile('TIN'),
             fileName: docs.tin.file?.name,
-            fileUri: docs.tin.file?.uri,            fileUrl: docs.tin.meta?.fileUrl,
+            fileUri: docs.tin.file?.uri, fileUrl: docs.tin.meta?.fileUrl,
             fileType: docs.tin.file?.type,
             required: true,
         },
@@ -161,12 +194,12 @@ export default function BusinessTravelAllowanceScreen() {
             label: 'Valid Visa',
             onUpload: () => uploadFile('VISA'),
             fileName: docs.visa.file?.name,
-            fileUri: docs.visa.file?.uri,            fileUrl: docs.visa.meta?.fileUrl,
+            fileUri: docs.visa.file?.uri, fileUrl: docs.visa.meta?.fileUrl,
             fileType: docs.visa.file?.type,
             required: true,
             associatedInputs: (
                 <View >
-                    <ControlledInput control={control} name="visaNumber" label="Visa Number" required placeholder="Enter visa number" keyboardType="numeric" />
+                    <ControlledInput control={control} name="visaNumber" label="Visa Number" required placeholder="Enter visa number" maxLength={8} filterType="alphanumeric" />
                 </View>
             )
         },
@@ -174,7 +207,7 @@ export default function BusinessTravelAllowanceScreen() {
             label: 'Return Ticket',
             onUpload: () => uploadFile('RETURN_TICKET'),
             fileName: docs.returnTicket.file?.name,
-            fileUri: docs.returnTicket.file?.uri,            fileUrl: docs.returnTicket.meta?.fileUrl,
+            fileUri: docs.returnTicket.file?.uri, fileUrl: docs.returnTicket.meta?.fileUrl,
             fileType: docs.returnTicket.file?.type,
             required: true,
         },
@@ -182,7 +215,7 @@ export default function BusinessTravelAllowanceScreen() {
             label: 'Letter of Request from Corporate Body',
             onUpload: () => uploadFile('CORPORATE_BODY_LETTER'),
             fileName: docs.corporateBodyLetter.file?.name,
-            fileUri: docs.corporateBodyLetter.file?.uri,            fileUrl: docs.corporateBodyLetter.meta?.fileUrl,
+            fileUri: docs.corporateBodyLetter.file?.uri, fileUrl: docs.corporateBodyLetter.meta?.fileUrl,
             fileType: docs.corporateBodyLetter.file?.type,
             required: true,
         },
@@ -190,7 +223,7 @@ export default function BusinessTravelAllowanceScreen() {
             label: 'Letter of Invitation from Partner',
             onUpload: () => uploadFile('PARTNER_INVITATION_LETTER'),
             fileName: docs.partnerInvitationLetter.file?.name,
-            fileUri: docs.partnerInvitationLetter.file?.uri,            fileUrl: docs.partnerInvitationLetter.meta?.fileUrl,
+            fileUri: docs.partnerInvitationLetter.file?.uri, fileUrl: docs.partnerInvitationLetter.meta?.fileUrl,
             fileType: docs.partnerInvitationLetter.file?.type,
             required: true,
         },
@@ -265,17 +298,17 @@ export default function BusinessTravelAllowanceScreen() {
                 ...(docs.partnerInvitationLetter.meta ? [docs.partnerInvitationLetter.meta] : []),
             ],
             pickupLocation: data.selectedLocation ? {
-                name: data.selectedLocation.title,
-                address: data.selectedLocation.subtitle || '',
-                state: data.selectedState?.title || '',
-                city: data.selectedCity?.title || '',
+                name: (data.selectedLocation as LocationItem).title,
+                address: (data.selectedLocation as LocationItem).subtitle || '',
+                state: (data.selectedState as LocationItem)?.title || '',
+                city: (data.selectedCity as LocationItem)?.title || '',
                 scheduledPickupDate: formatDateForApi(data.pickupDate),
                 scheduledPickupTime: data.pickupTime,
             } : undefined,
         };
 
         createTransaction.mutate(payload, {
-            onSuccess: (response) => {
+            onSuccess: (response: any) => {
                 if (response.success) {
                     setInitiateSheetVisible(false);
                     router.push({
@@ -283,15 +316,22 @@ export default function BusinessTravelAllowanceScreen() {
                         params: { transactionId: response.data?.transactionId }
                     });
                 }
-            },
+            }
         });
     };
 
-    const selectedState = watch('selectedState');
-    const selectedCity = watch('selectedCity');
-    const selectedLocation = watch('selectedLocation');
-    const pickupDate = watch('pickupDate');
-    const pickupTime = watch('pickupTime');
+
+    const isStep0Valid = watchedFields.bvn && watchedFields.tin && watchedFields.nin && watchedFields.formAId && watchedFields.passportNumber;
+    const isStep1Valid = docs.tcc.meta && docs.passport.meta && docs.tin.meta && docs.visa.meta && docs.returnTicket.meta && docs.corporateBodyLetter.meta && docs.partnerInvitationLetter.meta &&
+        watchedFields.tccNumber && watchedFields.passportIssueDate && watchedFields.passportExpiryDate && watchedFields.visaNumber;
+    const isStep2Valid = watchedFields.amount > 0;
+    const isStep3Valid = watchedFields.selectedState && watchedFields.selectedCity && watchedFields.selectedLocation && watchedFields.pickupDate && watchedFields.pickupTime;
+
+    const isNextDisabled =
+        (currentStep === 0 && !isStep0Valid) ||
+        (currentStep === 1 && !isStep1Valid) ||
+        (currentStep === 2 && !isStep2Valid) ||
+        (currentStep === 3 && !isStep3Valid);
 
     return (
         <>
@@ -302,7 +342,8 @@ export default function BusinessTravelAllowanceScreen() {
                 totalSteps={4}
                 onBack={handleBack}
                 onNext={handleNext}
-                nextLabel={currentStep === 3 ? (selectedState && selectedCity ? "Initiate Transaction Request" : "Continue") : "Continue"}
+                isNextDisabled={isNextDisabled}
+                nextLabel={currentStep === 3 ? (watchedFields.selectedState && watchedFields.selectedCity ? "Initiate Transaction Request" : "Continue") : "Continue"}
             >
                 {currentStep === 0 && (
                     <CredentialStep fields={credentialFields} />
@@ -332,25 +373,25 @@ export default function BusinessTravelAllowanceScreen() {
 
                 {currentStep === 3 && (
                     <LocationStep
-                        states={STATES}
-                        cities={CITIES}
-                        locations={LOCATIONS}
-                        selectedState={selectedState}
+                        states={states}
+                        cities={filteredCities}
+                        locations={filteredLocations}
+                        selectedState={watchedFields.selectedState}
                         onSelectState={(item) => {
                             setValue('selectedState', item);
                             setValue('selectedCity', undefined as unknown as LocationItem);
                             setValue('selectedLocation', undefined as unknown as LocationItem);
                         }}
-                        selectedCity={selectedCity}
+                        selectedCity={watchedFields.selectedCity}
                         onSelectCity={(item) => {
                             setValue('selectedCity', item);
                             setValue('selectedLocation', undefined as unknown as LocationItem);
                         }}
-                        selectedLocation={selectedLocation}
+                        selectedLocation={watchedFields.selectedLocation}
                         onSelectLocation={(item) => setValue('selectedLocation', item)}
-                        pickupDate={pickupDate}
+                        pickupDate={watchedFields.pickupDate}
                         onPickupDateChange={(v: string) => setValue('pickupDate', v)}
-                        pickupTime={pickupTime}
+                        pickupTime={watchedFields.pickupTime}
                         onPickupTimeChange={(v: string) => setValue('pickupTime', v)}
                         errors={{
                             state: errors.selectedState?.message as string | undefined,

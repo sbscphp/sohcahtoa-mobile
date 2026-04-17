@@ -1,14 +1,15 @@
 import { z } from 'zod';
-import { amountStepSchema, baseCredentialSchema, locationStepSchema } from './shared';
+import { amountStepSchema, baseCredentialSchema, locationStepSchema, passportExpiryDateField, passportIssueDateField, ticketNumberField, visaNumberField } from './shared';
 
-/** Step 0: Touring credentials — standard BVN, NIN, Form A, Passport */
+/** Step 0: Touring credentials (Passport) */
 export const touringStep0Schema = baseCredentialSchema;
 
-/** Step 1: Touring documents — validates passport dates */
+/** Step 1: Touring documents — Visa + Ticket */
 export const touringStep1Schema = z.object({
-    passportIssueDate: z.string().min(1, 'Please select Passport Issue Date'),
-    passportExpiryDate: z.string().min(1, 'Please select Passport Expiry Date'),
-    visaNumber: z.string().min(1, 'Please enter Visa Number'),
+    passportIssueDate: passportIssueDateField,
+    passportExpiryDate: passportExpiryDateField,
+    visaNumber: visaNumberField,
+    ticketNumber: ticketNumberField,
 });
 
 /** Step 2: Touring amount — max $4,000 */

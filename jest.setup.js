@@ -1,4 +1,5 @@
 // jest.setup.js
+process.env.RNTL_SKIP_DEPS_CHECK = 'true';
 // import '@testing-library/react-native/extend-expect';
 
 // Mocking ExpoImportMetaRegistry for Expo 54+ compatibility in Node environment
@@ -39,6 +40,8 @@ jest.mock('iconsax-react-nativejs', () => ({
     ArrowCircleLeft2: 'ArrowCircleLeft2',
     DocumentUpload: 'DocumentUpload',
     Folder: 'Folder',
+    Lock: 'Lock',
+    Sms: 'Sms',
 }));
 
 jest.mock('@expo/vector-icons', () => ({
@@ -87,7 +90,7 @@ jest.mock('@/components/ProgressBar', () => {
 jest.mock('@/components/PrimaryButton', () => {
     const { Text, Pressable } = require('react-native');
     return ({ title, onPress, disabled }) => (
-        <Pressable onPress={onPress} disabled={disabled}>
+        <Pressable onPress={onPress} disabled={disabled} accessibilityRole="button" accessibilityLabel={title}>
             <Text>{title}</Text>
         </Pressable>
     );
@@ -120,7 +123,7 @@ jest.mock('@/components/LocationSelectionSheet', () => {
 
 jest.mock('@/components/InputField', () => {
     const { Text, View, TextInput } = require('react-native');
-    return ({ label, value, onChangeText, placeholder, testID, editable }) => (
+    return ({ label, value, onChangeText, placeholder, testID, editable, error }) => (
         <View>
             <Text>{label}</Text>
             <TextInput
@@ -130,6 +133,7 @@ jest.mock('@/components/InputField', () => {
                 placeholder={placeholder}
                 editable={editable}
             />
+            {error && <Text>{error}</Text>}
         </View>
     );
 });
@@ -143,5 +147,42 @@ jest.mock('@/components/FileUpload', () => {
     const { Text } = require('react-native');
     return ({ title }) => <Text>FileUpload {title}</Text>;
 });
+
+jest.mock('@react-native-async-storage/async-storage', () => ({
+    setItem: jest.fn(),
+    getItem: jest.fn(),
+    removeItem: jest.fn(),
+    clear: jest.fn(),
+    getAllKeys: jest.fn(),
+    multiGet: jest.fn(),
+    multiSet: jest.fn(),
+    multiRemove: jest.fn(),
+    multiMerge: jest.fn(),
+    flushGetRequests: jest.fn(),
+}));
+
+jest.mock('expo-document-picker', () => ({
+    getDocumentAsync: jest.fn(),
+}));
+
+jest.mock('expo-router', () => ({
+    router: {
+        push: jest.fn(),
+        replace: jest.fn(),
+        back: jest.fn(),
+    },
+    useRouter: jest.fn(() => ({
+        push: jest.fn(),
+        replace: jest.fn(),
+        back: jest.fn(),
+    })),
+    useSegments: jest.fn(() => []),
+    useLocalSearchParams: jest.fn(() => ({})),
+    useGlobalSearchParams: jest.fn(() => ({})),
+    Link: 'Link',
+    Redirect: 'Redirect',
+    Stack: 'Stack',
+    Tabs: 'Tabs',
+}));
 
 // Mocking finished

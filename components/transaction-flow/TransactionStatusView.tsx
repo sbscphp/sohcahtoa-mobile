@@ -1,3 +1,4 @@
+import { TransactionComment } from '@/types/api/transactions';
 import { Calendar, Clock, SearchStatus } from 'iconsax-react-nativejs';
 import React from 'react';
 import { Text, View } from 'react-native';
@@ -12,19 +13,84 @@ interface TransactionStatusViewProps {
     date: string;
     time: string;
     message: string;
+    comments?: TransactionComment[];
 }
 
-export default function TransactionStatusView({ status, id, date, time, message }: TransactionStatusViewProps) {
+export default function TransactionStatusView({ status, id, date, time, message, comments }: TransactionStatusViewProps) {
+    const renderComments = () => {
+        if (!comments || comments.length === 0) return null;
+
+        return (
+            <View style={styles.commentsSection}>
+                <View style={styles.commentsHeaderRow}>
+                    <Text style={styles.commentsTitle}>Activity History</Text>
+                    <View style={styles.commentCountBadge}>
+                        <Text style={styles.commentCountText}>{comments.length}</Text>
+                    </View>
+                </View>
+
+                <View style={styles.timelineContainer}>
+                    {comments.map((comment, index) => {
+                        const isLast = index === comments.length - 1;
+                        const actionLabel = comment.action?.replace(/_/g, ' ').toLowerCase() || 'comment added';
+                        const isRejected = comment.action?.includes('REJECTED');
+                        const isInfo = comment.action?.includes('MORE_INFO');
+
+                        return (
+                            <View key={comment.id || index} style={styles.timelineItem}>
+                                {!isLast && <View style={styles.timelineLine} />}
+                                <View style={[
+                                    styles.timelineDot,
+                                    isRejected && styles.timelineDotRejected,
+                                    isInfo && styles.timelineDotInfo
+                                ]} />
+                                
+                                <View style={styles.timelineContent}>
+                                    <View style={styles.commentHeader}>
+                                        <View style={styles.commentAuthorRow}>
+                                            <Text style={styles.commentUser}>{comment.addedBy}</Text>
+                                            <View style={[
+                                                styles.actionBadge,
+                                                isRejected && styles.actionBadgeRejected,
+                                                isInfo && styles.actionBadgeInfo
+                                            ]}>
+                                                <Text style={[
+                                                    styles.actionBadgeText,
+                                                    isRejected && styles.actionBadgeTextRejected,
+                                                    isInfo && styles.actionBadgeTextInfo
+                                                ]}>{actionLabel}</Text>
+                                            </View>
+                                        </View>
+                                        <Text style={styles.commentDate}>
+                                            {new Date(comment.createdAt).toLocaleDateString()} • {new Date(comment.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        </Text>
+                                    </View>
+                                    <View style={styles.commentBubble}>
+                                        <Text style={styles.commentMessage}>{comment.message}</Text>
+                                    </View>
+                                </View>
+                            </View>
+                        );
+                    })}
+                </View>
+            </View>
+        );
+    };
+
     if (status === 'pending') {
         return (
-            <View style={styles.pendingContainer}>
-                <View style={styles.pendingIconContainer}>
-                    <EmptyState  width={moderateScale(100)} height={moderateScale(120)} />
+            <View style={styles.tabContent}>
+                <View style={styles.pendingContainer}>
+                    <View style={styles.pendingIconContainer}>
+                        <EmptyState width={moderateScale(100)} height={moderateScale(120)} />
+                    </View>
+                    <Text style={styles.pendingTitle}>Application is Under Review</Text>
+                    <Text style={styles.pendingDesc}>
+                        Your application is currently undergoing approval. You will be notified once it is approved.
+                    </Text>
                 </View>
-                <Text style={styles.pendingTitle}>Application is Under Review</Text>
-                <Text style={styles.pendingDesc}>
-                    Your application is currently undergoing approval. You will be notified once it is approved.
-                </Text>
+
+                {renderComments()}
             </View>
         );
     }
@@ -108,6 +174,8 @@ export default function TransactionStatusView({ status, id, date, time, message 
                     </Text>
                 </View>
             </View>
+
+            {status === 'approved' ? null : renderComments()}
         </View>
     );
 }
@@ -245,5 +313,129 @@ const styles = ScaledSheet.create({
         color: '#64748B',
         textAlign: 'center',
         lineHeight: '22@ms',
+    },
+    commentsSection: {
+        marginTop: '32@vs',
+        paddingHorizontal: '4@s',
+    },
+    commentsHeaderRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: '8@s',
+        marginBottom: '20@vs',
+    },
+    commentsTitle: {
+        fontSize: '16@ms',
+        fontWeight: '700',
+        color: '#0F172A',
+        letterSpacing: '-0.3@ms',
+    },
+    commentCountBadge: {
+        backgroundColor: '#F1F5F9',
+        paddingHorizontal: '8@s',
+        paddingVertical: '2@vs',
+        borderRadius: '12@ms',
+    },
+    commentCountText: {
+        fontSize: '11@ms',
+        fontWeight: '600',
+        color: '#64748B',
+    },
+    timelineContainer: {
+        paddingLeft: '4@s',
+    },
+    timelineItem: {
+        flexDirection: 'row',
+        paddingBottom: '24@vs',
+        gap: '16@s',
+    },
+    timelineLine: {
+        position: 'absolute',
+        left: '5.5@s',
+        top: '20@vs',
+        bottom: 0,
+        width: '1@s',
+        backgroundColor: '#E2E8F0',
+    },
+    timelineDot: {
+        width: '12@ms',
+        height: '12@ms',
+        borderRadius: '6@ms',
+        backgroundColor: '#7C3AED',
+        borderWidth: '2@ms',
+        borderColor: '#fff',
+        marginTop: '6@vs',
+        zIndex: 1,
+        shadowColor: "#7C3AED",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 3,
+    },
+    timelineDotRejected: {
+        backgroundColor: '#EF4444',
+        shadowColor: "#EF4444",
+    },
+    timelineDotInfo: {
+        backgroundColor: '#F59E0B',
+        shadowColor: "#F59E0B",
+    },
+    timelineContent: {
+        flex: 1,
+        gap: '8@vs',
+    },
+    commentHeader: {
+        gap: '2@vs',
+    },
+    commentAuthorRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    commentUser: {
+        fontSize: '13@ms',
+        fontWeight: '600',
+        color: '#1E293B',
+    },
+    actionBadge: {
+        backgroundColor: '#F1F5F9',
+        paddingHorizontal: '6@s',
+        paddingVertical: '2@vs',
+        borderRadius: '6@ms',
+    },
+    actionBadgeRejected: {
+        backgroundColor: '#FEF2F2',
+    },
+    actionBadgeInfo: {
+        backgroundColor: '#FFFBEB',
+    },
+    actionBadgeText: {
+        fontSize: '9@ms',
+        fontWeight: '600',
+        color: '#64748B',
+        textTransform: 'uppercase',
+    },
+    actionBadgeTextRejected: {
+        color: '#B91C1C',
+    },
+    actionBadgeTextInfo: {
+        color: '#B45309',
+    },
+    commentDate: {
+        fontSize: '11@ms',
+        color: '#94A3B8',
+        fontWeight: '400',
+    },
+    commentBubble: {
+        backgroundColor: '#F8FAFC',
+        borderRadius: '12@ms',
+        padding: '14@ms',
+        borderWidth: 1,
+        borderColor: '#F1F5F9',
+    },
+    commentMessage: {
+        fontSize: '13@ms',
+        color: '#334155',
+        lineHeight: '20@ms',
+        fontWeight: '400',
     },
 });

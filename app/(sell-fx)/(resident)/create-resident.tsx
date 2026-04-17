@@ -2,7 +2,6 @@ import ControlledDatePicker from '@/components/ControlledDatePicker';
 import ControlledInput from '@/components/ControlledInput';
 import InitiateTransactionSheet from '@/components/InitiateTransactionSheet';
 import LoadingBackdrop from '@/components/LoadingBackdrop';
-import { LocationItem } from '@/components/LocationSelectionSheet';
 import CredentialStep from '@/components/transaction-flow/CredentialStep';
 import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
@@ -12,6 +11,7 @@ import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCr
 import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useExchangeLogic } from '@/hooks/useExchangeLogic';
 import { useToastStore } from '@/stores/useToastStore';
+import { LocationItem } from '@/utils/locations';
 import {
     residentStep0Schema,
     residentStep1Schema,
@@ -20,12 +20,13 @@ import {
 } from '@/utils/validations/resident';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { View } from 'react-native';
 import { z } from 'zod';
 
-import { CITIES, LOCATIONS, STATES } from '@/utils/locations';
+import { useGetPickupPointsQuery } from '@/hooks/queries/transactions/useGetPickupPointsQuery';
+import { useGetPickupStatesQuery } from '@/hooks/queries/transactions/useGetPickupStatesQuery';
 
 const residentFormSchema = z.object({
     ...residentStep0Schema.shape,
@@ -39,6 +40,11 @@ type ResidentFormValues = z.infer<typeof residentFormSchema>;
 export default function CreateResidentScreen() {
     const router = useRouter();
     const createTransaction = useCreateTransactionMutation();
+
+    // Dynamic Locations
+    const { data: states = [] } = useGetPickupStatesQuery();
+    const { data: allLocations = [] } = useGetPickupPointsQuery();
+
     const [currentStep, setCurrentStep] = useState(0);
 
     const {
@@ -66,6 +72,28 @@ export default function CreateResidentScreen() {
         },
         mode: 'onChange'
     });
+
+    const watchedFields = watch() as any;
+
+    const filteredCities = useMemo(() => {
+        if (!watchedFields.selectedState) return [];
+        const citiesMap = new Map<string, LocationItem>();
+        allLocations.forEach((loc: any) => {
+            const point = loc.metadata;
+            if (point && point.location) {
+                citiesMap.set(point.location, {
+                    id: `city-${point.location}`,
+                    title: point.location
+                });
+            }
+        });
+        return Array.from(citiesMap.values());
+    }, [watchedFields.selectedState, allLocations]);
+
+    const filteredLocations = useMemo(() => {
+        if (!watchedFields.selectedCity) return [];
+        return allLocations.filter((loc: any) => loc.metadata.location === watchedFields.selectedCity.title);
+    }, [watchedFields.selectedCity, allLocations]);
 
     // Step 1 — uploaded files
     const [docs, setDocs] = useState({
@@ -100,7 +128,7 @@ export default function CreateResidentScreen() {
         amountSendStr: amountSend,
         setAmountSendStr: setAmountSend,
         currentRate,
-    } = useExchangeLogic({ setValue, initialAmount: '1' });
+    } = useExchangeLogic({ setValue, initialAmount: '0' });
 
     const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
 
@@ -147,7 +175,7 @@ export default function CreateResidentScreen() {
             label: 'International Passport',
             onUpload: () => uploadFile('PASSPORT'),
             fileName: docs.passport.file?.name,
-            fileUri: docs.passport.file?.uri,            fileUrl: docs.passport.meta?.fileUrl,
+            fileUri: docs.passport.file?.uri, fileUrl: docs.passport.meta?.fileUrl,
             fileType: docs.passport.file?.type,
             required: true,
             associatedInputs: (
@@ -177,7 +205,7 @@ export default function CreateResidentScreen() {
             label: 'Utility bill  (Not more than 3 months old)',
             onUpload: () => uploadFile('UTILITY_BILL'),
             fileName: docs.utility.file?.name,
-            fileUri: docs.utility.file?.uri,            fileUrl: docs.utility.meta?.fileUrl,
+            fileUri: docs.utility.file?.uri, fileUrl: docs.utility.meta?.fileUrl,
             fileType: docs.utility.file?.type,
             required: true,
             associatedInputs: (
@@ -269,7 +297,7 @@ export default function CreateResidentScreen() {
         };
 
         createTransaction.mutate(payload, {
-            onSuccess: (response) => {
+            onSuccess: (response: any) => {
                 if (response.success) {
                     setInitiateSheetVisible(false);
                     router.push({
@@ -283,14 +311,20 @@ export default function CreateResidentScreen() {
         });
     };
 
-    const selectedState = watch('selectedState');
-    const selectedCity = watch('selectedCity');
-    const selectedLocation = watch('selectedLocation');
-    const pickupDate = watch('pickupDate');
-    const pickupTime = watch('pickupTime');
+    const isStep0Valid = watchedFields.bvn && watchedFields.nin && watchedFields.passportNumber;
+    const isStep1Valid = docs.passport.meta && docs.utility.meta &&
+        watchedFields.passportIssueDate && watchedFields.passportExpiryDate && watchedFields.utilityNumber;
+    const isStep2Valid = watchedFields.amount > 0;
+    const isStep3Valid = watchedFields.selectedState && watchedFields.selectedCity && watchedFields.selectedLocation && watchedFields.pickupDate && watchedFields.pickupTime;
+
+    const isNextDisabled =
+        (currentStep === 0 && !isStep0Valid) ||
+        (currentStep === 1 && !isStep1Valid) ||
+        (currentStep === 2 && !isStep2Valid) ||
+        (currentStep === 3 && !isStep3Valid);
 
     return (
-        <>
+        <View style={{ flex: 1 }}>
             <LoadingBackdrop visible={isUploading || createTransaction.isPending} />
             <TransactionLayout
                 title="Resident"
@@ -298,7 +332,8 @@ export default function CreateResidentScreen() {
                 totalSteps={4}
                 onBack={handleBack}
                 onNext={handleNext}
-                nextLabel={currentStep === 3 ? "Initiate Transaction Request" : "Continue"}
+                isNextDisabled={isNextDisabled}
+                nextLabel={currentStep === 3 ? (watchedFields.selectedState && watchedFields.selectedCity ? "Initiate Transaction Request" : "Continue") : "Continue"}
             >
                 {currentStep === 0 && (
                     <CredentialStep fields={credentialFields} title="Enter Tax Identification Number (TIN)" />
@@ -328,27 +363,27 @@ export default function CreateResidentScreen() {
 
                 {currentStep === 3 && (
                     <LocationStep
-                        states={STATES}
-                        cities={CITIES}
-                        locations={LOCATIONS}
-                        selectedState={selectedState}
+                        states={states}
+                        cities={filteredCities}
+                        locations={filteredLocations}
+                        selectedState={watchedFields.selectedState}
                         onSelectState={(item) => {
                             setValue('selectedState', item);
                             setValue('selectedCity', undefined as unknown as LocationItem);
                             setValue('selectedLocation', undefined as unknown as LocationItem);
                         }}
-                        selectedCity={selectedCity}
+                        selectedCity={watchedFields.selectedCity}
                         onSelectCity={(item) => {
                             setValue('selectedCity', item);
                             setValue('selectedLocation', undefined as unknown as LocationItem);
                         }}
-                        selectedLocation={selectedLocation}
+                        selectedLocation={watchedFields.selectedLocation}
                         onSelectLocation={(item) => setValue('selectedLocation', item)}
-                        title="Select Pick Up Point"
-                        pickupDate={pickupDate}
-                        onPickupDateChange={(v) => setValue('pickupDate', v)}
-                        pickupTime={pickupTime}
-                        onPickupTimeChange={(v) => setValue('pickupTime', v)}
+                        title="Where would you like to receive your funds"
+                        pickupDate={watchedFields.pickupDate}
+                        onPickupDateChange={(v: string) => setValue('pickupDate', v)}
+                        pickupTime={watchedFields.pickupTime}
+                        onPickupTimeChange={(v: string) => setValue('pickupTime', v)}
                         errors={{
                             state: errors.selectedState?.message as string | undefined,
                             city: errors.selectedCity?.message as string | undefined,
@@ -374,6 +409,6 @@ export default function CreateResidentScreen() {
                     ]}
                 />
             </TransactionLayout>
-        </>
+        </View>
     );
 }

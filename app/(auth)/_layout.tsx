@@ -17,6 +17,7 @@ export default function AuthLayout() {
             <Stack.Screen name="secure-account" />
             <Stack.Screen name="biometrics-setup" />
             <Stack.Screen name="face-capture" />
+            <Stack.Screen name="allow-notifications" />
         </Stack>
     );
 }

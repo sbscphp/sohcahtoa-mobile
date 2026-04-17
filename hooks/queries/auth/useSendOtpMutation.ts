@@ -2,6 +2,7 @@ import { useToastStore } from '@/stores/useToastStore';
 import { useMutation } from '@tanstack/react-query';
 import { sendOtp } from '../../../services/auth';
 import { useAuthStore } from '../../../stores/useAuthStore';
+import { SendOtpResponse } from '@/types/api/auth';
 
 export const useSendOtpMutation = () => {
     const setUser = useAuthStore((state) => state.setUser);
@@ -10,7 +11,7 @@ export const useSendOtpMutation = () => {
 
     return useMutation({
         mutationFn: sendOtp,
-        onSuccess: (response) => {
+        onSuccess: (response: SendOtpResponse) => {
             if (response.success && response.data) {
                 if ((response.data as any).verificationToken) {
                     setVerificationToken((response.data as any).verificationToken);
@@ -21,7 +22,8 @@ export const useSendOtpMutation = () => {
                     dateOfBirth: response.data.dateOfBirth,
                     gender: response.data.gender,
                 });
-                showToast(response.data.message || 'OTP Sent Successfully', 'success');
+                const otpMessage = response.data.otp ? ` (OTP: ${response.data.otp})` : '';
+                showToast(`${response.data.message || 'OTP Sent Successfully'}${otpMessage}`, 'success', true);
             }
             console.log(response, "response");
         },

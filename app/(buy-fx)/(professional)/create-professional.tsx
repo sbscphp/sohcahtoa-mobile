@@ -18,13 +18,10 @@ import { useForm } from 'react-hook-form';
 import { View } from 'react-native';
 import { z } from 'zod';
 
-const professionalFormSchema = z.object({
-    ...professionalStep0Schema.shape,
-    ...professionalStep1Schema.shape,
-    ...professionalStep2Schema.shape,
-    ...professionalStep3Schema.shape
-});
-
+const professionalFormSchema = professionalStep0Schema
+    .merge(professionalStep1Schema)
+    .merge(professionalStep2Schema)
+    .merge(professionalStep3Schema);
 type ProfessionalFormValues = z.infer<typeof professionalFormSchema>;
 
 export default function ProfessionalScreen() {
@@ -72,7 +69,7 @@ export default function ProfessionalScreen() {
         amountSendStr,
         setAmountSendStr,
         currentRate,
-    } = useExchangeLogic({ setValue, initialAmount: '1' });
+    } = useExchangeLogic({ setValue, initialAmount: '0' });
 
     // Document upload state
     const [docs, setDocs] = useState({
@@ -93,10 +90,10 @@ export default function ProfessionalScreen() {
     });
 
     const credentialFields = [
-        { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number(BVN)" placeholder="Enter your BVN" required keyboardType="numeric" /> },
-        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number(NIN)" placeholder="Enter your NIN" required keyboardType="numeric" /> },
+        { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number(BVN)" placeholder="Enter your BVN" required keyboardType="numeric" maxLength={11} filterType="numeric" /> },
+        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number(NIN)" placeholder="Enter your NIN" required keyboardType="numeric" maxLength={11} filterType="numeric" /> },
         { customComponent: <ControlledInput control={control} name="formAId" label="Form A ID" placeholder="Enter Form A ID" required /> },
-        { customComponent: <ControlledInput control={control} name="passportNumber" label="International Passport Number" placeholder="Enter international passport" required /> },
+        { customComponent: <ControlledInput control={control} name="passportNumber" label="International Passport Number" placeholder="Enter international passport" required maxLength={9} filterType="alphanumeric" /> },
     ];
 
     const documentFields = [
@@ -104,7 +101,7 @@ export default function ProfessionalScreen() {
             label: 'Evidence of Membership',
             onUpload: () => uploadFile('MEMBERSHIP_CARD'),
             fileName: docs.membership.file?.name,
-            fileUri: docs.membership.file?.uri,            fileUrl: docs.membership.meta?.fileUrl,
+            fileUri: docs.membership.file?.uri, fileUrl: docs.membership.meta?.fileUrl,
             fileType: docs.membership.file?.type,
             required: true,
             associatedInputs: (
@@ -117,12 +114,12 @@ export default function ProfessionalScreen() {
             label: 'Invoice from Professional Body',
             onUpload: () => uploadFile('INVOICE'),
             fileName: docs.invoice.file?.name,
-            fileUri: docs.invoice.file?.uri,            fileUrl: docs.invoice.meta?.fileUrl,
+            fileUri: docs.invoice.file?.uri, fileUrl: docs.invoice.meta?.fileUrl,
             fileType: docs.invoice.file?.type,
             required: true,
             associatedInputs: (
                 <View>
-                    <ControlledInput control={control} name="invoiceNumber" label="Invoice from Professional Body" placeholder="Enter invoice number" required />
+                    <ControlledInput control={control} name="invoiceNumber" label="Invoice from Professional Body" placeholder="Enter invoice number" required maxLength={20} />
                 </View>
             )
         },
@@ -193,7 +190,7 @@ export default function ProfessionalScreen() {
         };
 
         createTransaction.mutate(payload, {
-            onSuccess: (response) => {
+            onSuccess: (response: any) => {
                 if (response.success) {
                     setInitiateSheetVisible(false);
                     router.push({
@@ -205,8 +202,17 @@ export default function ProfessionalScreen() {
         });
     };
 
-    const bankName = watch('bankName');
-    const accountNumber = watch('accountNumber');
+    const watchedFields = watch();
+    const isStep0Valid = watchedFields.bvn && watchedFields.nin && watchedFields.formAId && watchedFields.passportNumber;
+    const isStep1Valid = docs.membership.meta && docs.invoice.meta && watchedFields.evidenceOfMembership && watchedFields.invoiceNumber;
+    const isStep2Valid = watchedFields.amount > 0;
+    const isStep3Valid = watchedFields.bankName && watchedFields.accountNumber && watchedFields.accountName && watchedFields.iban;
+
+    const isNextDisabled =
+        (currentStep === 0 && !isStep0Valid) ||
+        (currentStep === 1 && !isStep1Valid) ||
+        (currentStep === 2 && !isStep2Valid) ||
+        (currentStep === 3 && !isStep3Valid);
 
     return (
         <View style={{ flex: 1 }}>
@@ -217,7 +223,8 @@ export default function ProfessionalScreen() {
                 totalSteps={4}
                 onBack={handleBack}
                 onNext={handleNext}
-                nextLabel={currentStep === 3 ? (bankName && accountNumber ? "Initiate Transaction Request" : "Continue") : "Continue"}
+                isNextDisabled={isNextDisabled}
+                nextLabel={currentStep === 3 ? (watchedFields.bankName && watchedFields.accountNumber ? "Initiate Transaction Request" : "Continue") : "Continue"}
             >
                 {currentStep === 0 && (
                     <CredentialStep fields={credentialFields} />

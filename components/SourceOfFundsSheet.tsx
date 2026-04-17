@@ -1,7 +1,7 @@
 import FileUpload from '@/components/FileUpload';
 import PrimaryButton from '@/components/PrimaryButton';
 import { InfoCircle } from 'iconsax-react-nativejs';
-import React, { useState } from 'react';
+import React from 'react';
 import { Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 
@@ -35,6 +35,9 @@ interface SourceOfFundsSheetProps {
         amount: string;
         purpose: string;
     };
+    signatureFile?: string | null;
+    onUploadSignature: () => void;
+    isUploadingSignature?: boolean;
 }
 
 export default function SourceOfFundsSheet({
@@ -42,15 +45,11 @@ export default function SourceOfFundsSheet({
     onClose,
     onSubmit,
     customerInfo,
-    transactionDetails
+    transactionDetails,
+    signatureFile,
+    onUploadSignature,
+    isUploadingSignature
 }: SourceOfFundsSheetProps) {
-    const [signatureFile, setSignatureFile] = useState<string | null>(null);
-
-    const handleUploadSignature = () => {
-
-        console.log('Pick signature');
-        setSignatureFile('signature.png');
-    };
 
     return (
         <Modal
@@ -108,7 +107,7 @@ export default function SourceOfFundsSheet({
                             <FileUpload
                                 title="Upload Signature"
                                 fileName={signatureFile}
-                                onUpload={handleUploadSignature}
+                                onUpload={onUploadSignature}
                             />
                         </View>
 

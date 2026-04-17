@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { locationStepSchema } from './shared';
+import { locationStepSchema, ticketNumberField, visaNumberField } from './shared';
 
 /** Step 0: Tourist credentials */
 export const touristStep0Schema = z.object({
@@ -10,8 +10,8 @@ export const touristStep0Schema = z.object({
 export const touristStep1Schema = z.object({
     passportIssueDate: z.string().min(1, 'Please select Passport Issue Date'),
     passportExpiryDate: z.string().min(1, 'Please select Passport Expiry Date'),
-    visaNumber: z.string().min(1, 'Please enter your Visa Number'),
-    ticketNumber: z.string().min(1, 'Please enter your Return Ticket Number'),
+    visaNumber: visaNumberField,
+    ticketNumber: ticketNumberField,
 });
 
 /** Step 2: Tourist amount */

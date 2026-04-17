@@ -2,7 +2,7 @@ import Header from '@/components/Header';
 import PrimaryButton from '@/components/PrimaryButton';
 import { Cards, Headphone, InfoCircle, Judge, LogoutCurve, MessageQuestion, Notification, ProfileTick, ShieldSecurity } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
-import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { moderateScale, ScaledSheet } from 'react-native-size-matters';
 
 interface MenuItem {
@@ -15,11 +15,15 @@ interface MenuItem {
 
 import { useLogoutMutation } from '@/hooks/queries/auth/useLogoutMutation';
 import { useRouter } from 'expo-router';
+import { useGetUnreadCountQuery } from '@/hooks/queries/notifications/useGetUnreadCountQuery';
 
 export default function MoreScreen() {
     const router = useRouter();
     const [logoutModalVisible, setLogoutModalVisible] = useState(false);
     const { mutate: logout, isPending } = useLogoutMutation();
+
+    const { data: unreadData } = useGetUnreadCountQuery();
+    const unreadCount = unreadData?.data?.count || 0;
 
     const menuItems: MenuItem[] = [
         {
@@ -69,10 +73,14 @@ export default function MoreScreen() {
     return (
         <View style={styles.container}>
             <Header title="More" rightIcon={
-                <View>
-                    <Notification size={moderateScale(24)} color="rgba(143, 139, 139, 1)" variant="Linear" />
-                    <View style={styles.notificationDot} />
-                </View>
+                <TouchableOpacity onPress={() => router.push('/notifications')}>
+                    <Notification size={moderateScale(24)} color="#1E293B" variant="Linear" />
+                    {unreadCount > 0 && (
+                        <View style={styles.unreadBadge}>
+                            <Text style={styles.unreadText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                        </View>
+                    )}
+                </TouchableOpacity>
             }
                 onRightPress={() => router.push('/notifications')} />
             <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent}>
@@ -248,5 +256,24 @@ const styles = ScaledSheet.create({
         textAlign: 'left',
         marginBottom: '32@vs',
         alignSelf: 'flex-start'
+    },
+    unreadBadge: {
+        position: 'absolute',
+        top: -moderateScale(4),
+        right: -moderateScale(4),
+        backgroundColor: '#EF4444',
+        minWidth: moderateScale(16),
+        height: moderateScale(16),
+        borderRadius: moderateScale(8),
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1.5,
+        borderColor: '#FFFFFF',
+        paddingHorizontal: moderateScale(2),
+    },
+    unreadText: {
+        color: '#FFFFFF',
+        fontSize: moderateScale(9),
+        fontWeight: 'bold',
     },
 });

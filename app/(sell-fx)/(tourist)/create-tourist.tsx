@@ -3,7 +3,7 @@ import ControlledDatePicker from '@/components/ControlledDatePicker';
 import ControlledInput from '@/components/ControlledInput';
 import InitiateTransactionSheet from '@/components/InitiateTransactionSheet';
 import LoadingBackdrop from '@/components/LoadingBackdrop';
-import { LocationItem } from '@/components/LocationSelectionSheet';
+import { LocationItem } from '@/utils/locations';
 import SourceOfFundsSheet from '@/components/SourceOfFundsSheet';
 import CredentialStep from '@/components/transaction-flow/CredentialStep';
 import DocumentStep from '@/components/transaction-flow/DocumentStep';
@@ -13,6 +13,7 @@ import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
 import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
 import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useExchangeLogic } from '@/hooks/useExchangeLogic';
+import { useAuthStore } from '@/stores/useAuthStore';
 import { useToastStore } from '@/stores/useToastStore';
 import {
     touristStep0Schema,
@@ -23,13 +24,14 @@ import {
 } from '@/utils/validations/tourist';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Pressable, Text, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import { z } from 'zod';
 
-import { CITIES, LOCATIONS, STATES } from '@/utils/locations';
+import { useGetPickupStatesQuery } from '@/hooks/queries/transactions/useGetPickupStatesQuery';
+import { useGetPickupPointsQuery } from '@/hooks/queries/transactions/useGetPickupPointsQuery';
 
 const touristFormSchema = z.object({
     ...touristStep0Schema.shape,
@@ -45,6 +47,7 @@ type TouristFormValues = z.infer<typeof touristFormSchema>;
 export default function CreateTouristScreen() {
     const router = useRouter();
     const createTransaction = useCreateTransactionMutation();
+    const user = useAuthStore(s => s.user);
     const [currentStep, setCurrentStep] = useState(0);
 
     const {
@@ -80,6 +83,7 @@ export default function CreateTouristScreen() {
         visa: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
         ticket: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
         receipt: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        signature: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
     });
 
     const updateDoc = (key: keyof typeof docs, file: UploadedFile, metadata: UploadedMetadata) => {
@@ -94,6 +98,7 @@ export default function CreateTouristScreen() {
             else if (documentType === 'VISA') updateDoc('visa', file, metadata);
             else if (documentType === 'RETURN_TICKET') updateDoc('ticket', file, metadata);
             else if (documentType === 'RECEIPT') updateDoc('receipt', file, metadata);
+            else if (documentType === 'DIGITAL_SIGNATURE') updateDoc('signature', file, metadata);
         },
         onError: () => showToast('Failed to upload document. Please try again.', 'error'),
     });
@@ -112,6 +117,32 @@ export default function CreateTouristScreen() {
         setAmountSendStr: setAmountSend,
         currentRate,
     } = useExchangeLogic({ setValue, initialAmount: '' });
+
+    // Dynamic Locations
+    const { data: states = [] } = useGetPickupStatesQuery();
+    const { data: allLocations = [] } = useGetPickupPointsQuery();
+
+    const watchedFields = watch() as any;
+
+    const filteredCities = useMemo(() => {
+        if (!watchedFields.selectedState) return [];
+        const citiesMap = new Map<string, LocationItem>();
+        allLocations.forEach((loc: any) => {
+            const point = loc.metadata;
+            if (point && point.location) {
+                citiesMap.set(point.location, {
+                    id: `city-${point.location}`,
+                    title: point.location
+                });
+            }
+        });
+        return Array.from(citiesMap.values());
+    }, [watchedFields.selectedState, allLocations]);
+
+    const filteredLocations = useMemo(() => {
+        if (!watchedFields.selectedCity) return [];
+        return allLocations.filter((loc: any) => loc.metadata.location === watchedFields.selectedCity.title);
+    }, [watchedFields.selectedCity, allLocations]);
 
     // Step 3: Payment Method
     const [paymentMethod, setPaymentMethod] = useState<'transfer' | 'card'>('transfer');
@@ -142,7 +173,7 @@ export default function CreateTouristScreen() {
             label: 'International Passport',
             onUpload: () => uploadFile('PASSPORT'),
             fileName: docs.passport.file?.name,
-            fileUri: docs.passport.file?.uri,            fileUrl: docs.passport.meta?.fileUrl,
+            fileUri: docs.passport.file?.uri, fileUrl: docs.passport.meta?.fileUrl,
             fileType: docs.passport.file?.type,
             required: true,
             associatedInputs: (
@@ -172,7 +203,7 @@ export default function CreateTouristScreen() {
             label: 'Valid Visa',
             onUpload: () => uploadFile('VISA'),
             fileName: docs.visa.file?.name,
-            fileUri: docs.visa.file?.uri,            fileUrl: docs.visa.meta?.fileUrl,
+            fileUri: docs.visa.file?.uri, fileUrl: docs.visa.meta?.fileUrl,
             fileType: docs.visa.file?.type,
             required: true,
             associatedInputs: (
@@ -191,7 +222,7 @@ export default function CreateTouristScreen() {
             label: 'Valid Return Ticket',
             onUpload: () => uploadFile('RETURN_TICKET'),
             fileName: docs.ticket.file?.name,
-            fileUri: docs.ticket.file?.uri,            fileUrl: docs.ticket.meta?.fileUrl,
+            fileUri: docs.ticket.file?.uri, fileUrl: docs.ticket.meta?.fileUrl,
             fileType: docs.ticket.file?.type,
             required: true,
             associatedInputs: (
@@ -210,7 +241,7 @@ export default function CreateTouristScreen() {
             label: 'Receipt for Initial Naira Purchase',
             onUpload: () => uploadFile('RECEIPT'),
             fileName: docs.receipt.file?.name,
-            fileUri: docs.receipt.file?.uri,            fileUrl: docs.receipt.meta?.fileUrl,
+            fileUri: docs.receipt.file?.uri, fileUrl: docs.receipt.meta?.fileUrl,
             fileType: docs.receipt.file?.type,
             required: true,
         },
@@ -312,7 +343,7 @@ export default function CreateTouristScreen() {
         }
 
         createTransaction.mutate(payload, {
-            onSuccess: (response) => {
+            onSuccess: (response: any) => {
                 if (response.success) {
                     setInitiateSheetVisible(false);
                     router.push({
@@ -326,14 +357,26 @@ export default function CreateTouristScreen() {
         });
     };
 
-    const selectedState = watch('selectedState');
-    const selectedCity = watch('selectedCity');
-    const selectedLocation = watch('selectedLocation');
-    const pickupDate = watch('pickupDate');
-    const pickupTime = watch('pickupTime');
+    const isStep0Valid = !!watchedFields.passportNumber;
+    const isStep1Valid = !!(docs.passport.meta && docs.visa.meta && docs.ticket.meta && docs.receipt.meta &&
+        watchedFields.passportIssueDate && watchedFields.passportExpiryDate && watchedFields.visaNumber && watchedFields.ticketNumber);
+    const isStep2Valid = watchedFields.amount > 0;
+    
+    let isStep3Valid = false;
+    if (paymentMethod === 'transfer') {
+        isStep3Valid = !!(watchedFields.accountName && watchedFields.bankName);
+    } else {
+        isStep3Valid = !!(watchedFields.selectedState && watchedFields.selectedCity && watchedFields.selectedLocation && watchedFields.pickupDate && watchedFields.pickupTime);
+    }
+
+    const isNextDisabled =
+        (currentStep === 0 && !isStep0Valid) ||
+        (currentStep === 1 && !isStep1Valid) ||
+        (currentStep === 2 && !isStep2Valid) ||
+        (currentStep === 3 && !isStep3Valid);
 
     return (
-        <>
+        <View style={{ flex: 1 }}>
             <LoadingBackdrop visible={isUploading || createTransaction.isPending} />
             <TransactionLayout
                 title={"Tourist"}
@@ -341,7 +384,8 @@ export default function CreateTouristScreen() {
                 totalSteps={4}
                 onBack={handleBack}
                 onNext={handleNext}
-                nextLabel={currentStep === 3 ? "Initiate Transaction Request" : "Continue"}
+                isNextDisabled={isNextDisabled}
+                nextLabel={currentStep === 3 ? (paymentMethod === 'transfer' ? (watchedFields.accountName ? "Initiate Transaction Request" : "Continue") : (watchedFields.selectedState && watchedFields.selectedCity ? "Initiate Transaction Request" : "Continue")) : "Continue"}
             >
                 {currentStep === 0 && (
                     <CredentialStep fields={credentialFields} />
@@ -402,7 +446,7 @@ export default function CreateTouristScreen() {
 
                         {paymentMethod === 'transfer' ? (
                             <View style={{ gap: moderateScale(16) }}>
-                                <Text style={styles.sectionTitle}>Select Pick Up Point</Text>
+                                <Text style={styles.sectionTitle}>Where would you like to receive your funds</Text>
                                 <ControlledInput
                                     control={control}
                                     name="accountName"
@@ -420,27 +464,27 @@ export default function CreateTouristScreen() {
                             </View>
                         ) : (
                             <LocationStep
-                                states={STATES}
-                                cities={CITIES}
-                                locations={LOCATIONS}
-                                selectedState={selectedState}
+                                states={states}
+                                cities={filteredCities}
+                                locations={filteredLocations}
+                                selectedState={watchedFields.selectedState}
                                 onSelectState={(item) => {
                                     setValue('selectedState', item);
                                     setValue('selectedCity', undefined as unknown as LocationItem);
                                     setValue('selectedLocation', undefined as unknown as LocationItem);
                                 }}
-                                selectedCity={selectedCity}
+                                selectedCity={watchedFields.selectedCity}
                                 onSelectCity={(item) => {
                                     setValue('selectedCity', item);
                                     setValue('selectedLocation', undefined as unknown as LocationItem);
                                 }}
-                                selectedLocation={selectedLocation}
+                                selectedLocation={watchedFields.selectedLocation}
                                 onSelectLocation={(item) => setValue('selectedLocation', item)}
-                                title="Select Pick Up Point"
-                                pickupDate={pickupDate}
-                                onPickupDateChange={(v) => setValue('pickupDate', v)}
-                                pickupTime={pickupTime}
-                                onPickupTimeChange={(v) => setValue('pickupTime', v)}
+                                title="Where would you like to receive your funds"
+                                pickupDate={watchedFields.pickupDate}
+                                onPickupDateChange={(v: string) => setValue('pickupDate', v)}
+                                pickupTime={watchedFields.pickupTime}
+                                onPickupTimeChange={(v: string) => setValue('pickupTime', v)}
                                 errors={{
                                     state: errors.selectedState?.message as string | undefined,
                                     city: errors.selectedCity?.message as string | undefined,
@@ -477,12 +521,12 @@ export default function CreateTouristScreen() {
                         console.log('Source of Funds Declaration Submitted');
                     }}
                     customerInfo={{
-                        fullName: 'Feubode Gesikeme', // Placeholder
-                        phoneNumber: '09042136679', // Placeholder
-                        email: 'kemef@gmail.com', // Placeholder
-                        bvn: '55544332278554', // Placeholder
-                        address: '16a Alexandre drive', // Placeholder
-                        passportNumber: watch('passportNumber') || '102234556777776'
+                        fullName: `${user?.profile?.firstName || ''} ${user?.profile?.lastName || ''}`,
+                        phoneNumber: user?.phoneNumber || '',
+                        email: user?.email || '',
+                        bvn: user?.kyc?.bvn || '',
+                        address: user?.profile?.address || '',
+                        passportNumber: watchedFields.passportNumber || user?.kyc?.passportNumber || ''
                     }}
                     transactionDetails={{
                         type: 'Tourist',
@@ -490,9 +534,12 @@ export default function CreateTouristScreen() {
                         amount: `${currencySend.code} ${amountSend}`,
                         purpose: 'Travel'
                     }}
+                    onUploadSignature={() => uploadFile('DIGITAL_SIGNATURE')}
+                    signatureFile={docs.signature.file?.name}
+                    isUploadingSignature={isUploading}
                 />
             </TransactionLayout>
-        </>
+        </View>
     );
 }
 
@@ -532,8 +579,7 @@ const styles = ScaledSheet.create({
     sectionTitle: {
         fontSize: '14@ms',
         fontWeight: '600',
-        color: '#0F172A',
-        // marginBottom: '16@vs', // InputField has its own spacing but section needs title spacing
+        color: '#0F172A'
     },
 });
 

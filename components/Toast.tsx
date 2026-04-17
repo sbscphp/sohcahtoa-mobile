@@ -1,16 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useRef } from 'react';
-import { Animated, Text, View } from 'react-native';
+import { Animated, Text, TouchableOpacity, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 
 interface ToastProps {
     visible: boolean;
     message: string;
     onDismiss?: () => void;
-    type?: 'success' | 'error' | 'warning'; // Expandable for future
+    type?: 'success' | 'error' | 'warning';
+    persistent?: boolean;
 }
 
-const Toast: React.FC<ToastProps> = ({ visible, message, onDismiss, type = 'success' }) => {
+const Toast: React.FC<ToastProps> = ({ visible, message, onDismiss, type = 'success', persistent = false }) => {
     const [show, setShow] = React.useState(visible);
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const translateY = useRef(new Animated.Value(-20)).current;
@@ -31,7 +32,7 @@ const Toast: React.FC<ToastProps> = ({ visible, message, onDismiss, type = 'succ
                 }),
             ]).start();
 
-            if (onDismiss) {
+            if (onDismiss && !persistent) {
                 const timer = setTimeout(() => {
                     onDismiss();
                 }, 3000);
@@ -59,18 +60,18 @@ const Toast: React.FC<ToastProps> = ({ visible, message, onDismiss, type = 'succ
 
     const config = {
         success: {
-            backgroundColor: '#10B981', // Emerald 500
-            stripColor: '#047857',      // Emerald 700
+            backgroundColor: '#10B981', 
+            stripColor: '#047857',      
             icon: 'checkmark-sharp' as keyof typeof Ionicons.glyphMap,
         },
         error: {
-            backgroundColor: '#EF4444', // Red 500
-            stripColor: '#B91C1C',      // Red 700
+            backgroundColor: '#EF4444', 
+            stripColor: '#B91C1C',      
             icon: 'alert-circle' as keyof typeof Ionicons.glyphMap,
         },
         warning: {
-            backgroundColor: '#F59E0B', // Amber 500
-            stripColor: '#B45309',      // Amber 700
+            backgroundColor: '#F59E0B', 
+            stripColor: '#B45309',      
             icon: 'warning' as keyof typeof Ionicons.glyphMap,
         },
     };
@@ -84,17 +85,24 @@ const Toast: React.FC<ToastProps> = ({ visible, message, onDismiss, type = 'succ
                 { opacity: fadeAnim, transform: [{ translateY }], backgroundColor: activeConfig.backgroundColor },
             ]}
         >
-            {/* Dark Left Strip */}
             <View style={[styles.leftStrip, { backgroundColor: activeConfig.stripColor }]} />
 
             <View style={styles.contentContainer}>
-                {/* Icon Container */}
                 <View style={styles.iconContainer}>
                     <Ionicons name={activeConfig.icon} size={moderateScale(16)} color="#FFFFFF" />
                 </View>
 
-                {/* Message */}
                 <Text style={styles.messageText}>{message}</Text>
+
+                {(persistent || onDismiss) && (
+                    <TouchableOpacity 
+                        onPress={onDismiss} 
+                        style={styles.closeButton}
+                        activeOpacity={0.7}
+                    >
+                        <Ionicons name="close" size={moderateScale(20)} color="#FFFFFF" />
+                    </TouchableOpacity>
+                )}
             </View>
         </Animated.View>
     );
@@ -103,10 +111,10 @@ const Toast: React.FC<ToastProps> = ({ visible, message, onDismiss, type = 'succ
 const styles = ScaledSheet.create({
     container: {
         position: 'absolute',
-        top: '60@vs', // Adjust based on safe area or header height
+        top: '60@vs', 
         left: '20@s',
         right: '20@s',
-        backgroundColor: '#10B981', // Emerald 500
+        backgroundColor: '#10B981', 
         borderRadius: '8@ms',
         flexDirection: 'row',
         shadowColor: '#000',
@@ -114,13 +122,13 @@ const styles = ScaledSheet.create({
         shadowOpacity: 0.1,
         shadowRadius: 4,
         elevation: 4,
-        overflow: 'hidden', // Ensures strip stays within rounded corners
+        overflow: 'hidden', 
         zIndex: 9999,
         minHeight: '56@vs',
     },
     leftStrip: {
         width: '6@s',
-        backgroundColor: '#047857', // Emerald 700
+        backgroundColor: '#047857', 
         height: '100%',
     },
     contentContainer: {
@@ -134,7 +142,7 @@ const styles = ScaledSheet.create({
         width: '28@ms',
         height: '28@ms',
         borderRadius: '8@ms',
-        backgroundColor: 'rgba(255, 255, 255, 0.2)', // Semi-transparent white
+        backgroundColor: 'rgba(255, 255, 255, 0.2)', 
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: '12@s',
@@ -144,6 +152,13 @@ const styles = ScaledSheet.create({
         fontSize: '14@ms',
         fontWeight: '500',
         color: '#FFFFFF',
+        marginRight: '8@s',
+    },
+    closeButton: {
+        padding: '4@ms',
+        marginLeft: '4@s',
+        borderRadius: '12@ms',
+        backgroundColor: 'rgba(255, 255, 255, 0.15)',
     },
 });
 

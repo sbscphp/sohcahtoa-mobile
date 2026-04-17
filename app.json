@@ -17,7 +17,10 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.iamkennis.sohcahtoa"
+      "bundleIdentifier": "com.iamkennis.sohcahtoa",
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "Allows $(PRODUCT_NAME) to use Face ID for secure login."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -43,7 +46,8 @@
           "resizeMode": "contain"
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": true,

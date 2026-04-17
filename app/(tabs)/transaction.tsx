@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import SearchEmpty from '../../assets/icons/empty-state.svg';
 import Header from '../../components/Header';
+import { useGetUnreadCountQuery } from '@/hooks/queries/notifications/useGetUnreadCountQuery';
 
 const FILTER_TO_GROUP: Record<string, string | undefined> = {
     'All': undefined,
@@ -84,6 +85,8 @@ export default function TransactionScreen() {
     const { data: transactionsData, isLoading } = useGetTransactionsQuery(
         group ? { group } : undefined
     );
+    const { data: unreadData } = useGetUnreadCountQuery();
+    const unreadCount = unreadData?.data?.count || 0;
 
 
 
@@ -116,10 +119,14 @@ export default function TransactionScreen() {
             <Header
                 title="Transaction"
                 rightIcon={
-                    <View>
-                        <Notification size={moderateScale(24)} color="rgba(143, 139, 139, 1)" variant="Linear" />
-                        <View style={styles.notificationDot} />
-                    </View>
+                    <TouchableOpacity onPress={() => router.push('/notifications')}>
+                        <Notification size={moderateScale(24)} color="#1E293B" variant="Linear" />
+                        {unreadCount > 0 && (
+                            <View style={styles.unreadBadge}>
+                                <Text style={styles.unreadText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                            </View>
+                        )}
+                    </TouchableOpacity>
                 }
                 onRightPress={() => router.push('/notifications')}
             />
@@ -462,5 +469,24 @@ const styles = ScaledSheet.create({
         backgroundColor: '#FF6B2C',
         borderWidth: 1.5,
         borderColor: '#FFFFFF',
+    },
+    unreadBadge: {
+        position: 'absolute',
+        top: -moderateScale(4),
+        right: -moderateScale(4),
+        backgroundColor: '#EF4444',
+        minWidth: moderateScale(16),
+        height: moderateScale(16),
+        borderRadius: moderateScale(8),
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1.5,
+        borderColor: '#FFFFFF',
+        paddingHorizontal: moderateScale(2),
+    },
+    unreadText: {
+        color: '#FFFFFF',
+        fontSize: moderateScale(9),
+        fontWeight: 'bold',
     },
 });

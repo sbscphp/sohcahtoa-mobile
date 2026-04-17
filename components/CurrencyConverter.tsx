@@ -2,7 +2,7 @@ import CurrencySelectionSheet from '@/components/CurrencySelectionSheet';
 import InputField from '@/components/InputField';
 import { ArrowDown2 } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
-import { Image, Pressable, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, Text, TouchableOpacity, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import SwapIcons from '../assets/icons/coins-swap.svg';
 
@@ -33,6 +33,7 @@ export interface CurrencyConverterProps {
     showLimitWarning?: boolean;
     onLimitWarningPress?: () => void;
     error?: string;
+    isLoading?: boolean;
 }
 
 export default function CurrencyConverter({
@@ -50,7 +51,8 @@ export default function CurrencyConverter({
     onAmountSendChange,
     showLimitWarning = false,
     onLimitWarningPress,
-    error
+    error,
+    isLoading = false
 }: CurrencyConverterProps) {
     const [currencySheetVisible, setCurrencySheetVisible] = useState(false);
     const [activeCurrencyField, setActiveCurrencyField] = useState<'get' | 'send' | null>(null);
@@ -86,7 +88,7 @@ export default function CurrencyConverter({
         }
     };
 
-    const foreignAmountStr = transactionType === 'sell' ? amountGet : amountSend;
+    const foreignAmountStr = currencyGet.code !== 'NGN' ? amountGet : amountSend;
     const foreignAmount = parseFloat(foreignAmountStr.replace(/,/g, '')) || 0;
 
     return (
@@ -134,9 +136,9 @@ export default function CurrencyConverter({
                             <ArrowDown2 size={moderateScale(16)} color="#292D32" />
                         </Pressable>
                     </View>
-                    <View style={{ marginVertical: -25, zIndex: 5 }}>
+                    <View style={{ zIndex: 5 }}>
                         <InputField
-                            wrapperStyle={{ backgroundColor: 'rgba(241, 241, 241, 1)' }}
+                            wrapperStyle={{ backgroundColor: '#FFFFFF' }}
                             height={moderateScale(48)}
                             label=''
                             value={amountGet}
@@ -164,7 +166,7 @@ export default function CurrencyConverter({
                 </View>
             </View>
 
-            <View style={{ alignItems: 'center', marginVertical: -12, zIndex: 10 }} pointerEvents="box-none">
+            <View style={{ alignItems: 'center', marginVertical: -10, zIndex: 10 }} pointerEvents="box-none">
                 <Pressable
                     style={({ pressed }) => [
                         styles.swapIconCircle,
@@ -178,7 +180,7 @@ export default function CurrencyConverter({
 
             <View style={styles.exchangeCard}>
                 <View style={styles.exchangeRow}>
-                    <Text style={[styles.exchangeLabel, { paddingHorizontal: 10 }]}>What you send</Text>
+                    <Text style={[styles.exchangeLabel, { paddingHorizontal: 10 }]}>What you get</Text>
                     <Pressable
                         style={({ pressed }) => [
                             styles.currencyPill,
@@ -191,9 +193,9 @@ export default function CurrencyConverter({
                         <ArrowDown2 size={moderateScale(16)} color="#292D32" />
                     </Pressable>
                 </View>
-                <View style={{ marginVertical: -25, paddingHorizontal: 10, zIndex: 5 }}>
+                <View style={{ paddingHorizontal: 10, zIndex: 5 }}>
                     <InputField
-                        wrapperStyle={{ backgroundColor: 'rgba(241, 241, 241, 1)' }}
+                        wrapperStyle={{ backgroundColor: '#FFFFFF' }}
                         height={moderateScale(48)}
                         label=''
                         value={amountSend}
@@ -201,9 +203,11 @@ export default function CurrencyConverter({
                         editable={!!onAmountSendChange}
                         keyboardType="numeric"
                         icon={
-                            <Text style={{ fontSize: moderateScale(14), color: '#0F172A', fontWeight: '600' }}>
-                                {getCurrencySymbol(currencySend.code)}
-                            </Text>
+                             isLoading ? <ActivityIndicator size="small" color="#0F172A" /> : (
+                                <Text style={{ fontSize: moderateScale(14), color: '#0F172A', fontWeight: '600' }}>
+                                    {getCurrencySymbol(currencySend.code)}
+                                </Text>
+                             )
                         }
                     />
                 </View>

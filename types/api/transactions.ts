@@ -81,6 +81,14 @@ export interface TransactionCashPickup {
     status: string;
 }
 
+export interface TransactionComment {
+    id: string;
+    action: string;
+    message: string;
+    addedBy: string;
+    createdAt: string;
+}
+
 export interface Transaction {
     id: string;
     referenceNumber: string;
@@ -107,8 +115,27 @@ export interface Transaction {
     completedAt: string | null;
     rejectedAt: string | null;
     rejectionReason: string | null;
+    beneficiaryDetails?: {
+        name: string;
+        accountNumber: string;
+        accountName: string;
+        bankName: string;
+        iban: string;
+        address?: string;
+        bankAddress?: string;
+        routingNumber?: string;
+        swiftCode?: string;
+    };
+    paymentDetails?: {
+        name: string;
+        accountNumber: string;
+        accountName: string;
+        bankName: string;
+        iban: string;
+    };
     documents: TransactionDocument[];
     cashPickup: TransactionCashPickup | null;
+    comments?: TransactionComment[];
 }
 
 export interface PaginationMeta {
@@ -256,9 +283,28 @@ export interface GetTransactionByIdResponse {
                 verifiedAt?: string;
             };
         }[];
+        beneficiaryDetails?: {
+            name: string;
+            accountName: string;
+            accountNumber: string;
+            bankName: string;
+            iban: string;
+            address?: string;
+            bankAddress?: string;
+            routingNumber?: string;
+            swiftCode?: string;
+        };
+        paymentDetails?: {
+            name: string;
+            accountName: string;
+            accountNumber: string;
+            bankName: string;
+            iban: string;
+        };
         cashPickup?: any;
         prepaidCard?: any;
         steps?: any[];
+        comments?: TransactionComment[];
         createdAt: string;
         updatedAt: string;
     };

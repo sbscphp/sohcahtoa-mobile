@@ -1,19 +1,88 @@
-import { useRouter } from 'expo-router';
+import * as LocalAuthentication from 'expo-local-authentication';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ScanFaceIcon } from 'lucide-react-native';
-import React from 'react';
-import { Text, View } from 'react-native';
+import React, { useState } from 'react';
+import { Alert, Text, View } from 'react-native';
+import { useAuthStore } from '@/stores/useAuthStore';
+import { saveCredentials } from '../../utils/biometrics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import AuthHeader from '../../components/AuthHeader';
 import PrimaryButton from '../../components/PrimaryButton';
 import { Colors } from '../../constants/theme';
 
+type Status = 'idle' | 'scanning' | 'success' | 'failure' | 'unsupported';
+
 export default function BiometricsSetupScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
+    const { email, password } = useLocalSearchParams<{ email: string; password: string }>();
+    const setBiometricEnabled = useAuthStore((state) => state.setBiometricEnabled);
+    const setBiometricType = useAuthStore((state) => state.setBiometricType);
+    const checkCredentials = useAuthStore((state) => state.checkCredentials);
+    const [status, setStatus] = useState<Status>('idle');
+    const [loading, setLoading] = useState(false);
+    const [isContinuing, setIsContinuing] = useState(false);
 
-    const handleStart = () => {
-        router.push('/(auth)/face-capture');
+    const handleStart = async () => {
+        setLoading(true);
+        try {
+            // Validate email and password before proceeding with biometrics setup
+            if (!email || !password) {
+                Alert.alert('Setup Error', 'Email and password are required to set up biometrics. Please go back and ensure both are filled.');
+                setStatus('idle');
+                setLoading(false);
+                return;
+            }
+
+            const compatible = await LocalAuthentication.hasHardwareAsync();
+            if (!compatible) {
+                Alert.alert('Not Supported', 'Your device does not support Face ID.');
+                setLoading(false);
+                return;
+            }
+
+            const enrolled = await LocalAuthentication.isEnrolledAsync();
+            if (!enrolled) {
+                Alert.alert('Not Enrolled', 'Please enroll your face in device settings.');
+                setLoading(false);
+                return;
+            }
+
+            const result = await LocalAuthentication.authenticateAsync({
+                promptMessage: 'Authenticate with Face ID',
+            });
+
+            if (result.success) {
+                if (email && password) {
+                    const saved = await saveCredentials(email, password);
+                    if (saved) {
+                        setBiometricEnabled(true);
+                        setBiometricType('face');
+                        await checkCredentials();
+                        setStatus('success');
+                    } else {
+                        Alert.alert('Save Error', 'Failed to securely store credentials. Please try again.');
+                        setStatus('failure');
+                    }
+                } else {
+                    Alert.alert('Setup Error', 'Email and password are required. Please go back and ensure both are filled.');
+                    setStatus('idle');
+                }
+            } else {
+                setStatus('idle');
+            }
+        } catch (error) {
+            console.error('Face ID Error:', error);
+            setStatus('failure');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleContinue = () => {
+        setIsContinuing(true);
+        router.replace('/(tabs)');
     };
 
     return (
@@ -31,16 +100,32 @@ export default function BiometricsSetupScreen() {
                 <View style={styles.graphicContainer}>
                     <View style={styles.circleOuter} />
                     <View style={styles.circleMiddle} />
-                    <View style={styles.circleInner}>
-                        <ScanFaceIcon size={moderateScale(64)} color="#FFFFFF" />
-                    </View>
+                    {status !== 'scanning' && status !== 'success' && (
+                        <View style={styles.circleInner}>
+                            <ScanFaceIcon size={moderateScale(64)} color="#FFFFFF" />
+                        </View>
+                    )}
+                    {status === 'success' && (
+                         <View style={[styles.circleInner, { backgroundColor: '#22C55E' }]}>
+                            <ScanFaceIcon size={moderateScale(64)} color="#FFFFFF" />
+                         </View>
+                    )}
                 </View>
 
                 <View style={styles.footer}>
-                    <PrimaryButton
-                        title="Start"
-                        onPress={handleStart}
-                    />
+                    {status === 'success' ? (
+                         <PrimaryButton
+                            title="Continue"
+                            onPress={handleContinue}
+                            loading={isContinuing}
+                         />
+                    ) : (
+                        <PrimaryButton
+                            title={loading ? "Authenticating..." : "Start"}
+                            onPress={handleStart}
+                            loading={loading}
+                        />
+                    )}
                 </View>
             </View>
         </View>

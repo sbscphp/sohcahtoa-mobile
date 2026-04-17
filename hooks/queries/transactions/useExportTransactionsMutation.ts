@@ -8,7 +8,7 @@ export const useExportTransactionsMutation = () => {
 
     return useMutation<Blob, any, ExportTransactionsParams | undefined>({
         mutationFn: exportTransactions,
-        onSuccess: (response) => {
+        onSuccess: (response: Blob) => {
             showToast('Transactions exported successfully', 'success');
             console.log(response, "response");
         },

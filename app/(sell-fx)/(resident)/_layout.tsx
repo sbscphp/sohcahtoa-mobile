@@ -6,6 +6,8 @@ export default function ResidentLayout() {
             <Stack.Screen name="create-resident" />
             <Stack.Screen name="success" />
             <Stack.Screen name="view-resident" />
+            <Stack.Screen name="payment" />
+            <Stack.Screen name="payment-success" />
         </Stack>
     );
 }

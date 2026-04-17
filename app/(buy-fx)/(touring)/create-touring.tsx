@@ -2,31 +2,30 @@ import ControlledDatePicker from '@/components/ControlledDatePicker';
 import ControlledInput from '@/components/ControlledInput';
 import InitiateTransactionSheet from '@/components/InitiateTransactionSheet';
 import LoadingBackdrop from '@/components/LoadingBackdrop';
-import { LocationItem } from '@/components/LocationSelectionSheet';
 import CredentialStep from '@/components/transaction-flow/CredentialStep';
 import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import LocationStep from '@/components/transaction-flow/LocationStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
 import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
+import { useGetPickupPointsQuery } from '@/hooks/queries/transactions/useGetPickupPointsQuery';
+import { useGetPickupStatesQuery } from '@/hooks/queries/transactions/useGetPickupStatesQuery';
 import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useExchangeLogic } from '@/hooks/useExchangeLogic';
 import { useToastStore } from '@/stores/useToastStore';
-import { CITIES, LOCATIONS, STATES } from '@/utils/locations';
+import { LocationItem } from '@/utils/locations';
 import { touringStep0Schema, touringStep1Schema, touringStep2Schema, touringStep3Schema } from '@/utils/validations/touring';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { View } from 'react-native';
 import { z } from 'zod';
 
-const touringFormSchema = z.object({
-    ...touringStep0Schema.shape,
-    ...touringStep1Schema.shape,
-    ...touringStep2Schema.shape,
-    ...touringStep3Schema.shape
-});
+const touringFormSchema = touringStep0Schema
+    .merge(touringStep1Schema)
+    .merge(touringStep2Schema)
+    .merge(touringStep3Schema);
 
 type TouringFormValues = z.infer<typeof touringFormSchema>;
 
@@ -55,6 +54,7 @@ export default function TouringScreen() {
             passportIssueDate: '',
             passportExpiryDate: '',
             visaNumber: '',
+            ticketNumber: '',
             amount: 0,
             selectedState: undefined as unknown as LocationItem,
             selectedCity: undefined as unknown as LocationItem,
@@ -77,7 +77,11 @@ export default function TouringScreen() {
         amountSendStr,
         setAmountSendStr,
         currentRate,
-    } = useExchangeLogic({ setValue, initialAmount: '1' });
+    } = useExchangeLogic({ setValue, initialAmount: '0' });
+
+    // Dynamic Locations
+    const { data: states = [] } = useGetPickupStatesQuery();
+    const { data: allLocations = [] } = useGetPickupPointsQuery();
 
     // Document upload state
     const [docs, setDocs] = useState({
@@ -102,10 +106,10 @@ export default function TouringScreen() {
     });
 
     const credentialFields = [
-        { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number (BVN)" placeholder="Enter your BVN" required keyboardType="numeric" /> },
-        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number (NIN)" placeholder="Enter your NIN" required keyboardType="numeric" /> },
+        { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number (BVN)" placeholder="Enter your BVN" required keyboardType="numeric" maxLength={11} filterType="numeric" /> },
+        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number (NIN)" placeholder="Enter your NIN" required keyboardType="numeric" maxLength={11} filterType="numeric" /> },
         { customComponent: <ControlledInput control={control} name="formAId" label="Form A ID" placeholder="Enter Form A ID" required /> },
-        { customComponent: <ControlledInput control={control} name="passportNumber" label="International Passport Number" placeholder="Enter international passport" required /> },
+        { customComponent: <ControlledInput control={control} name="passportNumber" label="International Passport Number" placeholder="Enter international passport" required maxLength={9} filterType="alphanumeric" /> },
     ];
 
     const documentFields = [
@@ -113,7 +117,7 @@ export default function TouringScreen() {
             label: 'International Passport',
             onUpload: () => uploadFile('PASSPORT'),
             fileName: docs.passport.file?.name,
-            fileUri: docs.passport.file?.uri,            fileUrl: docs.passport.meta?.fileUrl,
+            fileUri: docs.passport.file?.uri, fileUrl: docs.passport.meta?.fileUrl,
             fileType: docs.passport.file?.type,
             required: true,
             associatedInputs: (
@@ -131,26 +135,29 @@ export default function TouringScreen() {
             label: 'Valid Visa ',
             onUpload: () => uploadFile('VISA'),
             fileName: docs.visa.file?.name,
-            fileUri: docs.visa.file?.uri,            fileUrl: docs.visa.meta?.fileUrl,
+            fileUri: docs.visa.file?.uri, fileUrl: docs.visa.meta?.fileUrl,
             fileType: docs.visa.file?.type,
             required: true,
             associatedInputs: (
-                <ControlledInput control={control} name="visaNumber" label="Visa Number" placeholder="Enter visa number" required />
+                <ControlledInput control={control} name="visaNumber" label="Visa Number" placeholder="Enter visa number" required maxLength={8} filterType="alphanumeric" />
             )
         },
         {
             label: 'Return Ticket',
             onUpload: () => uploadFile('RETURN_TICKET'),
             fileName: docs.ticket.file?.name,
-            fileUri: docs.ticket.file?.uri,            fileUrl: docs.ticket.meta?.fileUrl,
+            fileUri: docs.ticket.file?.uri, fileUrl: docs.ticket.meta?.fileUrl,
             fileType: docs.ticket.file?.type,
             required: true,
+            associatedInputs: (
+                <ControlledInput control={control} name="ticketNumber" label="Ticket Number" placeholder="Enter ticket number" required maxLength={13} filterType="numeric" />
+            )
         },
         {
             label: 'Receipt for Initial Naira Purchase',
             onUpload: () => uploadFile('RECEIPT'),
             fileName: docs.receipt.file?.name,
-            fileUri: docs.receipt.file?.uri,            fileUrl: docs.receipt.meta?.fileUrl,
+            fileUri: docs.receipt.file?.uri, fileUrl: docs.receipt.meta?.fileUrl,
             fileType: docs.receipt.file?.type,
             required: true,
         },
@@ -170,7 +177,7 @@ export default function TouringScreen() {
                 showToast('Please upload all required documents', 'error');
                 return;
             }
-            isStepValid = await trigger(['passportIssueDate', 'passportExpiryDate', 'visaNumber']);
+            isStepValid = await trigger(['passportIssueDate', 'passportExpiryDate', 'visaNumber', 'ticketNumber']);
         } else if (currentStep === 2) {
             isStepValid = await trigger(['amount']);
         } else if (currentStep === 3) {
@@ -218,6 +225,7 @@ export default function TouringScreen() {
             passportIssueDate: data.passportIssueDate,
             passportExpiryDate: data.passportExpiryDate,
             visaNumber: data.visaNumber,
+            ticketNumber: data.ticketNumber,
             documents: [
                 ...(docs.passport.meta ? [docs.passport.meta] : []),
                 ...(docs.visa.meta ? [docs.visa.meta] : []),
@@ -225,17 +233,17 @@ export default function TouringScreen() {
                 ...(docs.receipt.meta ? [docs.receipt.meta] : []),
             ],
             pickupLocation: data.selectedLocation ? {
-                name: data.selectedLocation.title,
-                address: data.selectedLocation.subtitle || '',
-                state: data.selectedState?.title || '',
-                city: data.selectedCity?.title || '',
+                name: (data.selectedLocation as LocationItem).title,
+                address: (data.selectedLocation as LocationItem).subtitle || '',
+                state: (data.selectedState as LocationItem)?.title || '',
+                city: (data.selectedCity as LocationItem)?.title || '',
                 scheduledPickupDate: formatDateForApi(data.pickupDate),
                 scheduledPickupTime: data.pickupTime,
             } : undefined,
         };
 
         createTransaction.mutate(payload, {
-            onSuccess: (response) => {
+            onSuccess: (response: any) => {
                 if (response.success) {
                     setInitiateSheetVisible(false);
                     router.push({
@@ -247,31 +255,58 @@ export default function TouringScreen() {
         });
     };
 
-    const selectedState = watch('selectedState');
-    const selectedCity = watch('selectedCity');
-    const selectedLocation = watch('selectedLocation');
-    const pickupDate = watch('pickupDate');
-    const pickupTime = watch('pickupTime');
+    const watchedFields = watch() as any;
+
+    const filteredCities = useMemo(() => {
+        if (!watchedFields.selectedState) return [];
+        const citiesMap = new Map<string, LocationItem>();
+        allLocations.forEach((loc: any) => {
+            const point = loc.metadata;
+            if (point && point.location) {
+                citiesMap.set(point.location, {
+                    id: `city-${point.location}`,
+                    title: point.location
+                });
+            }
+        });
+        return Array.from(citiesMap.values());
+    }, [watchedFields.selectedState, allLocations]);
+
+    const filteredLocations = useMemo(() => {
+        if (!watchedFields.selectedCity) return [];
+        return allLocations.filter((loc: any) => loc.metadata.location === watchedFields.selectedCity.title);
+    }, [watchedFields.selectedCity, allLocations]);
+
+    const isStep0Valid = watchedFields.bvn && watchedFields.nin && watchedFields.formAId && watchedFields.passportNumber;
+    const isStep1Valid = docs.passport.meta && docs.visa.meta && docs.ticket.meta && docs.receipt.meta &&
+        watchedFields.passportIssueDate && watchedFields.passportExpiryDate && watchedFields.visaNumber && watchedFields.ticketNumber;
+    const isStep2Valid = watchedFields.amount > 0;
+    const isStep3Valid = watchedFields.selectedState && watchedFields.selectedCity && watchedFields.selectedLocation && watchedFields.pickupDate && watchedFields.pickupTime;
+
+    const isNextDisabled =
+        (currentStep === 0 && !isStep0Valid) ||
+        (currentStep === 1 && !isStep1Valid) ||
+        (currentStep === 2 && !isStep2Valid) ||
+        (currentStep === 3 && !isStep3Valid);
 
     return (
         <View style={{ flex: 1 }}>
             <LoadingBackdrop visible={isUploading || createTransaction.isPending} />
             <TransactionLayout
-                title="Touring Payment"
+                title="Touring"
                 currentStep={currentStep}
                 totalSteps={4}
                 onBack={handleBack}
                 onNext={handleNext}
-                nextLabel={currentStep === 3 ? (selectedState && selectedCity && selectedLocation && pickupDate && pickupTime ? "Initiate Transaction Request" : "Continue") : "Continue"}
+                isNextDisabled={isNextDisabled}
+                nextLabel={currentStep === 3 ? (watchedFields.selectedState && watchedFields.selectedCity ? "Initiate Transaction Request" : "Continue") : "Continue"}
             >
                 {currentStep === 0 && (
                     <CredentialStep fields={credentialFields} />
                 )}
-
                 {currentStep === 1 && (
                     <DocumentStep documents={documentFields} />
                 )}
-
                 {currentStep === 2 && (
                     <ExchangeStep
                         transactionType={transactionType}
@@ -289,28 +324,27 @@ export default function TouringScreen() {
                         error={errors.amount?.message}
                     />
                 )}
-
                 {currentStep === 3 && (
                     <LocationStep
-                        states={STATES}
-                        cities={CITIES}
-                        locations={LOCATIONS}
-                        selectedState={selectedState}
+                        states={states}
+                        cities={filteredCities}
+                        locations={filteredLocations}
+                        selectedState={watchedFields.selectedState}
                         onSelectState={(item) => {
                             setValue('selectedState', item);
                             setValue('selectedCity', undefined as unknown as LocationItem);
                             setValue('selectedLocation', undefined as unknown as LocationItem);
                         }}
-                        selectedCity={selectedCity}
+                        selectedCity={watchedFields.selectedCity}
                         onSelectCity={(item) => {
                             setValue('selectedCity', item);
                             setValue('selectedLocation', undefined as unknown as LocationItem);
                         }}
-                        selectedLocation={selectedLocation}
+                        selectedLocation={watchedFields.selectedLocation}
                         onSelectLocation={(item) => setValue('selectedLocation', item)}
-                        pickupDate={pickupDate}
+                        pickupDate={watchedFields.pickupDate}
                         onPickupDateChange={(v: string) => setValue('pickupDate', v)}
-                        pickupTime={pickupTime}
+                        pickupTime={watchedFields.pickupTime}
                         onPickupTimeChange={(v: string) => setValue('pickupTime', v)}
                         errors={{
                             state: errors.selectedState?.message as string | undefined,

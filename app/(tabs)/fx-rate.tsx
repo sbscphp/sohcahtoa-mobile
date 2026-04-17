@@ -1,9 +1,13 @@
 import CurrencyConverter from '@/components/CurrencyConverter';
 import Header from '@/components/Header';
+import { useGetUnreadCountQuery } from '@/hooks/queries/notifications/useGetUnreadCountQuery';
+import { useCalculateExchangeRateMutation } from '@/hooks/queries/transactions/useCalculateExchangeRateMutation';
+import { useGetExchangeRatesQuery } from '@/hooks/queries/transactions/useGetExchangeRatesQuery';
+import { useDebounce } from '@/hooks/useDebounce';
 import { useRouter } from 'expo-router';
 import { Notification } from 'iconsax-react-nativejs';
-import React, { useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { moderateScale, ScaledSheet } from 'react-native-size-matters';
 
 interface Currency {
@@ -29,21 +33,49 @@ export default function FxRateScreen() {
     const [amountGet, setAmountGet] = useState('1');
     const [amountSend, setAmountSend] = useState('1500');
 
+    const { data: unreadData } = useGetUnreadCountQuery();
+    const unreadCount = unreadData?.data?.count || 0;
 
-    const ratesData = [
-        { currency: 'US Dollar ($)', buy: '₦1450 / $1', sell: '₦1450 / $1' },
-        { currency: 'Naira (₦)', buy: '₦1750 / £1', sell: '₦1750 / £1' }, // Keeping consistent with screenshot text even if weird
-    ];
+    const { data: exchangeRatesData, isLoading: isLoadingRates } = useGetExchangeRatesQuery();
+    const { mutate: calculateRate, isPending: isCalculating } = useCalculateExchangeRateMutation();
+
+    const debouncedAmountGet = useDebounce(amountGet, 500);
+
+    useEffect(() => {
+        if (debouncedAmountGet && parseFloat(debouncedAmountGet) > 0) {
+            calculateRate({
+                fromCurrency: currencyGet.code,
+                toCurrency: currencySend.code,
+                amount: parseFloat(debouncedAmountGet)
+            }, {
+                onSuccess: (response: any) => {
+                    if (response.success && response.data) {
+                        setAmountSend(response.data.convertedAmount.toString());
+                    }
+                }
+            });
+        }
+    }, [debouncedAmountGet, currencyGet.code, currencySend.code, transactionType]);
+
+    const ratesData = exchangeRatesData?.data?.map(rate => ({
+        currency: `${rate.fromCurrency} (${rate.fromCurrency === 'USD' ? '$' : rate.fromCurrency === 'GBP' ? '£' : rate.fromCurrency === 'EUR' ? '€' : ''})`,
+        buy: `₦${rate.buyRate} / ${rate.fromCurrency === 'USD' ? '$' : '1'}`,
+        sell: `₦${rate.sellRate} / ${rate.fromCurrency === 'USD' ? '$' : '1'}`
+    })) || [];
 
     return (
         <View style={styles.container}>
             <Header
                 title="FX Rate"
                 rightIcon={
-                    <View>
-                        <Notification size={moderateScale(24)} color="rgba(143, 139, 139, 1)" variant="Linear" />
-                        <View style={styles.notificationDot} />
-                    </View>
+                    <TouchableOpacity onPress={() => router.push('/notifications')}>
+                        <Notification size={moderateScale(24)} color="#1E293B" variant="Linear" />
+                        {unreadCount > 0 && (
+                            <View style={styles.unreadBadge}>
+                                <Text style={styles.unreadText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                            </View>
+                        )}
+                    </TouchableOpacity>
                 }
                 onRightPress={() => router.push('/notifications')}
             />
@@ -56,8 +88,10 @@ export default function FxRateScreen() {
                     currencySend={currencySend}
                     onCurrencySendChange={setCurrencySend}
                     amountGet={amountGet}
+                    onAmountGetChange={setAmountGet}
                     amountSend={amountSend}
-                    rate="USD1 - NGN1500"
+                    isLoading={isCalculating}
+                    rate={`${currencyGet.code} 1 - ${currencySend.code} ${amountSend && amountGet && parseFloat(amountGet) > 0 ? (parseFloat(amountSend) / parseFloat(amountGet)).toFixed(2) : '...'}`}
                 />
 
                 <View style={styles.otherRatesContainer}>
@@ -70,7 +104,11 @@ export default function FxRateScreen() {
                             <Text style={[styles.tableHeaderText, { flex: 1.5, textAlign: 'right' }]}>We Sell at</Text>
                         </View>
 
-                        {ratesData.map((item, index) => (
+                        {isLoadingRates ? (
+                            <View style={{ padding: moderateScale(20) }}>
+                                <ActivityIndicator color="#0F172A" />
+                            </View>
+                        ) : ratesData.map((item, index) => (
                             <View key={index} style={styles.tableRow}>
                                 <Text style={[styles.tableCellText, { flex: 2 }]}>{item.currency}</Text>
                                 <Text style={[styles.tableCellText, { flex: 1.5, textAlign: 'center' }]}>{item.buy}</Text>
@@ -108,8 +146,7 @@ const styles = ScaledSheet.create({
         color: '#0F172A',
     },
     table: {
-        backgroundColor: 'rgba(248, 248, 248, 1)', // Light gray background for the whole table/header area if needed, or just header. Screenshot shows a container.
-        // Actually screenshot shows a list. Let's make the header gray.
+        backgroundColor: 'rgba(248, 248, 248, 1)',
         borderRadius: '12@ms',
         overflow: 'hidden',
     },
@@ -128,7 +165,7 @@ const styles = ScaledSheet.create({
         flexDirection: 'row',
         padding: '16@ms',
         alignItems: 'center',
-        borderBottomWidth: 0, // No visible separators in screenshot
+        borderBottomWidth: 0,
     },
     tableCellText: {
         fontSize: '14@ms',
@@ -145,5 +182,24 @@ const styles = ScaledSheet.create({
         backgroundColor: '#FF6B2C',
         borderWidth: 1.5,
         borderColor: '#FFFFFF',
+    },
+    unreadBadge: {
+        position: 'absolute',
+        top: -moderateScale(4),
+        right: -moderateScale(4),
+        backgroundColor: '#EF4444',
+        minWidth: moderateScale(16),
+        height: moderateScale(16),
+        borderRadius: moderateScale(8),
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1.5,
+        borderColor: '#FFFFFF',
+        paddingHorizontal: moderateScale(2),
+    },
+    unreadText: {
+        color: '#FFFFFF',
+        fontSize: moderateScale(9),
+        fontWeight: 'bold',
     },
 });

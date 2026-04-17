@@ -1,34 +1,108 @@
-import BiometricBottomSheet from '@/components/BiometricBottomSheet';
-import { useLoginMutation } from '@/hooks/queries/auth/useLoginMutation';
-import { LoginFormData, loginSchema } from '@/lib/validations/auth';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { Lock, Sms } from 'iconsax-react-nativejs';
-import { ScanFaceIcon } from 'lucide-react-native';
-import React, { useState } from 'react';
+import { Fingerprint, ScanFaceIcon } from 'lucide-react-native';
 import { KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import { z } from 'zod';
+
+import { useToastStore } from '@/stores/useToastStore';
+import { useLoginMutation } from '@/hooks/queries/auth/useLoginMutation';
+import { LoginFormData, loginSchema } from '@/lib/validations/auth';
 import UserSharing from '../../assets/icons/user-sharing.svg';
 import AuthHeader from '../../components/AuthHeader';
-import BiometricSelectionSheet from '../../components/BiometricSelectionSheet';
 import InputField from '../../components/InputField';
 import PrimaryButton from '../../components/PrimaryButton';
+import { authenticateWithBiometrics, clearStoredCredentials, getStoredCredentials, isBiometricsAvailable } from '../../utils/biometrics';
 import { Colors } from '../../constants/theme';
 import { useAuthStore } from '@/stores/useAuthStore';
+import { getSupportedAuthenticationTypes } from '@/utils/biometrics';
 
 export default function LoginScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
-    const user = useAuthStore((state) => state.user);
+   
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [errors, setErrors] = useState<Partial<Record<keyof LoginFormData, string>>>({});
-    const [showBiometricSheet, setShowBiometricSheet] = useState(false);
-    const [showBiometricBottomSheet, setShowBiometricBottomSheet] = useState(false);
-     const userName =  `${user?.profile?.firstName} ${user?.profile?.lastName}`;
+    const [biometricsSupported, setBiometricsSupported] = useState(false);
+
+    const user = useAuthStore((state) => state.user)
+    const isBiometricEnabled = useAuthStore((state) => state.isBiometricEnabled);
+    const biometricType = useAuthStore((state) => state.biometricType);
+    const setBiometricType = useAuthStore((state) => state.setBiometricType);
+    const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+    const hasCredentials = useAuthStore((state) => state.hasCredentials);
+    const checkCredentials = useAuthStore((state) => state.checkCredentials);
+    const showToast = useToastStore((state) => state.showToast);
+
+    const userName =  `${user?.profile?.firstName} ${user?.profile?.lastName}`;
 
     const { mutate: login, isPending } = useLoginMutation();
+
+    useEffect(() => {
+        const checkBiometrics = async () => {
+            const available = await isBiometricsAvailable();
+            setBiometricsSupported(available);
+
+            await checkCredentials();
+            if (available && !biometricType) {
+                const types = await getSupportedAuthenticationTypes();
+                if (Platform.OS === 'ios') {
+                    if (types.includes(2)) {
+                        setBiometricType('face');
+                    } else if (types.includes(1)) {
+                        setBiometricType('fingerprint');
+                    }
+                } else {
+
+                    if (types.includes(1)) {
+                        setBiometricType('fingerprint');
+                    } else if (types.includes(2)) {
+                        setBiometricType('face');
+                    }
+                }
+            }
+
+            if (isBiometricEnabled && available && !isAuthenticated && !isPending) {
+                const credentials = await getStoredCredentials();
+                if (credentials) {
+                    handleBiometricLogin();
+                }
+            }
+        };
+        checkBiometrics();
+    }, [isAuthenticated, isBiometricEnabled]);
+
+
+    const handleBiometricLogin = async () => {
+        const success = await authenticateWithBiometrics();
+        if (success) {
+            useAuthStore.getState().setBiometricEnabled(true);
+            const credentials = await getStoredCredentials();
+            if (credentials) {
+                setEmail(credentials.email);
+                setPassword(credentials.password);
+                login({ email: credentials.email, password: credentials.password });
+            } else {
+                showToast('Biometric credentials not found. Please login manually.', 'warning');
+            }
+        }
+    };
+
+    const handleBiometricPress = () => {
+        if (hasCredentials) {
+            handleBiometricLogin();
+        } else if (biometricsSupported) {
+            if (biometricType) {
+                router.push({
+                    pathname: biometricType === 'face' ? '/(auth)/biometrics-setup' : '/(auth)/fingerprint-setup',
+                    params: { email, password }
+                });
+            }
+        }
+    };
 
     const validateField = (field: keyof LoginFormData, value: string) => {
         try {
@@ -46,13 +120,7 @@ export default function LoginScreen() {
             loginSchema.parse({ email, password });
             setErrors({});
 
-            login({ email, password }, {
-                onSuccess: (response) => {
-                    if (response.success) {
-                        router.push('/(tabs)');
-                    }
-                }
-            });
+            login({ email, password });
         } catch (error) {
             if (error instanceof z.ZodError) {
                 const fieldErrors: Partial<Record<keyof LoginFormData, string>> = {};
@@ -136,11 +204,37 @@ export default function LoginScreen() {
 
                     <View style={styles.biometricSection}>
                         <TouchableOpacity
-                            style={styles.biometricButton}
-                            onPress={() => setShowBiometricBottomSheet(true)}
+                            style={[
+                                styles.biometricButton,
+                                !biometricsSupported && { opacity: 0.3 },
+                                biometricsSupported && !hasCredentials && { opacity: 0.6 }
+                            ]}
+                            onPress={handleBiometricPress}
+                            disabled={!biometricsSupported}
                         >
-                            <ScanFaceIcon size={moderateScale(42)} color="#94A3B8" />
+                            {biometricType === 'fingerprint' ? (
+                                <Fingerprint size={moderateScale(42)} color="#94A3B8" />
+                            ) : (
+                                <ScanFaceIcon size={moderateScale(42)} color="#94A3B8" />
+                            )}
                         </TouchableOpacity>
+
+                        {/* {biometricType && (
+                            <TouchableOpacity 
+                                onPress={async () => {
+                                    await clearStoredCredentials();
+                                    useAuthStore.getState().setBiometricType(null);
+                                    useAuthStore.getState().setBiometricEnabled(false);
+                                    await useAuthStore.getState().checkCredentials();
+                                    showToast('Biometric preference and credentials reset', 'success');
+                                }}
+                                style={{ marginTop: moderateScale(10) }}
+                            >
+                                <Text style={{ fontSize: moderateScale(12), color: '#EF4444', fontWeight: '500' }}>
+                                    Reset Biometric Preference
+                                </Text>
+                            </TouchableOpacity>
+                        )} */}
                     </View>
 
                     <View style={styles.signUpFooter}>
@@ -151,31 +245,10 @@ export default function LoginScreen() {
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>
-
-            <BiometricBottomSheet
-                visible={showBiometricBottomSheet}
-                onClose={() => setShowBiometricBottomSheet(false)}
-                onConfirm={() => {
-                    setShowBiometricSheet(true);
-                    setShowBiometricBottomSheet(false);
-                }}
-            />
-
-            <BiometricSelectionSheet
-                visible={showBiometricSheet}
-                onClose={() => setShowBiometricSheet(false)}
-                onSelectFace={() => {
-                    setShowBiometricSheet(false);
-                    router.push('/(auth)/biometrics-setup');
-                }}
-                onSelectFingerprint={() => {
-                    setShowBiometricSheet(false);
-                    router.push('/(auth)/fingerprint-setup');
-                }}
-            />
         </View>
     );
 }
+
 
 const styles = ScaledSheet.create({
     container: {

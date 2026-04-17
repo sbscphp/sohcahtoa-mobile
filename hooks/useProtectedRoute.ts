@@ -9,13 +9,18 @@ export function useProtectedRoute() {
 
     useEffect(() => {
         const inAuthGroup = segments[0] === '(auth)';
+        const hasSeenPrompt = useAuthStore.getState().hasSeenNotificationPrompt;
 
         if (!isAuthenticated && !inAuthGroup && segments[0] !== undefined) {
-            // If the user is not signed in and the initial segment is not auth, redirect to onboarding
             router.replace('/');
-        } else if (isAuthenticated && inAuthGroup) {
-            // Redirect away from auth pages if authenticated
-            router.replace('/(tabs)');
+        } else if (isAuthenticated) {
+            if (!hasSeenPrompt) {
+                if (segments[1] !== 'allow-notifications') {
+                    router.replace('/(auth)/allow-notifications');
+                }
+            } else if (inAuthGroup) {
+                router.replace('/(tabs)');
+            }
         }
     }, [isAuthenticated, segments]);
 }

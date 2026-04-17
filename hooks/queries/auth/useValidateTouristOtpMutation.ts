@@ -2,6 +2,7 @@ import { useToastStore } from '@/stores/useToastStore';
 import { useMutation } from '@tanstack/react-query';
 import { validateTouristOtp } from '../../../services/auth';
 import { useAuthStore } from '../../../stores/useAuthStore';
+import { ValidateTouristOtpResponse } from '@/types/api/auth';
 
 export const useValidateTouristOtpMutation = () => {
     const setUser = useAuthStore((state) => state.setUser);
@@ -9,7 +10,7 @@ export const useValidateTouristOtpMutation = () => {
 
     return useMutation({
         mutationFn: validateTouristOtp,
-        onSuccess: (response) => {
+        onSuccess: (response: ValidateTouristOtpResponse) => {
             if (response.success && response.data) {
                 setUser({
                     firstName: response.data.firstName,

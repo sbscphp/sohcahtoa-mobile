@@ -14,25 +14,30 @@ export const loginSchema = z.object({
 
 export type LoginFormData = z.infer<typeof loginSchema>;
 
+// BVN validation
+export const bvnValidation = z
+    .string()
+    .min(1, 'BVN is required')
+    .length(11, 'BVN must be exactly 11 digits')
+    .regex(/^\d+$/, 'BVN must contain only numbers');
+
+// Passport validation
+export const passportValidation = z
+    .string()
+    .min(1, 'International Passport number is required')
+    .length(9, 'International Passport number must be exactly 9 characters')
+    .regex(/^[A-Z]\d{8}$/, 'International Passport number must be 1 letter followed by 8 numbers');
+
 // BVN validation schema
 export const bvnSchema = z.object({
-    bvn: z
-        .string()
-        .min(1, 'BVN is required')
-        .length(11, 'BVN must be exactly 11 digits')
-        .regex(/^\d+$/, 'BVN must contain only numbers'),
+    bvn: bvnValidation,
 });
 
 export type BVNFormData = z.infer<typeof bvnSchema>;
 
-// Passport/BVN validation schema
+// Passport validation schema
 export const passportSchema = z.object({
-    passportNumber: z
-        .string()
-        .min(1, 'Identification number is required')
-        .min(9, 'Identification number must be at least 9 characters')
-        .max(11, 'Identification number must not exceed 11 characters')
-        .regex(/^[A-Z0-9]+$/, 'Identification number must contain only uppercase letters and numbers'),
+    passportNumber: passportValidation,
 });
 
 export type PassportFormData = z.infer<typeof passportSchema>;

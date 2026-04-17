@@ -15,7 +15,8 @@ export const useForgotPasswordMutation = () => {
                 if (response.data.verificationToken) {
                     setVerificationToken(response.data.verificationToken);
                 }
-                showToast(response.data.message || 'Password reset OTP has been sent', 'success');
+                const otpMessage = response.data.otp ? ` (OTP: ${response.data.otp})` : '';
+                showToast(`${response.data.message || 'Password reset OTP has been sent'}${otpMessage}`, 'success', true);
             }
             console.log(response);
         },

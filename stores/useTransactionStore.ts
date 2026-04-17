@@ -1,4 +1,4 @@
-import { LocationItem } from '@/components/LocationSelectionSheet';
+import { LocationItem } from '@/utils/locations';
 import { create } from 'zustand';
 
 interface CurrencyData {

@@ -3,7 +3,7 @@ import ControlledInput from '@/components/ControlledInput';
 import FileUpload from '@/components/FileUpload';
 import InitiateTransactionSheet from '@/components/InitiateTransactionSheet';
 import LoadingBackdrop from '@/components/LoadingBackdrop';
-import { LocationItem } from '@/components/LocationSelectionSheet';
+import { LocationItem } from '@/utils/locations';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import LocationStep from '@/components/transaction-flow/LocationStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
@@ -19,13 +19,14 @@ import {
 } from '@/utils/validations/expatriate';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Text, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import { z } from 'zod';
 
-import { CITIES, LOCATIONS, STATES } from '@/utils/locations';
+import { useGetPickupStatesQuery } from '@/hooks/queries/transactions/useGetPickupStatesQuery';
+import { useGetPickupPointsQuery } from '@/hooks/queries/transactions/useGetPickupPointsQuery';
 
 const expatriateFormSchema = z.object({
     ...expatriateStep0Schema.shape,
@@ -39,6 +40,11 @@ type ExpatriateFormValues = z.infer<typeof expatriateFormSchema>;
 export default function CreateExpatriateScreen() {
     const router = useRouter();
     const createTransaction = useCreateTransactionMutation();
+
+    // Dynamic Locations
+    const { data: states = [] } = useGetPickupStatesQuery();
+    const { data: allLocations = [] } = useGetPickupPointsQuery();
+
     const [currentStep, setCurrentStep] = useState(0);
 
     const {
@@ -67,6 +73,28 @@ export default function CreateExpatriateScreen() {
         },
         mode: 'onChange'
     });
+
+    const watchedFields = watch() as any;
+
+    const filteredCities = useMemo(() => {
+        if (!watchedFields.selectedState) return [];
+        const citiesMap = new Map<string, LocationItem>();
+        allLocations.forEach((loc: any) => {
+            const point = loc.metadata;
+            if (point && point.location) {
+                citiesMap.set(point.location, {
+                    id: `city-${point.location}`,
+                    title: point.location
+                });
+            }
+        });
+        return Array.from(citiesMap.values());
+    }, [watchedFields.selectedState, allLocations]);
+
+    const filteredLocations = useMemo(() => {
+        if (!watchedFields.selectedCity) return [];
+        return allLocations.filter((loc: any) => loc.metadata.location === watchedFields.selectedCity.title);
+    }, [watchedFields.selectedCity, allLocations]);
 
     // Step 1: Uploaded files
     const [docs, setDocs] = useState({
@@ -186,7 +214,7 @@ export default function CreateExpatriateScreen() {
         };
 
         createTransaction.mutate(payload, {
-            onSuccess: (response) => {
+            onSuccess: (response: any) => {
                 if (response.success) {
                     setInitiateSheetVisible(false);
                     router.push({
@@ -200,14 +228,20 @@ export default function CreateExpatriateScreen() {
         });
     };
 
-    const selectedState = watch('selectedState');
-    const selectedCity = watch('selectedCity');
-    const selectedLocation = watch('selectedLocation');
-    const pickupDate = watch('pickupDate');
-    const pickupTime = watch('pickupTime');
+    const isStep0Valid = !!(watchedFields.bvn && watchedFields.nin && watchedFields.passportNumber);
+    const isStep1Valid = !!(docs.workPermit.meta && docs.passport.meta && docs.utility.meta &&
+        watchedFields.workPermitNumber && watchedFields.passportIssueDate && watchedFields.passportExpiryDate && watchedFields.utilityBillNumber);
+    const isStep2Valid = watchedFields.amount > 0;
+    const isStep3Valid = !!(watchedFields.selectedState && watchedFields.selectedCity && watchedFields.selectedLocation && watchedFields.pickupDate && watchedFields.pickupTime);
+
+    const isNextDisabled =
+        (currentStep === 0 && !isStep0Valid) ||
+        (currentStep === 1 && !isStep1Valid) ||
+        (currentStep === 2 && !isStep2Valid) ||
+        (currentStep === 3 && !isStep3Valid);
 
     return (
-        <>
+        <View style={{ flex: 1 }}>
             <LoadingBackdrop visible={isUploading || createTransaction.isPending} />
             <TransactionLayout
                 title="Expatriate"
@@ -215,6 +249,7 @@ export default function CreateExpatriateScreen() {
                 totalSteps={4}
                 onBack={handleBack}
                 onNext={handleNext}
+                isNextDisabled={isNextDisabled}
                 nextLabel={currentStep === 3 ? "Initiate Transaction Request" : "Continue"}
             >
                 {currentStep === 0 && (
@@ -267,7 +302,7 @@ export default function CreateExpatriateScreen() {
                             <FileUpload
                                 onUpload={() => uploadFile('WORK_PERMIT')}
                                 fileName={docs.workPermit.file?.name ?? null}
-                                fileUri={docs.workPermit.file?.uri ?? null}                                fileUrl={docs.workPermit.meta?.fileUrl ?? null}
+                                fileUri={docs.workPermit.file?.uri ?? null} fileUrl={docs.workPermit.meta?.fileUrl ?? null}
                                 fileType={docs.workPermit.file?.type ?? null}
                             />
                             <ControlledInput
@@ -287,7 +322,7 @@ export default function CreateExpatriateScreen() {
                             <FileUpload
                                 onUpload={() => uploadFile('PASSPORT')}
                                 fileName={docs.passport.file?.name ?? null}
-                                fileUri={docs.passport.file?.uri ?? null}                                fileUrl={docs.passport.meta?.fileUrl ?? null}
+                                fileUri={docs.passport.file?.uri ?? null} fileUrl={docs.passport.meta?.fileUrl ?? null}
                                 fileType={docs.passport.file?.type ?? null}
                             />
                             <View style={{ flexDirection: 'row', gap: moderateScale(12) }}>
@@ -320,7 +355,7 @@ export default function CreateExpatriateScreen() {
                             <FileUpload
                                 onUpload={() => uploadFile('UTILITY_BILL')}
                                 fileName={docs.utility.file?.name ?? null}
-                                fileUri={docs.utility.file?.uri ?? null}                                fileUrl={docs.utility.meta?.fileUrl ?? null}
+                                fileUri={docs.utility.file?.uri ?? null} fileUrl={docs.utility.meta?.fileUrl ?? null}
                                 fileType={docs.utility.file?.type ?? null}
                             />
                             <ControlledInput
@@ -354,27 +389,27 @@ export default function CreateExpatriateScreen() {
 
                 {currentStep === 3 && (
                     <LocationStep
-                        states={STATES}
-                        cities={CITIES}
-                        locations={LOCATIONS}
-                        selectedState={selectedState}
+                        title="Where would you like to receive your funds"
+                        states={states}
+                        cities={filteredCities}
+                        locations={filteredLocations}
+                        selectedState={watchedFields.selectedState}
                         onSelectState={(item) => {
                             setValue('selectedState', item);
                             setValue('selectedCity', undefined as unknown as LocationItem);
                             setValue('selectedLocation', undefined as unknown as LocationItem);
                         }}
-                        selectedCity={selectedCity}
+                        selectedCity={watchedFields.selectedCity}
                         onSelectCity={(item) => {
                             setValue('selectedCity', item);
                             setValue('selectedLocation', undefined as unknown as LocationItem);
                         }}
-                        selectedLocation={selectedLocation}
+                        selectedLocation={watchedFields.selectedLocation}
                         onSelectLocation={(item) => setValue('selectedLocation', item)}
-                        title="Where would you like to receive your funds?"
-                        pickupDate={pickupDate}
-                        onPickupDateChange={(v) => setValue('pickupDate', v)}
-                        pickupTime={pickupTime}
-                        onPickupTimeChange={(v) => setValue('pickupTime', v)}
+                        pickupDate={watchedFields.pickupDate}
+                        onPickupDateChange={(v: string) => setValue('pickupDate', v)}
+                        pickupTime={watchedFields.pickupTime}
+                        onPickupTimeChange={(v: string) => setValue('pickupTime', v)}
                         errors={{
                             state: errors.selectedState?.message as string | undefined,
                             city: errors.selectedCity?.message as string | undefined,
@@ -400,7 +435,7 @@ export default function CreateExpatriateScreen() {
                     ]}
                 />
             </TransactionLayout>
-        </>
+        </View>
     );
 }
 

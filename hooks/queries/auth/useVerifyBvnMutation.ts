@@ -2,6 +2,7 @@ import { useToastStore } from '@/stores/useToastStore';
 import { useMutation } from '@tanstack/react-query';
 import { verifyBvn } from '../../../services/auth';
 import { useAuthStore } from '../../../stores/useAuthStore';
+import { VerifyBvnResponse } from '@/types/api/auth';
 
 export const useVerifyBvnMutation = () => {
     const setVerificationToken = useAuthStore((state) => state.setVerificationToken);
@@ -9,10 +10,11 @@ export const useVerifyBvnMutation = () => {
 
     return useMutation({
         mutationFn: verifyBvn,
-        onSuccess: (response) => {
+        onSuccess: (response: VerifyBvnResponse) => {
             if (response.success && response.data.verificationToken) {
                 setVerificationToken(response.data.verificationToken);
-                showToast(response.data.message || 'BVN Verified Successfully', 'success');
+                const otpMessage = (response.data as any).otp ? ` (OTP: ${(response.data as any).otp})` : '';
+                showToast(`${response.data.message || 'BVN Verified Successfully'}${otpMessage}`, 'success', true);
             }
             console.log(response, "response");
         },
