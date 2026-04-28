@@ -39,9 +39,33 @@ export default function BankDetailsStep({ control }: BankDetailsStepProps) {
 
             <ControlledInput
                 control={control}
-                name="iban"
-                label="Iban"
-                placeholder="Enter iban number"
+                name="beneficiaryName"
+                label="Beneficiary Name"
+                placeholder="Enter beneficiary name"
+                required
+            />
+
+            <ControlledInput
+                control={control}
+                name="beneficiaryAddress"
+                label="Beneficiary Address"
+                placeholder="Enter beneficiary address"
+                required
+            />
+
+            <ControlledInput
+                control={control}
+                name="paymentReferenceId"
+                label="Payment Reference/ID"
+                placeholder="Enter payment reference"
+                required
+            />
+
+            <ControlledInput
+                control={control}
+                name="swiftCode"
+                label="Swift Code"
+                placeholder="Enter swift code"
                 required
             />
         </View>

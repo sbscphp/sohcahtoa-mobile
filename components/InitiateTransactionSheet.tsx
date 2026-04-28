@@ -33,9 +33,9 @@ const InitiateTransactionSheet: React.FC<InitiateTransactionSheetProps> = ({
     loading,
     items = [
         {
-            title: "Verification before approval",
-            description: "You will be able to process your transaction once your documents are verified and approved.",
-            iconType: 'verify'
+            title: "Maximum Limit",
+            description: "Please note that the maximum you can transact is $4,000 per quarter.",
+            iconType: 'limit'
         }
     ]
 }) => {
@@ -95,7 +95,7 @@ const InitiateTransactionSheet: React.FC<InitiateTransactionSheetProps> = ({
                             <View key={index} style={styles.infoItem}>
                                 {renderIcon(item)}
                                 <View style={styles.infoTextContainer}>
-                                    <Text style={styles.infoTitle}>{item.title}</Text>
+                                    {item.title ? <Text style={styles.infoTitle}>{item.title}</Text> : null}
                                     <Text style={styles.infoDescription}>{item.description}</Text>
                                 </View>
                             </View>

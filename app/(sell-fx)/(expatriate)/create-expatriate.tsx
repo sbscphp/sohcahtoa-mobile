@@ -10,6 +10,8 @@ import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
 import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
 import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useExchangeLogic } from '@/hooks/useExchangeLogic';
+import { useAuthStore } from '@/stores/useAuthStore';
+import { useProfileQuery } from '@/hooks/queries/auth/useProfileQuery';
 import { useToastStore } from '@/stores/useToastStore';
 import {
     expatriateStep0Schema,
@@ -27,6 +29,7 @@ import { z } from 'zod';
 
 import { useGetPickupStatesQuery } from '@/hooks/queries/transactions/useGetPickupStatesQuery';
 import { useGetPickupPointsQuery } from '@/hooks/queries/transactions/useGetPickupPointsQuery';
+import { useGetPickupCitiesQuery } from '@/hooks/queries/transactions/useGetPickupCitiesQuery';
 
 const expatriateFormSchema = z.object({
     ...expatriateStep0Schema.shape,
@@ -40,6 +43,8 @@ type ExpatriateFormValues = z.infer<typeof expatriateFormSchema>;
 export default function CreateExpatriateScreen() {
     const router = useRouter();
     const createTransaction = useCreateTransactionMutation();
+    useProfileQuery();
+    const user = useAuthStore(s => s.user);
 
     // Dynamic Locations
     const { data: states = [] } = useGetPickupStatesQuery();
@@ -57,7 +62,7 @@ export default function CreateExpatriateScreen() {
     } = useForm<ExpatriateFormValues>({
         resolver: zodResolver(expatriateFormSchema),
         defaultValues: {
-            bvn: '',
+            bvn: user?.kyc?.bvn || '',
             nin: '',
             passportNumber: '',
             workPermitNumber: '',
@@ -76,24 +81,11 @@ export default function CreateExpatriateScreen() {
 
     const watchedFields = watch() as any;
 
-    const filteredCities = useMemo(() => {
-        if (!watchedFields.selectedState) return [];
-        const citiesMap = new Map<string, LocationItem>();
-        allLocations.forEach((loc: any) => {
-            const point = loc.metadata;
-            if (point && point.location) {
-                citiesMap.set(point.location, {
-                    id: `city-${point.location}`,
-                    title: point.location
-                });
-            }
-        });
-        return Array.from(citiesMap.values());
-    }, [watchedFields.selectedState, allLocations]);
+    const { data: filteredCities = [] } = useGetPickupCitiesQuery(watchedFields.selectedState?.title);
 
     const filteredLocations = useMemo(() => {
         if (!watchedFields.selectedCity) return [];
-        return allLocations.filter((loc: any) => loc.metadata.location === watchedFields.selectedCity.title);
+        return allLocations.filter((loc: any) => loc.metadata.city === watchedFields.selectedCity.title);
     }, [watchedFields.selectedCity, allLocations]);
 
     // Step 1: Uploaded files
@@ -265,6 +257,7 @@ export default function CreateExpatriateScreen() {
                             keyboardType="numeric"
                             maxLength={11}
                             filterType="numeric"
+                            disabled
                         />
 
                         <ControlledInput
@@ -426,13 +419,6 @@ export default function CreateExpatriateScreen() {
                     onConfirm={handleSubmit(onSubmit)}
                     title="Initiate Expatriate Transaction request?"
                     loading={createTransaction.isPending}
-                    items={[
-                        {
-                            title: "Verification before approval",
-                            description: "Work permit documents, employer letter, and passport details must be verified before your request can be processed.",
-                            iconType: 'verify'
-                        }
-                    ]}
                 />
             </TransactionLayout>
         </View>

@@ -27,9 +27,10 @@ export const DEFAULT_SEND_CURRENCY: Currency = {
 interface UseExchangeLogicProps {
     setValue?: UseFormSetValue<any>;
     initialAmount?: string;
+    maxLimit?: number;
 }
 
-export const useExchangeLogic = ({ setValue, initialAmount = '1' }: UseExchangeLogicProps = {}) => {
+export const useExchangeLogic = ({ setValue, initialAmount = '1', maxLimit }: UseExchangeLogicProps = {}) => {
     const calculateExchangeRate = useCalculateExchangeRateMutation();
     const [transactionType, setTransactionType] = useState<'buy' | 'sell'>('buy');
 
@@ -52,11 +53,13 @@ export const useExchangeLogic = ({ setValue, initialAmount = '1' }: UseExchangeL
     }, [exchangeRates]);
 
     const handleAmountGetChange = (amount: string) => {
-        const cleanAmount = amount.replace(/,/g, '');
+        let cleanAmount = amount.replace(/,/g, '');
+        let numAmount = parseFloat(cleanAmount) || 0;
+
         setAmountGetStr(amount);
 
         if (setValue) {
-            setValue('amount', parseFloat(cleanAmount) || 0);
+            setValue('amount', numAmount, { shouldValidate: true });
         }
 
         if (cleanAmount && !isNaN(parseFloat(cleanAmount))) {

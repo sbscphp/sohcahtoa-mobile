@@ -61,7 +61,6 @@ export default function PaymentLayout({ transactionId, amount: initialAmount, in
             >
                 <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
-                    {/* Amount Section */}
                     <View style={styles.amountContainer}>
                         <View style={styles.amountHeader}>
                             <Text style={styles.amountLabel}>Amount to Send</Text>
@@ -80,7 +79,7 @@ export default function PaymentLayout({ transactionId, amount: initialAmount, in
                         )}
                     </View>
 
-                    {/* Account Details */}
+                   
                     <Text style={styles.sectionTitle}>Account Details</Text>
 
                     <View style={styles.detailsContainer}>

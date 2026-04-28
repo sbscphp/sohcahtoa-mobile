@@ -8,11 +8,14 @@ import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import LocationStep from '@/components/transaction-flow/LocationStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
 import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
+import { useProfileQuery } from '@/hooks/queries/auth/useProfileQuery';
 import { useGetPickupPointsQuery } from '@/hooks/queries/transactions/useGetPickupPointsQuery';
 import { useGetPickupStatesQuery } from '@/hooks/queries/transactions/useGetPickupStatesQuery';
+import { useGetPickupCitiesQuery } from '@/hooks/queries/transactions/useGetPickupCitiesQuery';
 import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useExchangeLogic } from '@/hooks/useExchangeLogic';
 import { useToastStore } from '@/stores/useToastStore';
+import { useAuthStore } from '@/stores/useAuthStore';
 import { LocationItem } from '@/utils/locations';
 import { touringStep0Schema, touringStep1Schema, touringStep2Schema, touringStep3Schema } from '@/utils/validations/touring';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -33,6 +36,8 @@ export default function TouringScreen() {
     const router = useRouter();
     const createTransaction = useCreateTransactionMutation();
     const showToast = useToastStore(s => s.showToast);
+    useProfileQuery();
+    const user = useAuthStore(s => s.user);
 
     const [currentStep, setCurrentStep] = useState(0);
     const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
@@ -47,7 +52,7 @@ export default function TouringScreen() {
     } = useForm<TouringFormValues>({
         resolver: zodResolver(touringFormSchema),
         defaultValues: {
-            bvn: '',
+            bvn: user?.kyc?.bvn || '',
             nin: '',
             formAId: '',
             passportNumber: '',
@@ -77,7 +82,7 @@ export default function TouringScreen() {
         amountSendStr,
         setAmountSendStr,
         currentRate,
-    } = useExchangeLogic({ setValue, initialAmount: '0' });
+    } = useExchangeLogic({ setValue, initialAmount: '0', maxLimit: 4000 });
 
     // Dynamic Locations
     const { data: states = [] } = useGetPickupStatesQuery();
@@ -106,7 +111,7 @@ export default function TouringScreen() {
     });
 
     const credentialFields = [
-        { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number (BVN)" placeholder="Enter your BVN" required keyboardType="numeric" maxLength={11} filterType="numeric" /> },
+        { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number (BVN)" placeholder="Enter your BVN" required keyboardType="numeric" maxLength={11} filterType="numeric" disabled /> },
         { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number (NIN)" placeholder="Enter your NIN" required keyboardType="numeric" maxLength={11} filterType="numeric" /> },
         { customComponent: <ControlledInput control={control} name="formAId" label="Form A ID" placeholder="Enter Form A ID" required /> },
         { customComponent: <ControlledInput control={control} name="passportNumber" label="International Passport Number" placeholder="Enter international passport" required maxLength={9} filterType="alphanumeric" /> },
@@ -257,24 +262,11 @@ export default function TouringScreen() {
 
     const watchedFields = watch() as any;
 
-    const filteredCities = useMemo(() => {
-        if (!watchedFields.selectedState) return [];
-        const citiesMap = new Map<string, LocationItem>();
-        allLocations.forEach((loc: any) => {
-            const point = loc.metadata;
-            if (point && point.location) {
-                citiesMap.set(point.location, {
-                    id: `city-${point.location}`,
-                    title: point.location
-                });
-            }
-        });
-        return Array.from(citiesMap.values());
-    }, [watchedFields.selectedState, allLocations]);
+    const { data: filteredCities = [] } = useGetPickupCitiesQuery(watchedFields.selectedState?.title);
 
     const filteredLocations = useMemo(() => {
         if (!watchedFields.selectedCity) return [];
-        return allLocations.filter((loc: any) => loc.metadata.location === watchedFields.selectedCity.title);
+        return allLocations.filter((loc: any) => loc.metadata.city === watchedFields.selectedCity.title);
     }, [watchedFields.selectedCity, allLocations]);
 
     const isStep0Valid = watchedFields.bvn && watchedFields.nin && watchedFields.formAId && watchedFields.passportNumber;
@@ -362,18 +354,6 @@ export default function TouringScreen() {
                     onConfirm={handleSubmit(onSubmit)}
                     title="Initiate Touring Transaction request?"
                     loading={createTransaction.isPending}
-                    items={[
-                        {
-                            title: "Verification before approval",
-                            description: "Your passport, visa, and flight tickets must be verified before the release of funds.",
-                            iconType: 'verify'
-                        },
-                        {
-                            title: "Maximum of $4,000 per quarter",
-                            description: "The CBN limits Touring Allowance to $4,000 per quarter.",
-                            iconType: 'limit'
-                        }
-                    ]}
                 />
             </TransactionLayout>
         </View>

@@ -9,8 +9,10 @@ import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
 import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
+import { useProfileQuery } from '@/hooks/queries/auth/useProfileQuery';
 import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useExchangeLogic } from '@/hooks/useExchangeLogic';
+import { useAuthStore } from '@/stores/useAuthStore';
 import { useToastStore } from '@/stores/useToastStore';
 import { schoolStep0Schema, schoolStep1Schema, schoolStep2Schema, schoolStep3Schema } from '@/utils/validations/school';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -30,6 +32,8 @@ export default function SchoolFeesScreen() {
     const router = useRouter();
     const createTransaction = useCreateTransactionMutation();
     const showToast = useToastStore(s => s.showToast);
+    useProfileQuery();
+    const user = useAuthStore(s => s.user);
 
     const [currentStep, setCurrentStep] = useState(0);
     const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
@@ -57,7 +61,7 @@ export default function SchoolFeesScreen() {
     } = useForm({
         resolver,
         defaultValues: {
-            bvn: '',
+            bvn: user?.kyc?.bvn || '',
             nin: '',
             formAId: '',
             passportNumber: '',
@@ -89,7 +93,7 @@ export default function SchoolFeesScreen() {
         amountSendStr,
         setAmountSendStr,
         currentRate,
-    } = useExchangeLogic({ setValue, initialAmount: '0' });
+    } = useExchangeLogic({ setValue, initialAmount: '0', maxLimit: 4000 });
 
     // Document upload state
     const [docs, setDocs] = useState({
@@ -116,7 +120,7 @@ export default function SchoolFeesScreen() {
     });
 
     const credentialFields = [
-        { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number(BVN)" placeholder="Enter your BVN" required keyboardType="numeric" maxLength={11} filterType="numeric" /> },
+        { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number(BVN)" placeholder="Enter your BVN" required keyboardType="numeric" maxLength={11} filterType="numeric" disabled /> },
         { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number(NIN)" placeholder="Enter your NIN" required keyboardType="numeric" maxLength={11} filterType="numeric" /> },
         { customComponent: <ControlledInput control={control} name="formAId" label="Form A ID" placeholder="Enter Form A ID" required /> },
         { customComponent: <ControlledInput control={control} name="passportNumber" label="International Passport" placeholder="Enter international passport" required maxLength={9} filterType="alphanumeric" /> },
@@ -146,12 +150,7 @@ export default function SchoolFeesScreen() {
             fileName: docs.invoice.file?.name,
             fileUri: docs.invoice.file?.uri, fileUrl: docs.invoice.meta?.fileUrl,
             fileType: docs.invoice.file?.type,
-            required: true,
-            associatedInputs: (
-                <View>
-                    <ControlledInput control={control} name="invoiceNumber" label="School Invoice Number" placeholder="Enter invoice number" required maxLength={20} />
-                </View>
-            )
+            required: true
         },
         {
             label: 'International Passport',
@@ -389,29 +388,6 @@ export default function SchoolFeesScreen() {
                     onClose={() => setInitiateSheetVisible(false)}
                     onConfirm={handleSubmit(onSubmit)}
                     title={`Initiate ${admissionType} Transaction request?`}
-                    items={isPostGrad ? [
-                        {
-                            title: "Verification before approval",
-                            description: "Post-graduate tuition invoices, admission letters, and identification documents must be verified before processing.",
-                            iconType: 'verify'
-                        },
-                        {
-                            title: "Maximum of $15,000 per quarter",
-                            description: "Post-graduate programs may attract higher tuition; the CBN limit is $15,000 per academic year.",
-                            iconType: 'limit'
-                        }
-                    ] : [
-                        {
-                            title: "Verification before approval",
-                            description: "You must upload the school admission letter, tuition invoice, and passport biodata page for verification.",
-                            iconType: 'verify'
-                        },
-                        {
-                            title: "Maximum of $10,000 per quarter",
-                            description: `The maximum allowed for undergraduate foreign school fees is $10,000 per academic year.`,
-                            iconType: 'limit'
-                        }
-                    ]}
                 />
 
                 <GenericSelectionSheet

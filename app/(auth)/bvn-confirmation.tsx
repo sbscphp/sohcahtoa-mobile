@@ -131,7 +131,7 @@ export default function BvnConfirmationScreen() {
 
             <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
                 <PrimaryButton
-                    title="Send OTP"
+                    title="Continue"
                     onPress={handleSendOtp}
                     loading={isSendingTouristOtp || isSendingExpatriateOtp || isSendingNigerianEmailOtp}
                     disabled={isSendingTouristOtp || isSendingExpatriateOtp || isSendingNigerianEmailOtp}

@@ -8,12 +8,15 @@ import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import LocationStep from '@/components/transaction-flow/LocationStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
 import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
+import { useProfileQuery } from '@/hooks/queries/auth/useProfileQuery';
 import { useGetPickupPointsQuery } from '@/hooks/queries/transactions/useGetPickupPointsQuery';
 import { useGetPickupStatesQuery } from '@/hooks/queries/transactions/useGetPickupStatesQuery';
+import { useGetPickupCitiesQuery } from '@/hooks/queries/transactions/useGetPickupCitiesQuery';
 import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useExchangeLogic } from '@/hooks/useExchangeLogic';
 import { useToastStore } from '@/stores/useToastStore';
 import { LocationItem } from '@/utils/locations';
+import { useAuthStore } from '@/stores/useAuthStore';
 import { btaStep0Schema, btaStep1Schema, btaStep2Schema, btaStep3Schema } from '@/utils/validations/bta';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
@@ -35,6 +38,8 @@ export default function BusinessTravelAllowanceScreen() {
     const router = useRouter();
     const createTransaction = useCreateTransactionMutation();
     const showToast = useToastStore(s => s.showToast);
+    useProfileQuery();
+    const user = useAuthStore(s => s.user);
 
     const [currentStep, setCurrentStep] = useState(0);
     const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
@@ -49,7 +54,7 @@ export default function BusinessTravelAllowanceScreen() {
     } = useForm<BtaFormValues>({
         resolver: zodResolver(btaFormSchema),
         defaultValues: {
-            bvn: '',
+            bvn: user?.kyc?.bvn || '',
             nin: '',
             formAId: '',
             tin: '',
@@ -80,7 +85,7 @@ export default function BusinessTravelAllowanceScreen() {
         amountSendStr,
         setAmountSendStr,
         currentRate,
-    } = useExchangeLogic({ setValue, initialAmount: '0' });
+    } = useExchangeLogic({ setValue, initialAmount: '0', maxLimit: 5000 });
 
     // Dynamic Locations
     const { data: states = [] } = useGetPickupStatesQuery();
@@ -88,37 +93,19 @@ export default function BusinessTravelAllowanceScreen() {
 
     const watchedFields = watch() as any;
 
-    const filteredCities = useMemo(() => {
-        if (!watchedFields.selectedState) return [];
-        // Extract unique cities (location field) from points in the selected state
-        const citiesMap = new Map<string, LocationItem>();
-        allLocations.forEach((loc: any) => {
-            const point = loc.metadata;
-            // Assuming the state name matches or we just show all cities for now if API doesn't filter
-            if (point && point.location) {
-                citiesMap.set(point.location, {
-                    id: `city-${point.location}`,
-                    title: point.location
-                });
-            }
-        });
-        return Array.from(citiesMap.values());
-    }, [watchedFields.selectedState, allLocations]);
+    const { data: filteredCities = [] } = useGetPickupCitiesQuery(watchedFields.selectedState?.title);
 
     console.log(filteredCities, "filteredCities")
 
     const filteredLocations = useMemo(() => {
         if (!watchedFields.selectedCity) return [];
-        return allLocations.filter((loc: any) => loc.metadata.location === watchedFields.selectedCity.title);
+        return allLocations.filter((loc: any) => loc.metadata.city === watchedFields.selectedCity.title);
     }, [watchedFields.selectedCity, allLocations]);
-
-    console.log(filteredLocations, "filteredLocations")
 
     // Document upload files state
     const [docs, setDocs] = useState({
         tcc: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
         passport: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
-        tin: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
         visa: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
         returnTicket: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
         corporateBodyLetter: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
@@ -133,7 +120,6 @@ export default function BusinessTravelAllowanceScreen() {
         onSuccess: (documentType, { file, metadata }) => {
             if (documentType === 'TCC') updateDoc('tcc', file, metadata);
             else if (documentType === 'PASSPORT') updateDoc('passport', file, metadata);
-            else if (documentType === 'TIN') updateDoc('tin', file, metadata);
             else if (documentType === 'VISA') updateDoc('visa', file, metadata);
             else if (documentType === 'RETURN_TICKET') updateDoc('returnTicket', file, metadata);
             else if (documentType === 'CORPORATE_BODY_LETTER') updateDoc('corporateBodyLetter', file, metadata);
@@ -143,7 +129,7 @@ export default function BusinessTravelAllowanceScreen() {
     });
 
     const credentialFields = [
-        { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number(BVN)" placeholder="Enter your BVN" required keyboardType="numeric" maxLength={11} filterType="numeric" /> },
+        { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number(BVN)" placeholder="Enter your BVN" required keyboardType="numeric" maxLength={11} filterType="numeric" disabled /> },
         { customComponent: <ControlledInput control={control} name="tin" label="Tax Identification Number(TIN)" placeholder="Enter your TIN" required keyboardType="numeric" maxLength={11} filterType="numeric" /> },
         { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number(NIN)" placeholder="Enter your NIN" required keyboardType="numeric" maxLength={11} filterType="numeric" /> },
         { customComponent: <ControlledInput control={control} name="formAId" label="Form A ID" placeholder="Enter Form A ID" required /> },
@@ -183,14 +169,6 @@ export default function BusinessTravelAllowanceScreen() {
             )
         },
         {
-            label: 'Tax Identification Number (TIN)',
-            onUpload: () => uploadFile('TIN'),
-            fileName: docs.tin.file?.name,
-            fileUri: docs.tin.file?.uri, fileUrl: docs.tin.meta?.fileUrl,
-            fileType: docs.tin.file?.type,
-            required: true,
-        },
-        {
             label: 'Valid Visa',
             onUpload: () => uploadFile('VISA'),
             fileName: docs.visa.file?.name,
@@ -199,7 +177,7 @@ export default function BusinessTravelAllowanceScreen() {
             required: true,
             associatedInputs: (
                 <View >
-                    <ControlledInput control={control} name="visaNumber" label="Visa Number" required placeholder="Enter visa number" maxLength={8} filterType="alphanumeric" />
+                    <ControlledInput control={control} name="visaNumber" label="Valid Visa Number" required placeholder="Enter visa number" maxLength={8} filterType="alphanumeric" />
                 </View>
             )
         },
@@ -291,7 +269,6 @@ export default function BusinessTravelAllowanceScreen() {
             documents: [
                 ...(docs.tcc.meta ? [docs.tcc.meta] : []),
                 ...(docs.passport.meta ? [docs.passport.meta] : []),
-                ...(docs.tin.meta ? [docs.tin.meta] : []),
                 ...(docs.visa.meta ? [docs.visa.meta] : []),
                 ...(docs.returnTicket.meta ? [docs.returnTicket.meta] : []),
                 ...(docs.corporateBodyLetter.meta ? [docs.corporateBodyLetter.meta] : []),
@@ -322,7 +299,7 @@ export default function BusinessTravelAllowanceScreen() {
 
 
     const isStep0Valid = watchedFields.bvn && watchedFields.tin && watchedFields.nin && watchedFields.formAId && watchedFields.passportNumber;
-    const isStep1Valid = docs.tcc.meta && docs.passport.meta && docs.tin.meta && docs.visa.meta && docs.returnTicket.meta && docs.corporateBodyLetter.meta && docs.partnerInvitationLetter.meta &&
+    const isStep1Valid = docs.tcc.meta && docs.passport.meta &&  docs.visa.meta && docs.returnTicket.meta && docs.corporateBodyLetter.meta && docs.partnerInvitationLetter.meta &&
         watchedFields.tccNumber && watchedFields.passportIssueDate && watchedFields.passportExpiryDate && watchedFields.visaNumber;
     const isStep2Valid = watchedFields.amount > 0;
     const isStep3Valid = watchedFields.selectedState && watchedFields.selectedCity && watchedFields.selectedLocation && watchedFields.pickupDate && watchedFields.pickupTime;
@@ -411,13 +388,8 @@ export default function BusinessTravelAllowanceScreen() {
                     title="Initiate BTA Transaction request?"
                     items={[
                         {
-                            title: "Verification before approval",
-                            description: "You will be able to process your BTA once your documents are verified and approved.",
-                            iconType: 'verify'
-                        },
-                        {
-                            title: "Maximum of $5,000 per quarter",
-                            description: "The maximum you can transact under BTA is $5,000 per quarter for each eligible business traveler.",
+                            title: "Maximum Limit",
+                            description: "Please note that the maximum you can transact is $5,000 per quarter.",
                             iconType: 'limit'
                         }
                     ]}

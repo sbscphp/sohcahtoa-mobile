@@ -350,11 +350,9 @@ export default function HomeScreen() {
                         <View style={styles.currencyBadge}>
                             <Text style={styles.currencySymbol}>
                                 {selectedCurrency.code === 'NGN' ? '₦' :
-                                    selectedCurrency.code === 'GHS' ? '₵' :
-                                        selectedCurrency.code === 'KES' ? 'KSh' :
-                                            selectedCurrency.code === 'USD' ? '$' :
-                                                selectedCurrency.code === 'GBP' ? '£' :
-                                                    selectedCurrency.code === 'SEK' ? 'kr' : '$'}
+                                    selectedCurrency.code === 'USD' ? '$' :
+                                        selectedCurrency.code === 'GBP' ? '£' :
+                                            selectedCurrency.code === 'EUR' ? '€' : '$'}
                             </Text>
                         </View>
                         {showBalance ? (

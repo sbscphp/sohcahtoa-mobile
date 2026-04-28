@@ -21,7 +21,7 @@ export const schoolStep1Schema = z.object({
 
 /** Step 2: School fees amount — max $15,000 (post-grad) or $10,000 (undergrad) */
 export const schoolStep2Schema = (isPostGrad: boolean) =>
-    amountStepSchema(isPostGrad ? 15000 : 10000, 'School Fees');
+    amountStepSchema(4000, 'School Fees');
 
 /** Step 3: School fees uses bank details */
 export const schoolStep3Schema = bankDetailsStepSchema;

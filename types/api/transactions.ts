@@ -317,6 +317,13 @@ export interface GetPickupStatesResponse {
     };
 }
 
+export interface GetPickupCitiesResponse {
+    success: boolean;
+    data: {
+        cities: string[];
+    };
+}
+
 export interface CustomRate {
     currency: string;
     rate: number;

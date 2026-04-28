@@ -1,4 +1,4 @@
-import { CalculateExchangeRatePayload, CalculateExchangeRateResponse, CreateTransactionPayload, CreateTransactionResponse, ExportTransactionsParams, GetExchangeRatesParams, GetExchangeRatesResponse, GetPickupPointsResponse, GetPickupStatesResponse, GetTransactionByIdResponse, GetTransactionsParams, GetTransactionsResponse, GetTransactionTotalsPayload, GetTransactionTotalsResponse, UploadTransactionDocumentPayload, UploadTransactionDocumentResponse } from '@/types/api/transactions';
+import { CalculateExchangeRatePayload, CalculateExchangeRateResponse, CreateTransactionPayload, CreateTransactionResponse, ExportTransactionsParams, GetExchangeRatesParams, GetExchangeRatesResponse, GetPickupPointsResponse, GetPickupStatesResponse, GetPickupCitiesResponse, GetTransactionByIdResponse, GetTransactionsParams, GetTransactionsResponse, GetTransactionTotalsPayload, GetTransactionTotalsResponse, UploadTransactionDocumentPayload, UploadTransactionDocumentResponse } from '@/types/api/transactions';
 import api from './api';
 
 export const createTransaction = async (payload: CreateTransactionPayload): Promise<CreateTransactionResponse> => {
@@ -61,6 +61,13 @@ export const getTransactionById = async (transactionId: string): Promise<GetTran
 
 export const getPickupStates = async (): Promise<GetPickupStatesResponse> => {
     const response = await api.get('/customer/transactions/pickup-locations/states');
+    return response.data;
+};
+
+export const getPickupCities = async (state: string): Promise<GetPickupCitiesResponse> => {
+    const response = await api.get('/customer/transactions/pickup-locations/cities', {
+        params: { state }
+    });
     return response.data;
 };
 

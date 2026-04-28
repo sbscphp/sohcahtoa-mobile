@@ -10,6 +10,8 @@ import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
 import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
 import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useExchangeLogic } from '@/hooks/useExchangeLogic';
+import { useAuthStore } from '@/stores/useAuthStore';
+import { useProfileQuery } from '@/hooks/queries/auth/useProfileQuery';
 import { useToastStore } from '@/stores/useToastStore';
 import { LocationItem } from '@/utils/locations';
 import {
@@ -27,6 +29,7 @@ import { z } from 'zod';
 
 import { useGetPickupPointsQuery } from '@/hooks/queries/transactions/useGetPickupPointsQuery';
 import { useGetPickupStatesQuery } from '@/hooks/queries/transactions/useGetPickupStatesQuery';
+import { useGetPickupCitiesQuery } from '@/hooks/queries/transactions/useGetPickupCitiesQuery';
 
 const residentFormSchema = z.object({
     ...residentStep0Schema.shape,
@@ -40,6 +43,8 @@ type ResidentFormValues = z.infer<typeof residentFormSchema>;
 export default function CreateResidentScreen() {
     const router = useRouter();
     const createTransaction = useCreateTransactionMutation();
+    useProfileQuery();
+    const user = useAuthStore(s => s.user);
 
     // Dynamic Locations
     const { data: states = [] } = useGetPickupStatesQuery();
@@ -57,7 +62,7 @@ export default function CreateResidentScreen() {
     } = useForm<ResidentFormValues>({
         resolver: zodResolver(residentFormSchema),
         defaultValues: {
-            bvn: '',
+            bvn: user?.kyc?.bvn || '',
             nin: '',
             passportNumber: '',
             passportIssueDate: '',
@@ -75,24 +80,11 @@ export default function CreateResidentScreen() {
 
     const watchedFields = watch() as any;
 
-    const filteredCities = useMemo(() => {
-        if (!watchedFields.selectedState) return [];
-        const citiesMap = new Map<string, LocationItem>();
-        allLocations.forEach((loc: any) => {
-            const point = loc.metadata;
-            if (point && point.location) {
-                citiesMap.set(point.location, {
-                    id: `city-${point.location}`,
-                    title: point.location
-                });
-            }
-        });
-        return Array.from(citiesMap.values());
-    }, [watchedFields.selectedState, allLocations]);
+    const { data: filteredCities = [] } = useGetPickupCitiesQuery(watchedFields.selectedState?.title);
 
     const filteredLocations = useMemo(() => {
         if (!watchedFields.selectedCity) return [];
-        return allLocations.filter((loc: any) => loc.metadata.location === watchedFields.selectedCity.title);
+        return allLocations.filter((loc: any) => loc.metadata.city === watchedFields.selectedCity.title);
     }, [watchedFields.selectedCity, allLocations]);
 
     // Step 1 — uploaded files
@@ -142,6 +134,7 @@ export default function CreateResidentScreen() {
                     placeholder="Enter BVN"
                     required
                     keyboardType="numeric"
+                    disabled
                 />
             )
         },
@@ -400,13 +393,6 @@ export default function CreateResidentScreen() {
                     onConfirm={handleSubmit(onSubmit)}
                     title="Initiate Resident Transaction request?"
                     loading={createTransaction.isPending}
-                    items={[
-                        {
-                            title: "Verification before approval",
-                            description: "You must upload your residency application letter, immigration invoice, and identification documents for verification.",
-                            iconType: 'verify'
-                        }
-                    ]}
                 />
             </TransactionLayout>
         </View>

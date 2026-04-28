@@ -16,11 +16,9 @@ interface CurrencyDropdownProps {
 
 const CURRENCIES: CurrencyItem[] = [
     { id: '1', code: 'NGN', flag: '🇳🇬' },
-    { id: '2', code: 'GHS', flag: '🇬🇭' },
-    { id: '3', code: 'KES', flag: '🇰🇪' },
     { id: '4', code: 'USD', flag: '🇺🇸' },
     { id: '5', code: 'GBP', flag: '🇬🇧' },
-    { id: '6', code: 'SEK', flag: '🇸🇪' },
+    { id: '7', code: 'EUR', flag: '🇪🇺' },
 ];
 
 const CurrencyDropdown: React.FC<CurrencyDropdownProps> = ({

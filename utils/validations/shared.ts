@@ -1,10 +1,7 @@
 import { z } from 'zod';
 
 
-export const bvnField = z
-    .string()
-    .length(11, 'Please enter a valid 11-digit BVN')
-    .regex(/^\d+$/, 'BVN must contain only digits');
+export const bvnField = z.string().min(1, 'BVN is required');
 
 export const ninField = z
     .string()
@@ -100,5 +97,5 @@ export const amountStepSchema = (max: number, label: string) =>
         amount: z
             .number()
             .positive('Please enter a valid amount')
-            .max(max, `Maximum amount for ${label} is $${max.toLocaleString()} per quarter`),
+            .max(max, `Please note that the maximum you can transact is $${max.toLocaleString()} per quarter.`),
     });

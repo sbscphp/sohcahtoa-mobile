@@ -81,9 +81,6 @@ export default function CurrencyConverter({
             case 'NGN': return '₦';
             case 'GBP': return '£';
             case 'EUR': return '€';
-            case 'GHS': return '₵';
-            case 'KES': return 'KSh';
-            case 'ZAR': return 'R';
             default: return code;
         }
     };

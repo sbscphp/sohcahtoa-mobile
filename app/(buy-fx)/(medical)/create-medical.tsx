@@ -7,8 +7,10 @@ import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import MedicalBankDetailsStep from '@/components/transaction-flow/MedicalBankDetailsStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
 import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
+import { useProfileQuery } from '@/hooks/queries/auth/useProfileQuery';
 import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useExchangeLogic } from '@/hooks/useExchangeLogic';
+import { useAuthStore } from '@/stores/useAuthStore';
 import { useToastStore } from '@/stores/useToastStore';
 import { medicalStep0Schema, medicalStep1Schema, medicalStep2Schema, medicalStep3Schema } from '@/utils/validations/medical';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -29,6 +31,8 @@ export default function MedicalPaymentScreen() {
     const router = useRouter();
     const createTransaction = useCreateTransactionMutation();
     const showToast = useToastStore(s => s.showToast);
+    useProfileQuery();
+    const user = useAuthStore(s => s.user);
 
     const [currentStep, setCurrentStep] = useState(0);
     const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
@@ -43,7 +47,7 @@ export default function MedicalPaymentScreen() {
     } = useForm<MedicalFormValues>({
         resolver: zodResolver(medicalFormSchema),
         defaultValues: {
-            bvn: '',
+            bvn: user?.kyc?.bvn || '',
             nin: '',
             formAId: '',
             passportNumber: '',
@@ -75,7 +79,7 @@ export default function MedicalPaymentScreen() {
         setAmountSendStr,
         currentRate,
         calculateExchangeRate,
-    } = useExchangeLogic({ setValue, initialAmount: '0' });
+    } = useExchangeLogic({ setValue, initialAmount: '0', maxLimit: 4000 });
 
     // Document upload state
     const [docs, setDocs] = useState({
@@ -104,7 +108,7 @@ export default function MedicalPaymentScreen() {
     });
 
     const credentialFields = [
-        { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number (BVN)" placeholder="Enter your BVN" required keyboardType="numeric" maxLength={11} filterType="numeric" /> },
+        { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number (BVN)" placeholder="Enter your BVN" required keyboardType="numeric" maxLength={11} filterType="numeric" disabled /> },
         { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number (NIN)" placeholder="Enter your NIN" required keyboardType="numeric" maxLength={11} filterType="numeric" /> },
         { customComponent: <ControlledInput control={control} name="formAId" label="Form A ID" placeholder="Enter Form A ID" required /> },
         { customComponent: <ControlledInput control={control} name="passportNumber" label="International Passport Number" placeholder="Enter international passport" required maxLength={9} filterType="alphanumeric" /> },
@@ -316,23 +320,10 @@ export default function MedicalPaymentScreen() {
 
                 <InitiateTransactionSheet
                     visible={initiateSheetVisible}
-
                     onClose={() => setInitiateSheetVisible(false)}
                     onConfirm={handleSubmit(onSubmit)}
                     title="Initiate Medical Transaction request?"
                     loading={createTransaction.isPending}
-                    items={[
-                        {
-                            title: "Verification before approval",
-                            description: "Your supporting documents must be verified before your request can be processed.",
-                            iconType: 'verify'
-                        },
-                        {
-                            title: "Required medical documentation",
-                            description: "A reference letter from a recognized Nigerian hospital and an acceptance letter from the overseas hospital are mandatory.",
-                            iconType: 'limit' // Placeholder icon logic
-                        }
-                    ]}
                 />
             </TransactionLayout>
         </View>

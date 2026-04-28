@@ -14,6 +14,7 @@ import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCr
 import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useExchangeLogic } from '@/hooks/useExchangeLogic';
 import { useAuthStore } from '@/stores/useAuthStore';
+import { useProfileQuery } from '@/hooks/queries/auth/useProfileQuery';
 import { useToastStore } from '@/stores/useToastStore';
 import {
     touristStep0Schema,
@@ -32,6 +33,7 @@ import { z } from 'zod';
 
 import { useGetPickupStatesQuery } from '@/hooks/queries/transactions/useGetPickupStatesQuery';
 import { useGetPickupPointsQuery } from '@/hooks/queries/transactions/useGetPickupPointsQuery';
+import { useGetPickupCitiesQuery } from '@/hooks/queries/transactions/useGetPickupCitiesQuery';
 
 const touristFormSchema = z.object({
     ...touristStep0Schema.shape,
@@ -47,6 +49,7 @@ type TouristFormValues = z.infer<typeof touristFormSchema>;
 export default function CreateTouristScreen() {
     const router = useRouter();
     const createTransaction = useCreateTransactionMutation();
+    useProfileQuery();
     const user = useAuthStore(s => s.user);
     const [currentStep, setCurrentStep] = useState(0);
 
@@ -124,24 +127,11 @@ export default function CreateTouristScreen() {
 
     const watchedFields = watch() as any;
 
-    const filteredCities = useMemo(() => {
-        if (!watchedFields.selectedState) return [];
-        const citiesMap = new Map<string, LocationItem>();
-        allLocations.forEach((loc: any) => {
-            const point = loc.metadata;
-            if (point && point.location) {
-                citiesMap.set(point.location, {
-                    id: `city-${point.location}`,
-                    title: point.location
-                });
-            }
-        });
-        return Array.from(citiesMap.values());
-    }, [watchedFields.selectedState, allLocations]);
+    const { data: filteredCities = [] } = useGetPickupCitiesQuery(watchedFields.selectedState?.title);
 
     const filteredLocations = useMemo(() => {
         if (!watchedFields.selectedCity) return [];
-        return allLocations.filter((loc: any) => loc.metadata.location === watchedFields.selectedCity.title);
+        return allLocations.filter((loc: any) => loc.metadata.city === watchedFields.selectedCity.title);
     }, [watchedFields.selectedCity, allLocations]);
 
     // Step 3: Payment Method
@@ -503,13 +493,6 @@ export default function CreateTouristScreen() {
                     onConfirm={handleSubmit(onSubmit)}
                     title="Initiate Tourist Transaction request?"
                     loading={createTransaction.isPending}
-                    items={[
-                        {
-                            title: "Verification before approval",
-                            description: "Your travel documents (passport, visa, and return ticket) must be verified before your tourist FX request can be approved.",
-                            iconType: 'verify'
-                        }
-                    ]}
                 />
 
                 <SourceOfFundsSheet

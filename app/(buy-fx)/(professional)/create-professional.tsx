@@ -7,8 +7,10 @@ import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
 import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
+import { useProfileQuery } from '@/hooks/queries/auth/useProfileQuery';
 import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useExchangeLogic } from '@/hooks/useExchangeLogic';
+import { useAuthStore } from '@/stores/useAuthStore';
 import { useToastStore } from '@/stores/useToastStore';
 import { professionalStep0Schema, professionalStep1Schema, professionalStep2Schema, professionalStep3Schema } from '@/utils/validations/professional';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -28,6 +30,8 @@ export default function ProfessionalScreen() {
     const router = useRouter();
     const createTransaction = useCreateTransactionMutation();
     const showToast = useToastStore(s => s.showToast);
+    useProfileQuery();
+    const user = useAuthStore(s => s.user);
 
     const [currentStep, setCurrentStep] = useState(0);
     const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
@@ -42,7 +46,7 @@ export default function ProfessionalScreen() {
     } = useForm<ProfessionalFormValues>({
         resolver: zodResolver(professionalFormSchema),
         defaultValues: {
-            bvn: '',
+            bvn: user?.kyc?.bvn || '',
             nin: '',
             formAId: '',
             passportNumber: '',
@@ -69,7 +73,7 @@ export default function ProfessionalScreen() {
         amountSendStr,
         setAmountSendStr,
         currentRate,
-    } = useExchangeLogic({ setValue, initialAmount: '0' });
+    } = useExchangeLogic({ setValue, initialAmount: '0', maxLimit: 4000 });
 
     // Document upload state
     const [docs, setDocs] = useState({
@@ -90,7 +94,7 @@ export default function ProfessionalScreen() {
     });
 
     const credentialFields = [
-        { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number(BVN)" placeholder="Enter your BVN" required keyboardType="numeric" maxLength={11} filterType="numeric" /> },
+        { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number(BVN)" placeholder="Enter your BVN" required keyboardType="numeric" maxLength={11} filterType="numeric" disabled /> },
         { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number(NIN)" placeholder="Enter your NIN" required keyboardType="numeric" maxLength={11} filterType="numeric" /> },
         { customComponent: <ControlledInput control={control} name="formAId" label="Form A ID" placeholder="Enter Form A ID" required /> },
         { customComponent: <ControlledInput control={control} name="passportNumber" label="International Passport Number" placeholder="Enter international passport" required maxLength={9} filterType="alphanumeric" /> },
@@ -262,18 +266,6 @@ export default function ProfessionalScreen() {
                     onConfirm={handleSubmit(onSubmit)}
                     title="Initiate Professional Transaction request?"
                     loading={createTransaction.isPending}
-                    items={[
-                        {
-                            title: "Verification before approval",
-                            description: "Your supporting documents (exam registration, training invoice, or admission letter) must be verified before your request can be processed.",
-                            iconType: 'verify'
-                        },
-                        {
-                            title: "Maximum of $2,000 per quarter",
-                            description: "The maximum amount allowed for professional exams or training fees is $2,000 per year, according to CBN guidelines.",
-                            iconType: 'limit'
-                        }
-                    ]}
                 />
             </TransactionLayout>
         </View>
