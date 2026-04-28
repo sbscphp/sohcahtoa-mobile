@@ -33,7 +33,7 @@ const InitiateTransactionSheet: React.FC<InitiateTransactionSheetProps> = ({
     loading,
     items = [
         {
-            title: "Maximum Limit",
+            title: "",
             description: "Please note that the maximum you can transact is $4,000 per quarter.",
             iconType: 'limit'
         }
