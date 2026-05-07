@@ -1,3 +1,4 @@
+import ControlledDatePicker from '@/components/ControlledDatePicker';
 import ControlledInput from '@/components/ControlledInput';
 import InitiateTransactionSheet from '@/components/InitiateTransactionSheet';
 import LoadingBackdrop from '@/components/LoadingBackdrop';
@@ -37,7 +38,7 @@ export default function PersonalTravelAllowanceScreen() {
     const router = useRouter();
     const createTransaction = useCreateTransactionMutation();
     const showToast = useToastStore(s => s.showToast);
-    useProfileQuery(); // Ensure latest user data is loaded
+    useProfileQuery();
     const user = useAuthStore(s => s.user);
 
     const [currentStep, setCurrentStep] = useState(0);
@@ -57,8 +58,9 @@ export default function PersonalTravelAllowanceScreen() {
             nin: '',
             formAId: '',
             passportNumber: '',
-            visaNumber: '',
             ticketNumber: '',
+            passportIssueDate: '',
+            passportExpiryDate: '',
             amount: 0,
             selectedState: undefined as unknown as LocationItem,
             selectedCity: undefined as unknown as LocationItem,
@@ -129,11 +131,6 @@ export default function PersonalTravelAllowanceScreen() {
             fileUri: docs.visa.file?.uri, fileUrl: docs.visa.meta?.fileUrl,
             fileType: docs.visa.file?.type,
             required: true,
-            associatedInputs: (
-                <View>
-                    <ControlledInput control={control} name="visaNumber" label="Valid Visa Number" required placeholder="Enter valid visa number" maxLength={8} filterType="alphanumeric" />
-                </View>
-            )
         },
         {
             label: 'Return Ticket',
@@ -145,6 +142,14 @@ export default function PersonalTravelAllowanceScreen() {
             associatedInputs: (
                 <View>
                     <ControlledInput control={control} name="ticketNumber" label="Return Ticket Number" required placeholder="Enter return ticket number" maxLength={13} filterType="numeric" keyboardType="numeric" />
+                    <View style={{ flexDirection: 'row', gap: 12, marginTop: 12 }}>
+                        <View style={{ flex: 1 }}>
+                            <ControlledDatePicker control={control} name="passportIssueDate" label="Passport Issue Date" required maximumDate={new Date()} />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <ControlledDatePicker control={control} name="passportExpiryDate" label="Passport Expiry Date" required minimumDate={new Date()} />
+                        </View>
+                    </View>
                 </View>
             )
         }
@@ -182,7 +187,8 @@ export default function PersonalTravelAllowanceScreen() {
             nin: data.nin,
             formAId: data.formAId,
             passportNumber: data.passportNumber,
-            visaNumber: data.visaNumber,
+            passportIssueDate: data.passportIssueDate,
+            passportExpiryDate: data.passportExpiryDate,
             ticketNumber: data.ticketNumber,
             documents: [
                 ...(docs.visa.meta ? [docs.visa.meta] : []),
@@ -276,7 +282,13 @@ export default function PersonalTravelAllowanceScreen() {
                         onPickupDateChange={(date) => setValue('pickupDate', date)}
                         pickupTime={watchedFields.pickupTime}
                         onPickupTimeChange={(time) => setValue('pickupTime', time)}
-                        errors={errors as any}
+                        errors={{
+                            state: errors.selectedState?.message as string | undefined,
+                            city: errors.selectedCity?.message as string | undefined,
+                            location: errors.selectedLocation?.message as string | undefined,
+                            pickupDate: errors.pickupDate?.message as string | undefined,
+                            pickupTime: errors.pickupTime?.message as string | undefined
+                        }}
                     />
                 )}
             </TransactionLayout>

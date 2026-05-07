@@ -246,7 +246,7 @@ const TimePickerField: React.FC<TimePickerFieldProps> = ({
                 <Clock size={moderateScale(20)} color="#64748B" />
             </TouchableOpacity>
 
-            {error && <Text style={styles.errorText}>{error}</Text>}
+            {error && <Text style={styles.errorText}>{typeof error === 'string' ? error : (error as any).message || String(error)}</Text>}
 
             <Modal
                 animationType="slide"

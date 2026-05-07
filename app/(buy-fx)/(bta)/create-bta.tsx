@@ -61,7 +61,6 @@ export default function BusinessTravelAllowanceScreen() {
             passportNumber: '',
             passportIssueDate: '',
             passportExpiryDate: '',
-            visaNumber: '',
             tccNumber: '',
             amount: 0,
             selectedState: undefined as unknown as LocationItem,
@@ -175,11 +174,6 @@ export default function BusinessTravelAllowanceScreen() {
             fileUri: docs.visa.file?.uri, fileUrl: docs.visa.meta?.fileUrl,
             fileType: docs.visa.file?.type,
             required: true,
-            associatedInputs: (
-                <View >
-                    <ControlledInput control={control} name="visaNumber" label="Valid Visa Number" required placeholder="Enter visa number" maxLength={8} filterType="alphanumeric" />
-                </View>
-            )
         },
         {
             label: 'Return Ticket',
@@ -218,7 +212,7 @@ export default function BusinessTravelAllowanceScreen() {
         if (currentStep === 0) {
             isStepValid = await trigger(['bvn', 'tin', 'nin', 'formAId', 'passportNumber']);
         } else if (currentStep === 1) {
-            isStepValid = await trigger(['tccNumber', 'passportIssueDate', 'passportExpiryDate', 'visaNumber']);
+            isStepValid = await trigger(['tccNumber', 'passportIssueDate', 'passportExpiryDate']);
         } else if (currentStep === 2) {
             isStepValid = await trigger(['amount']);
         } else if (currentStep === 3) {
@@ -264,7 +258,6 @@ export default function BusinessTravelAllowanceScreen() {
             passportNumber: data.passportNumber,
             passportIssueDate: data.passportIssueDate,
             passportExpiryDate: data.passportExpiryDate,
-            visaNumber: data.visaNumber,
             tccNumber: data.tccNumber,
             documents: [
                 ...(docs.tcc.meta ? [docs.tcc.meta] : []),
@@ -300,7 +293,7 @@ export default function BusinessTravelAllowanceScreen() {
 
     const isStep0Valid = watchedFields.bvn && watchedFields.tin && watchedFields.nin && watchedFields.formAId && watchedFields.passportNumber;
     const isStep1Valid = docs.tcc.meta && docs.passport.meta &&  docs.visa.meta && docs.returnTicket.meta && docs.corporateBodyLetter.meta && docs.partnerInvitationLetter.meta &&
-        watchedFields.tccNumber && watchedFields.passportIssueDate && watchedFields.passportExpiryDate && watchedFields.visaNumber;
+        watchedFields.tccNumber && watchedFields.passportIssueDate && watchedFields.passportExpiryDate;
     const isStep2Valid = watchedFields.amount > 0;
     const isStep3Valid = watchedFields.selectedState && watchedFields.selectedCity && watchedFields.selectedLocation && watchedFields.pickupDate && watchedFields.pickupTime;
 

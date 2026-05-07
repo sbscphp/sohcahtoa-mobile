@@ -9,7 +9,6 @@ import {
     tccNumberField,
     ticketNumberField,
     tinField,
-    visaNumberField,
 } from './shared';
 
 /** Step 0: BTA credentials — standard + TIN */
@@ -22,7 +21,6 @@ export const btaStep1Schema = z.object({
     tccNumber: tccNumberField,
     passportIssueDate: passportIssueDateField,
     passportExpiryDate: passportExpiryDateField,
-    visaNumber: visaNumberField,
 });
 
 /** Step 2: BTA amount */

@@ -75,7 +75,7 @@ const InputField: React.FC<InputFieldProps> = ({
                     <RightIconComponent size={moderateScale(20)} color="rgba(77, 75, 75, 1)" style={{ marginLeft: moderateScale(12) }} />
                 )}
             </View>
-            {error && <Text style={styles.errorText}>{error}</Text>}
+            {error && <Text style={styles.errorText}>{typeof error === 'string' ? error : (error as any).message || String(error)}</Text>}
         </View>
     );
 };
