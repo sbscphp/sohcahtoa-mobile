@@ -30,6 +30,7 @@ interface ExchangeStepProps {
     showLimitWarning?: boolean;
     onLimitWarningPress?: () => void;
     error?: string;
+    isLoading?: boolean;
 }
 
 export default function ExchangeStep({
@@ -47,7 +48,8 @@ export default function ExchangeStep({
     onAmountSendChange,
     showLimitWarning,
     onLimitWarningPress,
-    error
+    error,
+    isLoading
 }: ExchangeStepProps) {
 
 
@@ -71,6 +73,7 @@ export default function ExchangeStep({
                 showLimitWarning={showLimitWarning}
                 onLimitWarningPress={onLimitWarningPress}
                 error={error}
+                isLoading={isLoading}
             />
         </View>
     );

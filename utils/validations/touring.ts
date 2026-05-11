@@ -1,8 +1,8 @@
 import { z } from 'zod';
-import { amountStepSchema, baseCredentialSchema, locationStepSchema, passportExpiryDateField, passportIssueDateField, ticketNumberField, visaNumberField } from './shared';
+import { amountStepSchema, locationStepSchema, passportExpiryDateField, passportIssueDateField, ticketNumberField, touristCredentialSchema, visaNumberField } from './shared';
 
 /** Step 0: Touring credentials (Passport) */
-export const touringStep0Schema = baseCredentialSchema;
+export const touringStep0Schema = touristCredentialSchema;
 
 /** Step 1: Touring documents — Visa + Ticket */
 export const touringStep1Schema = z.object({

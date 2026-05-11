@@ -1,23 +1,31 @@
 import ControlledInput from '@/components/ControlledInput';
 import React from 'react';
-import { ScrollView, Text } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 import { ScaledSheet } from 'react-native-size-matters';
 
-interface MedicalBankDetailsStepProps {
+interface ProfessionalBankDetailsStepProps {
     control: any;
-    watch: any;
 }
 
-export default function MedicalBankDetailsStep({ control, watch }: MedicalBankDetailsStepProps) {
-    const beneficiaryCountry = watch('beneficiaryCountry');
-
-    const isAustralia = beneficiaryCountry?.toLowerCase().includes('australia');
-    const isUSA = beneficiaryCountry?.toLowerCase().includes('united states') || beneficiaryCountry?.toLowerCase().includes('usa');
-    const isIndia = beneficiaryCountry?.toLowerCase().includes('india');
-
+export default function ProfessionalBankDetailsStep({ control }: ProfessionalBankDetailsStepProps) {
     return (
         <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-            <Text style={styles.title}>Where would you like to send the fund to?</Text>
+            <Text style={styles.title}>Bank details</Text>
+
+            <ControlledInput
+                control={control}
+                name="memberName"
+                label="Member Name"
+                placeholder="Enter member name"
+                required
+            />
+            <ControlledInput
+                control={control}
+                name="memberNumber"
+                label="Member Number"
+                placeholder="Enter member number"
+                required
+            />
 
             <Text style={styles.sectionTitle}>Beneficiary details</Text>
             <ControlledInput
@@ -108,58 +116,6 @@ export default function MedicalBankDetailsStep({ control, watch }: MedicalBankDe
                 placeholder="Enter account number"
                 required
                 keyboardType="numeric"
-            />
-
-            <ControlledInput
-                control={control}
-                name="bic"
-                label="BIC"
-                placeholder="Enter BIC"
-                required={!isAustralia && !isUSA && !isIndia}
-            />
-
-            <ControlledInput
-                control={control}
-                name="paymentReference"
-                label="Payment Reference/ID"
-                placeholder="Enter payment reference"
-            />
-
-            {isAustralia && (
-                <ControlledInput
-                    control={control}
-                    name="bsbCode"
-                    label="BSB Code"
-                    placeholder="Enter BSB code"
-                    required
-                />
-            )}
-
-            {isUSA && (
-                <ControlledInput
-                    control={control}
-                    name="routingNumber"
-                    label="Routing Number"
-                    placeholder="Enter routing number"
-                    required
-                />
-            )}
-
-            {isIndia && (
-                <ControlledInput
-                    control={control}
-                    name="ifscCode"
-                    label="IFSC Number"
-                    placeholder="Enter IFSC code"
-                    required
-                />
-            )}
-
-            <ControlledInput
-                control={control}
-                name="purposeCode"
-                label="Purpose Code"
-                placeholder="Enter purpose code"
             />
 
             <Text style={[styles.sectionTitle, { marginTop: 16 }]}>Correspondence Bank details (Optional)</Text>

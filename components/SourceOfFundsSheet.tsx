@@ -1,8 +1,8 @@
 import FileUpload from '@/components/FileUpload';
 import PrimaryButton from '@/components/PrimaryButton';
-import { InfoCircle } from 'iconsax-react-nativejs';
+import { InfoCircle, DocumentDownload } from 'iconsax-react-nativejs';
 import React from 'react';
-import { Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { Modal, ScrollView, Text, TouchableOpacity, View, Linking } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 
 interface InfoRowProps {
@@ -101,6 +101,13 @@ export default function SourceOfFundsSheet({
                             <Text style={styles.declarationText}>
                                 I hereby declare that the source of funds used for this foreign exchange transaction is legitimate and derived from lawful means. I understand that false declarations may result in regulatory action.
                             </Text>
+                            <TouchableOpacity 
+                                style={{ marginTop: moderateScale(16), flexDirection: 'row', alignItems: 'center' }} 
+                                onPress={() => Linking.openURL('https://example.com/pof-template.pdf')}
+                            >
+                                <DocumentDownload size={moderateScale(20)} color="#FF6B2C" variant="Outline" />
+                                <Text style={{ marginLeft: moderateScale(8), color: '#FF6B2C', fontWeight: '600', fontSize: moderateScale(13) }}>Download POF Template</Text>
+                            </TouchableOpacity>
                         </View>
 
                         <View style={styles.uploadSection}>

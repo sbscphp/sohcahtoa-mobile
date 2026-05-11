@@ -52,8 +52,6 @@ export default function TouringScreen() {
     } = useForm<TouringFormValues>({
         resolver: zodResolver(touringFormSchema),
         defaultValues: {
-            bvn: user?.kyc?.bvn || '',
-            nin: '',
             formAId: '',
             passportNumber: '',
             passportIssueDate: '',
@@ -111,8 +109,6 @@ export default function TouringScreen() {
     });
 
     const credentialFields = [
-        { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number (BVN)" placeholder="Enter your BVN" required keyboardType="numeric" maxLength={11} filterType="numeric" disabled /> },
-        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number (NIN)" placeholder="Enter your NIN" required keyboardType="numeric" maxLength={11} filterType="numeric" /> },
         { customComponent: <ControlledInput control={control} name="formAId" label="Form A ID" placeholder="Enter Form A ID" required /> },
         { customComponent: <ControlledInput control={control} name="passportNumber" label="International Passport Number" placeholder="Enter international passport" required maxLength={9} filterType="alphanumeric" /> },
     ];
@@ -176,7 +172,7 @@ export default function TouringScreen() {
 
         let isStepValid = false;
         if (currentStep === 0) {
-            isStepValid = await trigger(['bvn', 'nin', 'formAId', 'passportNumber']);
+            isStepValid = await trigger(['formAId', 'passportNumber']);
         } else if (currentStep === 1) {
             if (!docs.passport.file || !docs.visa.file || !docs.ticket.file || !docs.receipt.file) {
                 showToast('Please upload all required documents', 'error');
@@ -223,8 +219,6 @@ export default function TouringScreen() {
             amount: data.amount,
             purpose: 'I am Touring Nigeria',
             destinationCountry: currencyGet.country,
-            bvn: data.bvn,
-            nin: data.nin,
             formAId: data.formAId,
             passportNumber: data.passportNumber,
             passportIssueDate: data.passportIssueDate,
@@ -269,7 +263,7 @@ export default function TouringScreen() {
         return allLocations.filter((loc: any) => loc.metadata.city === watchedFields.selectedCity.title);
     }, [watchedFields.selectedCity, allLocations]);
 
-    const isStep0Valid = watchedFields.bvn && watchedFields.nin && watchedFields.formAId && watchedFields.passportNumber;
+    const isStep0Valid = watchedFields.formAId && watchedFields.passportNumber;
     const isStep1Valid = docs.passport.meta && docs.visa.meta && docs.ticket.meta && docs.receipt.meta &&
         watchedFields.passportIssueDate && watchedFields.passportExpiryDate && watchedFields.visaNumber && watchedFields.ticketNumber;
     const isStep2Valid = watchedFields.amount > 0;

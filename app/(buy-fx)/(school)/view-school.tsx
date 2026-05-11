@@ -66,14 +66,21 @@ export default function ViewSchoolFeesScreen() {
     }, [tx]);
     
     const beneficiaryItems = useMemo(() => {
-        const details = tx?.beneficiaryDetails || tx?.paymentDetails;
+        const details = (tx?.beneficiaryDetails || tx?.paymentDetails) as any;
         if (!tx || !details) return undefined;
         return [
-            { label: 'Beneficiary Name', value: details.name },
-            { label: 'Account Name', value: (details as any).accountName },
-            { label: 'Account Number', value: details.accountNumber },
-            { label: 'Bank Name', value: details.bankName },
-            { label: 'IBAN', value: details.iban },
+            { label: 'Student Name', value: details.studentName || details.name },
+            { label: 'Student Passport Number', value: details.studentPassportNumber },
+            { label: 'Bank Account Name', value: details.bankAccountName || (details as any).accountName },
+            { label: 'Bank Account Number', value: details.bankAccountNumber || details.accountNumber },
+            { label: 'Bank Account Address', value: details.bankAccountAddress },
+            { label: 'Bank Account IBAN', value: details.bankAccountIban || details.iban },
+            { label: 'Bank Account Swift Code', value: details.bankAccountSwiftCode },
+            ...(details.correspondenceBankName ? [
+                { label: 'Correspondence Bank Name', value: details.correspondenceBankName },
+                { label: 'Correspondence Bank Address', value: details.correspondenceBankAddress },
+                { label: 'Correspondence Bank Swift Code', value: details.correspondenceBankSwiftCode },
+            ] : []),
         ];
     }, [tx]);
 

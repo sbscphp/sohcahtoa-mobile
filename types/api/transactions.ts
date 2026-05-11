@@ -4,16 +4,34 @@ export interface CreateTransactionPayload {
     amount: number;
     purpose: string;
     destinationCountry: string;
-    bvn: string;
-    nin: string;
+    bvn?: string;
+    nin?: string;
     formAId?: string;
     admissionType?: string;
+    passportNumber?: string;
+    passportIssueDate?: string;
+    passportExpiryDate?: string;
+    identificationNumber?: string;
+    visaNumber?: string;
+    ticketNumber?: string;
     beneficiaryDetails?: {
-        name: string;
-        accountNumber: string;
-        accountName: string;
-        bankName: string;
-        iban: string;
+        name?: string;
+        accountNumber?: string;
+        accountName?: string;
+        bankName?: string;
+        iban?: string;
+        address?: string;
+        swiftCode?: string;
+        studentName?: string;
+        studentPassportNumber?: string;
+        bankAccountName?: string;
+        bankAccountAddress?: string;
+        bankAccountIban?: string;
+        bankAccountSwiftCode?: string;
+        bankAccountNumber?: string;
+        correspondenceBankName?: string;
+        correspondenceBankAddress?: string;
+        correspondenceBankSwiftCode?: string;
     };
     documents: {
         documentType: string;
@@ -125,6 +143,16 @@ export interface Transaction {
         bankAddress?: string;
         routingNumber?: string;
         swiftCode?: string;
+        studentName?: string;
+        studentPassportNumber?: string;
+        bankAccountName?: string;
+        bankAccountAddress?: string;
+        bankAccountIban?: string;
+        bankAccountSwiftCode?: string;
+        bankAccountNumber?: string;
+        correspondenceBankName?: string;
+        correspondenceBankAddress?: string;
+        correspondenceBankSwiftCode?: string;
     };
     paymentDetails?: {
         name: string;
@@ -293,6 +321,16 @@ export interface GetTransactionByIdResponse {
             bankAddress?: string;
             routingNumber?: string;
             swiftCode?: string;
+            studentName?: string;
+            studentPassportNumber?: string;
+            bankAccountName?: string;
+            bankAccountAddress?: string;
+            bankAccountIban?: string;
+            bankAccountSwiftCode?: string;
+            bankAccountNumber?: string;
+            correspondenceBankName?: string;
+            correspondenceBankAddress?: string;
+            correspondenceBankSwiftCode?: string;
         };
         paymentDetails?: {
             name: string;

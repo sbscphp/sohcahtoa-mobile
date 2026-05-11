@@ -6,18 +6,22 @@ import CredentialStep from '@/components/transaction-flow/CredentialStep';
 import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import LocationStep from '@/components/transaction-flow/LocationStep';
+import CustomerBankDetailsStep from '@/components/transaction-flow/CustomerBankDetailsStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
 import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
 import { useProfileQuery } from '@/hooks/queries/auth/useProfileQuery';
 import { useGetPickupPointsQuery } from '@/hooks/queries/transactions/useGetPickupPointsQuery';
 import { useGetPickupStatesQuery } from '@/hooks/queries/transactions/useGetPickupStatesQuery';
 import { useGetPickupCitiesQuery } from '@/hooks/queries/transactions/useGetPickupCitiesQuery';
+import { useGetBanksQuery } from '@/hooks/queries/banks/useGetBanksQuery';
+import { useResolveAccountMutation } from '@/hooks/queries/banks/useResolveAccountMutation';
 import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useExchangeLogic } from '@/hooks/useExchangeLogic';
 import { useToastStore } from '@/stores/useToastStore';
 import { LocationItem } from '@/utils/locations';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { btaStep0Schema, btaStep1Schema, btaStep2Schema, btaStep3Schema } from '@/utils/validations/bta';
+import { customerBankDetailsStepSchema } from '@/utils/validations/shared';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
@@ -29,6 +33,7 @@ const btaFormSchema = z.object({
     ...btaStep0Schema.shape,
     ...btaStep1Schema.shape,
     ...btaStep2Schema.shape,
+    ...customerBankDetailsStepSchema.shape,
     ...btaStep3Schema.shape
 });
 
@@ -68,6 +73,10 @@ export default function BusinessTravelAllowanceScreen() {
             selectedLocation: undefined as unknown as LocationItem,
             pickupDate: '',
             pickupTime: '',
+            customerBankName: '',
+            customerBankCode: '',
+            customerAccountNumber: '',
+            customerAccountName: '',
         },
         mode: 'onChange'
     });
@@ -100,6 +109,33 @@ export default function BusinessTravelAllowanceScreen() {
         if (!watchedFields.selectedCity) return [];
         return allLocations.filter((loc: any) => loc.metadata.city === watchedFields.selectedCity.title);
     }, [watchedFields.selectedCity, allLocations]);
+
+    // Banks and Account Resolution
+    const { data: banksResponse } = useGetBanksQuery();
+    const banks = useMemo(() => 
+        (banksResponse?.data || []).map(b => ({ id: b.id, label: b.name, value: b.code })),
+    [banksResponse]);
+
+    const resolveAccount = useResolveAccountMutation();
+
+    React.useEffect(() => {
+        if (watchedFields.customerAccountNumber?.length === 10 && watchedFields.customerBankCode) {
+            resolveAccount.mutate({
+                accountNumber: watchedFields.customerAccountNumber,
+                bankCode: watchedFields.customerBankCode
+            }, {
+                onSuccess: (res) => {
+                    if (res.success) {
+                        setValue('customerAccountName', res.data.accountName);
+                    }
+                },
+                onError: () => {
+                    setValue('customerAccountName', '');
+                    showToast('Could not resolve account name', 'error');
+                }
+            });
+        }
+    }, [watchedFields.customerAccountNumber, watchedFields.customerBankCode]);
 
     // Document upload files state
     const [docs, setDocs] = useState({
@@ -216,11 +252,13 @@ export default function BusinessTravelAllowanceScreen() {
         } else if (currentStep === 2) {
             isStepValid = await trigger(['amount']);
         } else if (currentStep === 3) {
+            isStepValid = await trigger(['customerBankName', 'customerAccountNumber', 'customerAccountName']);
+        } else if (currentStep === 4) {
             isStepValid = await trigger(['selectedState', 'selectedCity', 'selectedLocation', 'pickupDate', 'pickupTime']);
         }
 
         if (isStepValid) {
-            if (currentStep < 3) {
+            if (currentStep < 4) {
                 setCurrentStep(currentStep + 1);
             } else {
                 setInitiateSheetVisible(true);
@@ -275,6 +313,12 @@ export default function BusinessTravelAllowanceScreen() {
                 scheduledPickupDate: formatDateForApi(data.pickupDate),
                 scheduledPickupTime: data.pickupTime,
             } : undefined,
+            customerBankDetails: {
+                bankName: data.customerBankName,
+                bankCode: data.customerBankCode,
+                accountNumber: data.customerAccountNumber,
+                accountName: data.customerAccountName,
+            }
         };
 
         createTransaction.mutate(payload, {
@@ -295,13 +339,15 @@ export default function BusinessTravelAllowanceScreen() {
     const isStep1Valid = docs.tcc.meta && docs.passport.meta &&  docs.visa.meta && docs.returnTicket.meta && docs.corporateBodyLetter.meta && docs.partnerInvitationLetter.meta &&
         watchedFields.tccNumber && watchedFields.passportIssueDate && watchedFields.passportExpiryDate;
     const isStep2Valid = watchedFields.amount > 0;
-    const isStep3Valid = watchedFields.selectedState && watchedFields.selectedCity && watchedFields.selectedLocation && watchedFields.pickupDate && watchedFields.pickupTime;
+    const isStep3Valid = watchedFields.customerBankName && watchedFields.customerAccountNumber && watchedFields.customerAccountName;
+    const isStep4Valid = watchedFields.selectedState && watchedFields.selectedCity && watchedFields.selectedLocation && watchedFields.pickupDate && watchedFields.pickupTime;
 
     const isNextDisabled =
         (currentStep === 0 && !isStep0Valid) ||
         (currentStep === 1 && !isStep1Valid) ||
         (currentStep === 2 && !isStep2Valid) ||
-        (currentStep === 3 && !isStep3Valid);
+        (currentStep === 3 && !isStep3Valid) ||
+        (currentStep === 4 && !isStep4Valid);
 
     return (
         <>
@@ -309,11 +355,11 @@ export default function BusinessTravelAllowanceScreen() {
             <TransactionLayout
                 title="Business Travel Allowance"
                 currentStep={currentStep}
-                totalSteps={4}
+                totalSteps={5}
                 onBack={handleBack}
                 onNext={handleNext}
                 isNextDisabled={isNextDisabled}
-                nextLabel={currentStep === 3 ? (watchedFields.selectedState && watchedFields.selectedCity ? "Initiate Transaction Request" : "Continue") : "Continue"}
+                nextLabel={currentStep === 4 ? (watchedFields.selectedState && watchedFields.selectedCity ? "Initiate Transaction Request" : "Continue") : "Continue"}
             >
                 {currentStep === 0 && (
                     <CredentialStep fields={credentialFields} />
@@ -342,6 +388,16 @@ export default function BusinessTravelAllowanceScreen() {
                 )}
 
                 {currentStep === 3 && (
+                    <CustomerBankDetailsStep
+                        control={control}
+                        setValue={setValue}
+                        banks={banks}
+                        resolvedAccountName={watchedFields.customerAccountName}
+                        isResolving={resolveAccount.isPending}
+                    />
+                )}
+
+                {currentStep === 4 && (
                     <LocationStep
                         states={states}
                         cities={filteredCities}

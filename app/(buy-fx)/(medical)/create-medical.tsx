@@ -5,6 +5,7 @@ import CredentialStep from '@/components/transaction-flow/CredentialStep';
 import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import MedicalBankDetailsStep from '@/components/transaction-flow/MedicalBankDetailsStep';
+import CustomerBankDetailsStep from '@/components/transaction-flow/CustomerBankDetailsStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
 import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
 import { useProfileQuery } from '@/hooks/queries/auth/useProfileQuery';
@@ -12,7 +13,10 @@ import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDo
 import { useExchangeLogic } from '@/hooks/useExchangeLogic';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useToastStore } from '@/stores/useToastStore';
+import { useGetBanksQuery } from '@/hooks/queries/banks/useGetBanksQuery';
+import { useResolveAccountMutation } from '@/hooks/queries/banks/useResolveAccountMutation';
 import { medicalStep0Schema, medicalStep1Schema, medicalStep2Schema, medicalStep3Schema } from '@/utils/validations/medical';
+import { customerBankDetailsStepSchema } from '@/utils/validations/shared';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
@@ -23,6 +27,7 @@ import { z } from 'zod';
 const medicalFormSchema = medicalStep0Schema
     .merge(medicalStep1Schema)
     .merge(medicalStep2Schema)
+    .merge(customerBankDetailsStepSchema)
     .merge(medicalStep3Schema);
 
 type MedicalFormValues = z.infer<typeof medicalFormSchema>;
@@ -51,17 +56,32 @@ export default function MedicalPaymentScreen() {
             nin: '',
             formAId: '',
             passportNumber: '',
-            visaNumber: '',
-            returnTicketNumber: '',
             amount: 0,
-            beneficiaryName: '',
+            organizationName: '',
+            beneficiaryPhone: '',
+            beneficiaryEmail: '',
             beneficiaryAddress: '',
-            beneficiaryBank: '',
+            beneficiaryCity: '',
+            beneficiaryState: '',
+            beneficiaryCountry: '',
+            bankAccountName: '',
+            bankAccountAddress: '',
+            bankAccountIban: '',
+            bankAccountSwiftCode: '',
+            bankAccountNumber: '',
+            correspondenceBankName: '',
+            correspondenceBankAddress: '',
+            correspondenceBankSwiftCode: '',
+            bic: '',
+            paymentReference: '',
+            bsbCode: '',
             routingNumber: '',
-            accountNumber: '',
-            bankAddress: '',
-            swiftCode: '',
-            iban: '',
+            ifscCode: '',
+            purposeCode: '',
+            customerBankName: '',
+            customerBankCode: '',
+            customerAccountNumber: '',
+            customerAccountName: '',
         },
         mode: 'onChange'
     });
@@ -79,11 +99,10 @@ export default function MedicalPaymentScreen() {
         setAmountSendStr,
         currentRate,
         calculateExchangeRate,
-    } = useExchangeLogic({ setValue, initialAmount: '0', maxLimit: 4000 });
+    } = useExchangeLogic({ setValue, initialAmount: '0', maxLimit: 5000 });
 
     // Document upload state
     const [docs, setDocs] = useState({
-        formA: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
         passport: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
         visa: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
         returnTicket: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
@@ -97,8 +116,7 @@ export default function MedicalPaymentScreen() {
 
     const { upload: uploadFile, isPending: isUploading } = useDocumentUpload({
         onSuccess: (documentType, { file, metadata }) => {
-            if (documentType === 'FORM_A_DOCUMENT') updateDoc('formA', file, metadata);
-            else if (documentType === 'PASSPORT') updateDoc('passport', file, metadata);
+            if (documentType === 'PASSPORT') updateDoc('passport', file, metadata);
             else if (documentType === 'VISA') updateDoc('visa', file, metadata);
             else if (documentType === 'RETURN_TICKET') updateDoc('returnTicket', file, metadata);
             else if (documentType === 'MEDICAL_LETTER') updateDoc('referenceLetter', file, metadata);
@@ -106,6 +124,35 @@ export default function MedicalPaymentScreen() {
         },
         onError: () => showToast('Failed to upload document. Please try again.', 'error'),
     });
+
+    const watchedFields = watch() as any;
+
+    // Banks and Account Resolution
+    const { data: banksResponse } = useGetBanksQuery();
+    const banks = React.useMemo(() => 
+        (banksResponse?.data || []).map(b => ({ id: b.id, label: b.name, value: b.code })),
+    [banksResponse]);
+
+    const resolveAccount = useResolveAccountMutation();
+
+    React.useEffect(() => {
+        if (watchedFields.customerAccountNumber?.length === 10 && watchedFields.customerBankCode) {
+            resolveAccount.mutate({
+                accountNumber: watchedFields.customerAccountNumber,
+                bankCode: watchedFields.customerBankCode
+            }, {
+                onSuccess: (res) => {
+                    if (res.success) {
+                        setValue('customerAccountName', res.data.accountName);
+                    }
+                },
+                onError: () => {
+                    setValue('customerAccountName', '');
+                    showToast('Could not resolve account name', 'error');
+                }
+            });
+        }
+    }, [watchedFields.customerAccountNumber, watchedFields.customerBankCode]);
 
     const credentialFields = [
         { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number (BVN)" placeholder="Enter your BVN" required keyboardType="numeric" maxLength={11} filterType="numeric" disabled /> },
@@ -115,14 +162,6 @@ export default function MedicalPaymentScreen() {
     ];
 
     const documentFields = [
-        {
-            label: 'Form A',
-            onUpload: () => uploadFile('FORM_A_DOCUMENT'),
-            fileName: docs.formA.file?.name,
-            fileUri: docs.formA.file?.uri, fileUrl: docs.formA.meta?.fileUrl,
-            fileType: docs.formA.file?.type,
-            required: true,
-        },
         {
             label: 'International Passport',
             onUpload: () => uploadFile('PASSPORT'),
@@ -138,12 +177,6 @@ export default function MedicalPaymentScreen() {
             fileUri: docs.visa.file?.uri, fileUrl: docs.visa.meta?.fileUrl,
             fileType: docs.visa.file?.type,
             required: true,
-            associatedInputs: (
-                <View>
-                    <ControlledInput control={control} name="visaNumber" label="Visa Number" required placeholder="Enter visa number" maxLength={8} filterType="alphanumeric" />
-                </View>
-            )
-
         },
         {
             label: 'Return Ticket',
@@ -152,12 +185,6 @@ export default function MedicalPaymentScreen() {
             fileUri: docs.returnTicket.file?.uri, fileUrl: docs.returnTicket.meta?.fileUrl,
             fileType: docs.returnTicket.file?.type,
             required: true,
-            associatedInputs: (
-                <View>
-                    <ControlledInput control={control} name="returnTicketNumber" label="Return Ticket Number" required placeholder="Enter return ticket number" maxLength={13} filterType="numeric" keyboardType="numeric" />
-                </View>
-            )
-
         },
         {
             label: 'Reference Letter (Nigerian Specialist Doctor or Hospital)',
@@ -187,19 +214,35 @@ export default function MedicalPaymentScreen() {
         if (currentStep === 0) {
             isStepValid = await trigger(['bvn', 'nin', 'formAId', 'passportNumber']);
         } else if (currentStep === 1) {
-            if (!docs.formA.file || !docs.passport.file || !docs.visa.file || !docs.returnTicket.file || !docs.referenceLetter.file || !docs.overseaDoctorLetter.file) {
+            if (!docs.passport.file || !docs.visa.file || !docs.returnTicket.file || !docs.referenceLetter.file || !docs.overseaDoctorLetter.file) {
                 showToast('Please upload all required documents', 'error');
                 return;
             }
-            isStepValid = await trigger(['visaNumber', 'returnTicketNumber']);
+            isStepValid = true;
         } else if (currentStep === 2) {
             isStepValid = await trigger(['amount']);
         } else if (currentStep === 3) {
-            isStepValid = await trigger(['beneficiaryName', 'beneficiaryAddress', 'beneficiaryBank', 'routingNumber', 'accountNumber', 'bankAddress', 'swiftCode', 'iban']);
+            isStepValid = await trigger(['customerBankName', 'customerAccountNumber', 'customerAccountName']);
+        } else if (currentStep === 4) {
+            const beneficiaryCountry = watchedFields.beneficiaryCountry?.toLowerCase();
+            const isAustralia = beneficiaryCountry?.includes('australia');
+            const isUSA = beneficiaryCountry?.includes('united states') || beneficiaryCountry?.includes('usa');
+            const isIndia = beneficiaryCountry?.includes('india');
+
+            const fieldsToTrigger = [
+                'organizationName', 'beneficiaryPhone', 'beneficiaryEmail', 'beneficiaryAddress', 'beneficiaryCity', 'beneficiaryState', 'beneficiaryCountry',
+                'bankAccountName', 'bankAccountAddress', 'bankAccountIban', 'bankAccountSwiftCode', 'bankAccountNumber'
+            ];
+            if (isAustralia) fieldsToTrigger.push('bsbCode');
+            if (isUSA) fieldsToTrigger.push('routingNumber');
+            if (isIndia) fieldsToTrigger.push('ifscCode');
+            if (!isAustralia && !isUSA && !isIndia) fieldsToTrigger.push('bic');
+
+            isStepValid = await trigger(fieldsToTrigger as any);
         }
 
         if (isStepValid) {
-            if (currentStep < 3) {
+            if (currentStep < 4) {
                 setCurrentStep(currentStep + 1);
             } else {
                 setInitiateSheetVisible(true);
@@ -226,10 +269,7 @@ export default function MedicalPaymentScreen() {
             nin: data.nin,
             formAId: data.formAId,
             passportNumber: data.passportNumber,
-            visaNumber: data.visaNumber,
-            returnTicketNumber: data.returnTicketNumber,
             documents: [
-                ...(docs.formA.meta ? [docs.formA.meta] : []),
                 ...(docs.passport.meta ? [docs.passport.meta] : []),
                 ...(docs.visa.meta ? [docs.visa.meta] : []),
                 ...(docs.returnTicket.meta ? [docs.returnTicket.meta] : []),
@@ -237,16 +277,34 @@ export default function MedicalPaymentScreen() {
                 ...(docs.overseaDoctorLetter.meta ? [docs.overseaDoctorLetter.meta] : []),
             ],
             beneficiaryDetails: {
-                name: data.beneficiaryName,
+                organizationName: data.organizationName,
+                phone: data.beneficiaryPhone,
+                email: data.beneficiaryEmail,
                 address: data.beneficiaryAddress,
-                swiftCode: data.swiftCode,
+                city: data.beneficiaryCity,
+                state: data.beneficiaryState,
+                country: data.beneficiaryCountry,
+                bankAccountName: data.bankAccountName,
+                bankAccountAddress: data.bankAccountAddress,
+                bankAccountIban: data.bankAccountIban,
+                bankAccountSwiftCode: data.bankAccountSwiftCode,
+                bankAccountNumber: data.bankAccountNumber,
+                bic: data.bic,
+                paymentReference: data.paymentReference,
+                bsbCode: data.bsbCode,
                 routingNumber: data.routingNumber,
-                bankAddress: data.bankAddress,
-                accountNumber: data.accountNumber,
-                accountName: data.beneficiaryName,
-                bankName: data.beneficiaryBank,
-                iban: data.iban,
+                ifscCode: data.ifscCode,
+                purposeCode: data.purposeCode,
+                correspondenceBankName: data.correspondenceBankName,
+                correspondenceBankAddress: data.correspondenceBankAddress,
+                correspondenceBankSwiftCode: data.correspondenceBankSwiftCode,
             },
+            customerBankDetails: {
+                bankName: data.customerBankName,
+                bankCode: data.customerBankCode,
+                accountNumber: data.customerAccountNumber,
+                accountName: data.customerAccountName,
+            }
         };
 
         createTransaction.mutate(payload, {
@@ -262,19 +320,29 @@ export default function MedicalPaymentScreen() {
         });
     };
 
-    const watchedFields = watch() as any;
     const isStep0Valid = watchedFields.bvn && watchedFields.nin && watchedFields.formAId && watchedFields.passportNumber;
-    const isStep1Valid = docs.formA.meta && docs.passport.meta && docs.visa.meta && docs.returnTicket.meta && docs.referenceLetter.meta && docs.overseaDoctorLetter.meta &&
-        watchedFields.visaNumber && watchedFields.returnTicketNumber;
+    const isStep1Valid = docs.passport.meta && docs.visa.meta && docs.returnTicket.meta && docs.referenceLetter.meta && docs.overseaDoctorLetter.meta;
     const isStep2Valid = watchedFields.amount > 0;
-    const isStep3Valid = watchedFields.beneficiaryName && watchedFields.beneficiaryAddress && watchedFields.beneficiaryBank &&
-        watchedFields.routingNumber && watchedFields.accountNumber && watchedFields.bankAddress && watchedFields.swiftCode && watchedFields.iban;
+    const isStep3Valid = watchedFields.customerBankName && watchedFields.customerAccountNumber && watchedFields.customerAccountName;
+    const beneficiaryCountryStep4 = watchedFields.beneficiaryCountry?.toLowerCase();
+    const isAustralia = beneficiaryCountryStep4?.includes('australia');
+    const isUSA = beneficiaryCountryStep4?.includes('united states') || beneficiaryCountryStep4?.includes('usa');
+    const isIndia = beneficiaryCountryStep4?.includes('india');
+
+    const isStep4Valid = watchedFields.organizationName && watchedFields.beneficiaryPhone && watchedFields.beneficiaryEmail && 
+        watchedFields.beneficiaryAddress && watchedFields.beneficiaryCity && watchedFields.beneficiaryState && watchedFields.beneficiaryCountry &&
+        watchedFields.bankAccountName && watchedFields.bankAccountAddress && watchedFields.bankAccountIban && watchedFields.bankAccountSwiftCode && watchedFields.bankAccountNumber &&
+        (isAustralia ? watchedFields.bsbCode : true) &&
+        (isUSA ? watchedFields.routingNumber : true) &&
+        (isIndia ? watchedFields.ifscCode : true) &&
+        (!isAustralia && !isUSA && !isIndia ? watchedFields.bic : true);
 
     const isNextDisabled =
         (currentStep === 0 && !isStep0Valid) ||
         (currentStep === 1 && !isStep1Valid) ||
         (currentStep === 2 && !isStep2Valid) ||
-        (currentStep === 3 && !isStep3Valid);
+        (currentStep === 3 && !isStep3Valid) ||
+        (currentStep === 4 && !isStep4Valid);
 
     return (
         <View style={{ flex: 1 }}>
@@ -282,11 +350,11 @@ export default function MedicalPaymentScreen() {
             <TransactionLayout
                 title="Medical Payment"
                 currentStep={currentStep}
-                totalSteps={4}
+                totalSteps={5}
                 onBack={handleBack}
                 onNext={handleNext}
                 isNextDisabled={isNextDisabled}
-                nextLabel={currentStep === 3 ? (watchedFields.beneficiaryName ? "Initiate Transaction Request" : "Continue") : "Continue"}
+                nextLabel={currentStep === 4 ? (watchedFields.organizationName ? "Initiate Transaction Request" : "Continue") : "Continue"}
             >
                 {currentStep === 0 && (
                     <CredentialStep fields={credentialFields} />
@@ -311,11 +379,22 @@ export default function MedicalPaymentScreen() {
                         onAmountSendChange={setAmountSendStr}
                         allowedModes={['buy']}
                         error={errors.amount?.message as string | undefined}
+                        isLoading={calculateExchangeRate.isPending}
                     />
                 )}
 
                 {currentStep === 3 && (
-                    <MedicalBankDetailsStep control={control} />
+                    <CustomerBankDetailsStep
+                        control={control}
+                        setValue={setValue}
+                        banks={banks}
+                        resolvedAccountName={watchedFields.customerAccountName}
+                        isResolving={resolveAccount.isPending}
+                    />
+                )}
+
+                {currentStep === 4 && (
+                    <MedicalBankDetailsStep control={control} watch={watch} />
                 )}
 
                 <InitiateTransactionSheet
@@ -324,6 +403,13 @@ export default function MedicalPaymentScreen() {
                     onConfirm={handleSubmit(onSubmit)}
                     title="Initiate Medical Transaction request?"
                     loading={createTransaction.isPending}
+                    items={[
+                        {
+                            title: "",
+                            description: "Please note that the maximum you can transact is $5,000 per quarter.",
+                            iconType: 'limit'
+                        }
+                    ]}
                 />
             </TransactionLayout>
         </View>
