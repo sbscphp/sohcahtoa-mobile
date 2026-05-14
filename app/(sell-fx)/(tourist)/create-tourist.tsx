@@ -401,7 +401,7 @@ export default function CreateTouristScreen() {
                         allowedModes={['sell']}
                         error={errors.amount?.message as string | undefined}
                         showLimitWarning
-                        onLimitWarningPress={() => setShowSourceOfFundsSheet(true)}
+                        onLimitWarningPress={() => router.push('/proof-of-fund')}
                     />
                 )}
 
@@ -501,7 +501,7 @@ export default function CreateTouristScreen() {
                     onSubmit={() => {
                         setShowSourceOfFundsSheet(false);
 
-                        console.log('Source of Funds Declaration Submitted');
+                        // console.log('Source of Funds Declaration Submitted');
                     }}
                     customerInfo={{
                         fullName: `${user?.profile?.firstName || ''} ${user?.profile?.lastName || ''}`,

@@ -96,21 +96,9 @@ export default function SourceOfFundsSheet({
                             <InfoRow label="Purpose of Transaction" value={transactionDetails.purpose} />
                         </View>
 
-                        <View style={styles.section}>
-                            <Text style={styles.sectionTitle}>Declaration</Text>
-                            <Text style={styles.declarationText}>
-                                I hereby declare that the source of funds used for this foreign exchange transaction is legitimate and derived from lawful means. I understand that false declarations may result in regulatory action.
-                            </Text>
-                            <TouchableOpacity 
-                                style={{ marginTop: moderateScale(16), flexDirection: 'row', alignItems: 'center' }} 
-                                onPress={() => Linking.openURL('https://example.com/pof-template.pdf')}
-                            >
-                                <DocumentDownload size={moderateScale(20)} color="#FF6B2C" variant="Outline" />
-                                <Text style={{ marginLeft: moderateScale(8), color: '#FF6B2C', fontWeight: '600', fontSize: moderateScale(13) }}>Download POF Template</Text>
-                            </TouchableOpacity>
-                        </View>
+                       
 
-                        <View style={styles.uploadSection}>
+                        {/* <View style={styles.uploadSection}>
                             <FileUpload
                                 title="Upload Signature"
                                 fileName={signatureFile}
@@ -126,7 +114,7 @@ export default function SourceOfFundsSheet({
                             <TouchableOpacity style={styles.closeButton} onPress={onClose}>
                                 <Text style={styles.closeButtonText}>No, Close</Text>
                             </TouchableOpacity>
-                        </View>
+                        </View> */}
                     </ScrollView>
                 </View>
             </View>

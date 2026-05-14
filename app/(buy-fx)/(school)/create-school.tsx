@@ -445,7 +445,7 @@ export default function SchoolFeesScreen() {
                         allowedModes={['buy']}
                         error={errors.amount?.message as string | undefined}
                         showLimitWarning
-                        onLimitWarningPress={() => setShowSourceOfFundsSheet(true)}
+                        onLimitWarningPress={() => router.push('/proof-of-fund')}
                     />
                 )}
 

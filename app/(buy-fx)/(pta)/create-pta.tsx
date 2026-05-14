@@ -6,6 +6,7 @@ import CredentialStep from '@/components/transaction-flow/CredentialStep';
 import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import LocationStep from '@/components/transaction-flow/LocationStep';
+import GenericSelectionSheet, { SelectionItem } from '@/components/GenericSelectionSheet';
 import CustomerBankDetailsStep from '@/components/transaction-flow/CustomerBankDetailsStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
 import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
@@ -26,13 +27,22 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { View } from 'react-native';
+import { View, TouchableOpacity, Text } from 'react-native';
+import { moderateScale } from 'react-native-size-matters';
 import { z } from 'zod';
+import { ArrowDown2 } from 'iconsax-react-nativejs';
+
+const PAYOUT_METHODS: SelectionItem[] = [
+    { id: '1', label: 'Electronic Transfer (100%)', value: 'Electronic Transfer (100%)' },
+    { id: '2', label: 'Card (100%)', value: 'Card (100%)' },
+    { id: '3', label: 'Card (75%) + Cash (25%)', value: 'Card (75%) + Cash (25%)' },
+];
 
 const ptaFormSchema = z.object({
     ...ptaStep0Schema.shape,
     ...ptaStep1Schema.shape,
     ...ptaStep2Schema.shape,
+    payoutMethod: z.string().min(1, 'Please select a payout method'),
     ...customerBankDetailsStepSchema.shape,
     ...ptaStep3Schema.shape
 });
@@ -48,6 +58,7 @@ export default function PersonalTravelAllowanceScreen() {
 
     const [currentStep, setCurrentStep] = useState(0);
     const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
+    const [payoutSheetVisible, setPayoutSheetVisible] = useState(false);
 
     const {
         control,
@@ -72,6 +83,7 @@ export default function PersonalTravelAllowanceScreen() {
             selectedLocation: undefined as unknown as LocationItem,
             pickupDate: '',
             pickupTime: '',
+            payoutMethod: '',
             customerBankName: '',
             customerBankCode: '',
             customerAccountNumber: '',
@@ -192,11 +204,18 @@ export default function PersonalTravelAllowanceScreen() {
     ];
 
     const handleNext = async () => {
-        const stepSchemas = [ptaStep0Schema, ptaStep1Schema, ptaStep2Schema, customerBankDetailsStepSchema, ptaStep3Schema];
+        const stepSchemas = [
+            ptaStep0Schema, 
+            ptaStep1Schema, 
+            ptaStep2Schema, 
+            z.object({ payoutMethod: z.string().min(1) }),
+            customerBankDetailsStepSchema, 
+            ptaStep3Schema
+        ];
         const isValid = await trigger(Object.keys(stepSchemas[currentStep].shape) as any);
 
         if (isValid) {
-            if (currentStep < 4) {
+            if (currentStep < 5) {
                 setCurrentStep(prev => prev + 1);
             } else {
                 setInitiateSheetVisible(true);
@@ -239,6 +258,7 @@ export default function PersonalTravelAllowanceScreen() {
                 date: data.pickupDate,
                 time: data.pickupTime,
             },
+            payoutMethod: data.payoutMethod,
             customerBankDetails: {
                 bankName: data.customerBankName,
                 bankCode: data.customerBankCode,
@@ -273,11 +293,11 @@ export default function PersonalTravelAllowanceScreen() {
             <TransactionLayout
                 title="Personal Travel Allowance (PTA)"
                 currentStep={currentStep}
-                totalSteps={5}
+                totalSteps={6}
                 onBack={handleBack}
                 onNext={handleNext}
                 isNextDisabled={isNextDisabled}
-                nextLabel={currentStep === 4 ? (watchedFields.selectedState && watchedFields.selectedCity ? "Initiate Transaction Request" : "Continue") : "Continue"}
+                nextLabel={currentStep === 5 ? (watchedFields.selectedState && watchedFields.selectedCity ? "Initiate Transaction Request" : "Continue") : "Continue"}
             >
                 {currentStep === 0 && (
                     <CredentialStep fields={credentialFields} />
@@ -303,6 +323,24 @@ export default function PersonalTravelAllowanceScreen() {
                     />
                 )}
                 {currentStep === 3 && (
+                    <View style={{ gap: 16 }}>
+                        <Text style={{ fontSize: moderateScale(16), fontWeight: '600', color: '#0F172A', marginBottom: moderateScale(8) }}>Choose your payout method</Text>
+                        <TouchableOpacity onPress={() => setPayoutSheetVisible(true)} activeOpacity={0.8}>
+                            <View pointerEvents="none">
+                                <ControlledInput
+                                    control={control}
+                                    name="payoutMethod"
+                                    label="Payout Method"
+                                    placeholder="Select an Option"
+                                    required
+                                    rightIcon={ArrowDown2}
+                                    editable={false}
+                                />
+                            </View>
+                        </TouchableOpacity>
+                    </View>
+                )}
+                {currentStep === 4 && (
                     <CustomerBankDetailsStep
                         control={control}
                         setValue={setValue}
@@ -311,7 +349,7 @@ export default function PersonalTravelAllowanceScreen() {
                         isResolving={resolveAccount.isPending}
                     />
                 )}
-                {currentStep === 4 && (
+                {currentStep === 5 && (
                     <LocationStep
                         states={states}
                         cities={filteredCities}
@@ -349,6 +387,20 @@ export default function PersonalTravelAllowanceScreen() {
                 onClose={() => setInitiateSheetVisible(false)}
                 onConfirm={handleSubmit(handleInitiate)}
                 loading={createTransaction.isPending}
+            />
+
+            <GenericSelectionSheet
+                visible={payoutSheetVisible}
+                onClose={() => setPayoutSheetVisible(false)}
+                title="Choose a Payout Method"
+                subtitle="Select an option below"
+                items={PAYOUT_METHODS}
+                selectedItem={watchedFields.payoutMethod}
+                onSelect={(item) => {
+                    setValue('payoutMethod', item.value);
+                    setPayoutSheetVisible(false);
+                }}
+                confirmButtonText="Select a Payout Method"
             />
         </View>
     );

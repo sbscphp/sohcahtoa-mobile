@@ -92,6 +92,8 @@ export default function FxRateScreen() {
                     amountSend={amountSend}
                     isLoading={isCalculating}
                     rate={`${currencyGet.code} 1 - ${currencySend.code} ${amountSend && amountGet && parseFloat(amountGet) > 0 ? (parseFloat(amountSend) / parseFloat(amountGet)).toFixed(2) : '...'}`}
+                    showLimitWarning
+                    onLimitWarningPress={() => router.push('/proof-of-fund')}
                 />
 
                 <View style={styles.otherRatesContainer}>

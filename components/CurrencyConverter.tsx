@@ -151,14 +151,21 @@ export default function CurrencyConverter({
                         />
                     </View>
                     {(showLimitWarning && foreignAmount >= 10000) && (
+                        <>
                         <TouchableOpacity
-                            style={{ backgroundColor: '#F1F1F1', padding: 10, borderRadius: 10, marginTop: moderateScale(20) }}
+                            style={{ backgroundColor: '#F1F1F1', padding: 1, borderRadius: 10, marginTop: moderateScale(4) }}
                             onPress={onLimitWarningPress}
                         >
                             <Text style={{ fontSize: moderateScale(12), color: 'rgba(217, 45, 32, 1)', fontWeight: '400' }}>
                                 Amount is higher than $ 10,000. Please <Text style={{ fontSize: moderateScale(12), color: 'rgba(217, 45, 32, 1)', fontWeight: '400', textDecorationLine: 'underline' }}>Upload a proof of fund</Text>
                             </Text>
                         </TouchableOpacity>
+                        <TouchableOpacity onPress={onLimitWarningPress}>
+                            <Text style={{ fontSize: moderateScale(12), color: 'rgba(217, 45, 32, 1)', fontWeight: '400'}}>
+                                Need help? You can <Text style={{ fontSize: moderateScale(12), color: 'rgba(12, 12, 12, 1)', fontWeight: '400', textDecorationLine: 'underline' }}>Download our Proof of Funds Template </Text> to ensure your documentation meets the necessary requirements.
+                            </Text>
+                        </TouchableOpacity>
+                        </>
                     )}
                 </View>
             </View>
