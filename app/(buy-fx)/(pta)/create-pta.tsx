@@ -7,7 +7,6 @@ import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import LocationStep from '@/components/transaction-flow/LocationStep';
 import GenericSelectionSheet, { SelectionItem } from '@/components/GenericSelectionSheet';
-import CustomerBankDetailsStep from '@/components/transaction-flow/CustomerBankDetailsStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
 import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
 import { useProfileQuery } from '@/hooks/queries/auth/useProfileQuery';
@@ -30,12 +29,19 @@ import { useForm } from 'react-hook-form';
 import { View, TouchableOpacity, Text } from 'react-native';
 import { moderateScale } from 'react-native-size-matters';
 import { z } from 'zod';
-import { ArrowDown2 } from 'iconsax-react-nativejs';
+import { ArrowDown2, Bank } from 'iconsax-react-nativejs';
+import { Ionicons } from '@expo/vector-icons';
 
 const PAYOUT_METHODS: SelectionItem[] = [
     { id: '1', label: 'Electronic Transfer (100%)', value: 'Electronic Transfer (100%)' },
     { id: '2', label: 'Card (100%)', value: 'Card (100%)' },
     { id: '3', label: 'Card (75%) + Cash (25%)', value: 'Card (75%) + Cash (25%)' },
+];
+
+const SAVED_ACCOUNTS = [
+    { id: '1', bankName: 'Sterling Bank', accountNumber: '1234567890', accountName: 'ADEOLA ODEKU.', bankCode: '057' },
+    { id: '2', bankName: 'Wema Bank', accountNumber: '4567890087', accountName: 'FEMI OLADELE', bankCode: '035' },
+    { id: '3', bankName: 'Surulere Local Government', accountNumber: '96436076435', accountName: 'BOLA AWOYEMI', bankCode: '090110' }
 ];
 
 const ptaFormSchema = z.object({
@@ -59,6 +65,10 @@ export default function PersonalTravelAllowanceScreen() {
     const [currentStep, setCurrentStep] = useState(0);
     const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
     const [payoutSheetVisible, setPayoutSheetVisible] = useState(false);
+    const [selectedSavedAccountId, setSelectedSavedAccountId] = useState<string | null>('2');
+    const [savedAccounts, setSavedAccounts] = useState(SAVED_ACCOUNTS);
+    const [isAddingNewAccount, setIsAddingNewAccount] = useState(false);
+    const [newBankSheetVisible, setNewBankSheetVisible] = useState(false);
 
     const {
         control,
@@ -83,11 +93,11 @@ export default function PersonalTravelAllowanceScreen() {
             selectedLocation: undefined as unknown as LocationItem,
             pickupDate: '',
             pickupTime: '',
-            payoutMethod: '',
-            customerBankName: '',
-            customerBankCode: '',
-            customerAccountNumber: '',
-            customerAccountName: '',
+            payoutMethod: 'Electronic Transfer (100%)',
+            customerBankName: 'Wema Bank',
+            customerBankCode: '035',
+            customerAccountNumber: '4567890087',
+            customerAccountName: 'FEMI OLADELE',
         },
         mode: 'onChange'
     });
@@ -203,19 +213,55 @@ export default function PersonalTravelAllowanceScreen() {
         }
     ];
 
+    const handleSaveNewAccount = async () => {
+        const isValid = await trigger([
+            'customerBankName',
+            'customerBankCode',
+            'customerAccountNumber',
+            'customerAccountName'
+        ]);
+
+        if (isValid) {
+            const newAcc = {
+                id: Date.now().toString(),
+                bankName: watchedFields.customerBankName,
+                accountNumber: watchedFields.customerAccountNumber,
+                accountName: watchedFields.customerAccountName,
+                bankCode: watchedFields.customerBankCode
+            };
+            setSavedAccounts(prev => [...prev, newAcc]);
+            setSelectedSavedAccountId(newAcc.id);
+            setIsAddingNewAccount(false);
+        }
+    };
+
     const handleNext = async () => {
         const stepSchemas = [
             ptaStep0Schema, 
             ptaStep1Schema, 
             ptaStep2Schema, 
             z.object({ payoutMethod: z.string().min(1) }),
-            customerBankDetailsStepSchema, 
             ptaStep3Schema
         ];
-        const isValid = await trigger(Object.keys(stepSchemas[currentStep].shape) as any);
+        
+        let isValid = false;
+        if (currentStep === 3) {
+            if (isAddingNewAccount) {
+                return;
+            }
+            isValid = await trigger([
+                'payoutMethod',
+                'customerBankName',
+                'customerBankCode',
+                'customerAccountNumber',
+                'customerAccountName'
+            ]);
+        } else {
+            isValid = await trigger(Object.keys(stepSchemas[currentStep].shape) as any);
+        }
 
         if (isValid) {
-            if (currentStep < 5) {
+            if (currentStep < 4) {
                 setCurrentStep(prev => prev + 1);
             } else {
                 setInitiateSheetVisible(true);
@@ -224,6 +270,10 @@ export default function PersonalTravelAllowanceScreen() {
     };
 
     const handleBack = () => {
+        if (isAddingNewAccount) {
+            setIsAddingNewAccount(false);
+            return;
+        }
         if (currentStep > 0) {
             setCurrentStep(prev => prev - 1);
         } else {
@@ -293,11 +343,11 @@ export default function PersonalTravelAllowanceScreen() {
             <TransactionLayout
                 title="Personal Travel Allowance (PTA)"
                 currentStep={currentStep}
-                totalSteps={6}
+                totalSteps={5}
                 onBack={handleBack}
-                onNext={handleNext}
+                onNext={isAddingNewAccount ? handleSaveNewAccount : handleNext}
                 isNextDisabled={isNextDisabled}
-                nextLabel={currentStep === 5 ? (watchedFields.selectedState && watchedFields.selectedCity ? "Initiate Transaction Request" : "Continue") : "Continue"}
+                nextLabel={isAddingNewAccount ? "Save" : (currentStep === 4 ? (watchedFields.selectedState && watchedFields.selectedCity ? "Initiate Transaction Request" : "Continue") : "Continue")}
             >
                 {currentStep === 0 && (
                     <CredentialStep fields={credentialFields} />
@@ -322,9 +372,9 @@ export default function PersonalTravelAllowanceScreen() {
                         error={errors.amount?.message}
                     />
                 )}
-                {currentStep === 3 && (
-                    <View style={{ gap: 16 }}>
-                        <Text style={{ fontSize: moderateScale(16), fontWeight: '600', color: '#0F172A', marginBottom: moderateScale(8) }}>Choose your payout method</Text>
+                {currentStep === 3 && !isAddingNewAccount && (
+                    <View style={{ gap: moderateScale(14) }}>
+                        <Text style={{ fontSize: moderateScale(16), fontWeight: '700', color: '#0F172A', marginBottom: moderateScale(4) }}>Choose your payout method</Text>
                         <TouchableOpacity onPress={() => setPayoutSheetVisible(true)} activeOpacity={0.8}>
                             <View pointerEvents="none">
                                 <ControlledInput
@@ -338,18 +388,132 @@ export default function PersonalTravelAllowanceScreen() {
                                 />
                             </View>
                         </TouchableOpacity>
+
+                        {/* Saved Accounts List */}
+                        <View style={{ marginTop: moderateScale(8), gap: moderateScale(12) }}>
+                            {savedAccounts.map((account) => {
+                                const isSelected = selectedSavedAccountId === account.id;
+                                return (
+                                    <TouchableOpacity
+                                        key={account.id}
+                                        activeOpacity={0.9}
+                                        onPress={() => {
+                                            setSelectedSavedAccountId(account.id);
+                                            setValue('customerBankName', account.bankName);
+                                            setValue('customerBankCode', account.bankCode);
+                                            setValue('customerAccountNumber', account.accountNumber);
+                                            setValue('customerAccountName', account.accountName);
+                                        }}
+                                        style={{
+                                            borderWidth: isSelected ? 1.5 : 1,
+                                            borderColor: isSelected ? '#FF6B2C' : '#E2E8F0',
+                                            backgroundColor: isSelected ? '#FFF7ED' : '#FFFFFF',
+                                            borderRadius: moderateScale(12),
+                                            paddingVertical: moderateScale(16),
+                                            paddingHorizontal: moderateScale(16),
+                                            shadowColor: isSelected ? '#FF6B2C' : 'transparent',
+                                            shadowOffset: { width: 0, height: 1 },
+                                            shadowOpacity: isSelected ? 0.1 : 0,
+                                            shadowRadius: 2,
+                                        }}
+                                    >
+                                        <Text style={{
+                                            fontSize: moderateScale(14),
+                                            fontWeight: '700',
+                                            color: '#0F172A',
+                                            marginBottom: moderateScale(4)
+                                        }}>
+                                            {account.bankName}
+                                        </Text>
+                                        <Text style={{
+                                            fontSize: moderateScale(13),
+                                            color: '#64748B',
+                                            fontWeight: '500'
+                                        }}>
+                                            {account.accountNumber} <Text style={{ color: '#E2E8F0' }}>|</Text> {account.accountName}
+                                        </Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </View>
+
+                        {/* + New Account Button */}
+                        <TouchableOpacity
+                            activeOpacity={0.8}
+                            onPress={() => {
+                                setSelectedSavedAccountId(null);
+                                setValue('customerBankName', '');
+                                setValue('customerBankCode', '');
+                                setValue('customerAccountNumber', '');
+                                setValue('customerAccountName', '');
+                                setIsAddingNewAccount(true);
+                            }}
+                            style={{
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                alignSelf: 'flex-end',
+                                marginTop: moderateScale(4),
+                                paddingHorizontal: moderateScale(4),
+                                paddingVertical: moderateScale(8)
+                            }}
+                        >
+                            <Ionicons name="add" size={moderateScale(18)} color="#FF6B2C" style={{ marginRight: moderateScale(4) }} />
+                            <Text style={{
+                                fontSize: moderateScale(14),
+                                fontWeight: '600',
+                                color: '#FF6B2C'
+                            }}>
+                                New Account
+                            </Text>
+                        </TouchableOpacity>
                     </View>
                 )}
-                {currentStep === 4 && (
-                    <CustomerBankDetailsStep
-                        control={control}
-                        setValue={setValue}
-                        banks={banks}
-                        resolvedAccountName={watchedFields.customerAccountName}
-                        isResolving={resolveAccount.isPending}
-                    />
+
+                {currentStep === 3 && isAddingNewAccount && (
+                    <View style={{ gap: moderateScale(16) }}>
+                        <Text style={{ fontSize: moderateScale(18), fontWeight: '700', color: '#0F172A', marginBottom: moderateScale(8) }}>Add New Bank Account</Text>
+                        
+                        <TouchableOpacity onPress={() => setNewBankSheetVisible(true)} activeOpacity={0.8}>
+                            <View pointerEvents="none">
+                                <ControlledInput
+                                    control={control}
+                                    name="customerBankName"
+                                    label="Bank Name"
+                                    placeholder="Select Bank Name"
+                                    required
+                                    rightIcon={ArrowDown2}
+                                    editable={false}
+                                />
+                            </View>
+                        </TouchableOpacity>
+
+                        <ControlledInput
+                            control={control}
+                            name="customerAccountName"
+                            label="Account Name"
+                            placeholder="Enter account name"
+                            required
+                        />
+
+                        <ControlledInput
+                            control={control}
+                            name="customerAccountNumber"
+                            label="Account Number"
+                            placeholder="Enter account number"
+                            required
+                            keyboardType="numeric"
+                            maxLength={10}
+                        />
+
+                        {resolveAccount.isPending && (
+                            <Text style={{ fontSize: moderateScale(12), color: '#F97316', fontStyle: 'italic', marginTop: moderateScale(-8) }}>
+                                Resolving account name...
+                            </Text>
+                        )}
+                    </View>
                 )}
-                {currentStep === 5 && (
+
+                {currentStep === 4 && (
                     <LocationStep
                         states={states}
                         cities={filteredCities}
@@ -401,6 +565,21 @@ export default function PersonalTravelAllowanceScreen() {
                     setPayoutSheetVisible(false);
                 }}
                 confirmButtonText="Select a Payout Method"
+            />
+
+            <GenericSelectionSheet
+                visible={newBankSheetVisible}
+                onClose={() => setNewBankSheetVisible(false)}
+                title="Select Bank"
+                headerIcon={Bank}
+                items={banks}
+                selectedItem={watchedFields.customerBankCode}
+                onSelect={(item) => {
+                    setValue('customerBankName', item.label);
+                    setValue('customerBankCode', item.value);
+                    setNewBankSheetVisible(false);
+                }}
+                confirmButtonText="Select Bank"
             />
         </View>
     );
