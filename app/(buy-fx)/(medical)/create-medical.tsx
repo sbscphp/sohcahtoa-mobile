@@ -5,7 +5,9 @@ import CredentialStep from '@/components/transaction-flow/CredentialStep';
 import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import MedicalBankDetailsStep from '@/components/transaction-flow/MedicalBankDetailsStep';
-import CustomerBankDetailsStep from '@/components/transaction-flow/CustomerBankDetailsStep';
+import PayoutMethodStep, { SavedAccount } from '@/components/transaction-flow/PayoutMethodStep';
+import AddNewAccountStep from '@/components/transaction-flow/AddNewAccountStep';
+import GenericSelectionSheet, { SelectionItem } from '@/components/GenericSelectionSheet';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
 import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
 import { useProfileQuery } from '@/hooks/queries/auth/useProfileQuery';
@@ -24,11 +26,56 @@ import { useForm } from 'react-hook-form';
 import { View } from 'react-native';
 import { z } from 'zod';
 
+const PAYOUT_METHODS: SelectionItem[] = [
+    { id: '1', label: 'Electronic Transfer (100%)', value: 'Electronic Transfer (100%)' },
+    { id: '2', label: 'Card (100%)', value: 'Card (100%)' },
+    { id: '3', label: 'Card (75%) + Cash (25%)', value: 'Card (75%) + Cash (25%)' },
+];
+
 const medicalFormSchema = medicalStep0Schema
     .merge(medicalStep1Schema)
     .merge(medicalStep2Schema)
-    .merge(customerBankDetailsStepSchema)
-    .merge(medicalStep3Schema);
+    .merge(z.object({
+        payoutMethod: z.string().min(1, 'Please select a payout method'),
+        customerBankName: z.string().optional().or(z.literal('')),
+        customerBankCode: z.string().optional().or(z.literal('')),
+        customerAccountNumber: z.string().optional().or(z.literal('')),
+        customerAccountName: z.string().optional().or(z.literal('')),
+    }))
+    .merge(medicalStep3Schema)
+    .superRefine((data, ctx) => {
+        const isElectronicTransfer = data.payoutMethod === 'Electronic Transfer (100%)' || data.payoutMethod === 'Electronic_Transfer';
+        if (isElectronicTransfer) {
+            if (!data.customerBankName) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: 'Please select your bank',
+                    path: ['customerBankName']
+                });
+            }
+            if (!data.customerBankCode) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: 'Please select your bank',
+                    path: ['customerBankCode']
+                });
+            }
+            if (!data.customerAccountNumber || data.customerAccountNumber.length !== 10) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: 'Account number must be 10 digits',
+                    path: ['customerAccountNumber']
+                });
+            }
+            if (!data.customerAccountName) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: 'Account name must be resolved',
+                    path: ['customerAccountName']
+                });
+            }
+        }
+    });
 
 type MedicalFormValues = z.infer<typeof medicalFormSchema>;
 
@@ -41,6 +88,10 @@ export default function MedicalPaymentScreen() {
 
     const [currentStep, setCurrentStep] = useState(0);
     const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
+    const [payoutSheetVisible, setPayoutSheetVisible] = useState(false);
+    const [selectedSavedAccountId, setSelectedSavedAccountId] = useState<string | null>('');
+    const [savedAccounts, setSavedAccounts] = useState<SavedAccount[]>([]);
+    const [isAddingNewAccount, setIsAddingNewAccount] = useState(false);
 
     const {
         control,
@@ -78,6 +129,7 @@ export default function MedicalPaymentScreen() {
             routingNumber: '',
             ifscCode: '',
             purposeCode: '',
+            payoutMethod: '',
             customerBankName: '',
             customerBankCode: '',
             customerAccountNumber: '',
@@ -204,6 +256,28 @@ export default function MedicalPaymentScreen() {
         },
     ];
 
+    const handleSaveNewAccount = async () => {
+        const isValid = await trigger([
+            'customerBankName',
+            'customerBankCode',
+            'customerAccountNumber',
+            'customerAccountName'
+        ]);
+
+        if (isValid) {
+            const newAcc = {
+                id: Date.now().toString(),
+                bankName: watchedFields.customerBankName || '',
+                accountNumber: watchedFields.customerAccountNumber || '',
+                accountName: watchedFields.customerAccountName || '',
+                bankCode: watchedFields.customerBankCode || ''
+            };
+            setSavedAccounts(prev => [...prev, newAcc]);
+            setSelectedSavedAccountId(newAcc.id);
+            setIsAddingNewAccount(false);
+        }
+    };
+
     const handleNext = async () => {
         if (isUploading) {
             showToast('Please wait for files to finish uploading', 'warning');
@@ -222,7 +296,15 @@ export default function MedicalPaymentScreen() {
         } else if (currentStep === 2) {
             isStepValid = await trigger(['amount']);
         } else if (currentStep === 3) {
-            isStepValid = await trigger(['customerBankName', 'customerAccountNumber', 'customerAccountName']);
+            if (isAddingNewAccount) {
+                return;
+            }
+            const isElectronicTransfer = watchedFields.payoutMethod === 'Electronic Transfer (100%)' || watchedFields.payoutMethod === 'Electronic_Transfer';
+            const fieldsToTrigger: any[] = ['payoutMethod'];
+            if (isElectronicTransfer) {
+                fieldsToTrigger.push('customerBankName', 'customerBankCode', 'customerAccountNumber', 'customerAccountName');
+            }
+            isStepValid = await trigger(fieldsToTrigger);
         } else if (currentStep === 4) {
             const beneficiaryCountry = watchedFields.beneficiaryCountry?.toLowerCase();
             const isAustralia = beneficiaryCountry?.includes('australia');
@@ -251,6 +333,10 @@ export default function MedicalPaymentScreen() {
     };
 
     const handleBack = () => {
+        if (isAddingNewAccount) {
+            setIsAddingNewAccount(false);
+            return;
+        }
         if (currentStep > 0) {
             setCurrentStep(currentStep - 1);
         } else {
@@ -269,6 +355,7 @@ export default function MedicalPaymentScreen() {
             nin: data.nin,
             formAId: data.formAId,
             passportNumber: data.passportNumber,
+            payoutMethod: data.payoutMethod,
             documents: [
                 ...(docs.passport.meta ? [docs.passport.meta] : []),
                 ...(docs.visa.meta ? [docs.visa.meta] : []),
@@ -323,7 +410,8 @@ export default function MedicalPaymentScreen() {
     const isStep0Valid = watchedFields.bvn && watchedFields.nin && watchedFields.formAId && watchedFields.passportNumber;
     const isStep1Valid = docs.passport.meta && docs.visa.meta && docs.returnTicket.meta && docs.referenceLetter.meta && docs.overseaDoctorLetter.meta;
     const isStep2Valid = watchedFields.amount > 0;
-    const isStep3Valid = watchedFields.customerBankName && watchedFields.customerAccountNumber && watchedFields.customerAccountName;
+    const isElectronicTransfer = watchedFields.payoutMethod === 'Electronic Transfer (100%)' || watchedFields.payoutMethod === 'Electronic_Transfer';
+    const isStep3Valid = watchedFields.payoutMethod && (!isElectronicTransfer || (watchedFields.customerBankName && watchedFields.customerAccountNumber && watchedFields.customerAccountName));
     const beneficiaryCountryStep4 = watchedFields.beneficiaryCountry?.toLowerCase();
     const isAustralia = beneficiaryCountryStep4?.includes('australia');
     const isUSA = beneficiaryCountryStep4?.includes('united states') || beneficiaryCountryStep4?.includes('usa');
@@ -352,9 +440,9 @@ export default function MedicalPaymentScreen() {
                 currentStep={currentStep}
                 totalSteps={5}
                 onBack={handleBack}
-                onNext={handleNext}
+                onNext={isAddingNewAccount ? handleSaveNewAccount : handleNext}
                 isNextDisabled={isNextDisabled}
-                nextLabel={currentStep === 4 ? (watchedFields.organizationName ? "Initiate Transaction Request" : "Continue") : "Continue"}
+                nextLabel={isAddingNewAccount ? "Save" : (currentStep === 4 ? (watchedFields.organizationName ? "Initiate Transaction Request" : "Continue") : "Continue")}
             >
                 {currentStep === 0 && (
                     <CredentialStep fields={credentialFields} />
@@ -383,13 +471,25 @@ export default function MedicalPaymentScreen() {
                     />
                 )}
 
-                {currentStep === 3 && (
-                    <CustomerBankDetailsStep
+                {currentStep === 3 && !isAddingNewAccount && (
+                    <PayoutMethodStep
+                        control={control}
+                        setValue={setValue}
+                        setPayoutSheetVisible={setPayoutSheetVisible}
+                        savedAccounts={savedAccounts}
+                        selectedSavedAccountId={selectedSavedAccountId}
+                        setSelectedSavedAccountId={setSelectedSavedAccountId}
+                        setIsAddingNewAccount={setIsAddingNewAccount}
+                    />
+                )}
+
+                {currentStep === 3 && isAddingNewAccount && (
+                    <AddNewAccountStep
                         control={control}
                         setValue={setValue}
                         banks={banks}
-                        resolvedAccountName={watchedFields.customerAccountName}
                         isResolving={resolveAccount.isPending}
+                        selectedBankCode={watchedFields.customerBankCode}
                     />
                 )}
 
@@ -410,6 +510,20 @@ export default function MedicalPaymentScreen() {
                             iconType: 'limit'
                         }
                     ]}
+                />
+
+                <GenericSelectionSheet
+                    visible={payoutSheetVisible}
+                    onClose={() => setPayoutSheetVisible(false)}
+                    title="Choose a Payout Method"
+                    subtitle="Select an option below"
+                    items={PAYOUT_METHODS}
+                    selectedItem={watchedFields.payoutMethod}
+                    onSelect={(item) => {
+                        setValue('payoutMethod', item.value);
+                        setPayoutSheetVisible(false);
+                    }}
+                    confirmButtonText="Select a Payout Method"
                 />
             </TransactionLayout>
         </View>

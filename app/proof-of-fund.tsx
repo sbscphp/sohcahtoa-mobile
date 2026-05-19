@@ -28,18 +28,26 @@ export default function ProofOfFundScreen() {
         { id: '3', label: 'Proof of fund', file: null, metadata: null },
     ]);
 
+    const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
+
     const { upload, isPending } = useDocumentUpload({
         onSuccess: (type, { file, metadata }) => {
-            const slotIndex = parseInt(type);
-            setSlots(prev => prev.map((slot, idx) => 
-                idx === slotIndex ? { ...slot, file, metadata } : slot
-            ));
+            if (uploadingIndex !== null) {
+                setSlots(prev => prev.map((slot, idx) => 
+                    idx === uploadingIndex ? { ...slot, file, metadata } : slot
+                ));
+                setUploadingIndex(null);
+            }
         },
-        onError: () => showToast('Failed to upload document', 'error'),
+        onError: () => {
+            showToast('Failed to upload document', 'error');
+            setUploadingIndex(null);
+        },
     });
 
     const handleUpload = (index: number) => {
-        upload(index.toString() as any);
+        setUploadingIndex(index);
+        upload('PROOF_OF_FUND');
     };
 
     const handleDelete = (index: number) => {

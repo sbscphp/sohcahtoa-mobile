@@ -6,6 +6,8 @@ import CredentialStep from '@/components/transaction-flow/CredentialStep';
 import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import LocationStep from '@/components/transaction-flow/LocationStep';
+import PayoutMethodStep, { SavedAccount } from '@/components/transaction-flow/PayoutMethodStep';
+import AddNewAccountStep from '@/components/transaction-flow/AddNewAccountStep';
 import GenericSelectionSheet, { SelectionItem } from '@/components/GenericSelectionSheet';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
 import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
@@ -26,11 +28,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { View, TouchableOpacity, Text } from 'react-native';
-import { moderateScale } from 'react-native-size-matters';
+import { View } from 'react-native';
 import { z } from 'zod';
-import { ArrowDown2, Bank } from 'iconsax-react-nativejs';
-import { Ionicons } from '@expo/vector-icons';
 
 const PAYOUT_METHODS: SelectionItem[] = [
     { id: '1', label: 'Electronic Transfer (100%)', value: 'Electronic Transfer (100%)' },
@@ -38,19 +37,50 @@ const PAYOUT_METHODS: SelectionItem[] = [
     { id: '3', label: 'Card (75%) + Cash (25%)', value: 'Card (75%) + Cash (25%)' },
 ];
 
-const SAVED_ACCOUNTS = [
-    { id: '1', bankName: 'Sterling Bank', accountNumber: '1234567890', accountName: 'ADEOLA ODEKU.', bankCode: '057' },
-    { id: '2', bankName: 'Wema Bank', accountNumber: '4567890087', accountName: 'FEMI OLADELE', bankCode: '035' },
-    { id: '3', bankName: 'Surulere Local Government', accountNumber: '96436076435', accountName: 'BOLA AWOYEMI', bankCode: '090110' }
-];
+
 
 const ptaFormSchema = z.object({
     ...ptaStep0Schema.shape,
     ...ptaStep1Schema.shape,
     ...ptaStep2Schema.shape,
     payoutMethod: z.string().min(1, 'Please select a payout method'),
-    ...customerBankDetailsStepSchema.shape,
+    customerBankName: z.string().optional().or(z.literal('')),
+    customerBankCode: z.string().optional().or(z.literal('')),
+    customerAccountNumber: z.string().optional().or(z.literal('')),
+    customerAccountName: z.string().optional().or(z.literal('')),
     ...ptaStep3Schema.shape
+}).superRefine((data, ctx) => {
+    const isElectronicTransfer = data.payoutMethod === 'Electronic Transfer (100%)' || data.payoutMethod === 'Electronic_Transfer';
+    if (isElectronicTransfer) {
+        if (!data.customerBankName) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'Please select your bank',
+                path: ['customerBankName']
+            });
+        }
+        if (!data.customerBankCode) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'Please select your bank',
+                path: ['customerBankCode']
+            });
+        }
+        if (!data.customerAccountNumber || data.customerAccountNumber.length !== 10) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'Account number must be 10 digits',
+                path: ['customerAccountNumber']
+            });
+        }
+        if (!data.customerAccountName) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'Account name must be resolved',
+                path: ['customerAccountName']
+            });
+        }
+    }
 });
 
 type PtaFormValues = z.infer<typeof ptaFormSchema>;
@@ -65,10 +95,9 @@ export default function PersonalTravelAllowanceScreen() {
     const [currentStep, setCurrentStep] = useState(0);
     const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
     const [payoutSheetVisible, setPayoutSheetVisible] = useState(false);
-    const [selectedSavedAccountId, setSelectedSavedAccountId] = useState<string | null>('2');
-    const [savedAccounts, setSavedAccounts] = useState(SAVED_ACCOUNTS);
+    const [selectedSavedAccountId, setSelectedSavedAccountId] = useState<string | null>('');
+    const [savedAccounts, setSavedAccounts] = useState<SavedAccount[]>([]);
     const [isAddingNewAccount, setIsAddingNewAccount] = useState(false);
-    const [newBankSheetVisible, setNewBankSheetVisible] = useState(false);
 
     const {
         control,
@@ -93,11 +122,11 @@ export default function PersonalTravelAllowanceScreen() {
             selectedLocation: undefined as unknown as LocationItem,
             pickupDate: '',
             pickupTime: '',
-            payoutMethod: 'Electronic Transfer (100%)',
-            customerBankName: 'Wema Bank',
-            customerBankCode: '035',
-            customerAccountNumber: '4567890087',
-            customerAccountName: 'FEMI OLADELE',
+            payoutMethod: '',
+            customerBankName: '',
+            customerBankCode: '',
+            customerAccountNumber: '',
+            customerAccountName: '',
         },
         mode: 'onChange'
     });
@@ -224,10 +253,10 @@ export default function PersonalTravelAllowanceScreen() {
         if (isValid) {
             const newAcc = {
                 id: Date.now().toString(),
-                bankName: watchedFields.customerBankName,
-                accountNumber: watchedFields.customerAccountNumber,
-                accountName: watchedFields.customerAccountName,
-                bankCode: watchedFields.customerBankCode
+                bankName: watchedFields.customerBankName || '',
+                accountNumber: watchedFields.customerAccountNumber || '',
+                accountName: watchedFields.customerAccountName || '',
+                bankCode: watchedFields.customerBankCode || ''
             };
             setSavedAccounts(prev => [...prev, newAcc]);
             setSelectedSavedAccountId(newAcc.id);
@@ -249,13 +278,12 @@ export default function PersonalTravelAllowanceScreen() {
             if (isAddingNewAccount) {
                 return;
             }
-            isValid = await trigger([
-                'payoutMethod',
-                'customerBankName',
-                'customerBankCode',
-                'customerAccountNumber',
-                'customerAccountName'
-            ]);
+            const isElectronicTransfer = watchedFields.payoutMethod === 'Electronic Transfer (100%)' || watchedFields.payoutMethod === 'Electronic_Transfer';
+            const fieldsToTrigger: any[] = ['payoutMethod'];
+            if (isElectronicTransfer) {
+                fieldsToTrigger.push('customerBankName', 'customerBankCode', 'customerAccountNumber', 'customerAccountName');
+            }
+            isValid = await trigger(fieldsToTrigger);
         } else {
             isValid = await trigger(Object.keys(stepSchemas[currentStep].shape) as any);
         }
@@ -373,144 +401,25 @@ export default function PersonalTravelAllowanceScreen() {
                     />
                 )}
                 {currentStep === 3 && !isAddingNewAccount && (
-                    <View style={{ gap: moderateScale(14) }}>
-                        <Text style={{ fontSize: moderateScale(16), fontWeight: '700', color: '#0F172A', marginBottom: moderateScale(4) }}>Choose your payout method</Text>
-                        <TouchableOpacity onPress={() => setPayoutSheetVisible(true)} activeOpacity={0.8}>
-                            <View pointerEvents="none">
-                                <ControlledInput
-                                    control={control}
-                                    name="payoutMethod"
-                                    label="Payout Method"
-                                    placeholder="Select an Option"
-                                    required
-                                    rightIcon={ArrowDown2}
-                                    editable={false}
-                                />
-                            </View>
-                        </TouchableOpacity>
-
-                        {/* Saved Accounts List */}
-                        <View style={{ marginTop: moderateScale(8), gap: moderateScale(12) }}>
-                            {savedAccounts.map((account) => {
-                                const isSelected = selectedSavedAccountId === account.id;
-                                return (
-                                    <TouchableOpacity
-                                        key={account.id}
-                                        activeOpacity={0.9}
-                                        onPress={() => {
-                                            setSelectedSavedAccountId(account.id);
-                                            setValue('customerBankName', account.bankName);
-                                            setValue('customerBankCode', account.bankCode);
-                                            setValue('customerAccountNumber', account.accountNumber);
-                                            setValue('customerAccountName', account.accountName);
-                                        }}
-                                        style={{
-                                            borderWidth: isSelected ? 1.5 : 1,
-                                            borderColor: isSelected ? '#FF6B2C' : '#E2E8F0',
-                                            backgroundColor: isSelected ? '#FFF7ED' : '#FFFFFF',
-                                            borderRadius: moderateScale(12),
-                                            paddingVertical: moderateScale(16),
-                                            paddingHorizontal: moderateScale(16),
-                                            shadowColor: isSelected ? '#FF6B2C' : 'transparent',
-                                            shadowOffset: { width: 0, height: 1 },
-                                            shadowOpacity: isSelected ? 0.1 : 0,
-                                            shadowRadius: 2,
-                                        }}
-                                    >
-                                        <Text style={{
-                                            fontSize: moderateScale(14),
-                                            fontWeight: '700',
-                                            color: '#0F172A',
-                                            marginBottom: moderateScale(4)
-                                        }}>
-                                            {account.bankName}
-                                        </Text>
-                                        <Text style={{
-                                            fontSize: moderateScale(13),
-                                            color: '#64748B',
-                                            fontWeight: '500'
-                                        }}>
-                                            {account.accountNumber} <Text style={{ color: '#E2E8F0' }}>|</Text> {account.accountName}
-                                        </Text>
-                                    </TouchableOpacity>
-                                );
-                            })}
-                        </View>
-
-                        {/* + New Account Button */}
-                        <TouchableOpacity
-                            activeOpacity={0.8}
-                            onPress={() => {
-                                setSelectedSavedAccountId(null);
-                                setValue('customerBankName', '');
-                                setValue('customerBankCode', '');
-                                setValue('customerAccountNumber', '');
-                                setValue('customerAccountName', '');
-                                setIsAddingNewAccount(true);
-                            }}
-                            style={{
-                                flexDirection: 'row',
-                                alignItems: 'center',
-                                alignSelf: 'flex-end',
-                                marginTop: moderateScale(4),
-                                paddingHorizontal: moderateScale(4),
-                                paddingVertical: moderateScale(8)
-                            }}
-                        >
-                            <Ionicons name="add" size={moderateScale(18)} color="#FF6B2C" style={{ marginRight: moderateScale(4) }} />
-                            <Text style={{
-                                fontSize: moderateScale(14),
-                                fontWeight: '600',
-                                color: '#FF6B2C'
-                            }}>
-                                New Account
-                            </Text>
-                        </TouchableOpacity>
-                    </View>
+                    <PayoutMethodStep
+                        control={control}
+                        setValue={setValue}
+                        setPayoutSheetVisible={setPayoutSheetVisible}
+                        savedAccounts={savedAccounts}
+                        selectedSavedAccountId={selectedSavedAccountId}
+                        setSelectedSavedAccountId={setSelectedSavedAccountId}
+                        setIsAddingNewAccount={setIsAddingNewAccount}
+                    />
                 )}
 
                 {currentStep === 3 && isAddingNewAccount && (
-                    <View style={{ gap: moderateScale(16) }}>
-                        <Text style={{ fontSize: moderateScale(18), fontWeight: '700', color: '#0F172A', marginBottom: moderateScale(8) }}>Add New Bank Account</Text>
-                        
-                        <TouchableOpacity onPress={() => setNewBankSheetVisible(true)} activeOpacity={0.8}>
-                            <View pointerEvents="none">
-                                <ControlledInput
-                                    control={control}
-                                    name="customerBankName"
-                                    label="Bank Name"
-                                    placeholder="Select Bank Name"
-                                    required
-                                    rightIcon={ArrowDown2}
-                                    editable={false}
-                                />
-                            </View>
-                        </TouchableOpacity>
-
-                        <ControlledInput
-                            control={control}
-                            name="customerAccountName"
-                            label="Account Name"
-                            placeholder="Enter account name"
-                            required
-                        />
-
-                        <ControlledInput
-                            control={control}
-                            name="customerAccountNumber"
-                            label="Account Number"
-                            placeholder="Enter account number"
-                            required
-                            keyboardType="numeric"
-                            maxLength={10}
-                        />
-
-                        {resolveAccount.isPending && (
-                            <Text style={{ fontSize: moderateScale(12), color: '#F97316', fontStyle: 'italic', marginTop: moderateScale(-8) }}>
-                                Resolving account name...
-                            </Text>
-                        )}
-                    </View>
+                    <AddNewAccountStep
+                        control={control}
+                        setValue={setValue}
+                        banks={banks}
+                        isResolving={resolveAccount.isPending}
+                        selectedBankCode={watchedFields.customerBankCode}
+                    />
                 )}
 
                 {currentStep === 4 && (
@@ -567,20 +476,7 @@ export default function PersonalTravelAllowanceScreen() {
                 confirmButtonText="Select a Payout Method"
             />
 
-            <GenericSelectionSheet
-                visible={newBankSheetVisible}
-                onClose={() => setNewBankSheetVisible(false)}
-                title="Select Bank"
-                headerIcon={Bank}
-                items={banks}
-                selectedItem={watchedFields.customerBankCode}
-                onSelect={(item) => {
-                    setValue('customerBankName', item.label);
-                    setValue('customerBankCode', item.value);
-                    setNewBankSheetVisible(false);
-                }}
-                confirmButtonText="Select Bank"
-            />
+
         </View>
     );
 }

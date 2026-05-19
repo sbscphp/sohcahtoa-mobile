@@ -8,7 +8,8 @@ import SourceOfFundsSheet from '@/components/SourceOfFundsSheet';
 import CredentialStep from '@/components/transaction-flow/CredentialStep';
 import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
-import CustomerBankDetailsStep from '@/components/transaction-flow/CustomerBankDetailsStep';
+import PayoutMethodStep, { SavedAccount } from '@/components/transaction-flow/PayoutMethodStep';
+import AddNewAccountStep from '@/components/transaction-flow/AddNewAccountStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
 import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
 import { useProfileQuery } from '@/hooks/queries/auth/useProfileQuery';
@@ -26,12 +27,19 @@ import { ArrowDown2, Teacher } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { TouchableOpacity, View } from 'react-native';
+import { z } from 'zod';
 
 const ADMISSION_TYPES: SelectionItem[] = [
     { id: '1', label: 'Undergraduate', value: 'Undergraduate', icon: Teacher },
     { id: '2', label: 'Post-Graduate', value: 'Post-Graduate', icon: Teacher },
     { id: '3', label: 'Others (high school, pre-school etc)', value: 'Others', icon: Teacher },
 
+];
+
+const PAYOUT_METHODS: SelectionItem[] = [
+    { id: '1', label: 'Electronic Transfer (100%)', value: 'Electronic Transfer (100%)' },
+    { id: '2', label: 'Card (100%)', value: 'Card (100%)' },
+    { id: '3', label: 'Card (75%) + Cash (25%)', value: 'Card (75%) + Cash (25%)' },
 ];
 
 export default function SchoolFeesScreen() {
@@ -45,13 +53,56 @@ export default function SchoolFeesScreen() {
     const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
     const [admissionSheetVisible, setAdmissionSheetVisible] = useState(false);
     const [showSourceOfFundsSheet, setShowSourceOfFundsSheet] = useState(false);
+    const [payoutSheetVisible, setPayoutSheetVisible] = useState(false);
+    const [selectedSavedAccountId, setSelectedSavedAccountId] = useState<string | null>('');
+    const [savedAccounts, setSavedAccounts] = useState<SavedAccount[]>([]);
+    const [isAddingNewAccount, setIsAddingNewAccount] = useState(false);
 
     const resolver = (data: any, context: any, options: any) => {
         const isPostGrad = data.admissionType === 'Post-Graduate';
         const dynamicSchema = schoolStep0Schema
             .merge(schoolStep2Schema(isPostGrad))
-            .merge(customerBankDetailsStepSchema)
-            .merge(schoolStep3Schema);
+            .merge(z.object({ payoutMethod: z.string().min(1, 'Please select a payout method') }))
+            .merge(z.object({
+                customerBankName: z.string().optional().or(z.literal('')),
+                customerBankCode: z.string().optional().or(z.literal('')),
+                customerAccountNumber: z.string().optional().or(z.literal('')),
+                customerAccountName: z.string().optional().or(z.literal('')),
+            }))
+            .merge(schoolStep3Schema)
+            .superRefine((data, ctx) => {
+                const isElectronicTransfer = data.payoutMethod === 'Electronic Transfer (100%)' || data.payoutMethod === 'Electronic_Transfer';
+                if (isElectronicTransfer) {
+                    if (!data.customerBankName) {
+                        ctx.addIssue({
+                            code: z.ZodIssueCode.custom,
+                            message: 'Please select your bank',
+                            path: ['customerBankName']
+                        });
+                    }
+                    if (!data.customerBankCode) {
+                        ctx.addIssue({
+                            code: z.ZodIssueCode.custom,
+                            message: 'Please select your bank',
+                            path: ['customerBankCode']
+                        });
+                    }
+                    if (!data.customerAccountNumber || data.customerAccountNumber.length !== 10) {
+                        ctx.addIssue({
+                            code: z.ZodIssueCode.custom,
+                            message: 'Account number must be 10 digits',
+                            path: ['customerAccountNumber']
+                        });
+                    }
+                    if (!data.customerAccountName) {
+                        ctx.addIssue({
+                            code: z.ZodIssueCode.custom,
+                            message: 'Account name must be resolved',
+                            path: ['customerAccountName']
+                        });
+                    }
+                }
+            });
         return zodResolver(dynamicSchema)(data, context, options);
     };
 
@@ -83,6 +134,7 @@ export default function SchoolFeesScreen() {
             correspondenceBankName: '',
             correspondenceBankAddress: '',
             correspondenceBankSwiftCode: '',
+            payoutMethod: '',
             customerBankName: '',
             customerBankCode: '',
             customerAccountNumber: '',
@@ -255,6 +307,28 @@ export default function SchoolFeesScreen() {
 
     const documentFields = isPostGrad ? postgraduateDocuments : undergraduateDocuments;
 
+    const handleSaveNewAccount = async () => {
+        const isValid = await trigger([
+            'customerBankName',
+            'customerBankCode',
+            'customerAccountNumber',
+            'customerAccountName'
+        ]);
+
+        if (isValid) {
+            const newAcc = {
+                id: Date.now().toString(),
+                bankName: watchedFields.customerBankName || '',
+                accountNumber: watchedFields.customerAccountNumber || '',
+                accountName: watchedFields.customerAccountName || '',
+                bankCode: watchedFields.customerBankCode || ''
+            };
+            setSavedAccounts(prev => [...prev, newAcc]);
+            setSelectedSavedAccountId(newAcc.id);
+            setIsAddingNewAccount(false);
+        }
+    };
+
     const handleNext = async () => {
         if (isUploading) {
             showToast('Please wait for files to finish uploading', 'warning');
@@ -284,7 +358,15 @@ export default function SchoolFeesScreen() {
         } else if (currentStep === 2) {
             isStepValid = await trigger(['amount']);
         } else if (currentStep === 3) {
-            isStepValid = await trigger(['customerBankName', 'customerAccountNumber', 'customerAccountName']);
+            if (isAddingNewAccount) {
+                return;
+            }
+            const isElectronicTransfer = watchedFields.payoutMethod === 'Electronic Transfer (100%)' || watchedFields.payoutMethod === 'Electronic_Transfer';
+            const fieldsToTrigger: any[] = ['payoutMethod'];
+            if (isElectronicTransfer) {
+                fieldsToTrigger.push('customerBankName', 'customerBankCode', 'customerAccountNumber', 'customerAccountName');
+            }
+            isStepValid = await trigger(fieldsToTrigger);
         } else if (currentStep === 4) {
             isStepValid = await trigger([
                 'studentName', 
@@ -310,6 +392,10 @@ export default function SchoolFeesScreen() {
     };
 
     const handleBack = () => {
+        if (isAddingNewAccount) {
+            setIsAddingNewAccount(false);
+            return;
+        }
         if (currentStep > 0) {
             setCurrentStep(currentStep - 1);
         } else {
@@ -331,6 +417,7 @@ export default function SchoolFeesScreen() {
             passportNumber: data.passportNumber,
             passportIssueDate: data.passportIssueDate,
             passportExpiryDate: data.passportExpiryDate,
+            payoutMethod: data.payoutMethod,
             documents: isPostGrad ? [
                 ...(docs.admission.meta ? [docs.admission.meta] : []),
                 ...(docs.invoice.meta ? [docs.invoice.meta] : []),
@@ -388,7 +475,6 @@ export default function SchoolFeesScreen() {
     }
 
     const isStep2Valid = watchedFields.amount > 0;
-    const isStep3Valid = watchedFields.customerBankName && watchedFields.customerAccountNumber && watchedFields.customerAccountName;
     const isStep4Valid = !!(
         watchedFields.studentName && 
         watchedFields.studentPassportNumber && 
@@ -402,6 +488,8 @@ export default function SchoolFeesScreen() {
         watchedFields.correspondenceBankSwiftCode
     );
 
+    const isElectronicTransfer = watchedFields.payoutMethod === 'Electronic Transfer (100%)' || watchedFields.payoutMethod === 'Electronic_Transfer';
+    const isStep3Valid = watchedFields.payoutMethod && (!isElectronicTransfer || (watchedFields.customerBankName && watchedFields.customerAccountNumber && watchedFields.customerAccountName));
     const isNextDisabled =
         (currentStep === 0 && !isStep0Valid) ||
         (currentStep === 1 && !isStep1Valid) ||
@@ -417,9 +505,9 @@ export default function SchoolFeesScreen() {
                 currentStep={currentStep}
                 totalSteps={5}
                 onBack={handleBack}
-                onNext={handleNext}
+                onNext={isAddingNewAccount ? handleSaveNewAccount : handleNext}
                 isNextDisabled={isNextDisabled}
-                nextLabel={currentStep === 4 ? (watchedFields.bankAccountName && watchedFields.bankAccountNumber ? "Initiate Transaction Request" : "Continue") : "Continue"}
+                nextLabel={isAddingNewAccount ? "Save" : (currentStep === 4 ? (watchedFields.bankAccountName && watchedFields.bankAccountNumber ? "Initiate Transaction Request" : "Continue") : "Continue")}
             >
                 {currentStep === 0 && (
                     <CredentialStep fields={credentialFields} />
@@ -449,13 +537,25 @@ export default function SchoolFeesScreen() {
                     />
                 )}
 
-                {currentStep === 3 && (
-                    <CustomerBankDetailsStep
+                {currentStep === 3 && !isAddingNewAccount && (
+                    <PayoutMethodStep
+                        control={control}
+                        setValue={setValue}
+                        setPayoutSheetVisible={setPayoutSheetVisible}
+                        savedAccounts={savedAccounts}
+                        selectedSavedAccountId={selectedSavedAccountId}
+                        setSelectedSavedAccountId={setSelectedSavedAccountId}
+                        setIsAddingNewAccount={setIsAddingNewAccount}
+                    />
+                )}
+
+                {currentStep === 3 && isAddingNewAccount && (
+                    <AddNewAccountStep
                         control={control}
                         setValue={setValue}
                         banks={banks}
-                        resolvedAccountName={watchedFields.customerAccountName}
                         isResolving={resolveAccount.isPending}
+                        selectedBankCode={watchedFields.customerBankCode}
                     />
                 )}
 
@@ -476,6 +576,20 @@ export default function SchoolFeesScreen() {
                             iconType: 'limit'
                         }
                     ]}
+                />
+
+                <GenericSelectionSheet
+                    visible={payoutSheetVisible}
+                    onClose={() => setPayoutSheetVisible(false)}
+                    title="Choose a Payout Method"
+                    subtitle="Select an option below"
+                    items={PAYOUT_METHODS}
+                    selectedItem={watchedFields.payoutMethod}
+                    onSelect={(item) => {
+                        setValue('payoutMethod', item.value);
+                        setPayoutSheetVisible(false);
+                    }}
+                    confirmButtonText="Select a Payout Method"
                 />
 
                 <GenericSelectionSheet

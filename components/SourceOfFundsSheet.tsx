@@ -1,9 +1,9 @@
-import FileUpload from '@/components/FileUpload';
-import PrimaryButton from '@/components/PrimaryButton';
-import { InfoCircle, DocumentDownload } from 'iconsax-react-nativejs';
+import { InfoCircle } from 'iconsax-react-nativejs';
 import React from 'react';
-import { Modal, ScrollView, Text, TouchableOpacity, View, Linking } from 'react-native';
+import { Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
+import PrimaryButton from './PrimaryButton';
+import FileUpload from './FileUpload';
 
 interface InfoRowProps {
     label: string;
@@ -43,12 +43,12 @@ interface SourceOfFundsSheetProps {
 export default function SourceOfFundsSheet({
     visible,
     onClose,
-    onSubmit,
     customerInfo,
     transactionDetails,
+    onSubmit,
     signatureFile,
     onUploadSignature,
-    isUploadingSignature
+    isUploadingSignature,
 }: SourceOfFundsSheetProps) {
 
     return (
@@ -98,11 +98,12 @@ export default function SourceOfFundsSheet({
 
                        
 
-                        {/* <View style={styles.uploadSection}>
+                        <View style={styles.uploadSection}>
                             <FileUpload
                                 title="Upload Signature"
                                 fileName={signatureFile}
                                 onUpload={onUploadSignature}
+                                status={isUploadingSignature ? 'pending' : 'default'}
                             />
                         </View>
 
@@ -114,7 +115,7 @@ export default function SourceOfFundsSheet({
                             <TouchableOpacity style={styles.closeButton} onPress={onClose}>
                                 <Text style={styles.closeButtonText}>No, Close</Text>
                             </TouchableOpacity>
-                        </View> */}
+                        </View>
                     </ScrollView>
                 </View>
             </View>

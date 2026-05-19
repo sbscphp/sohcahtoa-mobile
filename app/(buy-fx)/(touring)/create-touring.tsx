@@ -2,6 +2,7 @@ import ControlledDatePicker from '@/components/ControlledDatePicker';
 import ControlledInput from '@/components/ControlledInput';
 import InitiateTransactionSheet from '@/components/InitiateTransactionSheet';
 import LoadingBackdrop from '@/components/LoadingBackdrop';
+import SourceOfFundsSheet from '@/components/SourceOfFundsSheet';
 import CredentialStep from '@/components/transaction-flow/CredentialStep';
 import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
@@ -41,6 +42,7 @@ export default function TouringScreen() {
 
     const [currentStep, setCurrentStep] = useState(0);
     const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
+    const [showSourceOfFundsSheet, setShowSourceOfFundsSheet] = useState(false);
 
     const {
         control,
@@ -92,6 +94,7 @@ export default function TouringScreen() {
         visa: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
         ticket: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
         receipt: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        signature: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
     });
 
     const updateDoc = (key: keyof typeof docs, file: UploadedFile, metadata: UploadedMetadata) => {
@@ -104,6 +107,7 @@ export default function TouringScreen() {
             else if (documentType === 'VISA') updateDoc('visa', file, metadata);
             else if (documentType === 'RETURN_TICKET') updateDoc('ticket', file, metadata);
             else if (documentType === 'RECEIPT') updateDoc('receipt', file, metadata);
+            else if (documentType === 'DIGITAL_SIGNATURE') updateDoc('signature', file, metadata);
         },
         onError: () => showToast('Failed to upload document. Please try again.', 'error'),
     });
@@ -230,6 +234,7 @@ export default function TouringScreen() {
                 ...(docs.visa.meta ? [docs.visa.meta] : []),
                 ...(docs.ticket.meta ? [docs.ticket.meta] : []),
                 ...(docs.receipt.meta ? [docs.receipt.meta] : []),
+                ...(docs.signature.meta ? [docs.signature.meta] : []),
             ],
             pickupLocation: data.selectedLocation ? {
                 name: (data.selectedLocation as LocationItem).title,
@@ -348,6 +353,32 @@ export default function TouringScreen() {
                     onConfirm={handleSubmit(onSubmit)}
                     title="Initiate Touring Transaction request?"
                     loading={createTransaction.isPending}
+                />
+                <SourceOfFundsSheet
+                    visible={showSourceOfFundsSheet}
+                    onClose={() => setShowSourceOfFundsSheet(false)}
+                    onSubmit={() => {
+                        setShowSourceOfFundsSheet(false);
+
+                        console.log('Source of Funds Declaration Submitted');
+                    }}
+                    customerInfo={{
+                        fullName: `${user?.profile?.firstName || ''} ${user?.profile?.lastName || ''}`,
+                        phoneNumber: user?.phoneNumber || '',
+                        email: user?.email || '',
+                        bvn: user?.kyc?.bvn || '',
+                        address: user?.profile?.address || '',
+                        passportNumber: watchedFields.passportNumber || user?.kyc?.passportNumber || ''
+                    }}
+                    transactionDetails={{
+                        type: 'Tourist',
+                        currency: currencySend.currencyName,
+                        amount: `${currencySend.code} ${amountSendStr}`,
+                        purpose: 'Travel'
+                    }}
+                    onUploadSignature={() => uploadFile('DIGITAL_SIGNATURE')}
+                    signatureFile={docs.signature.file?.name}
+                    isUploadingSignature={isUploading}
                 />
             </TransactionLayout>
         </View>
