@@ -402,6 +402,7 @@ export default function CreateTouristScreen() {
                         error={errors.amount?.message as string | undefined}
                         showLimitWarning
                         onLimitWarningPress={() => router.push('/proof-of-fund')}
+                        onDownloadPress={() => setShowSourceOfFundsSheet(true)}
                     />
                 )}
 

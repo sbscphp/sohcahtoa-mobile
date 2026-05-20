@@ -14,7 +14,7 @@ export const useUploadTransactionDocumentMutation = () => {
                 showToast(response.message || 'Document uploaded successfully', 'success');
                 queryClient.invalidateQueries({ queryKey: ['transaction', variables.transactionId] });
             }
-            console.log(response, "response");
+            // console.log(response, "response");
         },
         onError: (error: any) => {
             const message = error.response?.data?.error?.message || error.response?.data?.message || error.message || 'Failed to upload document';

@@ -47,7 +47,7 @@ export default function ProofOfFundScreen() {
 
     const handleUpload = (index: number) => {
         setUploadingIndex(index);
-        upload('PROOF_OF_FUND');
+        upload('PROOF_OF_FUNDS');
     };
 
     const handleDelete = (index: number) => {

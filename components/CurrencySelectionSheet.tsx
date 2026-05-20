@@ -97,7 +97,6 @@ const CurrencySelectionSheet: React.FC<CurrencySelectionSheetProps> = ({
                         value={searchQuery}
                         onChangeText={setSearchQuery}
                         icon={<SearchNormal1 size={moderateScale(20)} color="#94A3B8" />}
-                    // wrapperStyle={{ borderWidth: 1, borderColor: '#94A3B8', borderRadius: '0@ms', }}
                     />
 
 

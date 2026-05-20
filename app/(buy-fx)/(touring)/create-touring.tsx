@@ -360,7 +360,7 @@ export default function TouringScreen() {
                     onSubmit={() => {
                         setShowSourceOfFundsSheet(false);
 
-                        console.log('Source of Funds Declaration Submitted');
+                        // console.log('Source of Funds Declaration Submitted');
                     }}
                     customerInfo={{
                         fullName: `${user?.profile?.firstName || ''} ${user?.profile?.lastName || ''}`,

@@ -10,7 +10,7 @@ export const useCalculateExchangeRateMutation = () => {
         mutationFn: calculateExchangeRate,
         onSuccess: (response: CalculateExchangeRateResponse) => {
             if (response.success && response.data) {
-                console.log(response, "calculate exchange rate response");
+                // console.log(response, "calculate exchange rate response");
             }
         },
         onError: (error: any) => {

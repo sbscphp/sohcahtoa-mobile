@@ -79,6 +79,8 @@ export default function AddNewAccountStep({
                     setBankSheetVisible(false);
                 }}
                 confirmButtonText="Select Bank"
+                searchable={true}
+                searchPlaceholder="Search bank..."
             />
         </View>
     );

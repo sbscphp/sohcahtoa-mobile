@@ -29,6 +29,7 @@ interface ExchangeStepProps {
     onAmountSendChange?: (amount: string) => void;
     showLimitWarning?: boolean;
     onLimitWarningPress?: () => void;
+    onDownloadPress?: () => void;
     error?: string;
     isLoading?: boolean;
 }
@@ -48,6 +49,7 @@ export default function ExchangeStep({
     onAmountSendChange,
     showLimitWarning,
     onLimitWarningPress,
+    onDownloadPress,
     error,
     isLoading
 }: ExchangeStepProps) {
@@ -72,6 +74,7 @@ export default function ExchangeStep({
                 onAmountSendChange={onAmountSendChange}
                 showLimitWarning={showLimitWarning}
                 onLimitWarningPress={onLimitWarningPress}
+                onDownloadPress={onDownloadPress}
                 error={error}
                 isLoading={isLoading}
             />

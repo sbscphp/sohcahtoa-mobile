@@ -84,7 +84,7 @@ export default function VerificationResultScreen() {
                                 <View style={styles.divider} />
 
                                 <View style={styles.detailRow}>
-                                    <Text style={styles.detailLabel}>Receiver's Name</Text>
+                                    <Text style={styles.detailLabel}>{"Receiver's Name"}</Text>
                                     <Text style={styles.detailValue}>{receiverName}</Text>
                                 </View>
 

@@ -16,7 +16,9 @@ import { useGetPickupPointsQuery } from '@/hooks/queries/transactions/useGetPick
 import { useGetPickupStatesQuery } from '@/hooks/queries/transactions/useGetPickupStatesQuery';
 import { useGetPickupCitiesQuery } from '@/hooks/queries/transactions/useGetPickupCitiesQuery';
 import { useGetBanksQuery } from '@/hooks/queries/banks/useGetBanksQuery';
-import { useResolveAccountMutation } from '@/hooks/queries/banks/useResolveAccountMutation';
+import { useLookupAccountMutation } from '@/hooks/queries/banks/useResolveAccountMutation';
+import { useGetSavedAccountsQuery } from '@/hooks/queries/banks/useGetSavedAccountsQuery';
+import { useSaveAccountMutation } from '@/hooks/queries/banks/useSaveAccountMutation';
 import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useExchangeLogic } from '@/hooks/useExchangeLogic';
 import { useToastStore } from '@/stores/useToastStore';
@@ -96,7 +98,6 @@ export default function PersonalTravelAllowanceScreen() {
     const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
     const [payoutSheetVisible, setPayoutSheetVisible] = useState(false);
     const [selectedSavedAccountId, setSelectedSavedAccountId] = useState<string | null>('');
-    const [savedAccounts, setSavedAccounts] = useState<SavedAccount[]>([]);
     const [isAddingNewAccount, setIsAddingNewAccount] = useState(false);
 
     const {
@@ -161,16 +162,44 @@ export default function PersonalTravelAllowanceScreen() {
     // Banks and Account Resolution
     const { data: banksResponse } = useGetBanksQuery();
     const banks = useMemo(() => 
-        (banksResponse?.data || []).map(b => ({ id: b.id, label: b.name, value: b.code })),
+        (banksResponse?.data || []).map(b => ({ id: b.code, label: b.name, value: b.code })),
     [banksResponse]);
 
-    const resolveAccount = useResolveAccountMutation();
+    const { data: savedAccountsResponse } = useGetSavedAccountsQuery();
+    const savedAccounts = useMemo(() => {
+        return (savedAccountsResponse?.data || []).map(a => {
+            const clean = (str: string) => {
+                return (str || '')
+                    .toLowerCase()
+                    .replace(/\b(plc|limited|ltd|bank|microfinance|mgb|mfd)\b/g, '')
+                    .replace(/[^a-z0-9]/g, '')
+                    .trim();
+            };
+            const cleanedTarget = clean(a.bankName);
+            const foundBank = (banksResponse?.data || []).find(b => {
+                const cleanedBank = clean(b.name);
+                return cleanedBank === cleanedTarget || cleanedBank.includes(cleanedTarget) || cleanedTarget.includes(cleanedBank);
+            });
+            return {
+                id: a.id,
+                bankName: a.bankName,
+                accountNumber: a.accountNumber,
+                accountName: a.accountName,
+                bankCode: foundBank?.code || ''
+            };
+        });
+    }, [savedAccountsResponse, banksResponse]);
+
+    const saveAccountMutation = useSaveAccountMutation();
+
+    const resolveAccount = useLookupAccountMutation();
 
     React.useEffect(() => {
+        if (!isAddingNewAccount) return;
         if (watchedFields.customerAccountNumber?.length === 10 && watchedFields.customerBankCode) {
             resolveAccount.mutate({
                 accountNumber: watchedFields.customerAccountNumber,
-                bankCode: watchedFields.customerBankCode
+                bankName: watchedFields.customerBankName
             }, {
                 onSuccess: (res) => {
                     if (res.success) {
@@ -183,7 +212,7 @@ export default function PersonalTravelAllowanceScreen() {
                 }
             });
         }
-    }, [watchedFields.customerAccountNumber, watchedFields.customerBankCode]);
+    }, [watchedFields.customerAccountNumber, watchedFields.customerBankCode, isAddingNewAccount]);
 
     // Document upload files state
     const [docs, setDocs] = useState({
@@ -251,16 +280,18 @@ export default function PersonalTravelAllowanceScreen() {
         ]);
 
         if (isValid) {
-            const newAcc = {
-                id: Date.now().toString(),
+            saveAccountMutation.mutate({
                 bankName: watchedFields.customerBankName || '',
                 accountNumber: watchedFields.customerAccountNumber || '',
                 accountName: watchedFields.customerAccountName || '',
-                bankCode: watchedFields.customerBankCode || ''
-            };
-            setSavedAccounts(prev => [...prev, newAcc]);
-            setSelectedSavedAccountId(newAcc.id);
-            setIsAddingNewAccount(false);
+            }, {
+                onSuccess: (res) => {
+                    if (res.data?.id) {
+                        setSelectedSavedAccountId(res.data.id);
+                    }
+                    setIsAddingNewAccount(false);
+                }
+            });
         }
     };
 
@@ -361,13 +392,16 @@ export default function PersonalTravelAllowanceScreen() {
         });
     };
 
-    const isNextDisabled = currentStep === 1
-        ? !docs.visa.file || !docs.ticket.file
-        : false;
+    const isElectronicTransfer = watchedFields.payoutMethod === 'Electronic Transfer (100%)' || watchedFields.payoutMethod === 'Electronic_Transfer';
+    const isStep3Valid = watchedFields.payoutMethod && (!isElectronicTransfer || (watchedFields.customerBankName && watchedFields.customerBankCode && watchedFields.customerAccountNumber && watchedFields.customerAccountName));
+
+    const isNextDisabled =
+        (currentStep === 1 && (!docs.visa.file || !docs.ticket.file)) ||
+        (currentStep === 3 && !isStep3Valid);
 
     return (
         <View style={{ flex: 1 }}>
-            <LoadingBackdrop visible={isUploading || createTransaction.isPending} />
+            <LoadingBackdrop visible={isUploading || createTransaction.isPending || saveAccountMutation.isPending} />
             <TransactionLayout
                 title="Personal Travel Allowance (PTA)"
                 currentStep={currentStep}

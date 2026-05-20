@@ -16,7 +16,9 @@ import { useExchangeLogic } from '@/hooks/useExchangeLogic';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useToastStore } from '@/stores/useToastStore';
 import { useGetBanksQuery } from '@/hooks/queries/banks/useGetBanksQuery';
-import { useResolveAccountMutation } from '@/hooks/queries/banks/useResolveAccountMutation';
+import { useLookupAccountMutation } from '@/hooks/queries/banks/useResolveAccountMutation';
+import { useGetSavedAccountsQuery } from '@/hooks/queries/banks/useGetSavedAccountsQuery';
+import { useSaveAccountMutation } from '@/hooks/queries/banks/useSaveAccountMutation';
 import { medicalStep0Schema, medicalStep1Schema, medicalStep2Schema, medicalStep3Schema } from '@/utils/validations/medical';
 import { customerBankDetailsStepSchema } from '@/utils/validations/shared';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -90,7 +92,6 @@ export default function MedicalPaymentScreen() {
     const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
     const [payoutSheetVisible, setPayoutSheetVisible] = useState(false);
     const [selectedSavedAccountId, setSelectedSavedAccountId] = useState<string | null>('');
-    const [savedAccounts, setSavedAccounts] = useState<SavedAccount[]>([]);
     const [isAddingNewAccount, setIsAddingNewAccount] = useState(false);
 
     const {
@@ -182,16 +183,44 @@ export default function MedicalPaymentScreen() {
     // Banks and Account Resolution
     const { data: banksResponse } = useGetBanksQuery();
     const banks = React.useMemo(() => 
-        (banksResponse?.data || []).map(b => ({ id: b.id, label: b.name, value: b.code })),
+        (banksResponse?.data || []).map(b => ({ id: b.code, label: b.name, value: b.code })),
     [banksResponse]);
 
-    const resolveAccount = useResolveAccountMutation();
+    const { data: savedAccountsResponse } = useGetSavedAccountsQuery();
+    const savedAccounts = React.useMemo(() => {
+        return (savedAccountsResponse?.data || []).map(a => {
+            const clean = (str: string) => {
+                return (str || '')
+                    .toLowerCase()
+                    .replace(/\b(plc|limited|ltd|bank|microfinance|mgb|mfd)\b/g, '')
+                    .replace(/[^a-z0-9]/g, '')
+                    .trim();
+            };
+            const cleanedTarget = clean(a.bankName);
+            const foundBank = (banksResponse?.data || []).find(b => {
+                const cleanedBank = clean(b.name);
+                return cleanedBank === cleanedTarget || cleanedBank.includes(cleanedTarget) || cleanedTarget.includes(cleanedBank);
+            });
+            return {
+                id: a.id,
+                bankName: a.bankName,
+                accountNumber: a.accountNumber,
+                accountName: a.accountName,
+                bankCode: foundBank?.code || ''
+            };
+        });
+    }, [savedAccountsResponse, banksResponse]);
+
+    const saveAccountMutation = useSaveAccountMutation();
+
+    const resolveAccount = useLookupAccountMutation();
 
     React.useEffect(() => {
+        if (!isAddingNewAccount) return;
         if (watchedFields.customerAccountNumber?.length === 10 && watchedFields.customerBankCode) {
             resolveAccount.mutate({
                 accountNumber: watchedFields.customerAccountNumber,
-                bankCode: watchedFields.customerBankCode
+                bankName: watchedFields.customerBankName
             }, {
                 onSuccess: (res) => {
                     if (res.success) {
@@ -204,7 +233,7 @@ export default function MedicalPaymentScreen() {
                 }
             });
         }
-    }, [watchedFields.customerAccountNumber, watchedFields.customerBankCode]);
+    }, [watchedFields.customerAccountNumber, watchedFields.customerBankCode, isAddingNewAccount]);
 
     const credentialFields = [
         { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number (BVN)" placeholder="Enter your BVN" required keyboardType="numeric" maxLength={11} filterType="numeric" disabled /> },
@@ -265,16 +294,18 @@ export default function MedicalPaymentScreen() {
         ]);
 
         if (isValid) {
-            const newAcc = {
-                id: Date.now().toString(),
+            saveAccountMutation.mutate({
                 bankName: watchedFields.customerBankName || '',
                 accountNumber: watchedFields.customerAccountNumber || '',
                 accountName: watchedFields.customerAccountName || '',
-                bankCode: watchedFields.customerBankCode || ''
-            };
-            setSavedAccounts(prev => [...prev, newAcc]);
-            setSelectedSavedAccountId(newAcc.id);
-            setIsAddingNewAccount(false);
+            }, {
+                onSuccess: (res) => {
+                    if (res.data?.id) {
+                        setSelectedSavedAccountId(res.data.id);
+                    }
+                    setIsAddingNewAccount(false);
+                }
+            });
         }
     };
 
@@ -411,7 +442,7 @@ export default function MedicalPaymentScreen() {
     const isStep1Valid = docs.passport.meta && docs.visa.meta && docs.returnTicket.meta && docs.referenceLetter.meta && docs.overseaDoctorLetter.meta;
     const isStep2Valid = watchedFields.amount > 0;
     const isElectronicTransfer = watchedFields.payoutMethod === 'Electronic Transfer (100%)' || watchedFields.payoutMethod === 'Electronic_Transfer';
-    const isStep3Valid = watchedFields.payoutMethod && (!isElectronicTransfer || (watchedFields.customerBankName && watchedFields.customerAccountNumber && watchedFields.customerAccountName));
+    const isStep3Valid = watchedFields.payoutMethod && (!isElectronicTransfer || (watchedFields.customerBankName && watchedFields.customerBankCode && watchedFields.customerAccountNumber && watchedFields.customerAccountName));
     const beneficiaryCountryStep4 = watchedFields.beneficiaryCountry?.toLowerCase();
     const isAustralia = beneficiaryCountryStep4?.includes('australia');
     const isUSA = beneficiaryCountryStep4?.includes('united states') || beneficiaryCountryStep4?.includes('usa');
@@ -434,7 +465,7 @@ export default function MedicalPaymentScreen() {
 
     return (
         <View style={{ flex: 1 }}>
-            <LoadingBackdrop visible={isUploading || createTransaction.isPending} />
+            <LoadingBackdrop visible={isUploading || createTransaction.isPending || saveAccountMutation.isPending} />
             <TransactionLayout
                 title="Medical Payment"
                 currentStep={currentStep}

@@ -5,6 +5,7 @@ import MedicalBankDetailsStep from '../components/transaction-flow/MedicalBankDe
 describe('MedicalBankDetailsStep', () => {
     const defaultProps = {
         control: {},
+        watch: jest.fn(),
     };
 
     it('renders the title', () => {

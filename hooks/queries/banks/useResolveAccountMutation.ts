@@ -1,8 +1,8 @@
 import { useMutation } from '@tanstack/react-query';
-import { resolveAccount, ResolveAccountPayload } from '@/services/banks';
+import { lookupAccount, LookupAccountParams } from '@/services/banks';
 
-export const useResolveAccountMutation = () => {
+export const useLookupAccountMutation = () => {
   return useMutation({
-    mutationFn: (payload: ResolveAccountPayload) => resolveAccount(payload),
+    mutationFn: (params: LookupAccountParams) => lookupAccount(params),
   });
 };

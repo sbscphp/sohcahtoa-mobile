@@ -73,6 +73,8 @@ export default function CustomerBankDetailsStep({
                     setValue('customerBankName', item.label);
                     setValue('customerBankCode', item.value);
                 }}
+                searchable={true}
+                searchPlaceholder="Search bank..."
             />
         </View>
     );

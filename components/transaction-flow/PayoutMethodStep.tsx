@@ -11,7 +11,7 @@ export interface SavedAccount {
     bankName: string;
     accountNumber: string;
     accountName: string;
-    bankCode: string;
+    bankCode?: string;
 }
 
 interface PayoutMethodStepProps {

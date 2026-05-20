@@ -245,7 +245,7 @@ export default function OtpVerificationScreen() {
                         </Text>
 
                         <View style={styles.resendContainer}>
-                            <Text style={styles.resendText}>Didn't Receive Code? </Text>
+                            <Text style={styles.resendText}>{"Didn't Receive Code? "}</Text>
                             <TouchableOpacity
                                 onPress={handleResendOtp}
                                 disabled={isPending || timer > 0}

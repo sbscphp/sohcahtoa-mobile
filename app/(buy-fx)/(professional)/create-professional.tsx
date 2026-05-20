@@ -16,12 +16,14 @@ import { useExchangeLogic } from '@/hooks/useExchangeLogic';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useToastStore } from '@/stores/useToastStore';
 import { useGetBanksQuery } from '@/hooks/queries/banks/useGetBanksQuery';
-import { useResolveAccountMutation } from '@/hooks/queries/banks/useResolveAccountMutation';
+import { useLookupAccountMutation } from '@/hooks/queries/banks/useResolveAccountMutation';
+import { useGetSavedAccountsQuery } from '@/hooks/queries/banks/useGetSavedAccountsQuery';
+import { useSaveAccountMutation } from '@/hooks/queries/banks/useSaveAccountMutation';
 import { professionalStep0Schema, professionalStep1Schema, professionalStep2Schema, professionalStep3Schema } from '@/utils/validations/professional';
 import { customerBankDetailsStepSchema } from '@/utils/validations/shared';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { View } from 'react-native';
 import { z } from 'zod';
@@ -89,7 +91,6 @@ export default function ProfessionalScreen() {
     const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
     const [payoutSheetVisible, setPayoutSheetVisible] = useState(false);
     const [selectedSavedAccountId, setSelectedSavedAccountId] = useState<string | null>('');
-    const [savedAccounts, setSavedAccounts] = useState<SavedAccount[]>([]);
     const [isAddingNewAccount, setIsAddingNewAccount] = useState(false);
 
     const {
@@ -165,21 +166,49 @@ export default function ProfessionalScreen() {
         onError: () => showToast('Failed to upload document. Please try again.', 'error'),
     });
 
-    const watchedFields = watch();
+    const watchedFields = watch() as any;
 
     // Banks and Account Resolution
     const { data: banksResponse } = useGetBanksQuery();
-    const banks = React.useMemo(() => 
-        (banksResponse?.data || []).map(b => ({ id: b.id, label: b.name, value: b.code })),
+    const banks = useMemo(() => 
+        (banksResponse?.data || []).map(b => ({ id: b.code, label: b.name, value: b.code })),
     [banksResponse]);
 
-    const resolveAccount = useResolveAccountMutation();
+    const { data: savedAccountsResponse } = useGetSavedAccountsQuery();
+    const savedAccounts = useMemo(() => {
+        return (savedAccountsResponse?.data || []).map(a => {
+            const clean = (str: string) => {
+                return (str || '')
+                    .toLowerCase()
+                    .replace(/\b(plc|limited|ltd|bank|microfinance|mgb|mfd)\b/g, '')
+                    .replace(/[^a-z0-9]/g, '')
+                    .trim();
+            };
+            const cleanedTarget = clean(a.bankName);
+            const foundBank = (banksResponse?.data || []).find(b => {
+                const cleanedBank = clean(b.name);
+                return cleanedBank === cleanedTarget || cleanedBank.includes(cleanedTarget) || cleanedTarget.includes(cleanedBank);
+            });
+            return {
+                id: a.id,
+                bankName: a.bankName,
+                accountNumber: a.accountNumber,
+                accountName: a.accountName,
+                bankCode: foundBank?.code || ''
+            };
+        });
+    }, [savedAccountsResponse, banksResponse]);
+
+    const saveAccountMutation = useSaveAccountMutation();
+
+    const resolveAccount = useLookupAccountMutation();
 
     React.useEffect(() => {
+        if (!isAddingNewAccount) return;
         if (watchedFields.customerAccountNumber?.length === 10 && watchedFields.customerBankCode) {
             resolveAccount.mutate({
                 accountNumber: watchedFields.customerAccountNumber,
-                bankCode: watchedFields.customerBankCode
+                bankName: watchedFields.customerBankName
             }, {
                 onSuccess: (res) => {
                     if (res.success) {
@@ -192,7 +221,7 @@ export default function ProfessionalScreen() {
                 }
             });
         }
-    }, [watchedFields.customerAccountNumber, watchedFields.customerBankCode]);
+    }, [watchedFields.customerAccountNumber, watchedFields.customerBankCode, isAddingNewAccount]);
 
     const credentialFields = [
         { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number(BVN)" placeholder="Enter your BVN" required keyboardType="numeric" maxLength={11} filterType="numeric" disabled /> },
@@ -229,16 +258,18 @@ export default function ProfessionalScreen() {
         ]);
 
         if (isValid) {
-            const newAcc = {
-                id: Date.now().toString(),
+            saveAccountMutation.mutate({
                 bankName: watchedFields.customerBankName || '',
                 accountNumber: watchedFields.customerAccountNumber || '',
                 accountName: watchedFields.customerAccountName || '',
-                bankCode: watchedFields.customerBankCode || ''
-            };
-            setSavedAccounts(prev => [...prev, newAcc]);
-            setSelectedSavedAccountId(newAcc.id);
-            setIsAddingNewAccount(false);
+            }, {
+                onSuccess: (res) => {
+                    if (res.data?.id) {
+                        setSelectedSavedAccountId(res.data.id);
+                    }
+                    setIsAddingNewAccount(false);
+                }
+            });
         }
     };
 
@@ -358,7 +389,7 @@ export default function ProfessionalScreen() {
     const isStep1Valid = docs.membership.meta && docs.invoice.meta;
     const isStep2Valid = watchedFields.amount > 0;
     const isElectronicTransfer = watchedFields.payoutMethod === 'Electronic Transfer (100%)' || watchedFields.payoutMethod === 'Electronic_Transfer';
-    const isStep3Valid = watchedFields.payoutMethod && (!isElectronicTransfer || (watchedFields.customerBankName && watchedFields.customerAccountNumber && watchedFields.customerAccountName));
+    const isStep3Valid = watchedFields.payoutMethod && (!isElectronicTransfer || (watchedFields.customerBankName && watchedFields.customerBankCode && watchedFields.customerAccountNumber && watchedFields.customerAccountName));
     const isStep4Valid = watchedFields.memberName && watchedFields.memberNumber && 
         watchedFields.organizationName && watchedFields.beneficiaryPhone && watchedFields.beneficiaryEmail && 
         watchedFields.beneficiaryAddress && watchedFields.beneficiaryCity && watchedFields.beneficiaryState && watchedFields.beneficiaryCountry &&
@@ -373,7 +404,7 @@ export default function ProfessionalScreen() {
 
     return (
         <View style={{ flex: 1 }}>
-            <LoadingBackdrop visible={isUploading} />
+            <LoadingBackdrop visible={isUploading || createTransaction.isPending || saveAccountMutation.isPending} />
             <TransactionLayout
                 title="Professional"
                 currentStep={currentStep}

@@ -1,7 +1,7 @@
 import PrimaryButton from '@/components/PrimaryButton';
-import { CloseCircle, Icon } from 'iconsax-react-nativejs';
+import { CloseCircle, Icon, SearchNormal1 } from 'iconsax-react-nativejs';
 import React, { useEffect, useState } from 'react';
-import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 
@@ -24,6 +24,8 @@ interface GenericSelectionSheetProps {
     selectedItem: string;
     onSelect: (item: SelectionItem) => void;
     confirmButtonText?: string;
+    searchable?: boolean;
+    searchPlaceholder?: string;
 }
 
 const GenericSelectionSheet: React.FC<GenericSelectionSheetProps> = ({
@@ -37,14 +39,18 @@ const GenericSelectionSheet: React.FC<GenericSelectionSheetProps> = ({
     items,
     selectedItem,
     onSelect,
-    confirmButtonText = "Select Option"
+    confirmButtonText = "Select Option",
+    searchable = false,
+    searchPlaceholder = "Search..."
 }) => {
     const insets = useSafeAreaInsets();
     const [tempSelected, setTempSelected] = useState(selectedItem);
+    const [searchQuery, setSearchQuery] = useState('');
 
     useEffect(() => {
         if (visible) {
             setTempSelected(selectedItem);
+            setSearchQuery('');
         }
     }, [visible, selectedItem]);
 
@@ -55,6 +61,10 @@ const GenericSelectionSheet: React.FC<GenericSelectionSheetProps> = ({
         }
         onClose();
     };
+
+    const filteredItems = items.filter(item =>
+        item.label.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
     return (
         <Modal
@@ -86,8 +96,21 @@ const GenericSelectionSheet: React.FC<GenericSelectionSheetProps> = ({
                     <Text style={styles.title}>{title}</Text>
                     <Text style={styles.subtitle}>{subtitle}</Text>
 
+                    {searchable && (
+                        <View style={styles.searchContainer}>
+                            <SearchNormal1 size={moderateScale(20)} color="#94A3B8" />
+                            <TextInput
+                                style={styles.searchInput}
+                                placeholder={searchPlaceholder}
+                                placeholderTextColor="#94A3B8"
+                                value={searchQuery}
+                                onChangeText={setSearchQuery}
+                            />
+                        </View>
+                    )}
+
                     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.listContainer}>
-                        {items.map((item) => {
+                        {filteredItems.map((item) => {
                             const isSelected = tempSelected === item.value;
                             const ItemIcon = item.icon;
 
@@ -145,7 +168,7 @@ const styles = ScaledSheet.create({
         borderRadius: '24@ms',
         paddingHorizontal: '20@s',
         paddingTop: '20@vs',
-        maxHeight: '60%',
+        maxHeight: '80%',
         marginBottom: '40@vs',
         marginHorizontal: '12@s',
     },
@@ -172,6 +195,22 @@ const styles = ScaledSheet.create({
         fontSize: '14@ms',
         color: '#64748B',
         marginBottom: '24@vs',
+    },
+    searchContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+        borderRadius: '12@ms',
+        paddingHorizontal: '16@s',
+        paddingVertical: '12@vs',
+        marginBottom: '16@vs',
+    },
+    searchInput: {
+        flex: 1,
+        marginLeft: '10@s',
+        fontSize: '14@ms',
+        color: '#0F172A',
     },
     listContainer: {
         gap: '12@vs',

@@ -246,7 +246,7 @@ export default function CreateExpatriateScreen() {
             >
                 {currentStep === 0 && (
                     <View style={styles.container}>
-                        <Text style={styles.sectionTitle}>Enter Tax Identification Number (TIN) and Form "A" ID</Text>
+                        <Text style={styles.sectionTitle}>{"Enter Tax Identification Number (TIN) and Form \"A\" ID"}</Text>
 
                         <ControlledInput
                             control={control}

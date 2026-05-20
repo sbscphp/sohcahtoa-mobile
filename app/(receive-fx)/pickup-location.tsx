@@ -1,5 +1,4 @@
 import Header from '@/components/Header';
-import { LocationItem } from '@/components/LocationSelectionSheet';
 import PrimaryButton from '@/components/PrimaryButton';
 import ProgressBar from '@/components/ProgressBar';
 import LocationStep from '@/components/transaction-flow/LocationStep';
@@ -7,8 +6,7 @@ import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { ScaledSheet } from 'react-native-size-matters';
-
-import { CITIES, LOCATIONS, STATES } from '@/utils/locations';
+import { CITIES, LOCATIONS, STATES, LocationItem } from '@/utils/locations';
 
 export default function PickupLocationScreen() {
     const router = useRouter();

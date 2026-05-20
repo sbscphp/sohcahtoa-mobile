@@ -63,6 +63,7 @@ const DrumItem = React.memo(({ item, isSelected }: { item: string, isSelected: b
         </Text>
     </View>
 ));
+DrumItem.displayName = 'DrumItem';
 
 interface DrumColumnProps {
     items: string[];

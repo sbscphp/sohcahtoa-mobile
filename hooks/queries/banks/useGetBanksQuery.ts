@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
-import { getBanks } from '@/services/banks';
+import { getBanks, GetBanksParams } from '@/services/banks';
 
-export const useGetBanksQuery = () => {
+export const useGetBanksQuery = (params?: GetBanksParams) => {
   return useQuery({
-    queryKey: ['banks'],
-    queryFn: getBanks,
+    queryKey: ['banks', params?.q ?? ''],
+    queryFn: () => getBanks(params),
   });
 };
