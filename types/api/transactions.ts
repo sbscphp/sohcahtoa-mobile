@@ -46,6 +46,12 @@ export interface CreateTransactionPayload {
         recipientName?: string;
         recipientPhone?: string;
     };
+    paymentDetails?: {
+        bankName?: string;
+        bankCode?: string;
+        accountNumber?: string;
+        accountName?: string;
+    };
 }
 
 export interface CreateTransactionResponse {

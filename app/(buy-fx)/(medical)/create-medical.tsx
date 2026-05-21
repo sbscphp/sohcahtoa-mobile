@@ -214,10 +214,8 @@ export default function MedicalPaymentScreen() {
 
     const resolveAccount = useLookupAccountMutation();
 
-    const isAddingNew = isAddingNewAccount || (!!savedAccountsResponse && savedAccounts.length === 0);
-
     React.useEffect(() => {
-        if (!isAddingNew) return;
+        if (!isAddingNewAccount) return;
         if (watchedFields.customerAccountNumber?.length === 10 && watchedFields.customerBankCode) {
             resolveAccount.mutate({
                 accountNumber: watchedFields.customerAccountNumber,
@@ -234,7 +232,7 @@ export default function MedicalPaymentScreen() {
                 }
             });
         }
-    }, [watchedFields.customerAccountNumber, watchedFields.customerBankCode, isAddingNew]);
+    }, [watchedFields.customerAccountNumber, watchedFields.customerBankCode, isAddingNewAccount]);
 
     const credentialFields = [
         { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number (BVN)" placeholder="Enter your BVN" required keyboardType="numeric" maxLength={11} filterType="numeric" disabled /> },
@@ -365,11 +363,8 @@ export default function MedicalPaymentScreen() {
     };
 
     const handleBack = () => {
-        if (isAddingNew) {
+        if (isAddingNewAccount) {
             setIsAddingNewAccount(false);
-            if (savedAccounts.length === 0) {
-                setCurrentStep(currentStep - 1);
-            }
             return;
         }
         if (currentStep > 0) {
@@ -420,6 +415,8 @@ export default function MedicalPaymentScreen() {
                 correspondenceBankName: data.correspondenceBankName,
                 correspondenceBankAddress: data.correspondenceBankAddress,
                 correspondenceBankSwiftCode: data.correspondenceBankSwiftCode,
+            },
+            paymentDetails: {
                 bankName: data.customerBankName,
                 bankCode: data.customerBankCode,
                 accountNumber: data.customerAccountNumber,
@@ -444,9 +441,7 @@ export default function MedicalPaymentScreen() {
     const isStep1Valid = docs.passport.meta && docs.visa.meta && docs.returnTicket.meta && docs.referenceLetter.meta && docs.overseaDoctorLetter.meta;
     const isStep2Valid = watchedFields.amount > 0;
     const isElectronicTransfer = watchedFields.payoutMethod === 'Electronic Transfer (100%)' || watchedFields.payoutMethod === 'Electronic_Transfer';
-    const isStep3Valid = isAddingNew
-        ? !!(watchedFields.customerBankName && watchedFields.customerBankCode && watchedFields.customerAccountNumber?.length === 10 && watchedFields.customerAccountName)
-        : !!(watchedFields.payoutMethod && (!isElectronicTransfer || (watchedFields.customerBankName && watchedFields.customerBankCode && watchedFields.customerAccountNumber && watchedFields.customerAccountName)));
+    const isStep3Valid = watchedFields.payoutMethod && (!isElectronicTransfer || (watchedFields.customerBankName && watchedFields.customerBankCode && watchedFields.customerAccountNumber && watchedFields.customerAccountName));
     const beneficiaryCountryStep4 = watchedFields.beneficiaryCountry?.toLowerCase();
     const isAustralia = beneficiaryCountryStep4?.includes('australia');
     const isUSA = beneficiaryCountryStep4?.includes('united states') || beneficiaryCountryStep4?.includes('usa');
@@ -475,9 +470,9 @@ export default function MedicalPaymentScreen() {
                 currentStep={currentStep}
                 totalSteps={5}
                 onBack={handleBack}
-                onNext={isAddingNew ? handleSaveNewAccount : handleNext}
+                onNext={isAddingNewAccount ? handleSaveNewAccount : handleNext}
                 isNextDisabled={isNextDisabled}
-                nextLabel={isAddingNew ? "Save" : (currentStep === 4 ? (watchedFields.organizationName ? "Initiate Transaction Request" : "Continue") : "Continue")}
+                nextLabel={isAddingNewAccount ? "Save" : (currentStep === 4 ? (watchedFields.organizationName ? "Initiate Transaction Request" : "Continue") : "Continue")}
             >
                 {currentStep === 0 && (
                     <CredentialStep fields={credentialFields} />
@@ -506,7 +501,7 @@ export default function MedicalPaymentScreen() {
                     />
                 )}
 
-                {currentStep === 3 && !isAddingNew && (
+                {currentStep === 3 && !isAddingNewAccount && (
                     <PayoutMethodStep
                         control={control}
                         setValue={setValue}
@@ -518,7 +513,7 @@ export default function MedicalPaymentScreen() {
                     />
                 )}
 
-                {currentStep === 3 && isAddingNew && (
+                {currentStep === 3 && isAddingNewAccount && (
                     <AddNewAccountStep
                         control={control}
                         setValue={setValue}

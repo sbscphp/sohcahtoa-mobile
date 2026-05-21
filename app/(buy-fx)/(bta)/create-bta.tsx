@@ -194,10 +194,8 @@ export default function BusinessTravelAllowanceScreen() {
 
     const resolveAccount = useLookupAccountMutation();
 
-    const isAddingNew = isAddingNewAccount || (!!savedAccountsResponse && savedAccounts.length === 0);
-
     React.useEffect(() => {
-        if (!isAddingNew) return;
+        if (!isAddingNewAccount) return;
         if (watchedFields.customerAccountNumber?.length === 10 && watchedFields.customerBankCode) {
             resolveAccount.mutate({
                 accountNumber: watchedFields.customerAccountNumber,
@@ -214,7 +212,7 @@ export default function BusinessTravelAllowanceScreen() {
                 }
             });
         }
-    }, [watchedFields.customerAccountNumber, watchedFields.customerBankCode, isAddingNew]);
+    }, [watchedFields.customerAccountNumber, watchedFields.customerBankCode, isAddingNewAccount]);
 
     // Document upload files state
     const [docs, setDocs] = useState({
@@ -378,11 +376,8 @@ export default function BusinessTravelAllowanceScreen() {
     };
 
     const handleBack = () => {
-        if (isAddingNew) {
+        if (isAddingNewAccount) {
             setIsAddingNewAccount(false);
-            if (savedAccounts.length === 0) {
-                setCurrentStep(currentStep - 1);
-            }
             return;
         }
         if (currentStep > 0) {
@@ -459,9 +454,7 @@ export default function BusinessTravelAllowanceScreen() {
         watchedFields.tccNumber && watchedFields.passportIssueDate && watchedFields.passportExpiryDate;
     const isStep2Valid = watchedFields.amount > 0;
     const isElectronicTransfer = watchedFields.payoutMethod === 'Electronic Transfer (100%)' || watchedFields.payoutMethod === 'Electronic_Transfer';
-    const isStep3Valid = isAddingNew
-        ? !!(watchedFields.customerBankName && watchedFields.customerBankCode && watchedFields.customerAccountNumber?.length === 10 && watchedFields.customerAccountName)
-        : !!(watchedFields.payoutMethod && (!isElectronicTransfer || (watchedFields.customerBankName && watchedFields.customerBankCode && watchedFields.customerAccountNumber && watchedFields.customerAccountName)));
+    const isStep3Valid = watchedFields.payoutMethod && (!isElectronicTransfer || (watchedFields.customerBankName && watchedFields.customerBankCode && watchedFields.customerAccountNumber && watchedFields.customerAccountName));
     const isStep4Valid = watchedFields.selectedState && watchedFields.selectedCity && watchedFields.selectedLocation && watchedFields.pickupDate && watchedFields.pickupTime;
 
     const isNextDisabled =
@@ -479,9 +472,9 @@ export default function BusinessTravelAllowanceScreen() {
                 currentStep={currentStep}
                 totalSteps={5}
                 onBack={handleBack}
-                onNext={isAddingNew ? handleSaveNewAccount : handleNext}
+                onNext={isAddingNewAccount ? handleSaveNewAccount : handleNext}
                 isNextDisabled={isNextDisabled}
-                nextLabel={isAddingNew ? "Save" : (currentStep === 4 ? (watchedFields.selectedState && watchedFields.selectedCity ? "Initiate Transaction Request" : "Continue") : "Continue")}
+                nextLabel={isAddingNewAccount ? "Save" : (currentStep === 4 ? (watchedFields.selectedState && watchedFields.selectedCity ? "Initiate Transaction Request" : "Continue") : "Continue")}
             >
                 {currentStep === 0 && (
                     <CredentialStep fields={credentialFields} />
@@ -509,7 +502,7 @@ export default function BusinessTravelAllowanceScreen() {
                     />
                 )}
 
-                {currentStep === 3 && !isAddingNew && (
+                {currentStep === 3 && !isAddingNewAccount && (
                     <PayoutMethodStep
                         control={control}
                         setValue={setValue}
@@ -521,7 +514,7 @@ export default function BusinessTravelAllowanceScreen() {
                     />
                 )}
 
-                {currentStep === 3 && isAddingNew && (
+                {currentStep === 3 && isAddingNewAccount && (
                     <AddNewAccountStep
                         control={control}
                         setValue={setValue}

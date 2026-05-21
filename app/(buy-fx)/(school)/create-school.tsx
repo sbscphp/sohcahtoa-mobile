@@ -223,10 +223,8 @@ export default function SchoolFeesScreen() {
 
     const resolveAccount = useLookupAccountMutation();
 
-    const isAddingNew = isAddingNewAccount || (!!savedAccountsResponse && savedAccounts.length === 0);
-
     React.useEffect(() => {
-        if (!isAddingNew) return;
+        if (!isAddingNewAccount) return;
         if (watchedFields.customerAccountNumber?.length === 10 && watchedFields.customerBankCode) {
             resolveAccount.mutate({
                 accountNumber: watchedFields.customerAccountNumber,
@@ -243,7 +241,7 @@ export default function SchoolFeesScreen() {
                 }
             });
         }
-    }, [watchedFields.customerAccountNumber, watchedFields.customerBankCode, isAddingNew]);
+    }, [watchedFields.customerAccountNumber, watchedFields.customerBankCode, isAddingNewAccount]);
 
     const credentialFields = [
         { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number(BVN)" placeholder="Enter your BVN" required keyboardType="numeric" maxLength={11} filterType="numeric" disabled /> },
@@ -424,11 +422,8 @@ export default function SchoolFeesScreen() {
     };
 
     const handleBack = () => {
-        if (isAddingNew) {
+        if (isAddingNewAccount) {
             setIsAddingNewAccount(false);
-            if (savedAccounts.length === 0) {
-                setCurrentStep(currentStep - 1);
-            }
             return;
         }
         if (currentStep > 0) {
@@ -474,6 +469,8 @@ export default function SchoolFeesScreen() {
                 correspondenceBankName: data.correspondenceBankName,
                 correspondenceBankAddress: data.correspondenceBankAddress,
                 correspondenceBankSwiftCode: data.correspondenceBankSwiftCode,
+            },
+            paymentDetails: {
                 bankName: data.customerBankName,
                 bankCode: data.customerBankCode,
                 accountNumber: data.customerAccountNumber,
@@ -522,9 +519,7 @@ export default function SchoolFeesScreen() {
     );
 
     const isElectronicTransfer = watchedFields.payoutMethod === 'Electronic Transfer (100%)' || watchedFields.payoutMethod === 'Electronic_Transfer';
-    const isStep3Valid = isAddingNew
-        ? !!(watchedFields.customerBankName && watchedFields.customerBankCode && watchedFields.customerAccountNumber?.length === 10 && watchedFields.customerAccountName)
-        : !!(watchedFields.payoutMethod && (!isElectronicTransfer || (watchedFields.customerBankName && watchedFields.customerBankCode && watchedFields.customerAccountNumber && watchedFields.customerAccountName)));
+    const isStep3Valid = watchedFields.payoutMethod && (!isElectronicTransfer || (watchedFields.customerBankName && watchedFields.customerBankCode && watchedFields.customerAccountNumber && watchedFields.customerAccountName));
     const isNextDisabled =
         (currentStep === 0 && !isStep0Valid) ||
         (currentStep === 1 && !isStep1Valid) ||
@@ -540,9 +535,9 @@ export default function SchoolFeesScreen() {
                 currentStep={currentStep}
                 totalSteps={5}
                 onBack={handleBack}
-                onNext={isAddingNew ? handleSaveNewAccount : handleNext}
+                onNext={isAddingNewAccount ? handleSaveNewAccount : handleNext}
                 isNextDisabled={isNextDisabled}
-                nextLabel={isAddingNew ? "Save" : (currentStep === 4 ? (watchedFields.bankAccountName && watchedFields.bankAccountNumber ? "Initiate Transaction Request" : "Continue") : "Continue")}
+                nextLabel={isAddingNewAccount ? "Save" : (currentStep === 4 ? (watchedFields.bankAccountName && watchedFields.bankAccountNumber ? "Initiate Transaction Request" : "Continue") : "Continue")}
             >
                 {currentStep === 0 && (
                     <CredentialStep fields={credentialFields} />
@@ -572,7 +567,7 @@ export default function SchoolFeesScreen() {
                     />
                 )}
 
-                {currentStep === 3 && !isAddingNew && (
+                {currentStep === 3 && !isAddingNewAccount && (
                     <PayoutMethodStep
                         control={control}
                         setValue={setValue}
@@ -584,7 +579,7 @@ export default function SchoolFeesScreen() {
                     />
                 )}
 
-                {currentStep === 3 && isAddingNew && (
+                {currentStep === 3 && isAddingNewAccount && (
                     <AddNewAccountStep
                         control={control}
                         setValue={setValue}

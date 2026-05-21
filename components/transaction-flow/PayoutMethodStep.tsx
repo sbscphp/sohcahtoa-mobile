@@ -5,6 +5,7 @@ import React from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 import { moderateScale } from 'react-native-size-matters';
 import { useWatch } from 'react-hook-form';
+import { useAttachBankAccountsMutation } from '@/hooks/queries/transactions/useAttachBankAccountsMutation';
 
 export interface SavedAccount {
     id: string;
@@ -22,6 +23,10 @@ interface PayoutMethodStepProps {
     selectedSavedAccountId: string | null;
     setSelectedSavedAccountId: (id: string | null) => void;
     setIsAddingNewAccount: (visible: boolean) => void;
+    transactionId?: string;
+    isMultiSelect?: boolean;
+    selectedSavedAccountIds?: string[];
+    setSelectedSavedAccountIds?: (ids: string[]) => void;
 }
 
 export default function PayoutMethodStep({
@@ -32,7 +37,17 @@ export default function PayoutMethodStep({
     selectedSavedAccountId,
     setSelectedSavedAccountId,
     setIsAddingNewAccount,
+    transactionId,
+    isMultiSelect = false,
+    selectedSavedAccountIds,
+    setSelectedSavedAccountIds,
 }: PayoutMethodStepProps) {
+    const attachBankAccountsMutation = useAttachBankAccountsMutation();
+
+    const [localSelectedIds, setLocalSelectedIds] = React.useState<string[]>([]);
+    const activeSelectedIds = selectedSavedAccountIds !== undefined ? selectedSavedAccountIds : localSelectedIds;
+    const setActiveSelectedIds = setSelectedSavedAccountIds !== undefined ? setSelectedSavedAccountIds : setLocalSelectedIds;
+
     const payoutMethod = useWatch({
         control,
         name: 'payoutMethod',
@@ -64,17 +79,58 @@ export default function PayoutMethodStep({
             {isElectronic && (
                 <View style={{ marginTop: moderateScale(8), gap: moderateScale(12) }}>
                     {savedAccounts.map((account) => {
-                        const isSelected = selectedSavedAccountId === account.id;
+                        const isSelected = isMultiSelect
+                            ? activeSelectedIds.includes(account.id)
+                            : selectedSavedAccountId === account.id;
+
                         return (
                             <TouchableOpacity
                                 key={account.id}
                                 activeOpacity={0.9}
+                                disabled={attachBankAccountsMutation.isPending}
                                 onPress={() => {
-                                    setSelectedSavedAccountId(account.id);
-                                    setValue('customerBankName', account.bankName);
-                                    setValue('customerBankCode', account.bankCode);
-                                    setValue('customerAccountNumber', account.accountNumber);
-                                    setValue('customerAccountName', account.accountName);
+                                    if (isMultiSelect) {
+                                        const nextIds = isSelected
+                                            ? activeSelectedIds.filter(id => id !== account.id)
+                                            : [...activeSelectedIds, account.id];
+                                        
+                                        setActiveSelectedIds(nextIds);
+
+                                        if (nextIds.length > 0) {
+                                            const lastAccount = savedAccounts.find(a => a.id === nextIds[nextIds.length - 1]);
+                                            if (lastAccount) {
+                                                setValue('customerBankName', lastAccount.bankName);
+                                                setValue('customerBankCode', lastAccount.bankCode);
+                                                setValue('customerAccountNumber', lastAccount.accountNumber);
+                                                setValue('customerAccountName', lastAccount.accountName);
+                                            }
+                                        } else {
+                                            setValue('customerBankName', '');
+                                            setValue('customerBankCode', '');
+                                            setValue('customerAccountNumber', '');
+                                            setValue('customerAccountName', '');
+                                        }
+
+                                        if (transactionId) {
+                                            attachBankAccountsMutation.mutate({
+                                                transactionId,
+                                                bankAccountIds: nextIds,
+                                            });
+                                        }
+                                    } else {
+                                        setSelectedSavedAccountId(account.id);
+                                        setValue('customerBankName', account.bankName);
+                                        setValue('customerBankCode', account.bankCode);
+                                        setValue('customerAccountNumber', account.accountNumber);
+                                        setValue('customerAccountName', account.accountName);
+
+                                        if (transactionId) {
+                                            attachBankAccountsMutation.mutate({
+                                                transactionId,
+                                                bankAccountIds: [account.id],
+                                            });
+                                        }
+                                    }
                                 }}
                                 style={{
                                     borderWidth: isSelected ? 1.5 : 1,
@@ -89,21 +145,34 @@ export default function PayoutMethodStep({
                                     shadowRadius: 2,
                                 }}
                             >
-                                <Text style={{
-                                    fontSize: moderateScale(14),
-                                    fontWeight: '700',
-                                    color: '#0F172A',
-                                    marginBottom: moderateScale(4)
-                                }}>
-                                    {account.bankName}
-                                </Text>
-                                <Text style={{
-                                    fontSize: moderateScale(13),
-                                    color: '#64748B',
-                                    fontWeight: '500'
-                                }}>
-                                    {account.accountNumber} <Text style={{ color: '#E2E8F0' }}>|</Text> {account.accountName}
-                                </Text>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={{
+                                            fontSize: moderateScale(14),
+                                            fontWeight: '700',
+                                            color: '#0F172A',
+                                            marginBottom: moderateScale(4)
+                                        }}>
+                                            {account.bankName}
+                                        </Text>
+                                        <Text style={{
+                                            fontSize: moderateScale(13),
+                                            color: '#64748B',
+                                            fontWeight: '500'
+                                        }}>
+                                            {account.accountNumber} <Text style={{ color: '#E2E8F0' }}>|</Text> {account.accountName}
+                                        </Text>
+                                    </View>
+                                    <Ionicons
+                                        name={isSelected 
+                                            ? (isMultiSelect ? "checkbox" : "checkmark-circle") 
+                                            : (isMultiSelect ? "square-outline" : "ellipse-outline")
+                                        }
+                                        size={moderateScale(20)}
+                                        color={isSelected ? "#FF6B2C" : "#64748B"}
+                                        style={{ marginLeft: moderateScale(12) }}
+                                    />
+                                </View>
                             </TouchableOpacity>
                         );
                     })}
@@ -111,7 +180,7 @@ export default function PayoutMethodStep({
             )}
 
             {/* + New Account Button */}
-            {isElectronic && (
+            {isElectronic && (!savedAccounts || savedAccounts.length === 0) && (
                 <TouchableOpacity
                     activeOpacity={0.8}
                     onPress={() => {

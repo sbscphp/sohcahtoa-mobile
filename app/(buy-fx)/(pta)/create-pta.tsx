@@ -193,10 +193,8 @@ export default function PersonalTravelAllowanceScreen() {
 
     const resolveAccount = useLookupAccountMutation();
 
-    const isAddingNew = isAddingNewAccount || (!!savedAccountsResponse && savedAccounts.length === 0);
-
     React.useEffect(() => {
-        if (!isAddingNew) return;
+        if (!isAddingNewAccount) return;
         if (watchedFields.customerAccountNumber?.length === 10 && watchedFields.customerBankCode) {
             resolveAccount.mutate({
                 accountNumber: watchedFields.customerAccountNumber,
@@ -213,7 +211,7 @@ export default function PersonalTravelAllowanceScreen() {
                 }
             });
         }
-    }, [watchedFields.customerAccountNumber, watchedFields.customerBankCode, isAddingNew]);
+    }, [watchedFields.customerAccountNumber, watchedFields.customerBankCode, isAddingNewAccount]);
 
     // Document upload files state
     const [docs, setDocs] = useState({
@@ -330,11 +328,8 @@ export default function PersonalTravelAllowanceScreen() {
     };
 
     const handleBack = () => {
-        if (isAddingNew) {
+        if (isAddingNewAccount) {
             setIsAddingNewAccount(false);
-            if (savedAccounts.length === 0) {
-                setCurrentStep(prev => prev - 1);
-            }
             return;
         }
         if (currentStep > 0) {
@@ -397,9 +392,7 @@ export default function PersonalTravelAllowanceScreen() {
     };
 
     const isElectronicTransfer = watchedFields.payoutMethod === 'Electronic Transfer (100%)' || watchedFields.payoutMethod === 'Electronic_Transfer';
-    const isStep3Valid = isAddingNew
-        ? !!(watchedFields.customerBankName && watchedFields.customerBankCode && watchedFields.customerAccountNumber?.length === 10 && watchedFields.customerAccountName)
-        : !!(watchedFields.payoutMethod && (!isElectronicTransfer || (watchedFields.customerBankName && watchedFields.customerBankCode && watchedFields.customerAccountNumber && watchedFields.customerAccountName)));
+    const isStep3Valid = watchedFields.payoutMethod && (!isElectronicTransfer || (watchedFields.customerBankName && watchedFields.customerBankCode && watchedFields.customerAccountNumber && watchedFields.customerAccountName));
 
     const isNextDisabled =
         (currentStep === 1 && (!docs.visa.file || !docs.ticket.file)) ||
@@ -413,9 +406,9 @@ export default function PersonalTravelAllowanceScreen() {
                 currentStep={currentStep}
                 totalSteps={5}
                 onBack={handleBack}
-                onNext={isAddingNew ? handleSaveNewAccount : handleNext}
+                onNext={isAddingNewAccount ? handleSaveNewAccount : handleNext}
                 isNextDisabled={isNextDisabled}
-                nextLabel={isAddingNew ? "Save" : (currentStep === 4 ? (watchedFields.selectedState && watchedFields.selectedCity ? "Initiate Transaction Request" : "Continue") : "Continue")}
+                nextLabel={isAddingNewAccount ? "Save" : (currentStep === 4 ? (watchedFields.selectedState && watchedFields.selectedCity ? "Initiate Transaction Request" : "Continue") : "Continue")}
             >
                 {currentStep === 0 && (
                     <CredentialStep fields={credentialFields} />
@@ -440,7 +433,7 @@ export default function PersonalTravelAllowanceScreen() {
                         error={errors.amount?.message}
                     />
                 )}
-                {currentStep === 3 && !isAddingNew && (
+                {currentStep === 3 && !isAddingNewAccount && (
                     <PayoutMethodStep
                         control={control}
                         setValue={setValue}
@@ -452,7 +445,7 @@ export default function PersonalTravelAllowanceScreen() {
                     />
                 )}
 
-                {currentStep === 3 && isAddingNew && (
+                {currentStep === 3 && isAddingNewAccount && (
                     <AddNewAccountStep
                         control={control}
                         setValue={setValue}
