@@ -1,29 +1,29 @@
 import ControlledDatePicker from '@/components/ControlledDatePicker';
 import ControlledInput from '@/components/ControlledInput';
+import GenericSelectionSheet, { SelectionItem } from '@/components/GenericSelectionSheet';
 import InitiateTransactionSheet from '@/components/InitiateTransactionSheet';
 import LoadingBackdrop from '@/components/LoadingBackdrop';
+import AddNewAccountStep from '@/components/transaction-flow/AddNewAccountStep';
 import CredentialStep from '@/components/transaction-flow/CredentialStep';
 import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import LocationStep from '@/components/transaction-flow/LocationStep';
-import PayoutMethodStep, { SavedAccount } from '@/components/transaction-flow/PayoutMethodStep';
-import AddNewAccountStep from '@/components/transaction-flow/AddNewAccountStep';
-import GenericSelectionSheet, { SelectionItem } from '@/components/GenericSelectionSheet';
+import PayoutMethodStep from '@/components/transaction-flow/PayoutMethodStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
-import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
 import { useProfileQuery } from '@/hooks/queries/auth/useProfileQuery';
+import { useGetBanksQuery } from '@/hooks/queries/banks/useGetBanksQuery';
+import { useGetSavedAccountsQuery } from '@/hooks/queries/banks/useGetSavedAccountsQuery';
+import { useLookupAccountMutation } from '@/hooks/queries/banks/useResolveAccountMutation';
+import { useSaveAccountMutation } from '@/hooks/queries/banks/useSaveAccountMutation';
+import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
+import { useGetPickupCitiesQuery } from '@/hooks/queries/transactions/useGetPickupCitiesQuery';
 import { useGetPickupPointsQuery } from '@/hooks/queries/transactions/useGetPickupPointsQuery';
 import { useGetPickupStatesQuery } from '@/hooks/queries/transactions/useGetPickupStatesQuery';
-import { useGetPickupCitiesQuery } from '@/hooks/queries/transactions/useGetPickupCitiesQuery';
-import { useGetBanksQuery } from '@/hooks/queries/banks/useGetBanksQuery';
-import { useLookupAccountMutation } from '@/hooks/queries/banks/useResolveAccountMutation';
-import { useGetSavedAccountsQuery } from '@/hooks/queries/banks/useGetSavedAccountsQuery';
-import { useSaveAccountMutation } from '@/hooks/queries/banks/useSaveAccountMutation';
 import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useExchangeLogic } from '@/hooks/useExchangeLogic';
+import { useAuthStore } from '@/stores/useAuthStore';
 import { useToastStore } from '@/stores/useToastStore';
 import { LocationItem } from '@/utils/locations';
-import { useAuthStore } from '@/stores/useAuthStore';
 import { btaStep0Schema, btaStep1Schema, btaStep2Schema, btaStep3Schema } from '@/utils/validations/bta';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
@@ -161,9 +161,9 @@ export default function BusinessTravelAllowanceScreen() {
 
     // Banks and Account Resolution
     const { data: banksResponse } = useGetBanksQuery();
-    const banks = useMemo(() => 
+    const banks = useMemo(() =>
         (banksResponse?.data || []).map(b => ({ id: b.code, label: b.name, value: b.code })),
-    [banksResponse]);
+        [banksResponse]);
 
     const { data: savedAccountsResponse } = useGetSavedAccountsQuery();
     const savedAccounts = useMemo(() => {
@@ -194,8 +194,10 @@ export default function BusinessTravelAllowanceScreen() {
 
     const resolveAccount = useLookupAccountMutation();
 
+    const isAddingNew = isAddingNewAccount || (!!savedAccountsResponse && savedAccounts.length === 0);
+
     React.useEffect(() => {
-        if (!isAddingNewAccount) return;
+        if (!isAddingNew) return;
         if (watchedFields.customerAccountNumber?.length === 10 && watchedFields.customerBankCode) {
             resolveAccount.mutate({
                 accountNumber: watchedFields.customerAccountNumber,
@@ -212,7 +214,7 @@ export default function BusinessTravelAllowanceScreen() {
                 }
             });
         }
-    }, [watchedFields.customerAccountNumber, watchedFields.customerBankCode, isAddingNewAccount]);
+    }, [watchedFields.customerAccountNumber, watchedFields.customerBankCode, isAddingNew]);
 
     // Document upload files state
     const [docs, setDocs] = useState({
@@ -376,8 +378,11 @@ export default function BusinessTravelAllowanceScreen() {
     };
 
     const handleBack = () => {
-        if (isAddingNewAccount) {
+        if (isAddingNew) {
             setIsAddingNewAccount(false);
+            if (savedAccounts.length === 0) {
+                setCurrentStep(currentStep - 1);
+            }
             return;
         }
         if (currentStep > 0) {
@@ -427,7 +432,7 @@ export default function BusinessTravelAllowanceScreen() {
                 scheduledPickupDate: formatDateForApi(data.pickupDate),
                 scheduledPickupTime: data.pickupTime,
             } : undefined,
-            customerBankDetails: {
+            beneficiaryDetails: {
                 bankName: data.customerBankName,
                 bankCode: data.customerBankCode,
                 accountNumber: data.customerAccountNumber,
@@ -450,11 +455,13 @@ export default function BusinessTravelAllowanceScreen() {
 
 
     const isStep0Valid = watchedFields.bvn && watchedFields.tin && watchedFields.nin && watchedFields.formAId && watchedFields.passportNumber;
-    const isStep1Valid = docs.tcc.meta && docs.passport.meta &&  docs.visa.meta && docs.returnTicket.meta && docs.corporateBodyLetter.meta && docs.partnerInvitationLetter.meta &&
+    const isStep1Valid = docs.tcc.meta && docs.passport.meta && docs.visa.meta && docs.returnTicket.meta && docs.corporateBodyLetter.meta && docs.partnerInvitationLetter.meta &&
         watchedFields.tccNumber && watchedFields.passportIssueDate && watchedFields.passportExpiryDate;
     const isStep2Valid = watchedFields.amount > 0;
     const isElectronicTransfer = watchedFields.payoutMethod === 'Electronic Transfer (100%)' || watchedFields.payoutMethod === 'Electronic_Transfer';
-    const isStep3Valid = watchedFields.payoutMethod && (!isElectronicTransfer || (watchedFields.customerBankName && watchedFields.customerBankCode && watchedFields.customerAccountNumber && watchedFields.customerAccountName));
+    const isStep3Valid = isAddingNew
+        ? !!(watchedFields.customerBankName && watchedFields.customerBankCode && watchedFields.customerAccountNumber?.length === 10 && watchedFields.customerAccountName)
+        : !!(watchedFields.payoutMethod && (!isElectronicTransfer || (watchedFields.customerBankName && watchedFields.customerBankCode && watchedFields.customerAccountNumber && watchedFields.customerAccountName)));
     const isStep4Valid = watchedFields.selectedState && watchedFields.selectedCity && watchedFields.selectedLocation && watchedFields.pickupDate && watchedFields.pickupTime;
 
     const isNextDisabled =
@@ -472,9 +479,9 @@ export default function BusinessTravelAllowanceScreen() {
                 currentStep={currentStep}
                 totalSteps={5}
                 onBack={handleBack}
-                onNext={isAddingNewAccount ? handleSaveNewAccount : handleNext}
+                onNext={isAddingNew ? handleSaveNewAccount : handleNext}
                 isNextDisabled={isNextDisabled}
-                nextLabel={isAddingNewAccount ? "Save" : (currentStep === 4 ? (watchedFields.selectedState && watchedFields.selectedCity ? "Initiate Transaction Request" : "Continue") : "Continue")}
+                nextLabel={isAddingNew ? "Save" : (currentStep === 4 ? (watchedFields.selectedState && watchedFields.selectedCity ? "Initiate Transaction Request" : "Continue") : "Continue")}
             >
                 {currentStep === 0 && (
                     <CredentialStep fields={credentialFields} />
@@ -502,7 +509,7 @@ export default function BusinessTravelAllowanceScreen() {
                     />
                 )}
 
-                {currentStep === 3 && !isAddingNewAccount && (
+                {currentStep === 3 && !isAddingNew && (
                     <PayoutMethodStep
                         control={control}
                         setValue={setValue}
@@ -514,7 +521,7 @@ export default function BusinessTravelAllowanceScreen() {
                     />
                 )}
 
-                {currentStep === 3 && isAddingNewAccount && (
+                {currentStep === 3 && isAddingNew && (
                     <AddNewAccountStep
                         control={control}
                         setValue={setValue}

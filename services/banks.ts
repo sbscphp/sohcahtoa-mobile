@@ -76,3 +76,23 @@ export const saveAccount = async (payload: SaveAccountPayload): Promise<SaveAcco
   const response = await api.post('/customer/bank-accounts', payload);
   return response.data;
 };
+
+export interface SetDefaultBankAccountResponse {
+  success: boolean;
+  data: SavedBankAccount;
+}
+
+export const setDefaultBankAccount = async (bankAccountId: string): Promise<SetDefaultBankAccountResponse> => {
+  const response = await api.patch(`/customer/bank-accounts/${bankAccountId}/default`);
+  return response.data;
+};
+
+export interface DeleteBankAccountResponse {
+  success: boolean;
+  message?: string;
+}
+
+export const deleteBankAccount = async (bankAccountId: string): Promise<DeleteBankAccountResponse> => {
+  const response = await api.delete(`/customer/bank-accounts/${bankAccountId}`);
+  return response.data;
+};

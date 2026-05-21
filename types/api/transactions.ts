@@ -386,3 +386,14 @@ export interface GetTransactionTotalsResponse {
         remittance: TransactionGroupTotal;
     };
 }
+
+export interface AttachBankAccountsPayload {
+    transactionId: string;
+    bankAccountIds: string[];
+}
+
+export interface AttachBankAccountsResponse {
+    success: boolean;
+    message?: string;
+    data?: any;
+}

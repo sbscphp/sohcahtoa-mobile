@@ -1,6 +1,6 @@
 import Header from '@/components/Header';
 import PrimaryButton from '@/components/PrimaryButton';
-import { Cards, Headphone, InfoCircle, Judge, LogoutCurve, MessageQuestion, Notification, ProfileTick, ShieldSecurity } from 'iconsax-react-nativejs';
+import { Bank, Cards, Headphone, InfoCircle, Judge, LogoutCurve, MessageQuestion, Notification, ProfileTick, ShieldSecurity } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
 import { Modal, Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { moderateScale, ScaledSheet } from 'react-native-size-matters';
@@ -43,6 +43,12 @@ export default function MoreScreen() {
             title: 'Manage Cards',
             subtitle: 'Update or remove your payment cards',
             onPress: () => router.push('/security/change-password'),
+        },
+        {
+            icon: <Bank size={moderateScale(18)} color="rgba(255, 104, 19, 1)" variant="Linear" />,
+            title: 'Bank Accounts',
+            subtitle: 'Manage your saved bank accounts',
+            onPress: () => router.push('/(more)/bank-accounts'),
         },
         {
             icon: <Headphone size={moderateScale(18)} color="rgba(255, 104, 19, 1)" variant="Linear" />,
