@@ -14,6 +14,7 @@ export default function SchoolBankDetailsStep({ control }: SchoolBankDetailsStep
             
             <Text style={styles.sectionTitle}>Student Details</Text>
             <ControlledInput control={control} name="studentName" label="Student Name" placeholder="Enter student name" required />
+            <ControlledInput control={control} name="studentPassportNumber" label="Student Passport Number" placeholder="Enter student passport number" required maxLength={9} filterType="alphanumeric" />
             <Text style={styles.sectionTitle}>For the School (Beneficiary)</Text>
             <ControlledInput control={control} name="bankAccountName" label="Bank Account Name" placeholder="Enter bank account name" required />
             <ControlledInput control={control} name="bankAccountAddress" label="Bank Account Address" placeholder="Enter bank account address" required />

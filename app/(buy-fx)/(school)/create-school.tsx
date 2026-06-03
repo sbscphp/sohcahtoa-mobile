@@ -160,7 +160,6 @@ export default function SchoolFeesScreen() {
         currentRate,
     } = useExchangeLogic({ setValue, initialAmount: '0', maxLimit: 10000 });
 
-    // Document upload state
     const [docs, setDocs] = useState({
         admission: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
         invoice: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
@@ -188,7 +187,7 @@ export default function SchoolFeesScreen() {
 
     const watchedFields = watch() as any;
 
-    // Banks and Account Resolution
+
     const { data: banksResponse } = useGetBanksQuery();
     const banks = useMemo(() =>
         (banksResponse?.data || []).map(b => ({ id: b.code, label: b.name, value: b.code })),
@@ -644,7 +643,7 @@ export default function SchoolFeesScreen() {
                     onClose={() => setShowSourceOfFundsSheet(false)}
                     onSubmit={() => {
                         setShowSourceOfFundsSheet(false);
-                        console.log('Source of Funds Declaration Submitted');
+                        // console.log('Source of Funds Declaration Submitted');
                     }}
                     customerInfo={{
                         fullName: `${user?.profile?.firstName || ''} ${user?.profile?.lastName || ''}`,

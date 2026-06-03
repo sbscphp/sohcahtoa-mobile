@@ -121,6 +121,12 @@ export default function ProfessionalScreen() {
             bankAccountIban: '',
             bankAccountSwiftCode: '',
             bankAccountNumber: '',
+            bankName: '',
+            paymentReference: '',
+            routingNumber: '',
+            ifscCode: '',
+            purposeCode: '',
+            bsbCode: '',
             correspondenceBankName: '',
             correspondenceBankAddress: '',
             correspondenceBankSwiftCode: '',
@@ -167,7 +173,7 @@ export default function ProfessionalScreen() {
 
     const watchedFields = watch() as any;
 
-    // Banks and Account Resolution
+    
     const { data: banksResponse } = useGetBanksQuery();
     const banks = useMemo(() =>
         (banksResponse?.data || []).map(b => ({ id: b.code, label: b.name, value: b.code })),
@@ -300,11 +306,23 @@ export default function ProfessionalScreen() {
             }
             isStepValid = await trigger(fieldsToTrigger);
         } else if (currentStep === 4) {
-            isStepValid = await trigger([
-                'memberName', 'memberNumber', 'organizationName', 'beneficiaryPhone', 'beneficiaryEmail',
-                'beneficiaryAddress', 'beneficiaryCity', 'beneficiaryState', 'beneficiaryCountry',
-                'bankAccountName', 'bankAccountAddress', 'bankAccountIban', 'bankAccountSwiftCode', 'bankAccountNumber'
-            ]);
+            const beneficiaryCountry = watchedFields.beneficiaryCountry?.toLowerCase();
+            const isAustralia = beneficiaryCountry?.includes('australia');
+            const isUSA = beneficiaryCountry?.includes('united states') || beneficiaryCountry?.includes('usa');
+            const isCanada = beneficiaryCountry?.includes('canada');
+            const isIndia = beneficiaryCountry?.includes('india');
+            const isUK = beneficiaryCountry?.includes('united kingdom') || beneficiaryCountry === 'uk';
+
+            const fieldsToTrigger = [
+                'beneficiaryCountry', 'bankAccountName', 'beneficiaryAddress', 'bankName', 'bankAccountNumber',
+                'bankAccountAddress', 'bankAccountSwiftCode', 'paymentReference'
+            ];
+            if (isAustralia) fieldsToTrigger.push('bsbCode');
+            if (isUSA || isCanada) fieldsToTrigger.push('routingNumber');
+            if (isIndia) fieldsToTrigger.push('ifscCode', 'purposeCode');
+            if (isUK) fieldsToTrigger.push('bankAccountIban');
+
+            isStepValid = await trigger(fieldsToTrigger as any);
         }
 
         if (isStepValid) {
@@ -347,21 +365,27 @@ export default function ProfessionalScreen() {
                 ...(docs.invoice.meta ? [docs.invoice.meta] : []),
             ],
             beneficiaryDetails: {
-                organizationName: data.organizationName,
-                phone: data.beneficiaryPhone,
-                email: data.beneficiaryEmail,
+                organizationName: data.organizationName || '',
+                phone: data.beneficiaryPhone || '',
+                email: data.beneficiaryEmail || '',
                 address: data.beneficiaryAddress,
-                city: data.beneficiaryCity,
-                state: data.beneficiaryState,
+                city: data.beneficiaryCity || '',
+                state: data.beneficiaryState || '',
                 country: data.beneficiaryCountry,
                 bankAccountName: data.bankAccountName,
                 bankAccountAddress: data.bankAccountAddress,
-                bankAccountIban: data.bankAccountIban,
+                bankAccountIban: data.bankAccountIban || '',
                 bankAccountSwiftCode: data.bankAccountSwiftCode,
                 bankAccountNumber: data.bankAccountNumber,
-                correspondenceBankName: data.correspondenceBankName,
-                correspondenceBankAddress: data.correspondenceBankAddress,
-                correspondenceBankSwiftCode: data.correspondenceBankSwiftCode,
+                bankName: data.bankName,
+                paymentReference: data.paymentReference,
+                routingNumber: data.routingNumber || '',
+                ifscCode: data.ifscCode || '',
+                purposeCode: data.purposeCode || '',
+                bsbCode: data.bsbCode || '',
+                correspondenceBankName: data.correspondenceBankName || '',
+                correspondenceBankAddress: data.correspondenceBankAddress || '',
+                correspondenceBankSwiftCode: data.correspondenceBankSwiftCode || '',
             },
             paymentDetails: {
                 bankName: data.customerBankName,
@@ -389,10 +413,28 @@ export default function ProfessionalScreen() {
     const isStep2Valid = watchedFields.amount > 0;
     const isElectronicTransfer = watchedFields.payoutMethod === 'Electronic Transfer (100%)' || watchedFields.payoutMethod === 'Electronic_Transfer';
     const isStep3Valid = watchedFields.payoutMethod && (!isElectronicTransfer || (watchedFields.customerBankName && watchedFields.customerBankCode && watchedFields.customerAccountNumber && watchedFields.customerAccountName));
-    const isStep4Valid = watchedFields.memberName && watchedFields.memberNumber &&
-        watchedFields.organizationName && watchedFields.beneficiaryPhone && watchedFields.beneficiaryEmail &&
-        watchedFields.beneficiaryAddress && watchedFields.beneficiaryCity && watchedFields.beneficiaryState && watchedFields.beneficiaryCountry &&
-        watchedFields.bankAccountName && watchedFields.bankAccountAddress && watchedFields.bankAccountIban && watchedFields.bankAccountSwiftCode && watchedFields.bankAccountNumber;
+
+    const beneficiaryCountryStep4 = watchedFields.beneficiaryCountry?.toLowerCase() || '';
+    const isAustralia = beneficiaryCountryStep4?.includes('australia');
+    const isUSA = beneficiaryCountryStep4?.includes('united states') || beneficiaryCountryStep4?.includes('usa');
+    const isCanada = beneficiaryCountryStep4?.includes('canada');
+    const isIndia = beneficiaryCountryStep4?.includes('india');
+    const isUK = beneficiaryCountryStep4?.includes('united kingdom') || beneficiaryCountryStep4 === 'uk';
+
+    const isStep4Valid = !!(
+        watchedFields.beneficiaryCountry &&
+        watchedFields.bankAccountName &&
+        watchedFields.beneficiaryAddress &&
+        watchedFields.bankName &&
+        watchedFields.bankAccountNumber &&
+        watchedFields.bankAccountAddress &&
+        watchedFields.bankAccountSwiftCode &&
+        watchedFields.paymentReference &&
+        (isAustralia ? watchedFields.bsbCode : true) &&
+        ((isUSA || isCanada) ? watchedFields.routingNumber : true) &&
+        (isIndia ? (watchedFields.ifscCode && watchedFields.purposeCode) : true) &&
+        (isUK ? watchedFields.bankAccountIban : true)
+    );
 
     const isNextDisabled =
         (currentStep === 0 && !isStep0Valid) ||
@@ -411,7 +453,7 @@ export default function ProfessionalScreen() {
                 onBack={handleBack}
                 onNext={isAddingNewAccount ? handleSaveNewAccount : handleNext}
                 isNextDisabled={isNextDisabled}
-                nextLabel={isAddingNewAccount ? "Save" : (currentStep === 4 ? (watchedFields.memberName ? "Initiate Transaction Request" : "Continue") : "Continue")}
+                nextLabel={isAddingNewAccount ? "Save" : (currentStep === 4 ? (watchedFields.bankAccountName ? "Initiate Transaction Request" : "Continue") : "Continue")}
             >
                 {currentStep === 0 && (
                     <CredentialStep fields={credentialFields} />
@@ -462,7 +504,7 @@ export default function ProfessionalScreen() {
                 )}
 
                 {currentStep === 4 && (
-                    <ProfessionalBankDetailsStep control={control} />
+                    <ProfessionalBankDetailsStep control={control} watch={watch} setValue={setValue} errors={errors} />
                 )}
 
                 <InitiateTransactionSheet

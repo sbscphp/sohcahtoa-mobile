@@ -1,141 +1,190 @@
 import ControlledInput from '@/components/ControlledInput';
+import GenericSelectionSheet, { SelectionItem } from '@/components/GenericSelectionSheet';
+import { ArrowDown2 } from 'iconsax-react-nativejs';
 import React from 'react';
-import { ScrollView, Text, View } from 'react-native';
-import { ScaledSheet } from 'react-native-size-matters';
+import { Controller } from 'react-hook-form';
+import { Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 
 interface ProfessionalBankDetailsStepProps {
     control: any;
+    watch: any;
+    setValue: any;
+    errors: any;
 }
 
-export default function ProfessionalBankDetailsStep({ control }: ProfessionalBankDetailsStepProps) {
+const COUNTRIES: SelectionItem[] = [
+    { id: '1', label: 'United Kingdom', value: 'United Kingdom' },
+    { id: '2', label: 'United States of America', value: 'United States of America' },
+    { id: '3', label: 'Canada', value: 'Canada' },
+    { id: '4', label: 'India', value: 'India' },
+    { id: '5', label: 'Australia', value: 'Australia' },
+];
+
+export default function ProfessionalBankDetailsStep({
+    control,
+    watch,
+    setValue,
+    errors
+}: ProfessionalBankDetailsStepProps) {
+    const beneficiaryCountry = watch('beneficiaryCountry');
+    const [countrySheetVisible, setCountrySheetVisible] = React.useState(false);
+
+    const isUK = beneficiaryCountry?.toLowerCase().includes('united kingdom') || beneficiaryCountry?.toLowerCase() === 'uk';
+    const isUSA = beneficiaryCountry?.toLowerCase().includes('united states') || beneficiaryCountry?.toLowerCase() === 'usa';
+    const isCanada = beneficiaryCountry?.toLowerCase() === 'canada';
+    const isIndia = beneficiaryCountry?.toLowerCase() === 'india';
+    const isAustralia = beneficiaryCountry?.toLowerCase() === 'australia';
+
     return (
         <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
             <Text style={styles.title}>Bank details</Text>
 
-            <ControlledInput
-                control={control}
-                name="memberName"
-                label="Member Name"
-                placeholder="Enter member name"
-                required
-            />
-            <ControlledInput
-                control={control}
-                name="memberNumber"
-                label="Member Number"
-                placeholder="Enter member number"
-                required
-            />
-
-            <Text style={styles.sectionTitle}>Beneficiary details</Text>
-            <ControlledInput
-                control={control}
-                name="organizationName"
-                label="Name of organization"
-                placeholder="Enter name of organization"
-                required
-            />
-            <ControlledInput
-                control={control}
-                name="beneficiaryPhone"
-                label="Phone number"
-                placeholder="Enter phone number"
-                required
-                keyboardType="phone-pad"
-            />
-            <ControlledInput
-                control={control}
-                name="beneficiaryEmail"
-                label="Email"
-                placeholder="Enter email address"
-                required
-                keyboardType="email-address"
-            />
-            <ControlledInput
-                control={control}
-                name="beneficiaryAddress"
-                label="Address"
-                placeholder="Enter address"
-                required
-            />
-            <ControlledInput
-                control={control}
-                name="beneficiaryCity"
-                label="City"
-                placeholder="Enter city"
-                required
-            />
-            <ControlledInput
-                control={control}
-                name="beneficiaryState"
-                label="State"
-                placeholder="Enter state"
-                required
-            />
-            <ControlledInput
+            <Controller
                 control={control}
                 name="beneficiaryCountry"
-                label="Country"
-                placeholder="Enter country"
-                required
+                render={({ field: { value }, fieldState: { error } }) => (
+                    <View style={styles.dropdownContainer}>
+                        <Text style={styles.dropdownLabel}>
+                            Country/Region <Text style={styles.required}>*</Text>
+                        </Text>
+                        <TouchableOpacity
+                            style={[styles.dropdownInput, error ? styles.dropdownError : undefined]}
+                            onPress={() => setCountrySheetVisible(true)}
+                        >
+                            <Text style={[styles.dropdownPlaceholder, value ? styles.dropdownSelectedText : undefined]}>
+                                {value ? value : 'Select an Option'}
+                            </Text>
+                            <ArrowDown2 size={moderateScale(20)} color="#64748B" />
+                        </TouchableOpacity>
+                        {error && <Text style={styles.errorText}>{error.message}</Text>}
+                    </View>
+                )}
             />
 
-            <Text style={[styles.sectionTitle, { marginTop: 16 }]}>Beneficiary Bank details</Text>
             <ControlledInput
                 control={control}
                 name="bankAccountName"
-                label="Bank Account Name"
-                placeholder="Enter bank account name"
+                label="Beneficiary Name"
+                placeholder="As it appears on the account"
                 required
             />
+
             <ControlledInput
                 control={control}
-                name="bankAccountAddress"
-                label="Bank Account Address"
-                placeholder="Enter bank account address"
+                name="beneficiaryAddress"
+                label="Beneficiary Address"
+                placeholder="Street, state, city, postal code, country"
                 required
             />
+
             <ControlledInput
                 control={control}
-                name="bankAccountIban"
-                label="Bank Account IBAN"
-                placeholder="Enter IBAN"
+                name="bankName"
+                label="Bank Name"
+                placeholder="Enter beneficiary bank"
                 required
             />
-            <ControlledInput
-                control={control}
-                name="bankAccountSwiftCode"
-                label="Bank Account Swift Code"
-                placeholder="Enter SWIFT code"
-                required
-            />
+
             <ControlledInput
                 control={control}
                 name="bankAccountNumber"
-                label="Bank Account Number"
+                label="Account Number"
                 placeholder="Enter account number"
                 required
                 keyboardType="numeric"
             />
 
-            <Text style={[styles.sectionTitle, { marginTop: 16 }]}>Correspondence Bank details (Optional)</Text>
             <ControlledInput
                 control={control}
-                name="correspondenceBankName"
-                label="Correspondence Bank Name"
-                placeholder="Enter correspondence bank name"
+                name="bankAccountAddress"
+                label="Bank Address"
+                placeholder={isUK ? "Enter branch or head office address" : "Enter bank address"}
+                required
             />
+
             <ControlledInput
                 control={control}
-                name="correspondenceBankAddress"
-                label="Correspondence Bank Address"
-                placeholder="Enter correspondence bank address"
+                name="bankAccountSwiftCode"
+                label="SWIFT CODE"
+                placeholder={isUK ? "e.g ABCDUS33XXX" : "e.g ABCDUS33XXXcode"}
+                required
             />
+
             <ControlledInput
                 control={control}
-                name="correspondenceBankSwiftCode"
-                label="Correspondence Bank Swift Code"
-                placeholder="Enter correspondence bank SWIFT code"
+                name="paymentReference"
+                label="Payment Reference ID"
+                placeholder="Enter payment reference id"
+                required
+            />
+
+            {isUK && (
+                <ControlledInput
+                    control={control}
+                    name="bankAccountIban"
+                    label="IBAN"
+                    placeholder="e.g GB29 NWBK 6016 13331 9268 19"
+                    required
+                />
+            )}
+
+            {(isUSA || isCanada) && (
+                <ControlledInput
+                    control={control}
+                    name="routingNumber"
+                    label="Routing Number"
+                    placeholder="e.g 026009593"
+                    required
+                    keyboardType="numeric"
+                />
+            )}
+
+            {isIndia && (
+                <>
+                    <ControlledInput
+                        control={control}
+                        name="ifscCode"
+                        label="IFSC Number"
+                        placeholder="e.g SBIN0000001"
+                        required
+                    />
+                    <ControlledInput
+                        control={control}
+                        name="purposeCode"
+                        label="Purpose Code"
+                        placeholder="e.g GFT/P1301"
+                        required
+                    />
+                </>
+            )}
+
+            {isAustralia && (
+                <ControlledInput
+                    control={control}
+                    name="bsbCode"
+                    label="BSB Code"
+                    placeholder="e.g 123 - 456"
+                    required
+                />
+            )}
+
+            <GenericSelectionSheet
+                visible={countrySheetVisible}
+                onClose={() => setCountrySheetVisible(false)}
+                title="Country/Region"
+                subtitle="Select beneficiary's country/region"
+                items={COUNTRIES}
+                selectedItem={beneficiaryCountry}
+                onSelect={(item) => {
+                    setValue('beneficiaryCountry', item.value);
+                    setValue('bankAccountIban', '');
+                    setValue('routingNumber', '');
+                    setValue('ifscCode', '');
+                    setValue('purposeCode', '');
+                    setValue('bsbCode', '');
+                }}
+                confirmButtonText="Select Country/Region"
             />
         </ScrollView>
     );
@@ -153,10 +202,44 @@ const styles = ScaledSheet.create({
         marginBottom: '8@vs',
         lineHeight: '24@ms',
     },
-    sectionTitle: {
+    dropdownContainer: {
+        marginBottom: '16@vs',
+    },
+    dropdownLabel: {
+        fontSize: '12.5@ms',
+        fontWeight: '400',
+        color: '#475569',
+        marginBottom: '8@vs',
+    },
+    required: {
+        color: '#EF4444',
+    },
+    dropdownInput: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(143, 139, 139, 1)',
+        borderRadius: '28@ms',
+        paddingHorizontal: '14@s',
+        height: Platform.OS === 'android' ? '49@vs' : '40@vs',
+        backgroundColor: 'transparent',
+    },
+    dropdownPlaceholder: {
         fontSize: '14@ms',
-        fontWeight: '600',
-        color: '#64748B',
-        marginVertical: '8@vs',
+        color: '#94A3B8',
+    },
+    dropdownSelectedText: {
+        color: '#0F172A',
+        fontWeight: '400',
+    },
+    errorText: {
+        fontSize: '11@ms',
+        color: '#EF4444',
+        marginTop: '4@vs',
+        marginLeft: '14@s',
+    },
+    dropdownError: {
+        borderColor: '#EF4444',
     },
 });
