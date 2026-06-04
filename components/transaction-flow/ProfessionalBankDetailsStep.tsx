@@ -14,11 +14,11 @@ interface ProfessionalBankDetailsStepProps {
 }
 
 const COUNTRIES: SelectionItem[] = [
-    { id: '1', label: 'United Kingdom', value: 'United Kingdom' },
-    { id: '2', label: 'United States of America', value: 'United States of America' },
-    { id: '3', label: 'Canada', value: 'Canada' },
-    { id: '4', label: 'India', value: 'India' },
-    { id: '5', label: 'Australia', value: 'Australia' },
+    { id: '1', label: '🇬🇧 United Kingdom', value: 'United Kingdom' },
+    { id: '2', label: '🇺🇸 United States of America', value: 'United States of America' },
+    { id: '3', label: '🇨🇦 Canada', value: 'Canada' },
+    { id: '4', label: '🇮🇳 India', value: 'India' },
+    { id: '5', label: '🇦🇺 Australia', value: 'Australia' },
 ];
 
 export default function ProfessionalBankDetailsStep({
@@ -53,7 +53,7 @@ export default function ProfessionalBankDetailsStep({
                             onPress={() => setCountrySheetVisible(true)}
                         >
                             <Text style={[styles.dropdownPlaceholder, value ? styles.dropdownSelectedText : undefined]}>
-                                {value ? value : 'Select an Option'}
+                                {value ? (COUNTRIES.find(c => c.value === value)?.label || value) : 'Select an Option'}
                             </Text>
                             <ArrowDown2 size={moderateScale(20)} color="#64748B" />
                         </TouchableOpacity>
