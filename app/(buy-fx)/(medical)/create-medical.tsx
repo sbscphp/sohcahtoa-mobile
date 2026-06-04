@@ -6,8 +6,8 @@ import AddNewAccountStep from '@/components/transaction-flow/AddNewAccountStep';
 import CredentialStep from '@/components/transaction-flow/CredentialStep';
 import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
-import MedicalBankDetailsStep from '@/components/transaction-flow/MedicalBankDetailsStep';
 import PayoutMethodStep from '@/components/transaction-flow/PayoutMethodStep';
+import ProfessionalBankDetailsStep from '@/components/transaction-flow/ProfessionalBankDetailsStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
 import { useProfileQuery } from '@/hooks/queries/auth/useProfileQuery';
 import { useGetBanksQuery } from '@/hooks/queries/banks/useGetBanksQuery';
@@ -120,10 +120,10 @@ export default function MedicalPaymentScreen() {
             bankAccountIban: '',
             bankAccountSwiftCode: '',
             bankAccountNumber: '',
+            bankName: '',
             correspondenceBankName: '',
             correspondenceBankAddress: '',
             correspondenceBankSwiftCode: '',
-            bic: '',
             paymentReference: '',
             bsbCode: '',
             routingNumber: '',
@@ -153,7 +153,7 @@ export default function MedicalPaymentScreen() {
         calculateExchangeRate,
     } = useExchangeLogic({ setValue, initialAmount: '0', maxLimit: 5000 });
 
-    // Document upload state
+   
     const [docs, setDocs] = useState({
         passport: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
         visa: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
@@ -336,19 +336,20 @@ export default function MedicalPaymentScreen() {
             }
             isStepValid = await trigger(fieldsToTrigger);
         } else if (currentStep === 4) {
-            const beneficiaryCountry = watchedFields.beneficiaryCountry?.toLowerCase();
-            const isAustralia = beneficiaryCountry?.includes('australia');
-            const isUSA = beneficiaryCountry?.includes('united states') || beneficiaryCountry?.includes('usa');
-            const isIndia = beneficiaryCountry?.includes('india');
+            const beneficiaryCountry = watchedFields.beneficiaryCountry?.toLowerCase() || '';
+            const isAustralia = beneficiaryCountry.includes('australia');
+            const isUSA = beneficiaryCountry.includes('united states') || beneficiaryCountry.includes('usa') || beneficiaryCountry === 'canada';
+            const isIndia = beneficiaryCountry.includes('india');
+            const isUK = beneficiaryCountry.includes('united kingdom') || beneficiaryCountry === 'uk';
 
             const fieldsToTrigger = [
-                'organizationName', 'beneficiaryPhone', 'beneficiaryEmail', 'beneficiaryAddress', 'beneficiaryCity', 'beneficiaryState', 'beneficiaryCountry',
-                'bankAccountName', 'bankAccountAddress', 'bankAccountIban', 'bankAccountSwiftCode', 'bankAccountNumber'
+                'beneficiaryCountry', 'bankAccountName', 'beneficiaryAddress', 'bankName', 'bankAccountNumber',
+                'bankAccountAddress', 'bankAccountSwiftCode', 'paymentReference'
             ];
             if (isAustralia) fieldsToTrigger.push('bsbCode');
             if (isUSA) fieldsToTrigger.push('routingNumber');
-            if (isIndia) fieldsToTrigger.push('ifscCode');
-            if (!isAustralia && !isUSA && !isIndia) fieldsToTrigger.push('bic');
+            if (isIndia) fieldsToTrigger.push('ifscCode', 'purposeCode');
+            if (isUK) fieldsToTrigger.push('bankAccountIban');
 
             isStepValid = await trigger(fieldsToTrigger as any);
         }
@@ -406,7 +407,7 @@ export default function MedicalPaymentScreen() {
                 bankAccountIban: data.bankAccountIban,
                 bankAccountSwiftCode: data.bankAccountSwiftCode,
                 bankAccountNumber: data.bankAccountNumber,
-                bic: data.bic,
+                bankName: data.bankName,
                 paymentReference: data.paymentReference,
                 bsbCode: data.bsbCode,
                 routingNumber: data.routingNumber,
@@ -442,18 +443,26 @@ export default function MedicalPaymentScreen() {
     const isStep2Valid = watchedFields.amount > 0;
     const isElectronicTransfer = watchedFields.payoutMethod === 'Electronic Transfer (100%)' || watchedFields.payoutMethod === 'Electronic_Transfer';
     const isStep3Valid = watchedFields.payoutMethod && (!isElectronicTransfer || (watchedFields.customerBankName && watchedFields.customerBankCode && watchedFields.customerAccountNumber && watchedFields.customerAccountName));
-    const beneficiaryCountryStep4 = watchedFields.beneficiaryCountry?.toLowerCase();
+    const beneficiaryCountryStep4 = watchedFields.beneficiaryCountry?.toLowerCase() || '';
     const isAustralia = beneficiaryCountryStep4?.includes('australia');
-    const isUSA = beneficiaryCountryStep4?.includes('united states') || beneficiaryCountryStep4?.includes('usa');
+    const isUSA = beneficiaryCountryStep4?.includes('united states') || beneficiaryCountryStep4?.includes('usa') || beneficiaryCountryStep4?.includes('canada');
     const isIndia = beneficiaryCountryStep4?.includes('india');
+    const isUK = beneficiaryCountryStep4?.includes('united kingdom') || beneficiaryCountryStep4 === 'uk';
 
-    const isStep4Valid = watchedFields.organizationName && watchedFields.beneficiaryPhone && watchedFields.beneficiaryEmail &&
-        watchedFields.beneficiaryAddress && watchedFields.beneficiaryCity && watchedFields.beneficiaryState && watchedFields.beneficiaryCountry &&
-        watchedFields.bankAccountName && watchedFields.bankAccountAddress && watchedFields.bankAccountIban && watchedFields.bankAccountSwiftCode && watchedFields.bankAccountNumber &&
+    const isStep4Valid = !!(
+        watchedFields.beneficiaryCountry &&
+        watchedFields.bankAccountName &&
+        watchedFields.beneficiaryAddress &&
+        watchedFields.bankName &&
+        watchedFields.bankAccountNumber &&
+        watchedFields.bankAccountAddress &&
+        watchedFields.bankAccountSwiftCode &&
+        watchedFields.paymentReference &&
         (isAustralia ? watchedFields.bsbCode : true) &&
         (isUSA ? watchedFields.routingNumber : true) &&
-        (isIndia ? watchedFields.ifscCode : true) &&
-        (!isAustralia && !isUSA && !isIndia ? watchedFields.bic : true);
+        (isIndia ? (watchedFields.ifscCode && watchedFields.purposeCode) : true) &&
+        (isUK ? watchedFields.bankAccountIban : true)
+    );
 
     const isNextDisabled =
         (currentStep === 0 && !isStep0Valid) ||
@@ -524,7 +533,7 @@ export default function MedicalPaymentScreen() {
                 )}
 
                 {currentStep === 4 && (
-                    <MedicalBankDetailsStep control={control} watch={watch} />
+                    <ProfessionalBankDetailsStep control={control} watch={watch} setValue={setValue} errors={errors} />
                 )}
 
                 <InitiateTransactionSheet

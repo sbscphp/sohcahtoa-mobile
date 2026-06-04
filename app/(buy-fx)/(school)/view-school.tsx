@@ -20,7 +20,7 @@ export default function ViewSchoolFeesScreen() {
     const tx = txResponse?.data;
     const showToast = useToastStore(s => s.showToast);
 
-    // console.log(JSON.stringify(tx, null, 2), "TX");
+    console.log(JSON.stringify(tx, null, 2), "TX");
 
     const { upload: uploadFile, isPending: isUploading } = useDocumentUpload({
         transactionId: transactionId || undefined,
@@ -69,13 +69,22 @@ export default function ViewSchoolFeesScreen() {
         const details = (tx?.beneficiaryDetails || tx?.paymentDetails) as any;
         if (!tx || !details) return undefined;
         return [
-            { label: 'Student Name', value: details.studentName || details.name },
-            { label: 'Student Passport Number', value: details.studentPassportNumber },
-            { label: 'Bank Account Name', value: details.bankAccountName || (details as any).accountName },
-            { label: 'Bank Account Number', value: details.bankAccountNumber || details.accountNumber },
-            { label: 'Bank Account Address', value: details.bankAccountAddress },
-            { label: 'Bank Account IBAN', value: details.bankAccountIban || details.iban },
-            { label: 'Bank Account Swift Code', value: details.bankAccountSwiftCode },
+            ...(details.studentName ? [{ label: 'Student Name', value: details.studentName }] : []),
+            ...(details.studentPassportNumber ? [{ label: 'Student Passport Number', value: details.studentPassportNumber }] : []),
+            ...(details.admissionNumber ? [{ label: 'Admission Number', value: details.admissionNumber }] : []),
+            { label: 'Beneficiary Name', value: details.bankAccountName || details.name },
+            ...(details.address ? [{ label: 'Beneficiary Address', value: details.address }] : []),
+            ...(details.country ? [{ label: 'Country', value: details.country }] : []),
+            { label: 'Bank Name', value: details.bankName },
+            { label: 'Account Number', value: details.bankAccountNumber || details.accountNumber },
+            ...(details.bankAccountAddress || details.bankAddress ? [{ label: 'Bank Address', value: details.bankAccountAddress || details.bankAddress }] : []),
+            ...(details.bankAccountSwiftCode || details.swiftCode ? [{ label: 'SWIFT Code', value: details.bankAccountSwiftCode || details.swiftCode }] : []),
+            ...(details.paymentReference ? [{ label: 'Payment Reference', value: details.paymentReference }] : []),
+            ...(details.bankAccountIban || details.iban ? [{ label: 'IBAN', value: details.bankAccountIban || details.iban }] : []),
+            ...(details.routingNumber ? [{ label: 'Routing Number', value: details.routingNumber }] : []),
+            ...(details.ifscCode ? [{ label: 'IFSC Code', value: details.ifscCode }] : []),
+            ...(details.purposeCode ? [{ label: 'Purpose Code', value: details.purposeCode }] : []),
+            ...(details.bsbCode ? [{ label: 'BSB Code', value: details.bsbCode }] : []),
             ...(details.correspondenceBankName ? [
                 { label: 'Correspondence Bank Name', value: details.correspondenceBankName },
                 { label: 'Correspondence Bank Address', value: details.correspondenceBankAddress },

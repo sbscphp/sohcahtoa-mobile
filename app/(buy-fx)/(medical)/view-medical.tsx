@@ -76,17 +76,27 @@ export default function ViewMedicalPaymentScreen() {
     }, [tx]);
     
     const beneficiaryItems = useMemo(() => {
-        const details = tx?.beneficiaryDetails || tx?.paymentDetails;
+        const details = (tx?.beneficiaryDetails || tx?.paymentDetails) as any;
         if (!tx || !details) return undefined;
         return [
-            { label: 'Beneficiary Name', value: details.name },
-            { label: 'Account Name', value: (details as any).accountName },
-            { label: 'Account Number', value: details.accountNumber },
+            { label: 'Beneficiary Name', value: details.bankAccountName || details.name },
+            ...(details.address ? [{ label: 'Beneficiary Address', value: details.address }] : []),
+            ...(details.country ? [{ label: 'Country', value: details.country }] : []),
             { label: 'Bank Name', value: details.bankName },
-            { label: 'Bank Address', value: (details as any).bankAddress },
-            { label: 'IBAN', value: details.iban },
-            { label: 'SWIFT Code', value: (details as any).swiftCode },
-            { label: 'Routing Number', value: (details as any).routingNumber },
+            { label: 'Account Number', value: details.bankAccountNumber || details.accountNumber },
+            ...(details.bankAccountAddress || details.bankAddress ? [{ label: 'Bank Address', value: details.bankAccountAddress || details.bankAddress }] : []),
+            ...(details.bankAccountSwiftCode || details.swiftCode ? [{ label: 'SWIFT Code', value: details.bankAccountSwiftCode || details.swiftCode }] : []),
+            ...(details.paymentReference ? [{ label: 'Payment Reference', value: details.paymentReference }] : []),
+            ...(details.bankAccountIban || details.iban ? [{ label: 'IBAN', value: details.bankAccountIban || details.iban }] : []),
+            ...(details.routingNumber ? [{ label: 'Routing Number', value: details.routingNumber }] : []),
+            ...(details.ifscCode ? [{ label: 'IFSC Code', value: details.ifscCode }] : []),
+            ...(details.purposeCode ? [{ label: 'Purpose Code', value: details.purposeCode }] : []),
+            ...(details.bsbCode ? [{ label: 'BSB Code', value: details.bsbCode }] : []),
+            ...(details.correspondenceBankName ? [
+                { label: 'Correspondence Bank Name', value: details.correspondenceBankName },
+                { label: 'Correspondence Bank Address', value: details.correspondenceBankAddress },
+                { label: 'Correspondence Bank Swift Code', value: details.correspondenceBankSwiftCode },
+            ] : []),
         ];
     }, [tx]);
 

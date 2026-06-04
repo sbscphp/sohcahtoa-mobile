@@ -9,7 +9,7 @@ import CredentialStep from '@/components/transaction-flow/CredentialStep';
 import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import PayoutMethodStep from '@/components/transaction-flow/PayoutMethodStep';
-import SchoolBankDetailsStep from '@/components/transaction-flow/SchoolBankDetailsStep';
+import ProfessionalBankDetailsStep from '@/components/transaction-flow/ProfessionalBankDetailsStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
 import { useProfileQuery } from '@/hooks/queries/auth/useProfileQuery';
 import { useGetBanksQuery } from '@/hooks/queries/banks/useGetBanksQuery';
@@ -33,7 +33,7 @@ import { z } from 'zod';
 const ADMISSION_TYPES: SelectionItem[] = [
     { id: '1', label: 'Undergraduate', value: 'Undergraduate', icon: Teacher },
     { id: '2', label: 'Post-Graduate', value: 'Post-Graduate', icon: Teacher },
-    { id: '3', label: 'Others (high school, pre-school etc)', value: 'Others', icon: Teacher },
+    { id: '3', label: 'Others', value: 'Others', icon: Teacher },
 
 ];
 
@@ -71,6 +71,15 @@ export default function SchoolFeesScreen() {
             }))
             .merge(schoolStep3Schema)
             .superRefine((data, ctx) => {
+                if (data.admissionType === 'Others') {
+                    if (!data.admissionNumber) {
+                        ctx.addIssue({
+                            code: z.ZodIssueCode.custom,
+                            message: 'Please enter admission number',
+                            path: ['admissionNumber']
+                        });
+                    }
+                }
                 const isElectronicTransfer = data.payoutMethod === 'Electronic Transfer (100%)' || data.payoutMethod === 'Electronic_Transfer';
                 if (isElectronicTransfer) {
                     if (!data.customerBankName) {
@@ -116,11 +125,11 @@ export default function SchoolFeesScreen() {
     } = useForm({
         resolver,
         defaultValues: {
-            bvn: user?.kyc?.bvn || '',
             nin: '',
             formAId: '',
             passportNumber: '',
             admissionType: '',
+            admissionNumber: '',
             passportIssueDate: '',
             passportExpiryDate: '',
             amount: 0,
@@ -131,6 +140,14 @@ export default function SchoolFeesScreen() {
             bankAccountIban: '',
             bankAccountSwiftCode: '',
             bankAccountNumber: '',
+            bankName: '',
+            beneficiaryCountry: '',
+            beneficiaryAddress: '',
+            paymentReference: '',
+            routingNumber: '',
+            ifscCode: '',
+            purposeCode: '',
+            bsbCode: '',
             correspondenceBankName: '',
             correspondenceBankAddress: '',
             correspondenceBankSwiftCode: '',
@@ -243,22 +260,23 @@ export default function SchoolFeesScreen() {
     }, [watchedFields.customerAccountNumber, watchedFields.customerBankCode, isAddingNewAccount]);
 
     const credentialFields = [
-        { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number(BVN)" placeholder="Enter your BVN" required keyboardType="numeric" maxLength={11} filterType="numeric" disabled /> },
         { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number(NIN)" placeholder="Enter your NIN" required keyboardType="numeric" maxLength={11} filterType="numeric" /> },
         { customComponent: <ControlledInput control={control} name="formAId" label="Form A ID" placeholder="Enter Form A ID" required /> },
         { customComponent: <ControlledInput control={control} name="passportNumber" label="International Passport" placeholder="Enter international passport" required maxLength={9} filterType="alphanumeric" /> },
-        {
-            customComponent: (
-                <View style={{ flexDirection: 'row', gap: 12 }}>
-                    <View style={{ flex: 1 }}>
-                        <ControlledDatePicker control={control} name="passportIssueDate" label="Passport Issue Date" required maximumDate={new Date()} />
+        ...(admissionType !== 'Others' ? [
+            {
+                customComponent: (
+                    <View style={{ flexDirection: 'row', gap: 12 }}>
+                        <View style={{ flex: 1 }}>
+                            <ControlledDatePicker control={control} name="passportIssueDate" label="Passport Issue Date" required maximumDate={new Date()} />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <ControlledDatePicker control={control} name="passportExpiryDate" label="Passport Expiry Date" required minimumDate={new Date()} />
+                        </View>
                     </View>
-                    <View style={{ flex: 1 }}>
-                        <ControlledDatePicker control={control} name="passportExpiryDate" label="Passport Expiry Date" required minimumDate={new Date()} />
-                    </View>
-                </View>
-            )
-        },
+                )
+            }
+        ] : []),
         {
             customComponent: (
                 <TouchableOpacity onPress={() => setAdmissionSheetVisible(true)} activeOpacity={0.8}>
@@ -332,7 +350,51 @@ export default function SchoolFeesScreen() {
         },
     ];
 
-    const documentFields = isPostGrad ? postgraduateDocuments : undergraduateDocuments;
+    const othersDocuments = [
+        {
+            label: 'International Passport',
+            onUpload: () => uploadFile('PASSPORT'),
+            fileName: docs.passport.file?.name,
+            fileUri: docs.passport.file?.uri, fileUrl: docs.passport.meta?.fileUrl,
+            fileType: docs.passport.file?.type,
+            required: true,
+            associatedInputs: (
+                <View style={{ flexDirection: 'row', gap: 12, marginTop: 12 }}>
+                    <View style={{ flex: 1 }}>
+                        <ControlledDatePicker control={control} name="passportIssueDate" label="Passport Issue Date" required maximumDate={new Date()} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                        <ControlledDatePicker control={control} name="passportExpiryDate" label="Passport Expiry Date" required minimumDate={new Date()} />
+                    </View>
+                </View>
+            )
+        },
+        {
+            label: 'School invoice',
+            onUpload: () => uploadFile('INVOICE'),
+            fileName: docs.invoice.file?.name,
+            fileUri: docs.invoice.file?.uri, fileUrl: docs.invoice.meta?.fileUrl,
+            fileType: docs.invoice.file?.type,
+            required: true,
+            associatedInputs: (
+                <ControlledInput control={control} name="admissionNumber" label="School invoice" placeholder="Enter admission number" required />
+            )
+        },
+        {
+            label: 'Evidence of Enrollment',
+            onUpload: () => uploadFile('SCHOOL_ADMISSION'),
+            fileName: docs.admission.file?.name,
+            fileUri: docs.admission.file?.uri, fileUrl: docs.admission.meta?.fileUrl,
+            fileType: docs.admission.file?.type,
+            required: true,
+        },
+    ];
+
+    const documentFields = admissionType === 'Others'
+        ? othersDocuments
+        : isPostGrad
+            ? postgraduateDocuments
+            : undergraduateDocuments;
 
     const handleSaveNewAccount = async () => {
         const isValid = await trigger([
@@ -366,12 +428,23 @@ export default function SchoolFeesScreen() {
 
         let isStepValid = false;
         if (currentStep === 0) {
-            isStepValid = await trigger(['bvn', 'nin', 'formAId', 'passportNumber', 'passportIssueDate', 'passportExpiryDate', 'admissionType']);
+            const fieldsToTrigger = ['nin', 'formAId', 'passportNumber', 'admissionType'];
+            if (watchedFields.admissionType !== 'Others') {
+                fieldsToTrigger.push('passportIssueDate', 'passportExpiryDate');
+            }
+            isStepValid = await trigger(fieldsToTrigger as any);
         } else if (currentStep === 1) {
             const hasRequiredUgDocs = docs.admission.file && docs.invoice.file && docs.passport.file;
             const hasRequiredPgDocs = docs.admission.file && docs.invoice.file && docs.degree.file && docs.result.file;
 
-            if (isPostGrad) {
+            if (watchedFields.admissionType === 'Others') {
+                const hasRequiredOthersDocs = docs.passport.file && docs.invoice.file && docs.admission.file;
+                if (!hasRequiredOthersDocs) {
+                    showToast('Please upload all required documents', 'error');
+                    return;
+                }
+                isStepValid = await trigger(['passportIssueDate', 'passportExpiryDate', 'admissionNumber']);
+            } else if (isPostGrad) {
                 if (!hasRequiredPgDocs) {
                     showToast('Please upload all required documents', 'error');
                     return;
@@ -397,18 +470,22 @@ export default function SchoolFeesScreen() {
             }
             isStepValid = await trigger(fieldsToTrigger);
         } else if (currentStep === 4) {
-            isStepValid = await trigger([
-                'studentName',
-                'studentPassportNumber',
-                'bankAccountName',
-                'bankAccountAddress',
-                'bankAccountIban',
-                'bankAccountSwiftCode',
-                'bankAccountNumber',
-                'correspondenceBankName',
-                'correspondenceBankAddress',
-                'correspondenceBankSwiftCode'
-            ]);
+            const beneficiaryCountry = watchedFields.beneficiaryCountry?.toLowerCase() || '';
+            const isAustralia = beneficiaryCountry.includes('australia');
+            const isUSA = beneficiaryCountry.includes('united states') || beneficiaryCountry.includes('usa') || beneficiaryCountry === 'canada';
+            const isIndia = beneficiaryCountry.includes('india');
+            const isUK = beneficiaryCountry.includes('united kingdom') || beneficiaryCountry === 'uk';
+
+            const fieldsToTrigger = [
+                'beneficiaryCountry', 'bankAccountName', 'beneficiaryAddress', 'bankName', 'bankAccountNumber',
+                'bankAccountAddress', 'bankAccountSwiftCode', 'paymentReference'
+            ];
+            if (isAustralia) fieldsToTrigger.push('bsbCode');
+            if (isUSA) fieldsToTrigger.push('routingNumber');
+            if (isIndia) fieldsToTrigger.push('ifscCode', 'purposeCode');
+            if (isUK) fieldsToTrigger.push('bankAccountIban');
+
+            isStepValid = await trigger(fieldsToTrigger as any);
         }
 
         if (isStepValid) {
@@ -439,7 +516,7 @@ export default function SchoolFeesScreen() {
             amount: data.amount,
             purpose: `Pay School Fees`,
             destinationCountry: currencyGet.country,
-            bvn: data.bvn,
+            bvn: user?.kyc?.bvn,
             nin: data.nin,
             formAId: data.formAId,
             admissionType: data.admissionType,
@@ -458,6 +535,7 @@ export default function SchoolFeesScreen() {
                 ...(docs.passport.meta ? [docs.passport.meta] : []),
             ],
             beneficiaryDetails: {
+                admissionNumber: data.admissionNumber,
                 studentName: data.studentName,
                 studentPassportNumber: data.studentPassportNumber,
                 bankAccountName: data.bankAccountName,
@@ -465,6 +543,14 @@ export default function SchoolFeesScreen() {
                 bankAccountIban: data.bankAccountIban,
                 bankAccountSwiftCode: data.bankAccountSwiftCode,
                 bankAccountNumber: data.bankAccountNumber,
+                bankName: data.bankName,
+                country: data.beneficiaryCountry,
+                address: data.beneficiaryAddress,
+                paymentReference: data.paymentReference,
+                routingNumber: data.routingNumber,
+                ifscCode: data.ifscCode,
+                purposeCode: data.purposeCode,
+                bsbCode: data.bsbCode,
                 correspondenceBankName: data.correspondenceBankName,
                 correspondenceBankAddress: data.correspondenceBankAddress,
                 correspondenceBankSwiftCode: data.correspondenceBankSwiftCode,
@@ -494,27 +580,37 @@ export default function SchoolFeesScreen() {
     };
 
 
-    const isStep0Valid = watchedFields.bvn && watchedFields.nin && watchedFields.formAId && watchedFields.passportNumber && watchedFields.passportIssueDate && watchedFields.passportExpiryDate && watchedFields.admissionType;
+    const isStep0Valid = watchedFields.nin && watchedFields.formAId && watchedFields.passportNumber && watchedFields.admissionType && (watchedFields.admissionType === 'Others' || (watchedFields.passportIssueDate && watchedFields.passportExpiryDate));
 
     let isStep1Valid = false;
     if (watchedFields.admissionType === 'Post-Graduate') {
         isStep1Valid = !!(docs.admission.meta && docs.invoice.meta && docs.degree.meta && docs.result.meta);
+    } else if (watchedFields.admissionType === 'Others') {
+        isStep1Valid = !!(docs.admission.meta && docs.invoice.meta && docs.passport.meta && watchedFields.passportIssueDate && watchedFields.passportExpiryDate && watchedFields.admissionNumber);
     } else {
         isStep1Valid = !!(docs.admission.meta && docs.invoice.meta && docs.passport.meta);
     }
 
     const isStep2Valid = watchedFields.amount > 0;
+    const beneficiaryCountryStep4 = watchedFields.beneficiaryCountry?.toLowerCase() || '';
+    const isAustralia = beneficiaryCountryStep4?.includes('australia');
+    const isUSA = beneficiaryCountryStep4?.includes('united states') || beneficiaryCountryStep4?.includes('usa') || beneficiaryCountryStep4?.includes('canada');
+    const isIndia = beneficiaryCountryStep4?.includes('india');
+    const isUK = beneficiaryCountryStep4?.includes('united kingdom') || beneficiaryCountryStep4 === 'uk';
+
     const isStep4Valid = !!(
-        watchedFields.studentName &&
-        watchedFields.studentPassportNumber &&
+        watchedFields.beneficiaryCountry &&
         watchedFields.bankAccountName &&
-        watchedFields.bankAccountAddress &&
-        watchedFields.bankAccountIban &&
-        watchedFields.bankAccountSwiftCode &&
+        watchedFields.beneficiaryAddress &&
+        watchedFields.bankName &&
         watchedFields.bankAccountNumber &&
-        watchedFields.correspondenceBankName &&
-        watchedFields.correspondenceBankAddress &&
-        watchedFields.correspondenceBankSwiftCode
+        watchedFields.bankAccountAddress &&
+        watchedFields.bankAccountSwiftCode &&
+        watchedFields.paymentReference &&
+        (isAustralia ? watchedFields.bsbCode : true) &&
+        (isUSA ? watchedFields.routingNumber : true) &&
+        (isIndia ? (watchedFields.ifscCode && watchedFields.purposeCode) : true) &&
+        (isUK ? watchedFields.bankAccountIban : true)
     );
 
     const isElectronicTransfer = watchedFields.payoutMethod === 'Electronic Transfer (100%)' || watchedFields.payoutMethod === 'Electronic_Transfer';
@@ -589,7 +685,7 @@ export default function SchoolFeesScreen() {
                 )}
 
                 {currentStep === 4 && (
-                    <SchoolBankDetailsStep control={control} />
+                    <ProfessionalBankDetailsStep control={control} watch={watch} setValue={setValue} errors={errors} />
                 )}
 
                 <InitiateTransactionSheet

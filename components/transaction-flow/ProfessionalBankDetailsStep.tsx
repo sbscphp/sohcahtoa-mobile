@@ -93,6 +93,8 @@ export default function ProfessionalBankDetailsStep({
                 placeholder="Enter account number"
                 required
                 keyboardType="numeric"
+                maxLength={34}
+                filterType="numeric"
             />
 
             <ControlledInput
@@ -109,6 +111,9 @@ export default function ProfessionalBankDetailsStep({
                 label="SWIFT CODE"
                 placeholder={isUK ? "e.g ABCDUS33XXX" : "e.g ABCDUS33XXXcode"}
                 required
+                maxLength={11}
+                filterType="alphanumeric"
+                autoCapitalize="characters"
             />
 
             <ControlledInput
@@ -126,6 +131,9 @@ export default function ProfessionalBankDetailsStep({
                     label="IBAN"
                     placeholder="e.g GB29 NWBK 6016 13331 9268 19"
                     required
+                    maxLength={34}
+                    filterType="alphanumeric"
+                    autoCapitalize="characters"
                 />
             )}
 
@@ -137,6 +145,8 @@ export default function ProfessionalBankDetailsStep({
                     placeholder="e.g 026009593"
                     required
                     keyboardType="numeric"
+                    maxLength={9}
+                    filterType="numeric"
                 />
             )}
 
@@ -148,6 +158,9 @@ export default function ProfessionalBankDetailsStep({
                         label="IFSC Number"
                         placeholder="e.g SBIN0000001"
                         required
+                        maxLength={11}
+                        filterType="alphanumeric"
+                        autoCapitalize="characters"
                     />
                     <ControlledInput
                         control={control}
@@ -166,6 +179,7 @@ export default function ProfessionalBankDetailsStep({
                     label="BSB Code"
                     placeholder="e.g 123 - 456"
                     required
+                    maxLength={8}
                 />
             )}
 
