@@ -137,7 +137,7 @@ export default function CreateExpatriateScreen() {
         let isStepValid = false;
 
         if (currentStep === 0) {
-            isStepValid = await trigger(['bvn', 'nin', 'passportNumber']);
+            isStepValid = await trigger(['nin', 'passportNumber']);
         } else if (currentStep === 1) {
             if (!docs.workPermit.file || !docs.passport.file || !docs.utility.file) {
                 showToast('Please upload all required documents', 'error');
@@ -220,7 +220,7 @@ export default function CreateExpatriateScreen() {
         });
     };
 
-    const isStep0Valid = !!(watchedFields.bvn && watchedFields.nin && watchedFields.passportNumber);
+    const isStep0Valid = !!(watchedFields.nin && watchedFields.passportNumber);
     const isStep1Valid = !!(docs.workPermit.meta && docs.passport.meta && docs.utility.meta &&
         watchedFields.workPermitNumber && watchedFields.passportIssueDate && watchedFields.passportExpiryDate && watchedFields.utilityBillNumber);
     const isStep2Valid = watchedFields.amount > 0;
@@ -246,7 +246,7 @@ export default function CreateExpatriateScreen() {
             >
                 {currentStep === 0 && (
                     <View style={styles.container}>
-                        <Text style={styles.sectionTitle}>{"Enter Tax Identification Number (TIN) and Form \"A\" ID"}</Text>
+                        <Text style={styles.sectionTitle}>{""}</Text>
 
                         <ControlledInput
                             control={control}

@@ -81,14 +81,52 @@ export const getTransactionDocuments = (tx: any): { label: string; value: string
     if (!tx) return [];
     const docs: { label: string; value: string }[] = [];
 
-    // Personal Info fields
-    if (tx.personalInfo?.bvn) docs.push({ label: 'BVN Number', value: tx.personalInfo.bvn });
-    if (tx.personalInfo?.nin) docs.push({ label: 'NIN', value: tx.personalInfo.nin });
-    if (tx.personalInfo?.admissionType) docs.push({ label: 'Admission Type', value: tx.personalInfo.admissionType });
+    const getValue = (primaryVal: any, stepKeys: string[]): string | null => {
+        if (primaryVal !== undefined && primaryVal !== null && primaryVal !== '') {
+            return String(primaryVal);
+        }
+        if (tx.steps && Array.isArray(tx.steps)) {
+            for (const step of tx.steps) {
+                if (step.data && typeof step.data === 'object') {
+                    for (const key of stepKeys) {
+                        const keys = key.split('.');
+                        let current = step.data;
+                        for (const k of keys) {
+                            if (current && typeof current === 'object') {
+                                current = current[k];
+                            } else {
+                                current = undefined;
+                                break;
+                            }
+                        }
+                        if (current !== undefined && current !== null && current !== '') {
+                            return String(current);
+                        }
+                    }
+                }
+            }
+        }
+        return null;
+    };
 
-    // Root level fields
-    if (tx.taxClearanceNumber) docs.push({ label: 'TIN', value: tx.taxClearanceNumber });
-    if (tx.formAId) docs.push({ label: 'Form A ID', value: tx.formAId });
+    const bvn = getValue(tx.personalInfo?.bvn, ['bvn']);
+    const nin = getValue(tx.personalInfo?.nin, ['nin']);
+    const admissionType = getValue(tx.personalInfo?.admissionType, ['admissionType']);
+
+    const tin = getValue(tx.taxClearanceNumber || tx.personalInfo?.tin, ['tin', 'taxClearanceNumber']);
+    const formAId = getValue(tx.formAId, ['formAId']);
+    const passport = getValue(tx.personalInfo?.passportDocumentNumber || tx.personalInfo?.passportNumber, ['passportDocumentNumber', 'passportNumber']);
+    const passportExpiryDate = getValue(tx.personalInfo?.passportExpiryDate, ['passportExpiryDate']);
+    const schoolInvoiceNumber = getValue(tx.beneficiaryDetails?.admissionNumber, ['admissionNumber', 'beneficiaryDetails.admissionNumber']);
+
+    if (bvn) docs.push({ label: 'BVN Number', value: bvn });
+    if (nin) docs.push({ label: 'NIN', value: nin });
+    if (admissionType) docs.push({ label: 'Admission Type', value: admissionType });
+    if (tin) docs.push({ label: 'TIN', value: tin });
+    if (formAId) docs.push({ label: 'Form A ID', value: formAId });
+    if (passport) docs.push({ label: 'International Passport Number', value: passport });
+    if (passportExpiryDate) docs.push({ label: 'Passport Expiration Date', value: passportExpiryDate });
+    if (schoolInvoiceNumber) docs.push({ label: 'School Invoice Number', value: schoolInvoiceNumber });
 
     return docs;
 };

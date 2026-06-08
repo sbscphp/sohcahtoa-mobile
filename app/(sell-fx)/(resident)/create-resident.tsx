@@ -224,7 +224,7 @@ export default function CreateResidentScreen() {
         let isStepValid = false;
 
         if (currentStep === 0) {
-            isStepValid = await trigger(['bvn', 'nin', 'passportNumber']);
+            isStepValid = await trigger(['nin', 'passportNumber']);
         } else if (currentStep === 1) {
             if (!docs.passport.file || !docs.utility.file) {
                 showToast('Please upload all required documents', 'error');
@@ -304,7 +304,7 @@ export default function CreateResidentScreen() {
         });
     };
 
-    const isStep0Valid = watchedFields.bvn && watchedFields.nin && watchedFields.passportNumber;
+    const isStep0Valid = watchedFields.nin && watchedFields.passportNumber;
     const isStep1Valid = docs.passport.meta && docs.utility.meta &&
         watchedFields.passportIssueDate && watchedFields.passportExpiryDate && watchedFields.utilityNumber;
     const isStep2Valid = watchedFields.amount > 0;

@@ -35,33 +35,35 @@ export default function ProfessionalBankDetailsStep({
     const isCanada = beneficiaryCountry?.toLowerCase() === 'canada';
     const isIndia = beneficiaryCountry?.toLowerCase() === 'india';
     const isAustralia = beneficiaryCountry?.toLowerCase() === 'australia';
-
+   
     return (
         <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
             <Text style={styles.title}>Bank details</Text>
 
-            <Controller
-                control={control}
-                name="beneficiaryCountry"
-                render={({ field: { value }, fieldState: { error } }) => (
-                    <View style={styles.dropdownContainer}>
-                        <Text style={styles.dropdownLabel}>
-                            Country/Region <Text style={styles.required}>*</Text>
-                        </Text>
-                        <TouchableOpacity
-                            style={[styles.dropdownInput, error ? styles.dropdownError : undefined]}
-                            onPress={() => setCountrySheetVisible(true)}
-                        >
-                            <Text style={[styles.dropdownPlaceholder, value ? styles.dropdownSelectedText : undefined]}>
-                                {value ? (COUNTRIES.find(c => c.value === value)?.label || value) : 'Select an Option'}
+           
+            
+                <Controller
+                    control={control}
+                    name="beneficiaryCountry"
+                    render={({ field: { value }, fieldState: { error } }) => (
+                        <View style={styles.dropdownContainer}>
+                            <Text style={styles.dropdownLabel}>
+                                Country/Region <Text style={styles.required}>*</Text>
                             </Text>
-                            <ArrowDown2 size={moderateScale(20)} color="#64748B" />
-                        </TouchableOpacity>
-                        {error && <Text style={styles.errorText}>{error.message}</Text>}
-                    </View>
-                )}
-            />
-
+                            <TouchableOpacity
+                                style={[styles.dropdownInput, error ? styles.dropdownError : undefined]}
+                                onPress={() => setCountrySheetVisible(true)}
+                            >
+                                <Text style={[styles.dropdownPlaceholder, value ? styles.dropdownSelectedText : undefined]}>
+                                    {value ? (COUNTRIES.find(c => c.value === value)?.label || value) : 'Select an Option'}
+                                </Text>
+                                <ArrowDown2 size={moderateScale(20)} color="#64748B" />
+                            </TouchableOpacity>
+                            {error && <Text style={styles.errorText}>{error.message}</Text>}
+                        </View>
+                    )}
+                />
+    
             <ControlledInput
                 control={control}
                 name="bankAccountName"
@@ -72,10 +74,70 @@ export default function ProfessionalBankDetailsStep({
 
             <ControlledInput
                 control={control}
+                name="beneficiaryEmail"
+                label="Beneficiary Email"
+                placeholder="Enter email address"
+                keyboardType="email-address"
+            />
+
+            <ControlledInput
+                control={control}
                 name="beneficiaryAddress"
                 label="Beneficiary Address"
                 placeholder="Street, state, city, postal code, country"
                 required
+            />
+
+           
+
+                <>
+                    <ControlledInput
+                        control={control}
+                        name="beneficiaryCity"
+                        label="City"
+                        placeholder="Enter city"
+                        required
+                    />
+                    <ControlledInput
+                        control={control}
+                        name="beneficiaryState"
+                        label="State"
+                        placeholder="Enter state"
+                        required
+                    />
+                    <ControlledInput
+                        control={control}
+                        name="beneficiaryCountry"
+                        label="Country"
+                        placeholder="Enter country"
+                        required
+                    />
+                </>
+            
+           
+
+            <ControlledInput
+                control={control}
+                name="correspondenceBankName"
+                label="Correspondence bank name"
+                placeholder="Optional"
+            />
+
+            <ControlledInput
+                control={control}
+                name="correspondenceBankAddress"
+                label="Correspondence bank address"
+                placeholder="Optional"
+            />
+
+            <ControlledInput
+                control={control}
+                name="correspondenceBankSwiftCode"
+                label="Correspondence bank SWIFT"
+                placeholder="Optional"
+                maxLength={11}
+                filterType="alphanumeric"
+                autoCapitalize="characters"
             />
 
             <ControlledInput

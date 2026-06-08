@@ -1,6 +1,6 @@
 import Header from '@/components/Header';
 import PrimaryButton from '@/components/PrimaryButton';
-import { Bank, Cards, Headphone, InfoCircle, Judge, LogoutCurve, MessageQuestion, Notification, ProfileTick, ShieldSecurity } from 'iconsax-react-nativejs';
+import { Bookmark, Cards, Headphone, InfoCircle, Judge, LogoutCurve, MessageQuestion, Notification, ProfileTick, ShieldSecurity } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
 import { Modal, Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { moderateScale, ScaledSheet } from 'react-native-size-matters';
@@ -45,12 +45,6 @@ export default function MoreScreen() {
             onPress: () => router.push('/security/change-password'),
         },
         {
-            icon: <Bank size={moderateScale(18)} color="rgba(255, 104, 19, 1)" variant="Linear" />,
-            title: 'Bank Accounts',
-            subtitle: 'Manage your saved bank accounts',
-            onPress: () => router.push('/(more)/bank-accounts'),
-        },
-        {
             icon: <Headphone size={moderateScale(18)} color="rgba(255, 104, 19, 1)" variant="Linear" />,
             title: 'Support',
             subtitle: 'Get help with app issues',
@@ -60,6 +54,12 @@ export default function MoreScreen() {
             icon: <Judge size={moderateScale(18)} color="rgba(255, 104, 19, 1)" variant="Linear" />,
             title: 'Legals',
             subtitle: 'View terms, policies and compliance',
+        },
+        {
+            icon: <Bookmark size={moderateScale(18)} color="rgba(255, 104, 19, 1)" variant="Linear" />,
+            title: 'Transient history',
+            subtitle: 'View and manege your trans history',
+            onPress: () => router.push('/(more)/transient-history'),
         },
         {
             icon: <MessageQuestion size={moderateScale(18)} color="rgba(255, 104, 19, 1)" variant="Linear" />,

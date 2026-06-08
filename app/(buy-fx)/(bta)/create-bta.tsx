@@ -434,6 +434,7 @@ export default function BusinessTravelAllowanceScreen() {
                 accountName: data.customerAccountName,
             }
         };
+        console.log(payload,"PAYLOAD")
 
         createTransaction.mutate(payload, {
             onSuccess: (response: any) => {

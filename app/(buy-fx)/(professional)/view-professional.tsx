@@ -20,6 +20,8 @@ export default function ViewProfessionalScreen() {
     const tx = txResponse?.data;
     const showToast = useToastStore(s => s.showToast);
 
+    // console.log(JSON.stringify(tx, null, 2), "PROFESSIONAL");
+
     const { upload: uploadFile, isPending: isUploading } = useDocumentUpload({
         transactionId: transactionId || undefined,
         onSuccess: () => {},

@@ -9,6 +9,7 @@ export default function MoreLayout() {
             <Stack.Screen name="support-details" options={{ headerShown: false }} />
             <Stack.Screen name="faqs" options={{ headerShown: false }} />
             <Stack.Screen name="bank-accounts" options={{ headerShown: false }} />
+            <Stack.Screen name="transient-history" options={{ headerShown: false }} />
         </Stack>
     );
 }

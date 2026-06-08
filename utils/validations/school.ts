@@ -8,6 +8,7 @@ import {
 import { passportExpiryDateField, passportIssueDateField } from './shared';
 
 export const schoolStep0Schema = baseCredentialSchema.omit({ bvn: true }).extend({
+    studentName: z.string().min(1, 'Student name is required'),
     admissionType: z.string().min(1, 'Please select an admission type'),
     passportIssueDate: passportIssueDateField,
     passportExpiryDate: passportExpiryDateField,
@@ -23,7 +24,6 @@ import { professionalStep3Schema } from './professional';
 
 
 export const schoolStep3Schema = professionalStep3Schema.extend({
-    studentName: z.string().optional(),
     studentPassportNumber: z.string().optional(),
     admissionNumber: z.string().optional(),
 });

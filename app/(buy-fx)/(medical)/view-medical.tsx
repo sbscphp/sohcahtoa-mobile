@@ -26,7 +26,7 @@ export default function ViewMedicalPaymentScreen() {
         onError: () => showToast('Failed to upload document. Please try again.', 'error'),
     });
 
-    console.log(tx, "MEDI");
+    // console.log(JSON.stringify(tx, null, 2), "MEDI");
 
     const mapApiStatusToViewStatus = (s: string): TransactionStatus => {
         const map: Record<string, TransactionStatus> = {

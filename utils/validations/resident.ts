@@ -3,7 +3,7 @@ import { locationStepSchema, utilityNumberField } from './shared';
 
 /** Step 0: Resident credentials */
 export const residentStep0Schema = z.object({
-    bvn: z.string().length(11, 'Please enter a valid 11-digit BVN').regex(/^\d+$/, 'BVN must contain only digits'),
+    bvn: z.string().optional(),
     nin: z.string().length(11, 'Please enter a valid 11-digit NIN').regex(/^\d+$/, 'NIN must contain only digits'),
     passportNumber: z.string().regex(/^[A-Za-z]\d{8}$/, 'Please enter a valid International Passport Number'),
 });

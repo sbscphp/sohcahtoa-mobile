@@ -33,7 +33,7 @@ import { z } from 'zod';
 const ADMISSION_TYPES: SelectionItem[] = [
     { id: '1', label: 'Undergraduate', value: 'Undergraduate', icon: Teacher },
     { id: '2', label: 'Post-Graduate', value: 'Post-Graduate', icon: Teacher },
-    { id: '3', label: 'Others', value: 'Others', icon: Teacher },
+    { id: '3', label: 'Others (high school, pre-school etc)', value: 'Others', icon: Teacher },
 
 ];
 
@@ -77,6 +77,20 @@ export default function SchoolFeesScreen() {
                             code: z.ZodIssueCode.custom,
                             message: 'Please enter admission number',
                             path: ['admissionNumber']
+                        });
+                    }
+                    if (!data.beneficiaryCity) {
+                        ctx.addIssue({
+                            code: z.ZodIssueCode.custom,
+                            message: 'Please enter city',
+                            path: ['beneficiaryCity']
+                        });
+                    }
+                    if (!data.beneficiaryState) {
+                        ctx.addIssue({
+                            code: z.ZodIssueCode.custom,
+                            message: 'Please enter state',
+                            path: ['beneficiaryState']
                         });
                     }
                 }
@@ -143,6 +157,9 @@ export default function SchoolFeesScreen() {
             bankName: '',
             beneficiaryCountry: '',
             beneficiaryAddress: '',
+            beneficiaryCity: '',
+            beneficiaryState: '',
+            beneficiaryEmail: '',
             paymentReference: '',
             routingNumber: '',
             ifscCode: '',
@@ -260,6 +277,7 @@ export default function SchoolFeesScreen() {
     }, [watchedFields.customerAccountNumber, watchedFields.customerBankCode, isAddingNewAccount]);
 
     const credentialFields = [
+        { customComponent: <ControlledInput control={control} name="studentName" label="Student Name" placeholder="Enter student name" required /> },
         { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number(NIN)" placeholder="Enter your NIN" required keyboardType="numeric" maxLength={11} filterType="numeric" /> },
         { customComponent: <ControlledInput control={control} name="formAId" label="Form A ID" placeholder="Enter Form A ID" required /> },
         { customComponent: <ControlledInput control={control} name="passportNumber" label="International Passport" placeholder="Enter international passport" required maxLength={9} filterType="alphanumeric" /> },
@@ -428,7 +446,7 @@ export default function SchoolFeesScreen() {
 
         let isStepValid = false;
         if (currentStep === 0) {
-            const fieldsToTrigger = ['nin', 'formAId', 'passportNumber', 'admissionType'];
+            const fieldsToTrigger = ['studentName', 'nin', 'formAId', 'passportNumber', 'admissionType'];
             if (watchedFields.admissionType !== 'Others') {
                 fieldsToTrigger.push('passportIssueDate', 'passportExpiryDate');
             }
@@ -546,6 +564,9 @@ export default function SchoolFeesScreen() {
                 bankName: data.bankName,
                 country: data.beneficiaryCountry,
                 address: data.beneficiaryAddress,
+                email: data.beneficiaryEmail || '',
+                city: data.beneficiaryCity || '',
+                state: data.beneficiaryState || '',
                 paymentReference: data.paymentReference,
                 routingNumber: data.routingNumber,
                 ifscCode: data.ifscCode,
@@ -580,7 +601,7 @@ export default function SchoolFeesScreen() {
     };
 
 
-    const isStep0Valid = watchedFields.nin && watchedFields.formAId && watchedFields.passportNumber && watchedFields.admissionType && (watchedFields.admissionType === 'Others' || (watchedFields.passportIssueDate && watchedFields.passportExpiryDate));
+    const isStep0Valid = watchedFields.studentName && watchedFields.nin && watchedFields.formAId && watchedFields.passportNumber && watchedFields.admissionType && (watchedFields.admissionType === 'Others' || (watchedFields.passportIssueDate && watchedFields.passportExpiryDate));
 
     let isStep1Valid = false;
     if (watchedFields.admissionType === 'Post-Graduate') {
@@ -598,8 +619,10 @@ export default function SchoolFeesScreen() {
     const isIndia = beneficiaryCountryStep4?.includes('india');
     const isUK = beneficiaryCountryStep4?.includes('united kingdom') || beneficiaryCountryStep4 === 'uk';
 
+    const isOthers = watchedFields.admissionType === 'Others';
     const isStep4Valid = !!(
         watchedFields.beneficiaryCountry &&
+        (!isOthers || (watchedFields.beneficiaryCity && watchedFields.beneficiaryState)) &&
         watchedFields.bankAccountName &&
         watchedFields.beneficiaryAddress &&
         watchedFields.bankName &&
