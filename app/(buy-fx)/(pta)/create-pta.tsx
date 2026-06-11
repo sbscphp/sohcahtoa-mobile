@@ -49,7 +49,11 @@ const ptaFormSchema = z.object({
     customerBankCode: z.string().optional().or(z.literal('')),
     customerAccountNumber: z.string().optional().or(z.literal('')),
     customerAccountName: z.string().optional().or(z.literal('')),
-    ...ptaStep3Schema.shape
+    selectedState: z.any().optional(),
+    selectedCity: z.any().optional(),
+    selectedLocation: z.any().optional(),
+    pickupDate: z.string().optional().or(z.literal('')),
+    pickupTime: z.string().optional().or(z.literal('')),
 }).superRefine((data, ctx) => {
     const isElectronicTransfer = data.payoutMethod === 'Electronic Transfer (100%)' || data.payoutMethod === 'Electronic_Transfer';
     if (isElectronicTransfer) {
@@ -79,6 +83,42 @@ const ptaFormSchema = z.object({
                 code: z.ZodIssueCode.custom,
                 message: 'Account name must be resolved',
                 path: ['customerAccountName']
+            });
+        }
+    } else {
+        if (!data.selectedState) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'Please select a state',
+                path: ['selectedState']
+            });
+        }
+        if (!data.selectedCity) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'Please select a city',
+                path: ['selectedCity']
+            });
+        }
+        if (!data.selectedLocation) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'Please select a pickup location',
+                path: ['selectedLocation']
+            });
+        }
+        if (!data.pickupDate) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'Please select a pickup date',
+                path: ['pickupDate']
+            });
+        }
+        if (!data.pickupTime) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'Please select a pickup time',
+                path: ['pickupTime']
             });
         }
     }
@@ -113,7 +153,6 @@ export default function PersonalTravelAllowanceScreen() {
             nin: '',
             formAId: '',
             passportNumber: '',
-            ticketNumber: '',
             passportIssueDate: '',
             passportExpiryDate: '',
             amount: 0,
@@ -150,6 +189,7 @@ export default function PersonalTravelAllowanceScreen() {
     const { data: allLocations = [] } = useGetPickupPointsQuery();
 
     const watchedFields = watch() as any;
+    const isElectronicTransfer = watchedFields.payoutMethod === 'Electronic Transfer (100%)' || watchedFields.payoutMethod === 'Electronic_Transfer';
 
     const { data: filteredCities = [] } = useGetPickupCitiesQuery(watchedFields.selectedState?.title);
 
@@ -246,24 +286,13 @@ export default function PersonalTravelAllowanceScreen() {
             fileUri: docs.visa.file?.uri, fileUrl: docs.visa.meta?.fileUrl,
             fileType: docs.visa.file?.type,
             required: true,
-        },
-        {
-            label: 'Return Ticket',
-            onUpload: () => uploadFile('RETURN_TICKET'),
-            fileName: docs.ticket.file?.name,
-            fileUri: docs.ticket.file?.uri, fileUrl: docs.ticket.meta?.fileUrl,
-            fileType: docs.ticket.file?.type,
-            required: true,
             associatedInputs: (
-                <View>
-                    <ControlledInput control={control} name="ticketNumber" label="Return Ticket Number" required placeholder="Enter return ticket number" maxLength={13} filterType="numeric" keyboardType="numeric" />
-                    <View style={{ flexDirection: 'row', gap: 12, marginTop: 12 }}>
-                        <View style={{ flex: 1 }}>
-                            <ControlledDatePicker control={control} name="passportIssueDate" label="Passport Issue Date" required maximumDate={new Date()} />
-                        </View>
-                        <View style={{ flex: 1 }}>
-                            <ControlledDatePicker control={control} name="passportExpiryDate" label="Passport Expiry Date" required minimumDate={new Date()} />
-                        </View>
+                <View style={{ flexDirection: 'row', gap: 12 }}>
+                    <View style={{ flex: 1 }}>
+                        <ControlledDatePicker control={control} name="passportIssueDate" label="Passport Issue Date" required maximumDate={new Date()} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                        <ControlledDatePicker control={control} name="passportExpiryDate" label="Passport Expiry Date" required minimumDate={new Date()} />
                     </View>
                 </View>
             )
@@ -308,7 +337,6 @@ export default function PersonalTravelAllowanceScreen() {
             if (isAddingNewAccount) {
                 return;
             }
-            const isElectronicTransfer = watchedFields.payoutMethod === 'Electronic Transfer (100%)' || watchedFields.payoutMethod === 'Electronic_Transfer';
             const fieldsToTrigger: any[] = ['payoutMethod'];
             if (isElectronicTransfer) {
                 fieldsToTrigger.push('customerBankName', 'customerBankCode', 'customerAccountNumber', 'customerAccountName');
@@ -319,7 +347,7 @@ export default function PersonalTravelAllowanceScreen() {
         }
 
         if (isValid) {
-            if (currentStep < 4) {
+            if (currentStep < (isElectronicTransfer ? 3 : 4)) {
                 setCurrentStep(prev => prev + 1);
             } else {
                 setInitiateSheetVisible(true);
@@ -352,20 +380,18 @@ export default function PersonalTravelAllowanceScreen() {
             passportNumber: data.passportNumber,
             passportIssueDate: data.passportIssueDate,
             passportExpiryDate: data.passportExpiryDate,
-            ticketNumber: data.ticketNumber,
             documents: [
                 ...(docs.visa.meta ? [docs.visa.meta] : []),
-                ...(docs.ticket.meta ? [docs.ticket.meta] : []),
             ],
-            pickupLocation: {
-                state: data.selectedState.title,
-                city: data.selectedCity.title,
-                name: data.selectedLocation.title,
-                address: data.selectedLocation.subtitle || '',
-                locationId: data.selectedLocation.id,
-                date: data.pickupDate,
-                time: data.pickupTime,
-            },
+            pickupLocation: (!isElectronicTransfer && data.selectedLocation) ? {
+                state: data.selectedState?.title || '',
+                city: data.selectedCity?.title || '',
+                name: data.selectedLocation?.title || '',
+                address: data.selectedLocation?.subtitle || '',
+                locationId: data.selectedLocation?.id || '',
+                date: data.pickupDate || '',
+                time: data.pickupTime || '',
+            } : undefined,
             payoutMethod: data.payoutMethod,
             beneficiaryDetails: {
                 bankName: data.customerBankName,
@@ -391,12 +417,13 @@ export default function PersonalTravelAllowanceScreen() {
         });
     };
 
-    const isElectronicTransfer = watchedFields.payoutMethod === 'Electronic Transfer (100%)' || watchedFields.payoutMethod === 'Electronic_Transfer';
     const isStep3Valid = watchedFields.payoutMethod && (!isElectronicTransfer || (watchedFields.customerBankName && watchedFields.customerBankCode && watchedFields.customerAccountNumber && watchedFields.customerAccountName));
+    const isStep4Valid = watchedFields.selectedState && watchedFields.selectedCity && watchedFields.selectedLocation && watchedFields.pickupDate && watchedFields.pickupTime;
 
     const isNextDisabled =
-        (currentStep === 1 && (!docs.visa.file || !docs.ticket.file)) ||
-        (currentStep === 3 && !isStep3Valid);
+        (currentStep === 1 && !docs.visa.file) ||
+        (currentStep === 3 && !isStep3Valid) ||
+        (currentStep === 4 && !isElectronicTransfer && !isStep4Valid);
 
     return (
         <View style={{ flex: 1 }}>
@@ -404,11 +431,11 @@ export default function PersonalTravelAllowanceScreen() {
             <TransactionLayout
                 title="Personal Travel Allowance (PTA)"
                 currentStep={currentStep}
-                totalSteps={5}
+                totalSteps={isElectronicTransfer ? 4 : 5}
                 onBack={handleBack}
                 onNext={isAddingNewAccount ? handleSaveNewAccount : handleNext}
                 isNextDisabled={isNextDisabled}
-                nextLabel={isAddingNewAccount ? "Save" : (currentStep === 4 ? (watchedFields.selectedState && watchedFields.selectedCity ? "Initiate Transaction Request" : "Continue") : "Continue")}
+                nextLabel={isAddingNewAccount ? "Save" : (currentStep === (isElectronicTransfer ? 3 : 4) ? (isElectronicTransfer || (watchedFields.selectedState && watchedFields.selectedCity) ? "Initiate Transaction Request" : "Continue") : "Continue")}
             >
                 {currentStep === 0 && (
                     <CredentialStep fields={credentialFields} />

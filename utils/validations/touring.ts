@@ -1,15 +1,14 @@
 import { z } from 'zod';
-import { amountStepSchema, locationStepSchema, passportExpiryDateField, passportIssueDateField, ticketNumberField, touristCredentialSchema, visaNumberField } from './shared';
+import { amountStepSchema, locationStepSchema, passportExpiryDateField, passportIssueDateField, touristCredentialSchema, visaNumberField } from './shared';
 
 /** Step 0: Touring credentials (Passport) */
 export const touringStep0Schema = touristCredentialSchema;
 
-/** Step 1: Touring documents — Visa + Ticket */
+/** Step 1: Touring documents — Visa */
 export const touringStep1Schema = z.object({
     passportIssueDate: passportIssueDateField,
     passportExpiryDate: passportExpiryDateField,
     visaNumber: visaNumberField,
-    ticketNumber: ticketNumberField,
 });
 
 /** Step 2: Touring amount — max $4,000 */

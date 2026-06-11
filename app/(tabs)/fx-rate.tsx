@@ -17,7 +17,7 @@ interface Currency {
     flagUrl: string;
 }
 
-// Dummy data for currencies
+
 const currencies: Currency[] = [
     { code: 'USD', country: 'United States', currencyName: 'US Dollar', flagUrl: 'https://flagcdn.com/w320/us.png' },
     { code: 'NGN', country: 'Nigeria', currencyName: 'Nigerian Naira', flagUrl: 'https://flagcdn.com/w320/ng.png' },
@@ -28,8 +28,8 @@ const currencies: Currency[] = [
 export default function FxRateScreen() {
     const router = useRouter();
     const [transactionType, setTransactionType] = useState<'buy' | 'sell'>('buy');
-    const [currencyGet, setCurrencyGet] = useState<Currency>(currencies[0]); // USD
-    const [currencySend, setCurrencySend] = useState<Currency>(currencies[1]); // NGN
+    const [currencyGet, setCurrencyGet] = useState<Currency>(currencies[0]); 
+    const [currencySend, setCurrencySend] = useState<Currency>(currencies[1]); 
     const [amountGet, setAmountGet] = useState('1');
     const [amountSend, setAmountSend] = useState('1500');
 
@@ -39,6 +39,8 @@ export default function FxRateScreen() {
     const { data: exchangeRatesData, isLoading: isLoadingRates } = useGetExchangeRatesQuery();
     const { mutate: calculateRate, isPending: isCalculating } = useCalculateExchangeRateMutation();
 
+    // console.log(JSON.stringify(exchangeRatesData, null, 2),"Exchange Rates Data")
+
     const debouncedAmountGet = useDebounce(amountGet, 500);
 
     useEffect(() => {
@@ -46,9 +48,11 @@ export default function FxRateScreen() {
             calculateRate({
                 fromCurrency: currencyGet.code,
                 toCurrency: currencySend.code,
-                amount: parseFloat(debouncedAmountGet)
+                amount: parseFloat(debouncedAmountGet),
+                mode: transactionType
             }, {
                 onSuccess: (response: any) => {
+                    console.log(JSON.stringify(response, null, 2),"Response")
                     if (response.success && response.data) {
                         setAmountSend(response.data.convertedAmount.toString());
                     }

@@ -15,7 +15,7 @@ import { ActivityIndicator, View } from 'react-native';
 export default function ViewBtaScreen() {
     const router = useRouter();
     const { transactionId } = useLocalSearchParams<{ transactionId: string }>();
-    console.log(transactionId, 'transactionId');
+    // console.log(transactionId, 'transactionId');
     const [activeTab, setActiveTab] = useState('overview');
 
     const { data: txResponse, isLoading } = useGetTransactionByIdQuery(transactionId || '');

@@ -47,7 +47,11 @@ const btaFormSchema = z.object({
     customerBankCode: z.string().optional().or(z.literal('')),
     customerAccountNumber: z.string().optional().or(z.literal('')),
     customerAccountName: z.string().optional().or(z.literal('')),
-    ...btaStep3Schema.shape
+    selectedState: z.any().optional(),
+    selectedCity: z.any().optional(),
+    selectedLocation: z.any().optional(),
+    pickupDate: z.string().optional().or(z.literal('')),
+    pickupTime: z.string().optional().or(z.literal('')),
 }).superRefine((data, ctx) => {
     const isElectronicTransfer = data.payoutMethod === 'Electronic Transfer (100%)' || data.payoutMethod === 'Electronic_Transfer';
     if (isElectronicTransfer) {
@@ -77,6 +81,42 @@ const btaFormSchema = z.object({
                 code: z.ZodIssueCode.custom,
                 message: 'Account name must be resolved',
                 path: ['customerAccountName']
+            });
+        }
+    } else {
+        if (!data.selectedState) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'Please select a state',
+                path: ['selectedState']
+            });
+        }
+        if (!data.selectedCity) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'Please select a city',
+                path: ['selectedCity']
+            });
+        }
+        if (!data.selectedLocation) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'Please select a pickup location',
+                path: ['selectedLocation']
+            });
+        }
+        if (!data.pickupDate) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'Please select a pickup date',
+                path: ['pickupDate']
+            });
+        }
+        if (!data.pickupTime) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'Please select a pickup time',
+                path: ['pickupTime']
             });
         }
     }
@@ -114,7 +154,6 @@ export default function BusinessTravelAllowanceScreen() {
             passportNumber: '',
             passportIssueDate: '',
             passportExpiryDate: '',
-            tccNumber: '',
             amount: 0,
             selectedState: undefined as unknown as LocationItem,
             selectedCity: undefined as unknown as LocationItem,
@@ -149,6 +188,7 @@ export default function BusinessTravelAllowanceScreen() {
     const { data: allLocations = [] } = useGetPickupPointsQuery();
 
     const watchedFields = watch() as any;
+    const isElectronicTransfer = watchedFields.payoutMethod === 'Electronic Transfer (100%)' || watchedFields.payoutMethod === 'Electronic_Transfer';
 
     const { data: filteredCities = [] } = useGetPickupCitiesQuery(watchedFields.selectedState?.title);
 
@@ -250,19 +290,6 @@ export default function BusinessTravelAllowanceScreen() {
 
     const documentFields = [
         {
-            label: 'Tax Clearance Certificate (TCC)',
-            onUpload: () => uploadFile('TCC'),
-            fileName: docs.tcc.file?.name,
-            fileUri: docs.tcc.file?.uri, fileUrl: docs.tcc.meta?.fileUrl,
-            fileType: docs.tcc.file?.type,
-            required: true,
-            associatedInputs: (
-                <View>
-                    <ControlledInput control={control} name="tccNumber" label="Tax Clearance Certificate (TCC)" required placeholder="Enter TCC number" keyboardType="numeric" />
-                </View>
-            )
-        },
-        {
             label: 'International Passport',
             onUpload: () => uploadFile('PASSPORT'),
             fileName: docs.passport.file?.name,
@@ -286,14 +313,6 @@ export default function BusinessTravelAllowanceScreen() {
             fileName: docs.visa.file?.name,
             fileUri: docs.visa.file?.uri, fileUrl: docs.visa.meta?.fileUrl,
             fileType: docs.visa.file?.type,
-            required: true,
-        },
-        {
-            label: 'Return Ticket',
-            onUpload: () => uploadFile('RETURN_TICKET'),
-            fileName: docs.returnTicket.file?.name,
-            fileUri: docs.returnTicket.file?.uri, fileUrl: docs.returnTicket.meta?.fileUrl,
-            fileType: docs.returnTicket.file?.type,
             required: true,
         },
         {
@@ -349,14 +368,13 @@ export default function BusinessTravelAllowanceScreen() {
         if (currentStep === 0) {
             isStepValid = await trigger(['bvn', 'tin', 'nin', 'formAId', 'passportNumber']);
         } else if (currentStep === 1) {
-            isStepValid = await trigger(['tccNumber', 'passportIssueDate', 'passportExpiryDate']);
+            isStepValid = await trigger(['passportIssueDate', 'passportExpiryDate']);
         } else if (currentStep === 2) {
             isStepValid = await trigger(['amount']);
         } else if (currentStep === 3) {
             if (isAddingNewAccount) {
                 return;
             }
-            const isElectronicTransfer = watchedFields.payoutMethod === 'Electronic Transfer (100%)' || watchedFields.payoutMethod === 'Electronic_Transfer';
             const fieldsToTrigger: any[] = ['payoutMethod'];
             if (isElectronicTransfer) {
                 fieldsToTrigger.push('customerBankName', 'customerBankCode', 'customerAccountNumber', 'customerAccountName');
@@ -367,7 +385,7 @@ export default function BusinessTravelAllowanceScreen() {
         }
 
         if (isStepValid) {
-            if (currentStep < 4) {
+            if (currentStep < (isElectronicTransfer ? 3 : 4)) {
                 setCurrentStep(currentStep + 1);
             } else {
                 setInitiateSheetVisible(true);
@@ -409,23 +427,20 @@ export default function BusinessTravelAllowanceScreen() {
             passportNumber: data.passportNumber,
             passportIssueDate: data.passportIssueDate,
             passportExpiryDate: data.passportExpiryDate,
-            tccNumber: data.tccNumber,
             payoutMethod: data.payoutMethod,
             documents: [
-                ...(docs.tcc.meta ? [docs.tcc.meta] : []),
                 ...(docs.passport.meta ? [docs.passport.meta] : []),
                 ...(docs.visa.meta ? [docs.visa.meta] : []),
-                ...(docs.returnTicket.meta ? [docs.returnTicket.meta] : []),
                 ...(docs.corporateBodyLetter.meta ? [docs.corporateBodyLetter.meta] : []),
                 ...(docs.partnerInvitationLetter.meta ? [docs.partnerInvitationLetter.meta] : []),
             ],
-            pickupLocation: data.selectedLocation ? {
+            pickupLocation: (!isElectronicTransfer && data.selectedLocation) ? {
                 name: (data.selectedLocation as LocationItem).title,
                 address: (data.selectedLocation as LocationItem).subtitle || '',
                 state: (data.selectedState as LocationItem)?.title || '',
                 city: (data.selectedCity as LocationItem)?.title || '',
-                scheduledPickupDate: formatDateForApi(data.pickupDate),
-                scheduledPickupTime: data.pickupTime,
+                scheduledPickupDate: formatDateForApi(data.pickupDate || ''),
+                scheduledPickupTime: data.pickupTime || '',
             } : undefined,
             beneficiaryDetails: {
                 bankName: data.customerBankName,
@@ -451,10 +466,9 @@ export default function BusinessTravelAllowanceScreen() {
 
 
     const isStep0Valid = watchedFields.bvn && watchedFields.tin && watchedFields.nin && watchedFields.formAId && watchedFields.passportNumber;
-    const isStep1Valid = docs.tcc.meta && docs.passport.meta && docs.visa.meta && docs.returnTicket.meta && docs.corporateBodyLetter.meta && docs.partnerInvitationLetter.meta &&
-        watchedFields.tccNumber && watchedFields.passportIssueDate && watchedFields.passportExpiryDate;
+    const isStep1Valid = docs.passport.meta && docs.visa.meta && docs.corporateBodyLetter.meta && docs.partnerInvitationLetter.meta &&
+        watchedFields.passportIssueDate && watchedFields.passportExpiryDate;
     const isStep2Valid = watchedFields.amount > 0;
-    const isElectronicTransfer = watchedFields.payoutMethod === 'Electronic Transfer (100%)' || watchedFields.payoutMethod === 'Electronic_Transfer';
     const isStep3Valid = watchedFields.payoutMethod && (!isElectronicTransfer || (watchedFields.customerBankName && watchedFields.customerBankCode && watchedFields.customerAccountNumber && watchedFields.customerAccountName));
     const isStep4Valid = watchedFields.selectedState && watchedFields.selectedCity && watchedFields.selectedLocation && watchedFields.pickupDate && watchedFields.pickupTime;
 
@@ -471,11 +485,11 @@ export default function BusinessTravelAllowanceScreen() {
             <TransactionLayout
                 title="Business Travel Allowance"
                 currentStep={currentStep}
-                totalSteps={5}
+                totalSteps={isElectronicTransfer ? 4 : 5}
                 onBack={handleBack}
                 onNext={isAddingNewAccount ? handleSaveNewAccount : handleNext}
                 isNextDisabled={isNextDisabled}
-                nextLabel={isAddingNewAccount ? "Save" : (currentStep === 4 ? (watchedFields.selectedState && watchedFields.selectedCity ? "Initiate Transaction Request" : "Continue") : "Continue")}
+                nextLabel={isAddingNewAccount ? "Save" : (currentStep === (isElectronicTransfer ? 3 : 4) ? (isElectronicTransfer || (watchedFields.selectedState && watchedFields.selectedCity) ? "Initiate Transaction Request" : "Continue") : "Continue")}
             >
                 {currentStep === 0 && (
                     <CredentialStep fields={credentialFields} />

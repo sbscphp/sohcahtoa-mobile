@@ -251,6 +251,7 @@ export interface CalculateExchangeRatePayload {
     fromCurrency: string;
     toCurrency: string;
     amount: number;
+    mode?: 'buy' | 'sell';
 }
 
 export interface CalculateExchangeRateResponse {

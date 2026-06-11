@@ -119,7 +119,7 @@ export const getTransactionDocuments = (tx: any): { label: string; value: string
     const passportExpiryDate = getValue(tx.personalInfo?.passportExpiryDate, ['passportExpiryDate']);
     const schoolInvoiceNumber = getValue(tx.beneficiaryDetails?.admissionNumber, ['admissionNumber', 'beneficiaryDetails.admissionNumber']);
 
-    if (bvn) docs.push({ label: 'BVN Number', value: bvn });
+    if (bvn && tx.type !== 'TOURING' && tx.type !== 'TOURIST_FX') docs.push({ label: 'BVN Number', value: bvn });
     if (nin) docs.push({ label: 'NIN', value: nin });
     if (admissionType) docs.push({ label: 'Admission Type', value: admissionType });
     if (tin) docs.push({ label: 'TIN', value: tin });

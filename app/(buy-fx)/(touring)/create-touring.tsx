@@ -59,7 +59,6 @@ export default function TouringScreen() {
             passportIssueDate: '',
             passportExpiryDate: '',
             visaNumber: '',
-            ticketNumber: '',
             amount: 0,
             selectedState: undefined as unknown as LocationItem,
             selectedCity: undefined as unknown as LocationItem,
@@ -148,17 +147,6 @@ export default function TouringScreen() {
             )
         },
         {
-            label: 'Return Ticket',
-            onUpload: () => uploadFile('RETURN_TICKET'),
-            fileName: docs.ticket.file?.name,
-            fileUri: docs.ticket.file?.uri, fileUrl: docs.ticket.meta?.fileUrl,
-            fileType: docs.ticket.file?.type,
-            required: true,
-            associatedInputs: (
-                <ControlledInput control={control} name="ticketNumber" label="Ticket Number" placeholder="Enter ticket number" required maxLength={13} filterType="numeric" />
-            )
-        },
-        {
             label: 'Receipt for Initial Naira Purchase',
             onUpload: () => uploadFile('RECEIPT'),
             fileName: docs.receipt.file?.name,
@@ -178,11 +166,11 @@ export default function TouringScreen() {
         if (currentStep === 0) {
             isStepValid = await trigger(['formAId', 'passportNumber']);
         } else if (currentStep === 1) {
-            if (!docs.passport.file || !docs.visa.file || !docs.ticket.file || !docs.receipt.file) {
+            if (!docs.passport.file || !docs.visa.file || !docs.receipt.file) {
                 showToast('Please upload all required documents', 'error');
                 return;
             }
-            isStepValid = await trigger(['passportIssueDate', 'passportExpiryDate', 'visaNumber', 'ticketNumber']);
+            isStepValid = await trigger(['passportIssueDate', 'passportExpiryDate', 'visaNumber']);
         } else if (currentStep === 2) {
             isStepValid = await trigger(['amount']);
         } else if (currentStep === 3) {
@@ -228,11 +216,9 @@ export default function TouringScreen() {
             passportIssueDate: data.passportIssueDate,
             passportExpiryDate: data.passportExpiryDate,
             visaNumber: data.visaNumber,
-            ticketNumber: data.ticketNumber,
             documents: [
                 ...(docs.passport.meta ? [docs.passport.meta] : []),
                 ...(docs.visa.meta ? [docs.visa.meta] : []),
-                ...(docs.ticket.meta ? [docs.ticket.meta] : []),
                 ...(docs.receipt.meta ? [docs.receipt.meta] : []),
                 ...(docs.signature.meta ? [docs.signature.meta] : []),
             ],
@@ -269,8 +255,8 @@ export default function TouringScreen() {
     }, [watchedFields.selectedCity, allLocations]);
 
     const isStep0Valid = watchedFields.formAId && watchedFields.passportNumber;
-    const isStep1Valid = docs.passport.meta && docs.visa.meta && docs.ticket.meta && docs.receipt.meta &&
-        watchedFields.passportIssueDate && watchedFields.passportExpiryDate && watchedFields.visaNumber && watchedFields.ticketNumber;
+    const isStep1Valid = docs.passport.meta && docs.visa.meta && docs.receipt.meta &&
+        watchedFields.passportIssueDate && watchedFields.passportExpiryDate && watchedFields.visaNumber;
     const isStep2Valid = watchedFields.amount > 0;
     const isStep3Valid = watchedFields.selectedState && watchedFields.selectedCity && watchedFields.selectedLocation && watchedFields.pickupDate && watchedFields.pickupTime;
 

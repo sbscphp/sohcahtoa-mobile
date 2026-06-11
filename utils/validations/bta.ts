@@ -2,12 +2,9 @@ import { z } from 'zod';
 import {
     amountStepSchema,
     baseCredentialSchema,
-    formAIdField,
     locationStepSchema,
     passportExpiryDateField,
     passportIssueDateField,
-    tccNumberField,
-    ticketNumberField,
     tinField,
 } from './shared';
 
@@ -18,7 +15,6 @@ export const btaStep0Schema = baseCredentialSchema.extend({
 
 /** Step 1: BTA document details */
 export const btaStep1Schema = z.object({
-    tccNumber: tccNumberField,
     passportIssueDate: passportIssueDateField,
     passportExpiryDate: passportExpiryDateField,
 });

@@ -1,11 +1,10 @@
 import { z } from 'zod';
-import { amountStepSchema, baseCredentialSchema, locationStepSchema, passportExpiryDateField, passportIssueDateField, ticketNumberField } from './shared';
+import { amountStepSchema, baseCredentialSchema, locationStepSchema, passportExpiryDateField, passportIssueDateField } from './shared';
 
 /** Step 0: PTA credentials — standard BVN, NIN, Form A, Passport */
 export const ptaStep0Schema = baseCredentialSchema;
 
 export const ptaStep1Schema = z.object({
-    ticketNumber: ticketNumberField,
     passportIssueDate: passportIssueDateField,
     passportExpiryDate: passportExpiryDateField,
 });

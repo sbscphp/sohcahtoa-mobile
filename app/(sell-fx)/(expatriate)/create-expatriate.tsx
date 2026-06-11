@@ -123,7 +123,7 @@ export default function CreateExpatriateScreen() {
         amountSendStr: amountSend,
         setAmountSendStr: setAmountSend,
         currentRate,
-    } = useExchangeLogic({ setValue, initialAmount: '' });
+    } = useExchangeLogic({ setValue, initialAmount: '', initialTransactionType: 'sell' });
 
     // Step 3: Pickup
     const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);

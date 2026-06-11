@@ -120,7 +120,7 @@ export default function CreateResidentScreen() {
         amountSendStr: amountSend,
         setAmountSendStr: setAmountSend,
         currentRate,
-    } = useExchangeLogic({ setValue, initialAmount: '0' });
+    } = useExchangeLogic({ setValue, initialAmount: '0', initialTransactionType: 'sell' });
 
     const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
 
@@ -329,7 +329,7 @@ export default function CreateResidentScreen() {
                 nextLabel={currentStep === 3 ? (watchedFields.selectedState && watchedFields.selectedCity ? "Initiate Transaction Request" : "Continue") : "Continue"}
             >
                 {currentStep === 0 && (
-                    <CredentialStep fields={credentialFields} title="Enter Tax Identification Number (TIN)" />
+                    <CredentialStep fields={credentialFields} title="Enter BVN, NIN & Passport Number" />
                 )}
 
                 {currentStep === 1 && (

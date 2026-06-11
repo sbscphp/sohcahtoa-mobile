@@ -67,7 +67,6 @@ export default function CreateTouristScreen() {
             passportIssueDate: '',
             passportExpiryDate: '',
             visaNumber: '',
-            ticketNumber: '',
             amount: 0,
             accountName: '',
             bankName: '',
@@ -119,7 +118,7 @@ export default function CreateTouristScreen() {
         amountSendStr: amountSend,
         setAmountSendStr: setAmountSend,
         currentRate,
-    } = useExchangeLogic({ setValue, initialAmount: '' });
+    } = useExchangeLogic({ setValue, initialAmount: '', initialTransactionType: 'sell' });
 
     // Dynamic Locations
     const { data: states = [] } = useGetPickupStatesQuery();
@@ -209,25 +208,6 @@ export default function CreateTouristScreen() {
             )
         },
         {
-            label: 'Valid Return Ticket',
-            onUpload: () => uploadFile('RETURN_TICKET'),
-            fileName: docs.ticket.file?.name,
-            fileUri: docs.ticket.file?.uri, fileUrl: docs.ticket.meta?.fileUrl,
-            fileType: docs.ticket.file?.type,
-            required: true,
-            associatedInputs: (
-                <View>
-                    <ControlledInput
-                        control={control}
-                        name="ticketNumber"
-                        label="Valid Return Ticket"
-                        placeholder="Enter ticket number"
-                        required
-                    />
-                </View>
-            )
-        },
-        {
             label: 'Receipt for Initial Naira Purchase',
             onUpload: () => uploadFile('RECEIPT'),
             fileName: docs.receipt.file?.name,
@@ -248,11 +228,11 @@ export default function CreateTouristScreen() {
         if (currentStep === 0) {
             isStepValid = await trigger(['passportNumber']);
         } else if (currentStep === 1) {
-            if (!docs.passport.file || !docs.visa.file || !docs.ticket.file || !docs.receipt.file) {
+            if (!docs.passport.file || !docs.visa.file || !docs.receipt.file) {
                 showToast('Please upload all required documents', 'error');
                 return;
             }
-            isStepValid = await trigger(['passportIssueDate', 'passportExpiryDate', 'visaNumber', 'ticketNumber']);
+            isStepValid = await trigger(['passportIssueDate', 'passportExpiryDate', 'visaNumber']);
         } else if (currentStep === 2) {
             setValue('amount', parseFloat(amountSend.replace(/,/g, '')) || 0);
             isStepValid = await trigger(['amount']);
@@ -301,14 +281,12 @@ export default function CreateTouristScreen() {
             documents: [
                 ...(docs.passport.meta ? [docs.passport.meta] : []),
                 ...(docs.visa.meta ? [docs.visa.meta] : []),
-                ...(docs.ticket.meta ? [docs.ticket.meta] : []),
                 ...(docs.receipt.meta ? [docs.receipt.meta] : []),
             ],
             identificationNumber: data.passportNumber,
             passportIssueDate: data.passportIssueDate,
             passportExpiryDate: data.passportExpiryDate,
             visaNumber: data.visaNumber,
-            ticketNumber: data.ticketNumber,
         };
 
         if (paymentMethod === 'transfer') {
@@ -348,8 +326,8 @@ export default function CreateTouristScreen() {
     };
 
     const isStep0Valid = !!watchedFields.passportNumber;
-    const isStep1Valid = !!(docs.passport.meta && docs.visa.meta && docs.ticket.meta && docs.receipt.meta &&
-        watchedFields.passportIssueDate && watchedFields.passportExpiryDate && watchedFields.visaNumber && watchedFields.ticketNumber);
+    const isStep1Valid = !!(docs.passport.meta && docs.visa.meta && docs.receipt.meta &&
+        watchedFields.passportIssueDate && watchedFields.passportExpiryDate && watchedFields.visaNumber);
     const isStep2Valid = watchedFields.amount > 0;
     
     let isStep3Valid = false;

@@ -259,14 +259,6 @@ export default function MedicalPaymentScreen() {
             required: true,
         },
         {
-            label: 'Return Ticket',
-            onUpload: () => uploadFile('RETURN_TICKET'),
-            fileName: docs.returnTicket.file?.name,
-            fileUri: docs.returnTicket.file?.uri, fileUrl: docs.returnTicket.meta?.fileUrl,
-            fileType: docs.returnTicket.file?.type,
-            required: true,
-        },
-        {
             label: 'Reference Letter (Nigerian Specialist Doctor or Hospital)',
             onUpload: () => uploadFile('MEDICAL_LETTER'),
             fileName: docs.referenceLetter.file?.name,
@@ -318,7 +310,7 @@ export default function MedicalPaymentScreen() {
         if (currentStep === 0) {
             isStepValid = await trigger(['bvn', 'nin', 'formAId', 'passportNumber']);
         } else if (currentStep === 1) {
-            if (!docs.passport.file || !docs.visa.file || !docs.returnTicket.file || !docs.referenceLetter.file || !docs.overseaDoctorLetter.file) {
+            if (!docs.passport.file || !docs.visa.file || !docs.referenceLetter.file || !docs.overseaDoctorLetter.file) {
                 showToast('Please upload all required documents', 'error');
                 return;
             }
@@ -390,7 +382,6 @@ export default function MedicalPaymentScreen() {
             documents: [
                 ...(docs.passport.meta ? [docs.passport.meta] : []),
                 ...(docs.visa.meta ? [docs.visa.meta] : []),
-                ...(docs.returnTicket.meta ? [docs.returnTicket.meta] : []),
                 ...(docs.referenceLetter.meta ? [docs.referenceLetter.meta] : []),
                 ...(docs.overseaDoctorLetter.meta ? [docs.overseaDoctorLetter.meta] : []),
             ],
@@ -439,7 +430,7 @@ export default function MedicalPaymentScreen() {
     };
 
     const isStep0Valid = watchedFields.bvn && watchedFields.nin && watchedFields.formAId && watchedFields.passportNumber;
-    const isStep1Valid = docs.passport.meta && docs.visa.meta && docs.returnTicket.meta && docs.referenceLetter.meta && docs.overseaDoctorLetter.meta;
+    const isStep1Valid = docs.passport.meta && docs.visa.meta && docs.referenceLetter.meta && docs.overseaDoctorLetter.meta;
     const isStep2Valid = watchedFields.amount > 0;
     const isElectronicTransfer = watchedFields.payoutMethod === 'Electronic Transfer (100%)' || watchedFields.payoutMethod === 'Electronic_Transfer';
     const isStep3Valid = watchedFields.payoutMethod && (!isElectronicTransfer || (watchedFields.customerBankName && watchedFields.customerBankCode && watchedFields.customerAccountNumber && watchedFields.customerAccountName));

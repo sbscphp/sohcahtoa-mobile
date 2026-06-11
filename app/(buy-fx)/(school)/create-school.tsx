@@ -72,13 +72,6 @@ export default function SchoolFeesScreen() {
             .merge(schoolStep3Schema)
             .superRefine((data, ctx) => {
                 if (data.admissionType === 'Others') {
-                    if (!data.admissionNumber) {
-                        ctx.addIssue({
-                            code: z.ZodIssueCode.custom,
-                            message: 'Please enter admission number',
-                            path: ['admissionNumber']
-                        });
-                    }
                     if (!data.beneficiaryCity) {
                         ctx.addIssue({
                             code: z.ZodIssueCode.custom,
@@ -143,7 +136,6 @@ export default function SchoolFeesScreen() {
             formAId: '',
             passportNumber: '',
             admissionType: '',
-            admissionNumber: '',
             passportIssueDate: '',
             passportExpiryDate: '',
             amount: 0,
@@ -316,14 +308,6 @@ export default function SchoolFeesScreen() {
             required: true,
         },
         {
-            label: 'School Invoice',
-            onUpload: () => uploadFile('INVOICE'),
-            fileName: docs.invoice.file?.name,
-            fileUri: docs.invoice.file?.uri, fileUrl: docs.invoice.meta?.fileUrl,
-            fileType: docs.invoice.file?.type,
-            required: true
-        },
-        {
             label: 'International Passport',
             onUpload: () => uploadFile('PASSPORT'),
             fileName: docs.passport.file?.name,
@@ -340,14 +324,6 @@ export default function SchoolFeesScreen() {
             fileName: docs.admission.file?.name,
             fileUri: docs.admission.file?.uri, fileUrl: docs.admission.meta?.fileUrl,
             fileType: docs.admission.file?.type,
-            required: true,
-        },
-        {
-            label: 'School Invoice',
-            onUpload: () => uploadFile('INVOICE'),
-            fileName: docs.invoice.file?.name,
-            fileUri: docs.invoice.file?.uri, fileUrl: docs.invoice.meta?.fileUrl,
-            fileType: docs.invoice.file?.type,
             required: true,
         },
         {
@@ -385,17 +361,6 @@ export default function SchoolFeesScreen() {
                         <ControlledDatePicker control={control} name="passportExpiryDate" label="Passport Expiry Date" required minimumDate={new Date()} />
                     </View>
                 </View>
-            )
-        },
-        {
-            label: 'School invoice',
-            onUpload: () => uploadFile('INVOICE'),
-            fileName: docs.invoice.file?.name,
-            fileUri: docs.invoice.file?.uri, fileUrl: docs.invoice.meta?.fileUrl,
-            fileType: docs.invoice.file?.type,
-            required: true,
-            associatedInputs: (
-                <ControlledInput control={control} name="admissionNumber" label="School invoice" placeholder="Enter admission number" required />
             )
         },
         {
@@ -452,16 +417,16 @@ export default function SchoolFeesScreen() {
             }
             isStepValid = await trigger(fieldsToTrigger as any);
         } else if (currentStep === 1) {
-            const hasRequiredUgDocs = docs.admission.file && docs.invoice.file && docs.passport.file;
-            const hasRequiredPgDocs = docs.admission.file && docs.invoice.file && docs.degree.file && docs.result.file;
+            const hasRequiredUgDocs = docs.admission.file && docs.passport.file;
+            const hasRequiredPgDocs = docs.admission.file && docs.degree.file && docs.result.file;
 
             if (watchedFields.admissionType === 'Others') {
-                const hasRequiredOthersDocs = docs.passport.file && docs.invoice.file && docs.admission.file;
+                const hasRequiredOthersDocs = docs.passport.file && docs.admission.file;
                 if (!hasRequiredOthersDocs) {
                     showToast('Please upload all required documents', 'error');
                     return;
                 }
-                isStepValid = await trigger(['passportIssueDate', 'passportExpiryDate', 'admissionNumber']);
+                isStepValid = await trigger(['passportIssueDate', 'passportExpiryDate']);
             } else if (isPostGrad) {
                 if (!hasRequiredPgDocs) {
                     showToast('Please upload all required documents', 'error');
@@ -544,16 +509,13 @@ export default function SchoolFeesScreen() {
             payoutMethod: data.payoutMethod,
             documents: isPostGrad ? [
                 ...(docs.admission.meta ? [docs.admission.meta] : []),
-                ...(docs.invoice.meta ? [docs.invoice.meta] : []),
                 ...(docs.degree.meta ? [docs.degree.meta] : []),
                 ...(docs.result.meta ? [docs.result.meta] : []),
             ] : [
                 ...(docs.admission.meta ? [docs.admission.meta] : []),
-                ...(docs.invoice.meta ? [docs.invoice.meta] : []),
                 ...(docs.passport.meta ? [docs.passport.meta] : []),
             ],
             beneficiaryDetails: {
-                admissionNumber: data.admissionNumber,
                 studentName: data.studentName,
                 studentPassportNumber: data.studentPassportNumber,
                 bankAccountName: data.bankAccountName,
@@ -605,11 +567,11 @@ export default function SchoolFeesScreen() {
 
     let isStep1Valid = false;
     if (watchedFields.admissionType === 'Post-Graduate') {
-        isStep1Valid = !!(docs.admission.meta && docs.invoice.meta && docs.degree.meta && docs.result.meta);
+        isStep1Valid = !!(docs.admission.meta && docs.degree.meta && docs.result.meta);
     } else if (watchedFields.admissionType === 'Others') {
-        isStep1Valid = !!(docs.admission.meta && docs.invoice.meta && docs.passport.meta && watchedFields.passportIssueDate && watchedFields.passportExpiryDate && watchedFields.admissionNumber);
+        isStep1Valid = !!(docs.admission.meta && docs.passport.meta && watchedFields.passportIssueDate && watchedFields.passportExpiryDate);
     } else {
-        isStep1Valid = !!(docs.admission.meta && docs.invoice.meta && docs.passport.meta);
+        isStep1Valid = !!(docs.admission.meta && docs.passport.meta);
     }
 
     const isStep2Valid = watchedFields.amount > 0;
