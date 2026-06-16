@@ -6,7 +6,7 @@ import TransactionViewLayout from '@/components/transaction-flow/TransactionView
 import { useGetTransactionByIdQuery } from '@/hooks/queries/transactions/useGetTransactionByIdQuery';
 import { useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useToastStore } from '@/stores/useToastStore';
-import { commonDocTypeLabels, getTransactionDocuments } from '@/utils/helpers';
+import { commonDocTypeLabels, getTransactionDocuments, formatDate, formatTime, formatTimeWithSeconds, formatCurrency } from '@/utils/helpers';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
@@ -50,17 +50,13 @@ export default function ViewMedicalPaymentScreen() {
         });
     };
 
-    const formatDate = (d: string) => { const dt = new Date(d); const m = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']; return `${dt.getDate()} ${m[dt.getMonth()]} ${dt.getFullYear()}`; };
-    const formatTime = (d: string) => { const dt = new Date(d); let h = dt.getHours(); const min = dt.getMinutes(); const ap = h >= 12 ? 'pm' : 'am'; h = h % 12 || 12; return `${h}:${String(min).padStart(2, '0')} ${ap}`; };
-    const fmtCur = (n: number | null | undefined, p = '₦') => n == null ? `${p} 0` : `${p} ${n.toLocaleString()}`;
-
     const detailsItems = useMemo(() => {
         if (!tx) return [];
         return [
             { label: 'Transaction ID', value: tx.referenceNumber },
-            { label: 'Amount (₦)', value: fmtCur(tx.nairaEquivalent) },
-            { label: 'Equivalent Amount (FX)', value: fmtCur(tx.foreignAmount, tx.currency === 'USD' ? '$' : tx.currency === 'GBP' ? '£' : tx.currency === 'EUR' ? '€' : tx.currency) },
-            { label: 'Date Initiated', value: formatDate(tx.createdAt) },
+            { label: 'Amount (₦)', value: formatCurrency(tx.nairaEquivalent) },
+            { label: 'Equivalent Amount (FX)', value: formatCurrency(tx.foreignAmount, tx.currency === 'USD' ? '$' : tx.currency === 'GBP' ? '£' : tx.currency === 'EUR' ? '€' : tx.currency) },
+            { label: 'Date Initiated', value: `${formatDate(tx.createdAt)}\n${formatTimeWithSeconds(tx.createdAt)}` },
         ];
     }, [tx]);
 

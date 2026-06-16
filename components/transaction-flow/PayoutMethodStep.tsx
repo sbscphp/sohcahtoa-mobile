@@ -179,8 +179,32 @@ export default function PayoutMethodStep({
                 </View>
             )}
 
-            {/* + New Account Button */}
+
             {isElectronic && (!savedAccounts || savedAccounts.length === 0) && (
+                <View style={{
+                    padding: moderateScale(16),
+                    backgroundColor: '#F8F9FA',
+                    borderRadius: moderateScale(12),
+                    borderWidth: 1,
+                    borderColor: '#E2E8F0',
+                    borderStyle: 'dashed',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginTop: moderateScale(8)
+                }}>
+                    <Text style={{
+                        fontSize: moderateScale(13),
+                        color: '#64748B',
+                        textAlign: 'center',
+                        fontWeight: '500'
+                    }}>
+                        No saved accounts found. Please add one to proceed with the Electronic Transfer.
+                    </Text>
+                </View>
+            )}
+
+           
+            {isElectronic && (
                 <TouchableOpacity
                     activeOpacity={0.8}
                     onPress={() => {

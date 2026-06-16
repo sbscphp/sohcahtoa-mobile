@@ -35,7 +35,7 @@ import { z } from 'zod';
 const PAYOUT_METHODS: SelectionItem[] = [
     { id: '1', label: 'Electronic Transfer (100%)', value: 'Electronic_Transfer' },
     { id: '2', label: 'Card (100%)', value: 'Card' },
-    { id: '3', label: 'Card (75%) + Cash (25%)', value: 'Card_Cash' },
+    { id: '3', label: 'Card (75%) + Cash (25%)', value: 'Card_Cash', description: 'Maximum amount to be collected as cash is $500' },
 ];
 
 const btaFormSchema = z.object({
@@ -143,6 +143,7 @@ export default function BusinessTravelAllowanceScreen() {
         trigger,
         watch,
         setValue,
+        getValues,
         formState: { errors }
     } = useForm<BtaFormValues>({
         resolver: zodResolver(btaFormSchema),
@@ -385,7 +386,9 @@ export default function BusinessTravelAllowanceScreen() {
         }
 
         if (isStepValid) {
-            if (currentStep < (isElectronicTransfer ? 3 : 4)) {
+            const values = getValues();
+            const isElectronicTransferLatest = values.payoutMethod === 'Electronic Transfer (100%)' || values.payoutMethod === 'Electronic_Transfer';
+            if (currentStep < (isElectronicTransferLatest ? 3 : 4)) {
                 setCurrentStep(currentStep + 1);
             } else {
                 setInitiateSheetVisible(true);
@@ -477,7 +480,7 @@ export default function BusinessTravelAllowanceScreen() {
         (currentStep === 1 && !isStep1Valid) ||
         (currentStep === 2 && !isStep2Valid) ||
         (currentStep === 3 && !isStep3Valid) ||
-        (currentStep === 4 && !isStep4Valid);
+        (currentStep === 4 && !isElectronicTransfer && !isStep4Valid);
 
     return (
         <>
@@ -539,7 +542,7 @@ export default function BusinessTravelAllowanceScreen() {
                     />
                 )}
 
-                {currentStep === 4 && (
+                {currentStep === 4 && !isElectronicTransfer && (
                     <LocationStep
                         states={states}
                         cities={filteredCities}

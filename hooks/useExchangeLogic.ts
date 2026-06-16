@@ -57,20 +57,41 @@ export const useExchangeLogic = ({ setValue, initialAmount = '1', maxLimit, init
     }, [exchangeRates, transactionType]);
 
     const handleAmountGetChange = (amount: string) => {
-        let cleanAmount = amount.replace(/,/g, '');
+        // Remove all non-numeric/non-decimal characters
+        let cleanAmount = amount.replace(/[^0-9.]/g, '');
+        
+        // Handle multiple decimal points by keeping only the first one
+        const parts = cleanAmount.split('.');
+        if (parts.length > 2) {
+            cleanAmount = parts[0] + '.' + parts.slice(1).join('');
+        }
+
+        let formatted = cleanAmount;
+        if (cleanAmount !== '') {
+            const integerPart = parts[0];
+            const decimalPart = parts[1] !== undefined ? '.' + parts[1] : '';
+            const formattedInteger = integerPart ? parseInt(integerPart, 10).toLocaleString('en-US') : (integerPart === '0' ? '0' : '');
+            
+            if (integerPart === '') {
+                formatted = decimalPart;
+            } else {
+                formatted = formattedInteger + decimalPart;
+            }
+        }
+
         let numAmount = parseFloat(cleanAmount) || 0;
 
-        setAmountGetStr(amount);
+        setAmountGetStr(formatted);
 
         if (setValue) {
             setValue('amount', numAmount, { shouldValidate: true });
         }
 
-        if (cleanAmount && !isNaN(parseFloat(cleanAmount))) {
+        if (cleanAmount && !isNaN(numAmount)) {
             calculateExchangeRate.mutate({
                 fromCurrency: currencyGet.code,
                 toCurrency: currencySend.code,
-                amount: parseFloat(cleanAmount),
+                amount: numAmount,
                 mode: transactionType
             }, {
                 onSuccess: (response: any) => {

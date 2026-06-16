@@ -35,7 +35,7 @@ import { z } from 'zod';
 const PAYOUT_METHODS: SelectionItem[] = [
     { id: '1', label: 'Electronic Transfer (100%)', value: 'Electronic Transfer (100%)' },
     { id: '2', label: 'Card (100%)', value: 'Card (100%)' },
-    { id: '3', label: 'Card (75%) + Cash (25%)', value: 'Card (75%) + Cash (25%)' },
+    { id: '3', label: 'Card (75%) + Cash (25%)', value: 'Card (75%) + Cash (25%)', description: 'Maximum amount to be collected as cash is $500' },
 ];
 
 
@@ -55,7 +55,7 @@ const ptaFormSchema = z.object({
     pickupDate: z.string().optional().or(z.literal('')),
     pickupTime: z.string().optional().or(z.literal('')),
 }).superRefine((data, ctx) => {
-    const isElectronicTransfer = data.payoutMethod === 'Electronic Transfer (100%)' || data.payoutMethod === 'Electronic_Transfer';
+    const isElectronicTransfer = data.payoutMethod?.includes('Electronic') || data.payoutMethod === 'Electronic_Transfer';
     if (isElectronicTransfer) {
         if (!data.customerBankName) {
             ctx.addIssue({
@@ -145,12 +145,13 @@ export default function PersonalTravelAllowanceScreen() {
         trigger,
         watch,
         setValue,
+        getValues,
         formState: { errors }
     } = useForm<PtaFormValues>({
         resolver: zodResolver(ptaFormSchema),
         defaultValues: {
             bvn: user?.kyc?.bvn || '',
-            nin: '',
+            nin: (user?.kyc as any)?.nin || (user as any)?.nin || '',
             formAId: '',
             passportNumber: '',
             passportIssueDate: '',
@@ -189,7 +190,7 @@ export default function PersonalTravelAllowanceScreen() {
     const { data: allLocations = [] } = useGetPickupPointsQuery();
 
     const watchedFields = watch() as any;
-    const isElectronicTransfer = watchedFields.payoutMethod === 'Electronic Transfer (100%)' || watchedFields.payoutMethod === 'Electronic_Transfer';
+    const isElectronicTransfer = watchedFields.payoutMethod?.includes('Electronic') || watchedFields.payoutMethod === 'Electronic_Transfer';
 
     const { data: filteredCities = [] } = useGetPickupCitiesQuery(watchedFields.selectedState?.title);
 
@@ -253,10 +254,11 @@ export default function PersonalTravelAllowanceScreen() {
         }
     }, [watchedFields.customerAccountNumber, watchedFields.customerBankCode, isAddingNewAccount]);
 
-    // Document upload files state
+   
     const [docs, setDocs] = useState({
         visa: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
-        ticket: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        returnTicket: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        passport: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
     });
 
     const updateDoc = (key: keyof typeof docs, file: UploadedFile, metadata: UploadedMetadata) => {
@@ -266,16 +268,29 @@ export default function PersonalTravelAllowanceScreen() {
     const { upload: uploadFile, isPending: isUploading } = useDocumentUpload({
         onSuccess: (documentType, { file, metadata }) => {
             if (documentType === 'VISA') updateDoc('visa', file, metadata);
-            else if (documentType === 'RETURN_TICKET') updateDoc('ticket', file, metadata);
+            else if (documentType === 'RETURN_TICKET') updateDoc('returnTicket', file, metadata);
+            else if (documentType === 'PASSPORT') updateDoc('passport', file, metadata);
         },
         onError: () => showToast('Failed to upload document. Please try again.', 'error'),
     });
 
     const credentialFields = [
         { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number(BVN)" placeholder="Enter your BVN" required keyboardType="numeric" maxLength={11} filterType="numeric" disabled /> },
-        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number(NIN)" placeholder="Enter your NIN" required keyboardType="numeric" maxLength={11} filterType="numeric" /> },
+        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number(NIN) (Optional)" placeholder="Enter your NIN" keyboardType="numeric" maxLength={11} filterType="numeric" /> },
         { customComponent: <ControlledInput control={control} name="formAId" label="Form A ID" placeholder="Enter Form A ID" required /> },
         { customComponent: <ControlledInput control={control} name="passportNumber" label="International Passport Number" placeholder="Enter international passport" required maxLength={9} filterType="alphanumeric" /> },
+        {
+            customComponent: (
+                <View style={{ flexDirection: 'row', gap: 12, marginTop: 6 }}>
+                    <View style={{ flex: 1 }}>
+                        <ControlledDatePicker control={control} name="passportIssueDate" label="Passport Issue Date" required maximumDate={new Date()} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                        <ControlledDatePicker control={control} name="passportExpiryDate" label="Passport Expiry Date" required minimumDate={new Date()} />
+                    </View>
+                </View>
+            )
+        }
     ];
 
     const documentFields = [
@@ -286,16 +301,22 @@ export default function PersonalTravelAllowanceScreen() {
             fileUri: docs.visa.file?.uri, fileUrl: docs.visa.meta?.fileUrl,
             fileType: docs.visa.file?.type,
             required: true,
-            associatedInputs: (
-                <View style={{ flexDirection: 'row', gap: 12 }}>
-                    <View style={{ flex: 1 }}>
-                        <ControlledDatePicker control={control} name="passportIssueDate" label="Passport Issue Date" required maximumDate={new Date()} />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                        <ControlledDatePicker control={control} name="passportExpiryDate" label="Passport Expiry Date" required minimumDate={new Date()} />
-                    </View>
-                </View>
-            )
+        },
+        {
+            label: 'Return Ticket',
+            onUpload: () => uploadFile('RETURN_TICKET'),
+            fileName: docs.returnTicket.file?.name,
+            fileUri: docs.returnTicket.file?.uri, fileUrl: docs.returnTicket.meta?.fileUrl,
+            fileType: docs.returnTicket.file?.type,
+            required: true,
+        },
+        {
+            label: 'International Passport',
+            onUpload: () => uploadFile('PASSPORT'),
+            fileName: docs.passport.file?.name,
+            fileUri: docs.passport.file?.uri, fileUrl: docs.passport.meta?.fileUrl,
+            fileType: docs.passport.file?.type,
+            required: true,
         }
     ];
 
@@ -347,7 +368,9 @@ export default function PersonalTravelAllowanceScreen() {
         }
 
         if (isValid) {
-            if (currentStep < (isElectronicTransfer ? 3 : 4)) {
+            const values = getValues();
+            const isElectronicTransferLatest = values.payoutMethod?.includes('Electronic') || values.payoutMethod === 'Electronic_Transfer';
+            if (currentStep < (isElectronicTransferLatest ? 3 : 4)) {
                 setCurrentStep(prev => prev + 1);
             } else {
                 setInitiateSheetVisible(true);
@@ -382,8 +405,10 @@ export default function PersonalTravelAllowanceScreen() {
             passportExpiryDate: data.passportExpiryDate,
             documents: [
                 ...(docs.visa.meta ? [docs.visa.meta] : []),
+                ...(docs.returnTicket.meta ? [docs.returnTicket.meta] : []),
+                ...(docs.passport.meta ? [docs.passport.meta] : []),
             ],
-            pickupLocation: (!isElectronicTransfer && data.selectedLocation) ? {
+            pickupLocation: (!(data.payoutMethod?.includes('Electronic') || data.payoutMethod === 'Electronic_Transfer') && data.selectedLocation) ? {
                 state: data.selectedState?.title || '',
                 city: data.selectedCity?.title || '',
                 name: data.selectedLocation?.title || '',
@@ -421,7 +446,7 @@ export default function PersonalTravelAllowanceScreen() {
     const isStep4Valid = watchedFields.selectedState && watchedFields.selectedCity && watchedFields.selectedLocation && watchedFields.pickupDate && watchedFields.pickupTime;
 
     const isNextDisabled =
-        (currentStep === 1 && !docs.visa.file) ||
+        (currentStep === 1 && (!docs.visa.file || !docs.returnTicket.file || !docs.passport.file)) ||
         (currentStep === 3 && !isStep3Valid) ||
         (currentStep === 4 && !isElectronicTransfer && !isStep4Valid);
 
@@ -482,7 +507,7 @@ export default function PersonalTravelAllowanceScreen() {
                     />
                 )}
 
-                {currentStep === 4 && (
+                {currentStep === 4 && !isElectronicTransfer && (
                     <LocationStep
                         states={states}
                         cities={filteredCities}

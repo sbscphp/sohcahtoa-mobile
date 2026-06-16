@@ -35,9 +35,21 @@ export const formatTime = (dateStr: string): string => {
     return `${hours}:${String(minutes).padStart(2, '0')} ${ampm}`;
 };
 
+export const formatTimeWithSeconds = (dateStr: string): string => {
+    const d = new Date(dateStr);
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    const seconds = String(d.getSeconds()).padStart(2, '0');
+    return `${hours}:${minutes}:${seconds}`;
+};
+
 export const formatCurrency = (amount: number | null | undefined, prefix: string = '₦'): string => {
     if (amount == null) return `${prefix} 0`;
-    return `${prefix} ${amount.toLocaleString()}`;
+    const num = Number(amount);
+    if (isNaN(num)) return `${prefix} 0`;
+    const parts = num.toString().split('.');
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return `${prefix} ${parts.join('.')}`;
 };
 
 export const truncateFileName = (name: string, maxLength: number = 25): string => {

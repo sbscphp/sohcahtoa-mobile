@@ -3,7 +3,7 @@ import TransactionDocsView from '@/components/transaction-flow/TransactionDocsVi
 import TransactionStatusView, { TransactionStatus } from '@/components/transaction-flow/TransactionStatusView';
 import TransactionViewLayout from '@/components/transaction-flow/TransactionViewLayout';
 import { useGetTransactionByIdQuery } from '@/hooks/queries/transactions/useGetTransactionByIdQuery';
-import { commonDocTypeLabels, getTransactionDocuments } from '@/utils/helpers';
+import { commonDocTypeLabels, getTransactionDocuments, formatDate, formatTime, formatTimeWithSeconds, formatCurrency } from '@/utils/helpers';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
@@ -28,17 +28,14 @@ export default function ViewExpatriateScreen() {
             params: { transactionId }
         });
     };
-    const fmtDate = (d: string) => { const dt = new Date(d); const m = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']; return `${dt.getDate()} ${m[dt.getMonth()]} ${dt.getFullYear()}`; };
-    const fmtTime = (d: string) => { const dt = new Date(d); let h = dt.getHours(); const min = dt.getMinutes(); const ap = h >= 12 ? 'pm' : 'am'; h = h % 12 || 12; return `${h}:${String(min).padStart(2, '0')} ${ap}`; };
-    const fmtCur = (n: number | null | undefined, p = '₦') => n == null ? `${p} 0` : `${p} ${n.toLocaleString()}`;
 
     const detailsItems = useMemo(() => {
         if (!tx) return [];
         return [
             { label: 'Transaction ID', value: tx.referenceNumber },
-            { label: 'Amount (₦)', value: fmtCur(tx.nairaEquivalent) },
-            { label: 'Equivalent Amount (FX)', value: fmtCur(tx.foreignAmount, tx.currency === 'USD' ? '$' : tx.currency === 'GBP' ? '£' : tx.currency === 'EUR' ? '€' : tx.currency) },
-            { label: 'Date Initiated', value: fmtDate(tx.createdAt) },
+            { label: 'Amount (₦)', value: formatCurrency(tx.nairaEquivalent) },
+            { label: 'Equivalent Amount (FX)', value: formatCurrency(tx.foreignAmount, tx.currency === 'USD' ? '$' : tx.currency === 'GBP' ? '£' : tx.currency === 'EUR' ? '€' : tx.currency) },
+            { label: 'Date Initiated', value: `${formatDate(tx.createdAt)}\n${formatTimeWithSeconds(tx.createdAt)}` },
             ...(tx.cashPickup ? [{ label: 'Pickup Point', value: tx.cashPickup.address || 'N/A', isRightAligned: true }] : []),
         ];
     }, [tx]);
@@ -81,7 +78,7 @@ export default function ViewExpatriateScreen() {
             actionButtonTitle={status === 'approved' || status === 'awaiting_disbursement' ? "Proceed to Payment" : "Resubmit Transaction Request"}
             onActionPress={handleProceed}
         >
-            {activeTab === 'overview' && (<TransactionStatusView status={status} id={tx?.referenceNumber?.slice(-6) || ''} date={tx ? fmtDate(tx.createdAt) : ''} time={tx ? fmtTime(tx.createdAt) : ''} message={getMessage()} comments={tx?.comments} />)}
+            {activeTab === 'overview' && (<TransactionStatusView status={status} id={tx?.referenceNumber?.slice(-6) || ''} date={tx ? formatDate(tx.createdAt) : ''} time={tx ? formatTime(tx.createdAt) : ''} message={getMessage()} comments={tx?.comments} />)}
             {activeTab === 'details' && (<TransactionDetailsView details={detailsItems} documents={detailsDocuments} />)}
             {activeTab === 'docs' && (<TransactionDocsView status={status} documents={docsItems} />)}
         </TransactionViewLayout>

@@ -29,7 +29,11 @@ const formatTime = (dateStr: string): string => {
 
 const formatAmount = (amount: number, currency: string): string => {
     const symbol = currency === 'USD' ? '$' : currency === 'GBP' ? '£' : currency === 'EUR' ? '€' : currency === 'NGN' ? '₦' : currency;
-    return `${symbol}${amount.toLocaleString()}`;
+    const num = Number(amount);
+    if (isNaN(num)) return `${symbol}0`;
+    const parts = num.toString().split('.');
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return `${symbol}${parts.join('.')}`;
 };
 
 const getStatusLabel = (status: string): string => {

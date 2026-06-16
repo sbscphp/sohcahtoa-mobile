@@ -10,6 +10,7 @@ export interface SelectionItem {
     label: string;
     value: string;
     icon?: Icon;
+    description?: string;
 }
 
 interface GenericSelectionSheetProps {
@@ -129,9 +130,16 @@ const GenericSelectionSheet: React.FC<GenericSelectionSheetProps> = ({
                                                 style={styles.itemIcon}
                                             />
                                         )}
-                                        <Text style={[styles.itemLabel]}>
-                                            {item.label}
-                                        </Text>
+                                        <View style={{ flex: 1 }}>
+                                            <Text style={[styles.itemLabel, isSelected && styles.selectedItemLabel]}>
+                                                {item.label}
+                                            </Text>
+                                            {item.description && (
+                                                <Text style={styles.itemDescription}>
+                                                    {item.description}
+                                                </Text>
+                                            )}
+                                        </View>
                                     </View>
                                 </TouchableOpacity>
                             );
@@ -246,6 +254,12 @@ const styles = ScaledSheet.create({
     selectedItemLabel: {
         color: '#0F172A',
         fontWeight: '600',
+    },
+    itemDescription: {
+        fontSize: '12.5@ms',
+        color: '#EF4444',
+        marginTop: '4@vs',
+        fontWeight: '500',
     },
     footer: {
         gap: '12@vs',
