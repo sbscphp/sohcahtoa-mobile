@@ -1,8 +1,11 @@
+import LoadingBackdrop from '@/components/LoadingBackdrop';
 import TransactionDetailsView from '@/components/transaction-flow/TransactionDetailsView';
 import TransactionDocsView from '@/components/transaction-flow/TransactionDocsView';
 import TransactionStatusView, { TransactionStatus } from '@/components/transaction-flow/TransactionStatusView';
 import TransactionViewLayout from '@/components/transaction-flow/TransactionViewLayout';
 import { useGetTransactionByIdQuery } from '@/hooks/queries/transactions/useGetTransactionByIdQuery';
+import { useDocumentUpload } from '@/hooks/useDocumentUpload';
+import { useToastStore } from '@/stores/useToastStore';
 import { commonDocTypeLabels, getTransactionDocuments, formatDate, formatTime, formatTimeWithSeconds, formatCurrency } from '@/utils/helpers';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
@@ -15,6 +18,13 @@ export default function ViewTouristScreen() {
 
     const { data: txResponse, isLoading } = useGetTransactionByIdQuery(transactionId || '');
     const tx = txResponse?.data;
+    const showToast = useToastStore(s => s.showToast);
+
+    const { upload: uploadFile, isPending: isUploading } = useDocumentUpload({
+        transactionId: transactionId || undefined,
+        onSuccess: () => {},
+        onError: () => showToast('Failed to upload document. Please try again.', 'error'),
+    });
 
     console.log(JSON.stringify(tx, null, 2), "TRANSACTION");
 
@@ -54,13 +64,16 @@ export default function ViewTouristScreen() {
 
     const docsItems = useMemo(() => {
         if (!tx) return [];
-        return tx.requiredDocuments.filter(d => !!d.uploaded).map(d => ({
+        return tx.requiredDocuments.map((d) => ({
             label: commonDocTypeLabels[d.type] || d.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
-            fileName: d.uploaded!.fileName,
-            docStatus: d.uploaded!.status,
-            required: true
+            fileName: d.uploaded ? d.uploaded.fileName : null,
+            docStatus: d.uploaded?.status,
+            required: true,
+            onUpload: (!d.uploaded || d.uploaded.status === 'FAILED' || d.uploaded.status === 'REJECTED')
+                ? () => uploadFile(d.type)
+                : undefined,
         }));
-    }, [tx]);
+    }, [tx, uploadFile]);
     const getMessage = () => {
         if (!tx) return '';
         if (status === 'approved' || status === 'awaiting_disbursement' || status === 'settled') return "Congratulations! Your application has been approved. Kindly proceed to make payment.";
@@ -70,6 +83,8 @@ export default function ViewTouristScreen() {
     if (isLoading) return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}><ActivityIndicator size="large" color="#FF6B2C" /></View>;
 
     return (
+        <>
+        <LoadingBackdrop visible={isUploading} />
         <TransactionViewLayout
             title="Transaction"
             activeTab={activeTab}
@@ -84,5 +99,6 @@ export default function ViewTouristScreen() {
             {activeTab === 'details' && (<TransactionDetailsView details={detailsItems} documents={detailsDocuments} />)}
             {activeTab === 'docs' && (<TransactionDocsView status={status} documents={docsItems} />)}
         </TransactionViewLayout>
+        </>
     );
 }

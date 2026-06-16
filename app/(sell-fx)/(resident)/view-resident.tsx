@@ -1,8 +1,11 @@
+import LoadingBackdrop from '@/components/LoadingBackdrop';
 import TransactionDetailsView from '@/components/transaction-flow/TransactionDetailsView';
 import TransactionDocsView from '@/components/transaction-flow/TransactionDocsView';
 import TransactionStatusView, { TransactionStatus } from '@/components/transaction-flow/TransactionStatusView';
 import TransactionViewLayout from '@/components/transaction-flow/TransactionViewLayout';
 import { useGetTransactionByIdQuery } from '@/hooks/queries/transactions/useGetTransactionByIdQuery';
+import { useDocumentUpload } from '@/hooks/useDocumentUpload';
+import { useToastStore } from '@/stores/useToastStore';
 import { commonDocTypeLabels, getTransactionDocuments, formatDate, formatTime, formatTimeWithSeconds, formatCurrency } from '@/utils/helpers';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
@@ -15,6 +18,13 @@ export default function ViewResidentScreen() {
 
     const { data: txResponse, isLoading } = useGetTransactionByIdQuery(transactionId || '');
     const tx = txResponse?.data;
+    const showToast = useToastStore(s => s.showToast);
+
+    const { upload: uploadFile, isPending: isUploading } = useDocumentUpload({
+        transactionId: transactionId || undefined,
+        onSuccess: () => {},
+        onError: () => showToast('Failed to upload document. Please try again.', 'error'),
+    });
 
     const mapStatus = (s: string): TransactionStatus => {
         const map: Record<string, TransactionStatus> = { 'DRAFT': 'pending', 'AWAITING_VERIFICATION': 'pending', 'VERIFICATION_IN_PROGRESS': 'pending', 'VERIFICATION_COMPLETED': 'pending', 'AWAITING_DEPOSIT': 'awaiting_disbursement', 'DEPOSIT_PENDING': 'awaiting_disbursement', 'DEPOSIT_CONFIRMED': 'awaiting_disbursement', 'COMPLIANCE_REVIEW': 'pending', 'ADMIN_APPROVAL_PENDING': 'pending', 'APPROVED': 'approved', 'DISBURSEMENT_IN_PROGRESS': 'awaiting_disbursement', 'COMPLETED': 'settled', 'REJECTED': 'rejected', 'CANCELLED': 'rejected' };
@@ -57,13 +67,16 @@ export default function ViewResidentScreen() {
 
     const docsItems = useMemo(() => {
         if (!tx) return [];
-        return tx.requiredDocuments.filter(d => !!d.uploaded).map(d => ({
+        return tx.requiredDocuments.map((d) => ({
             label: commonDocTypeLabels[d.type] || d.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
-            fileName: d.uploaded!.fileName,
-            docStatus: d.uploaded!.status,
-            required: true
+            fileName: d.uploaded ? d.uploaded.fileName : null,
+            docStatus: d.uploaded?.status,
+            required: true,
+            onUpload: (!d.uploaded || d.uploaded.status === 'FAILED' || d.uploaded.status === 'REJECTED')
+                ? () => uploadFile(d.type)
+                : undefined,
         }));
-    }, [tx]);
+    }, [tx, uploadFile]);
     const getMessage = () => {
         if (!tx) return '';
         if (status === 'approved' || status === 'awaiting_disbursement' || status === 'settled') return "Congratulations! Your application has been approved. Kindly proceed to complete the transaction.";
@@ -73,6 +86,8 @@ export default function ViewResidentScreen() {
     if (isLoading) return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}><ActivityIndicator size="large" color="#FF6B2C" /></View>;
 
     return (
+        <>
+        <LoadingBackdrop visible={isUploading} />
         <TransactionViewLayout
             title="Transaction"
             activeTab={activeTab}
@@ -87,5 +102,6 @@ export default function ViewResidentScreen() {
             {activeTab === 'details' && (<TransactionDetailsView details={detailsItems} documents={detailsDocuments} />)}
             {activeTab === 'docs' && (<TransactionDocsView status={status} documents={docsItems} />)}
         </TransactionViewLayout>
+        </>
     );
 }

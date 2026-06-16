@@ -98,15 +98,15 @@ export default function ViewMedicalPaymentScreen() {
 
     const docsItems = useMemo(() => {
         if (!tx) return [];
-        return tx.requiredDocuments
-            .filter((doc) => !!doc.uploaded)
-            .map((doc) => ({
-                label: commonDocTypeLabels[doc.type] || doc.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
-                fileName: doc.uploaded!.fileName,
-                docStatus: doc.uploaded!.status,
-                required: true,
-                onUpload: doc.uploaded!.status === 'FAILED' ? () => uploadFile(doc.type) : undefined,
-            }));
+        return tx.requiredDocuments.map((doc) => ({
+            label: commonDocTypeLabels[doc.type] || doc.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
+            fileName: doc.uploaded ? doc.uploaded.fileName : null,
+            docStatus: doc.uploaded?.status,
+            required: true,
+            onUpload: (!doc.uploaded || doc.uploaded.status === 'FAILED' || doc.uploaded.status === 'REJECTED')
+                ? () => uploadFile(doc.type)
+                : undefined,
+        }));
     }, [tx, uploadFile]);
 
     const getMessage = () => {

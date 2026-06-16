@@ -128,6 +128,7 @@ export const getTransactionDocuments = (tx: any): { label: string; value: string
     const tin = getValue(tx.taxClearanceNumber || tx.personalInfo?.tin, ['tin', 'taxClearanceNumber']);
     const formAId = getValue(tx.formAId, ['formAId']);
     const passport = getValue(tx.personalInfo?.passportDocumentNumber || tx.personalInfo?.passportNumber, ['passportDocumentNumber', 'passportNumber']);
+    const passportIssueDate = getValue(tx.personalInfo?.passportIssueDate, ['passportIssueDate']);
     const passportExpiryDate = getValue(tx.personalInfo?.passportExpiryDate, ['passportExpiryDate']);
     const schoolInvoiceNumber = getValue(tx.beneficiaryDetails?.admissionNumber, ['admissionNumber', 'beneficiaryDetails.admissionNumber']);
 
@@ -137,7 +138,8 @@ export const getTransactionDocuments = (tx: any): { label: string; value: string
     if (tin) docs.push({ label: 'TIN', value: tin });
     if (formAId) docs.push({ label: 'Form A ID', value: formAId });
     if (passport) docs.push({ label: 'International Passport Number', value: passport });
-    if (passportExpiryDate) docs.push({ label: 'Passport Expiration Date', value: passportExpiryDate });
+    if (passportIssueDate) docs.push({ label: 'Passport Issue Date', value: passportIssueDate });
+    if (passportExpiryDate) docs.push({ label: 'Passport Expiry Date', value: passportExpiryDate });
     if (schoolInvoiceNumber) docs.push({ label: 'School Invoice Number', value: schoolInvoiceNumber });
 
     return docs;

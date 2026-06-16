@@ -92,12 +92,14 @@ export default function ViewSchoolFeesScreen() {
 
     const docsItems = useMemo(() => {
         if (!tx) return [];
-        return tx.requiredDocuments.filter(d => !!d.uploaded).map(d => ({
+        return tx.requiredDocuments.map((d) => ({
             label: commonDocTypeLabels[d.type] || d.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
-            fileName: d.uploaded!.fileName,
-            docStatus: d.uploaded!.status,
+            fileName: d.uploaded ? d.uploaded.fileName : null,
+            docStatus: d.uploaded?.status,
             required: true,
-            onUpload: d.uploaded!.status === 'FAILED' ? () => uploadFile(d.type) : undefined,
+            onUpload: (!d.uploaded || d.uploaded.status === 'FAILED' || d.uploaded.status === 'REJECTED')
+                ? () => uploadFile(d.type)
+                : undefined,
         }));
     }, [tx, uploadFile]);
     console.log(docsItems, "DOCS");
