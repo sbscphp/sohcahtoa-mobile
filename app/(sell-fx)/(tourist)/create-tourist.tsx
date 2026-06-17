@@ -41,6 +41,14 @@ const touristFormSchema = z.object({
     ...touristStep2Schema.shape,
     ...touristStep3TransferSchema.shape,
     ...touristStep3LocationSchema.shape,
+}).superRefine((data, ctx) => {
+    if (data.passportIssueDate && data.passportExpiryDate && data.passportIssueDate === data.passportExpiryDate) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Passport Expiry Date cannot be the same as Passport Issue Date',
+            path: ['passportExpiryDate']
+        });
+    }
 });
 
 type TouristFormValues = z.infer<typeof touristFormSchema>;

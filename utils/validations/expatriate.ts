@@ -4,7 +4,7 @@ import { locationStepSchema, utilityNumberField, workPermitNumberField } from '.
 /** Step 0: Expatriate credentials */
 export const expatriateStep0Schema = z.object({
     bvn: z.string().optional(),
-    nin: z.string().length(11, 'Please enter a valid 11-digit NIN').regex(/^\d+$/, 'NIN must contain only digits'),
+    nin: z.string().optional().or(z.literal('')),
     passportNumber: z.string().regex(/^[A-Za-z]\d{8}$/, 'Please enter a valid International Passport Number'),
 });
 

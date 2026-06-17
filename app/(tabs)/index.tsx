@@ -114,6 +114,8 @@ export default function HomeScreen() {
     const { data: unreadData } = useGetUnreadCountQuery();
     const unreadCount = unreadData?.data?.count || 0;
 
+    // console.log(unreadCount,'unreadCount------')
+
     useEffect(() => {
         getTotals({});
     }, []);

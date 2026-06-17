@@ -4,12 +4,12 @@ import GenericSelectionSheet, { SelectionItem } from '@/components/GenericSelect
 import InitiateTransactionSheet from '@/components/InitiateTransactionSheet';
 import LoadingBackdrop from '@/components/LoadingBackdrop';
 import SourceOfFundsSheet from '@/components/SourceOfFundsSheet';
-import AddNewAccountStep from '@/components/transaction-flow/AddNewAccountStep';
+// import AddNewAccountStep from '@/components/transaction-flow/AddNewAccountStep';
 import CredentialStep from '@/components/transaction-flow/CredentialStep';
 import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
-import PayoutMethodStep from '@/components/transaction-flow/PayoutMethodStep';
-import ProfessionalBankDetailsStep from '@/components/transaction-flow/ProfessionalBankDetailsStep';
+// import PayoutMethodStep from '@/components/transaction-flow/PayoutMethodStep';
+import SchoolBankDetailsStep from '@/components/transaction-flow/SchoolBankDetailsStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
 import { useProfileQuery } from '@/hooks/queries/auth/useProfileQuery';
 import { useGetBanksQuery } from '@/hooks/queries/banks/useGetBanksQuery';
@@ -17,6 +17,7 @@ import { useGetSavedAccountsQuery } from '@/hooks/queries/banks/useGetSavedAccou
 import { useLookupAccountMutation } from '@/hooks/queries/banks/useResolveAccountMutation';
 import { useSaveAccountMutation } from '@/hooks/queries/banks/useSaveAccountMutation';
 import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
+import { useGetTransactionsQuery } from '@/hooks/queries/transactions/useGetTransactionsQuery';
 import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useExchangeLogic } from '@/hooks/useExchangeLogic';
 import { useAuthStore } from '@/stores/useAuthStore';
@@ -43,12 +44,43 @@ const PAYOUT_METHODS: SelectionItem[] = [
     { id: '3', label: 'Card (75%) + Cash (25%)', value: 'Card (75%) + Cash (25%)', description: 'Maximum amount to be collected as cash is $500' },
 ];
 
+const formatDateToPickerFormat = (dateStr: string | undefined | null): string => {
+    if (!dateStr) return '';
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) {
+        return dateStr;
+    }
+    
+    try {
+        const date = new Date(dateStr);
+        if (isNaN(date.getTime())) {
+            const parts = dateStr.split('-');
+            if (parts.length === 3) {
+                if (parts[0].length === 4) {
+                    return `${parts[2].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[0]}`;
+                }
+                if (parts[2].length === 4) {
+                    return `${parts[0].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[2]}`;
+                }
+            }
+            return '';
+        }
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+    } catch (e) {
+        return '';
+    }
+};
+
 export default function SchoolFeesScreen() {
     const router = useRouter();
     const createTransaction = useCreateTransactionMutation();
     const showToast = useToastStore(s => s.showToast);
     useProfileQuery();
     const user = useAuthStore(s => s.user);
+    const { data: transactionsResponse } = useGetTransactionsQuery();
+    const transactions = transactionsResponse?.data || [];
 
     const [currentStep, setCurrentStep] = useState(0);
     const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
@@ -62,61 +94,14 @@ export default function SchoolFeesScreen() {
         const isPostGrad = data.admissionType === 'Post-Graduate';
         const dynamicSchema = schoolStep0Schema
             .merge(schoolStep2Schema(isPostGrad))
-            .merge(z.object({ payoutMethod: z.string().min(1, 'Please select a payout method') }))
-            .merge(z.object({
-                customerBankName: z.string().optional().or(z.literal('')),
-                customerBankCode: z.string().optional().or(z.literal('')),
-                customerAccountNumber: z.string().optional().or(z.literal('')),
-                customerAccountName: z.string().optional().or(z.literal('')),
-            }))
             .merge(schoolStep3Schema)
             .superRefine((data, ctx) => {
-                if (data.admissionType === 'Others') {
-                    if (!data.beneficiaryCity) {
-                        ctx.addIssue({
-                            code: z.ZodIssueCode.custom,
-                            message: 'Please enter city',
-                            path: ['beneficiaryCity']
-                        });
-                    }
-                    if (!data.beneficiaryState) {
-                        ctx.addIssue({
-                            code: z.ZodIssueCode.custom,
-                            message: 'Please enter state',
-                            path: ['beneficiaryState']
-                        });
-                    }
-                }
-                const isElectronicTransfer = data.payoutMethod === 'Electronic Transfer (100%)' || data.payoutMethod === 'Electronic_Transfer';
-                if (isElectronicTransfer) {
-                    if (!data.customerBankName) {
-                        ctx.addIssue({
-                            code: z.ZodIssueCode.custom,
-                            message: 'Please select your bank',
-                            path: ['customerBankName']
-                        });
-                    }
-                    if (!data.customerBankCode) {
-                        ctx.addIssue({
-                            code: z.ZodIssueCode.custom,
-                            message: 'Please select your bank',
-                            path: ['customerBankCode']
-                        });
-                    }
-                    if (!data.customerAccountNumber || data.customerAccountNumber.length !== 10) {
-                        ctx.addIssue({
-                            code: z.ZodIssueCode.custom,
-                            message: 'Account number must be 10 digits',
-                            path: ['customerAccountNumber']
-                        });
-                    }
-                    if (!data.customerAccountName) {
-                        ctx.addIssue({
-                            code: z.ZodIssueCode.custom,
-                            message: 'Account name must be resolved',
-                            path: ['customerAccountName']
-                        });
-                    }
+                if (data.passportIssueDate && data.passportExpiryDate && data.passportIssueDate === data.passportExpiryDate) {
+                    ctx.addIssue({
+                        code: z.ZodIssueCode.custom,
+                        message: 'Passport Expiry Date cannot be the same as Passport Issue Date',
+                        path: ['passportExpiryDate']
+                    });
                 }
             });
         return zodResolver(dynamicSchema)(data, context, options);
@@ -268,9 +253,71 @@ export default function SchoolFeesScreen() {
         }
     }, [watchedFields.customerAccountNumber, watchedFields.customerBankCode, isAddingNewAccount]);
 
+    React.useEffect(() => {
+        if (transactions && transactions.length > 0) {
+            let foundNin = '';
+            let foundPassportNumber = '';
+            let foundPassportIssueDate = '';
+            let foundPassportExpiryDate = '';
+
+            for (const tx of transactions) {
+                const ninVal = tx.personalInfo?.nin || (tx as any).nin;
+                const passportVal = tx.personalInfo?.passportNumber || tx.personalInfo?.passportDocumentNumber || (tx as any).passportNumber;
+                const issueDateVal = tx.personalInfo?.passportIssueDate;
+                const expiryDateVal = tx.personalInfo?.passportExpiryDate;
+
+                if (!foundNin && ninVal) {
+                    foundNin = String(ninVal);
+                }
+                if (!foundPassportNumber && passportVal) {
+                    foundPassportNumber = String(passportVal);
+                }
+                if (!foundPassportIssueDate && issueDateVal) {
+                    foundPassportIssueDate = String(issueDateVal);
+                }
+                if (!foundPassportExpiryDate && expiryDateVal) {
+                    foundPassportExpiryDate = String(expiryDateVal);
+                }
+
+                if (foundNin && foundPassportNumber && foundPassportIssueDate && foundPassportExpiryDate) {
+                    break;
+                }
+            }
+
+            const profilePassportNumber = user?.kyc?.passportNumber || '';
+            const profileNin = (user?.kyc as any)?.nin || (user as any)?.nin || '';
+
+            const finalNin = foundNin || profileNin;
+            const finalPassportNumber = foundPassportNumber || profilePassportNumber;
+
+            if (finalNin && !watchedFields.nin) {
+                setValue('nin', finalNin, { shouldValidate: true, shouldDirty: true });
+            }
+            if (finalPassportNumber && !watchedFields.passportNumber) {
+                setValue('passportNumber', finalPassportNumber, { shouldValidate: true, shouldDirty: true });
+            }
+            if (foundPassportIssueDate && !watchedFields.passportIssueDate) {
+                setValue('passportIssueDate', formatDateToPickerFormat(foundPassportIssueDate), { shouldValidate: true, shouldDirty: true });
+            }
+            if (foundPassportExpiryDate && !watchedFields.passportExpiryDate) {
+                setValue('passportExpiryDate', formatDateToPickerFormat(foundPassportExpiryDate), { shouldValidate: true, shouldDirty: true });
+            }
+        } else {
+            const profilePassportNumber = user?.kyc?.passportNumber || '';
+            const profileNin = (user?.kyc as any)?.nin || (user as any)?.nin || '';
+            
+            if (profileNin && !watchedFields.nin) {
+                setValue('nin', profileNin, { shouldValidate: true, shouldDirty: true });
+            }
+            if (profilePassportNumber && !watchedFields.passportNumber) {
+                setValue('passportNumber', profilePassportNumber, { shouldValidate: true, shouldDirty: true });
+            }
+        }
+    }, [transactions, user, setValue, watchedFields.nin, watchedFields.passportNumber, watchedFields.passportIssueDate, watchedFields.passportExpiryDate]);
+
     const credentialFields = [
         { customComponent: <ControlledInput control={control} name="studentName" label="Student Name" placeholder="Enter student name" required /> },
-        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number(NIN)" placeholder="Enter your NIN" required keyboardType="numeric" maxLength={11} filterType="numeric" /> },
+        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number(NIN) (Optional)" placeholder="Enter your NIN" keyboardType="numeric" maxLength={11} filterType="numeric" /> },
         { customComponent: <ControlledInput control={control} name="formAId" label="Form A ID" placeholder="Enter Form A ID" required /> },
         { customComponent: <ControlledInput control={control} name="passportNumber" label="International Passport" placeholder="Enter international passport" required maxLength={9} filterType="alphanumeric" /> },
         ...(admissionType !== 'Others' ? [
@@ -443,36 +490,23 @@ export default function SchoolFeesScreen() {
         } else if (currentStep === 2) {
             isStepValid = await trigger(['amount']);
         } else if (currentStep === 3) {
-            if (isAddingNewAccount) {
-                return;
-            }
-            const isElectronicTransfer = watchedFields.payoutMethod === 'Electronic Transfer (100%)' || watchedFields.payoutMethod === 'Electronic_Transfer';
-            const fieldsToTrigger: any[] = ['payoutMethod'];
-            if (isElectronicTransfer) {
-                fieldsToTrigger.push('customerBankName', 'customerBankCode', 'customerAccountNumber', 'customerAccountName');
-            }
-            isStepValid = await trigger(fieldsToTrigger);
-        } else if (currentStep === 4) {
-            const beneficiaryCountry = watchedFields.beneficiaryCountry?.toLowerCase() || '';
-            const isAustralia = beneficiaryCountry.includes('australia');
-            const isUSA = beneficiaryCountry.includes('united states') || beneficiaryCountry.includes('usa') || beneficiaryCountry === 'canada';
-            const isIndia = beneficiaryCountry.includes('india');
-            const isUK = beneficiaryCountry.includes('united kingdom') || beneficiaryCountry === 'uk';
-
-            const fieldsToTrigger = [
-                'beneficiaryCountry', 'bankAccountName', 'beneficiaryAddress', 'bankName', 'bankAccountNumber',
-                'bankAccountAddress', 'bankAccountSwiftCode', 'paymentReference'
-            ];
-            if (isAustralia) fieldsToTrigger.push('bsbCode');
-            if (isUSA) fieldsToTrigger.push('routingNumber');
-            if (isIndia) fieldsToTrigger.push('ifscCode', 'purposeCode');
-            if (isUK) fieldsToTrigger.push('bankAccountIban');
-
-            isStepValid = await trigger(fieldsToTrigger as any);
+            isStepValid = await trigger([
+                'beneficiaryCountry',
+                'studentName',
+                'studentPassportNumber',
+                'bankAccountName',
+                'bankAccountAddress',
+                'bankAccountIban',
+                'bankAccountSwiftCode',
+                'bankAccountNumber',
+                'correspondenceBankName',
+                'correspondenceBankAddress',
+                'correspondenceBankSwiftCode',
+            ] as any);
         }
 
         if (isStepValid) {
-            if (currentStep < 4) {
+            if (currentStep < 3) {
                 setCurrentStep(currentStep + 1);
             } else {
                 setInitiateSheetVisible(true);
@@ -481,10 +515,6 @@ export default function SchoolFeesScreen() {
     };
 
     const handleBack = () => {
-        if (isAddingNewAccount) {
-            setIsAddingNewAccount(false);
-            return;
-        }
         if (currentStep > 0) {
             setCurrentStep(currentStep - 1);
         } else {
@@ -506,7 +536,6 @@ export default function SchoolFeesScreen() {
             passportNumber: data.passportNumber,
             passportIssueDate: data.passportIssueDate,
             passportExpiryDate: data.passportExpiryDate,
-            payoutMethod: data.payoutMethod,
             documents: isPostGrad ? [
                 ...(docs.admission.meta ? [docs.admission.meta] : []),
                 ...(docs.degree.meta ? [docs.degree.meta] : []),
@@ -537,12 +566,6 @@ export default function SchoolFeesScreen() {
                 correspondenceBankName: data.correspondenceBankName,
                 correspondenceBankAddress: data.correspondenceBankAddress,
                 correspondenceBankSwiftCode: data.correspondenceBankSwiftCode,
-            },
-            paymentDetails: {
-                bankName: data.customerBankName,
-                bankCode: data.customerBankCode,
-                accountNumber: data.customerAccountNumber,
-                accountName: data.customerAccountName,
             }
         };
 
@@ -563,7 +586,7 @@ export default function SchoolFeesScreen() {
     };
 
 
-    const isStep0Valid = watchedFields.studentName && watchedFields.nin && watchedFields.formAId && watchedFields.passportNumber && watchedFields.admissionType && (watchedFields.admissionType === 'Others' || (watchedFields.passportIssueDate && watchedFields.passportExpiryDate));
+    const isStep0Valid = watchedFields.studentName && watchedFields.formAId && watchedFields.passportNumber && watchedFields.admissionType && (watchedFields.admissionType === 'Others' || (watchedFields.passportIssueDate && watchedFields.passportExpiryDate));
 
     let isStep1Valid = false;
     if (watchedFields.admissionType === 'Post-Graduate') {
@@ -575,49 +598,32 @@ export default function SchoolFeesScreen() {
     }
 
     const isStep2Valid = watchedFields.amount > 0;
-    const beneficiaryCountryStep4 = watchedFields.beneficiaryCountry?.toLowerCase() || '';
-    const isAustralia = beneficiaryCountryStep4?.includes('australia');
-    const isUSA = beneficiaryCountryStep4?.includes('united states') || beneficiaryCountryStep4?.includes('usa') || beneficiaryCountryStep4?.includes('canada');
-    const isIndia = beneficiaryCountryStep4?.includes('india');
-    const isUK = beneficiaryCountryStep4?.includes('united kingdom') || beneficiaryCountryStep4 === 'uk';
-
-    const isOthers = watchedFields.admissionType === 'Others';
-    const isStep4Valid = !!(
+    const isStep3Valid = !!(
         watchedFields.beneficiaryCountry &&
-        (!isOthers || (watchedFields.beneficiaryCity && watchedFields.beneficiaryState)) &&
+        watchedFields.studentName &&
         watchedFields.bankAccountName &&
-        watchedFields.beneficiaryAddress &&
-        watchedFields.bankName &&
-        watchedFields.bankAccountNumber &&
         watchedFields.bankAccountAddress &&
         watchedFields.bankAccountSwiftCode &&
-        watchedFields.paymentReference &&
-        (isAustralia ? watchedFields.bsbCode : true) &&
-        (isUSA ? watchedFields.routingNumber : true) &&
-        (isIndia ? (watchedFields.ifscCode && watchedFields.purposeCode) : true) &&
-        (isUK ? watchedFields.bankAccountIban : true)
+        watchedFields.bankAccountNumber
     );
 
-    const isElectronicTransfer = watchedFields.payoutMethod === 'Electronic Transfer (100%)' || watchedFields.payoutMethod === 'Electronic_Transfer';
-    const isStep3Valid = watchedFields.payoutMethod && (!isElectronicTransfer || (watchedFields.customerBankName && watchedFields.customerBankCode && watchedFields.customerAccountNumber && watchedFields.customerAccountName));
     const isNextDisabled =
         (currentStep === 0 && !isStep0Valid) ||
         (currentStep === 1 && !isStep1Valid) ||
         (currentStep === 2 && !isStep2Valid) ||
-        (currentStep === 3 && !isStep3Valid) ||
-        (currentStep === 4 && !isStep4Valid);
+        (currentStep === 3 && !isStep3Valid);
 
     return (
         <View style={{ flex: 1 }}>
-            <LoadingBackdrop visible={isUploading || createTransaction.isPending || saveAccountMutation.isPending} />
+            <LoadingBackdrop visible={isUploading || createTransaction.isPending} />
             <TransactionLayout
                 title="School Fees"
                 currentStep={currentStep}
-                totalSteps={5}
+                totalSteps={4}
                 onBack={handleBack}
-                onNext={isAddingNewAccount ? handleSaveNewAccount : handleNext}
+                onNext={handleNext}
                 isNextDisabled={isNextDisabled}
-                nextLabel={isAddingNewAccount ? "Save" : (currentStep === 4 ? (watchedFields.bankAccountName && watchedFields.bankAccountNumber ? "Initiate Transaction Request" : "Continue") : "Continue")}
+                nextLabel={currentStep === 3 ? (watchedFields.bankAccountName && watchedFields.bankAccountNumber ? "Initiate Transaction Request" : "Continue") : "Continue"}
             >
                 {currentStep === 0 && (
                     <CredentialStep fields={credentialFields} />
@@ -647,30 +653,8 @@ export default function SchoolFeesScreen() {
                     />
                 )}
 
-                {currentStep === 3 && !isAddingNewAccount && (
-                    <PayoutMethodStep
-                        control={control}
-                        setValue={setValue}
-                        setPayoutSheetVisible={setPayoutSheetVisible}
-                        savedAccounts={savedAccounts}
-                        selectedSavedAccountId={selectedSavedAccountId}
-                        setSelectedSavedAccountId={setSelectedSavedAccountId}
-                        setIsAddingNewAccount={setIsAddingNewAccount}
-                    />
-                )}
-
-                {currentStep === 3 && isAddingNewAccount && (
-                    <AddNewAccountStep
-                        control={control}
-                        setValue={setValue}
-                        banks={banks}
-                        isResolving={resolveAccount.isPending}
-                        selectedBankCode={watchedFields.customerBankCode}
-                    />
-                )}
-
-                {currentStep === 4 && (
-                    <ProfessionalBankDetailsStep control={control} watch={watch} setValue={setValue} errors={errors} />
+                {currentStep === 3 && (
+                    <SchoolBankDetailsStep control={control} watch={watch} setValue={setValue} errors={errors} />
                 )}
 
                 <InitiateTransactionSheet

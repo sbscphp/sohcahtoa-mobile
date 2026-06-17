@@ -37,46 +37,13 @@ const medicalFormSchema = medicalStep0Schema
     .merge(medicalStep1Schema)
     .merge(medicalStep2Schema)
     .merge(z.object({
-        payoutMethod: z.string().min(1, 'Please select a payout method'),
+        payoutMethod: z.string().optional().or(z.literal('')),
         customerBankName: z.string().optional().or(z.literal('')),
         customerBankCode: z.string().optional().or(z.literal('')),
         customerAccountNumber: z.string().optional().or(z.literal('')),
         customerAccountName: z.string().optional().or(z.literal('')),
     }))
-    .merge(medicalStep3Schema)
-    .superRefine((data, ctx) => {
-        const isElectronicTransfer = data.payoutMethod === 'Electronic Transfer (100%)' || data.payoutMethod === 'Electronic_Transfer';
-        if (isElectronicTransfer) {
-            if (!data.customerBankName) {
-                ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    message: 'Please select your bank',
-                    path: ['customerBankName']
-                });
-            }
-            if (!data.customerBankCode) {
-                ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    message: 'Please select your bank',
-                    path: ['customerBankCode']
-                });
-            }
-            if (!data.customerAccountNumber || data.customerAccountNumber.length !== 10) {
-                ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    message: 'Account number must be 10 digits',
-                    path: ['customerAccountNumber']
-                });
-            }
-            if (!data.customerAccountName) {
-                ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    message: 'Account name must be resolved',
-                    path: ['customerAccountName']
-                });
-            }
-        }
-    });
+    .merge(medicalStep3Schema);
 
 type MedicalFormValues = z.infer<typeof medicalFormSchema>;
 
@@ -236,7 +203,7 @@ export default function MedicalPaymentScreen() {
 
     const credentialFields = [
         { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number (BVN)" placeholder="Enter your BVN" required keyboardType="numeric" maxLength={11} filterType="numeric" disabled /> },
-        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number (NIN)" placeholder="Enter your NIN" required keyboardType="numeric" maxLength={11} filterType="numeric" /> },
+        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number (NIN) (Optional)" placeholder="Enter your NIN" keyboardType="numeric" maxLength={11} filterType="numeric" /> },
         { customComponent: <ControlledInput control={control} name="formAId" label="Form A ID" placeholder="Enter Form A ID" required /> },
         { customComponent: <ControlledInput control={control} name="passportNumber" label="International Passport Number" placeholder="Enter international passport" required maxLength={9} filterType="alphanumeric" /> },
     ];
@@ -347,7 +314,7 @@ export default function MedicalPaymentScreen() {
         }
 
         if (isStepValid) {
-            if (currentStep < 4) {
+            if (currentStep < 3) {
                 setCurrentStep(currentStep + 1);
             } else {
                 setInitiateSheetVisible(true);
@@ -356,10 +323,6 @@ export default function MedicalPaymentScreen() {
     };
 
     const handleBack = () => {
-        if (isAddingNewAccount) {
-            setIsAddingNewAccount(false);
-            return;
-        }
         if (currentStep > 0) {
             setCurrentStep(currentStep - 1);
         } else {
@@ -378,7 +341,6 @@ export default function MedicalPaymentScreen() {
             nin: data.nin,
             formAId: data.formAId,
             passportNumber: data.passportNumber,
-            payoutMethod: data.payoutMethod,
             documents: [
                 ...(docs.passport.meta ? [docs.passport.meta] : []),
                 ...(docs.visa.meta ? [docs.visa.meta] : []),
@@ -407,12 +369,6 @@ export default function MedicalPaymentScreen() {
                 correspondenceBankName: data.correspondenceBankName,
                 correspondenceBankAddress: data.correspondenceBankAddress,
                 correspondenceBankSwiftCode: data.correspondenceBankSwiftCode,
-            },
-            paymentDetails: {
-                bankName: data.customerBankName,
-                bankCode: data.customerBankCode,
-                accountNumber: data.customerAccountNumber,
-                accountName: data.customerAccountName,
             }
         };
 
@@ -429,18 +385,16 @@ export default function MedicalPaymentScreen() {
         });
     };
 
-    const isStep0Valid = watchedFields.bvn && watchedFields.nin && watchedFields.formAId && watchedFields.passportNumber;
+    const isStep0Valid = watchedFields.bvn && watchedFields.formAId && watchedFields.passportNumber;
     const isStep1Valid = docs.passport.meta && docs.visa.meta && docs.referenceLetter.meta && docs.overseaDoctorLetter.meta;
     const isStep2Valid = watchedFields.amount > 0;
-    const isElectronicTransfer = watchedFields.payoutMethod === 'Electronic Transfer (100%)' || watchedFields.payoutMethod === 'Electronic_Transfer';
-    const isStep3Valid = watchedFields.payoutMethod && (!isElectronicTransfer || (watchedFields.customerBankName && watchedFields.customerBankCode && watchedFields.customerAccountNumber && watchedFields.customerAccountName));
     const beneficiaryCountryStep4 = watchedFields.beneficiaryCountry?.toLowerCase() || '';
     const isAustralia = beneficiaryCountryStep4?.includes('australia');
     const isUSA = beneficiaryCountryStep4?.includes('united states') || beneficiaryCountryStep4?.includes('usa') || beneficiaryCountryStep4?.includes('canada');
     const isIndia = beneficiaryCountryStep4?.includes('india');
     const isUK = beneficiaryCountryStep4?.includes('united kingdom') || beneficiaryCountryStep4 === 'uk';
 
-    const isStep4Valid = !!(
+    const isStep3Valid = !!(
         watchedFields.beneficiaryCountry &&
         watchedFields.bankAccountName &&
         watchedFields.beneficiaryAddress &&
@@ -459,20 +413,19 @@ export default function MedicalPaymentScreen() {
         (currentStep === 0 && !isStep0Valid) ||
         (currentStep === 1 && !isStep1Valid) ||
         (currentStep === 2 && !isStep2Valid) ||
-        (currentStep === 3 && !isStep3Valid) ||
-        (currentStep === 4 && !isStep4Valid);
+        (currentStep === 3 && !isStep3Valid);
 
     return (
         <View style={{ flex: 1 }}>
-            <LoadingBackdrop visible={isUploading || createTransaction.isPending || saveAccountMutation.isPending} />
+            <LoadingBackdrop visible={isUploading || createTransaction.isPending} />
             <TransactionLayout
                 title="Medical Payment"
                 currentStep={currentStep}
-                totalSteps={5}
+                totalSteps={4}
                 onBack={handleBack}
-                onNext={isAddingNewAccount ? handleSaveNewAccount : handleNext}
+                onNext={handleNext}
                 isNextDisabled={isNextDisabled}
-                nextLabel={isAddingNewAccount ? "Save" : (currentStep === 4 ? (watchedFields.organizationName ? "Initiate Transaction Request" : "Continue") : "Continue")}
+                nextLabel={currentStep === 3 ? (watchedFields.organizationName ? "Initiate Transaction Request" : "Continue") : "Continue"}
             >
                 {currentStep === 0 && (
                     <CredentialStep fields={credentialFields} />
@@ -501,29 +454,7 @@ export default function MedicalPaymentScreen() {
                     />
                 )}
 
-                {currentStep === 3 && !isAddingNewAccount && (
-                    <PayoutMethodStep
-                        control={control}
-                        setValue={setValue}
-                        setPayoutSheetVisible={setPayoutSheetVisible}
-                        savedAccounts={savedAccounts}
-                        selectedSavedAccountId={selectedSavedAccountId}
-                        setSelectedSavedAccountId={setSelectedSavedAccountId}
-                        setIsAddingNewAccount={setIsAddingNewAccount}
-                    />
-                )}
-
-                {currentStep === 3 && isAddingNewAccount && (
-                    <AddNewAccountStep
-                        control={control}
-                        setValue={setValue}
-                        banks={banks}
-                        isResolving={resolveAccount.isPending}
-                        selectedBankCode={watchedFields.customerBankCode}
-                    />
-                )}
-
-                {currentStep === 4 && (
+                {currentStep === 3 && (
                     <ProfessionalBankDetailsStep control={control} watch={watch} setValue={setValue} errors={errors} />
                 )}
 

@@ -122,6 +122,13 @@ const ptaFormSchema = z.object({
             });
         }
     }
+    if (data.passportIssueDate && data.passportExpiryDate && data.passportIssueDate === data.passportExpiryDate) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Passport Expiry Date cannot be the same as Passport Issue Date',
+            path: ['passportExpiryDate']
+        });
+    }
 });
 
 type PtaFormValues = z.infer<typeof ptaFormSchema>;

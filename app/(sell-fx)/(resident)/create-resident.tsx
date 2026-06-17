@@ -36,6 +36,14 @@ const residentFormSchema = z.object({
     ...residentStep1Schema.shape,
     ...residentStep2Schema.shape,
     ...residentStep3Schema.shape
+}).superRefine((data, ctx) => {
+    if (data.passportIssueDate && data.passportExpiryDate && data.passportIssueDate === data.passportExpiryDate) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Passport Expiry Date cannot be the same as Passport Issue Date',
+            path: ['passportExpiryDate']
+        });
+    }
 });
 
 type ResidentFormValues = z.infer<typeof residentFormSchema>;
@@ -143,9 +151,8 @@ export default function CreateResidentScreen() {
                 <ControlledInput
                     control={control}
                     name="nin"
-                    label="National Identification Number (NIN)"
+                    label="National Identification Number (NIN) (Optional)"
                     placeholder="Enter NIN"
-                    required
                     keyboardType="numeric"
                 />
             )
@@ -304,7 +311,7 @@ export default function CreateResidentScreen() {
         });
     };
 
-    const isStep0Valid = watchedFields.nin && watchedFields.passportNumber;
+    const isStep0Valid = !!watchedFields.passportNumber;
     const isStep1Valid = docs.passport.meta && docs.utility.meta &&
         watchedFields.passportIssueDate && watchedFields.passportExpiryDate && watchedFields.utilityNumber;
     const isStep2Valid = watchedFields.amount > 0;

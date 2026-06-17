@@ -36,6 +36,14 @@ const expatriateFormSchema = z.object({
     ...expatriateStep1Schema.shape,
     ...expatriateStep2Schema.shape,
     ...expatriateStep3Schema.shape
+}).superRefine((data, ctx) => {
+    if (data.passportIssueDate && data.passportExpiryDate && data.passportIssueDate === data.passportExpiryDate) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Passport Expiry Date cannot be the same as Passport Issue Date',
+            path: ['passportExpiryDate']
+        });
+    }
 });
 
 type ExpatriateFormValues = z.infer<typeof expatriateFormSchema>;
@@ -220,7 +228,7 @@ export default function CreateExpatriateScreen() {
         });
     };
 
-    const isStep0Valid = !!(watchedFields.nin && watchedFields.passportNumber);
+    const isStep0Valid = !!watchedFields.passportNumber;
     const isStep1Valid = !!(docs.workPermit.meta && docs.passport.meta && docs.utility.meta &&
         watchedFields.workPermitNumber && watchedFields.passportIssueDate && watchedFields.passportExpiryDate && watchedFields.utilityBillNumber);
     const isStep2Valid = watchedFields.amount > 0;
@@ -263,9 +271,8 @@ export default function CreateExpatriateScreen() {
                         <ControlledInput
                             control={control}
                             name="nin"
-                            label="National Identification Number (NIN)"
+                            label="National Identification Number (NIN) (Optional)"
                             placeholder="Enter NIN"
-                            required
                             keyboardType="numeric"
                             maxLength={11}
                             filterType="numeric"

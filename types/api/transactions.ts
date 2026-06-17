@@ -103,6 +103,11 @@ export interface TransactionDocument {
 export interface TransactionCashPickup {
     pickupLocation: string;
     status: string;
+    scheduledPickupDate?: string;
+    scheduledPickupTime?: string;
+    pickupCity?: string;
+    pickupState?: string;
+    address?: string;
 }
 
 export interface TransactionComment {

@@ -1,13 +1,25 @@
 import { useRegisterDeviceMutation } from '@/hooks/queries/notifications/useRegisterDeviceMutation';
+import { markAsRead } from '@/services/notifications';
 import { useAuthStore } from '@/stores/useAuthStore';
+import { useQueryClient } from '@tanstack/react-query';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
+import { router } from 'expo-router';
 import { useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
+Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: true,
+    }),
+});
+
 export const usePushNotifications = () => {
     const { mutate: register } = useRegisterDeviceMutation();
+    const queryClient = useQueryClient();
     const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
     const hasSeenPrompt = useAuthStore((state) => state.hasSeenNotificationPrompt);
     const notificationListener = useRef<Notifications.EventSubscription | undefined>(undefined);
@@ -28,11 +40,22 @@ export const usePushNotifications = () => {
         });
 
         notificationListener.current = Notifications.addNotificationReceivedListener((notification: Notifications.Notification) => {
-            
+            if (isAuthenticated) {
+                queryClient.invalidateQueries({ queryKey: ['notifications'] });
+            }
         });
 
         responseListener.current = Notifications.addNotificationResponseReceivedListener((response: Notifications.NotificationResponse) => {
-            
+            const data = response.notification.request.content.data;
+            if (data?.notificationId) {
+                markAsRead(data.notificationId).catch(() => {});
+                queryClient.invalidateQueries({ queryKey: ['notifications'] });
+            }
+            if (data?.actionUrl) {
+                router.push(data.actionUrl);
+            } else {
+                router.push('/notifications');
+            }
         });
 
         return () => {
@@ -45,6 +68,7 @@ export const usePushNotifications = () => {
         };
     }, [isAuthenticated, hasSeenPrompt]);
 };
+
 
 async function registerForPushNotificationsAsync() {
     let token;

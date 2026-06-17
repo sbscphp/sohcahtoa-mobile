@@ -29,7 +29,16 @@ import { z } from 'zod';
 const touringFormSchema = touringStep0Schema
     .merge(touringStep1Schema)
     .merge(touringStep2Schema)
-    .merge(touringStep3Schema);
+    .merge(touringStep3Schema)
+    .superRefine((data, ctx) => {
+        if (data.passportIssueDate && data.passportExpiryDate && data.passportIssueDate === data.passportExpiryDate) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'Passport Expiry Date cannot be the same as Passport Issue Date',
+                path: ['passportExpiryDate']
+            });
+        }
+    });
 
 type TouringFormValues = z.infer<typeof touringFormSchema>;
 

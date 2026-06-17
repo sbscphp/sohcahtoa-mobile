@@ -3,10 +3,7 @@ import { z } from 'zod';
 
 export const bvnField = z.string().min(1, 'BVN is required');
 
-export const ninField = z
-    .string()
-    .length(11, 'Please enter a valid 11-digit NIN')
-    .regex(/^\d+$/, 'NIN must contain only digits');
+export const ninField = z.string().optional().or(z.literal(''));
 
 export const formAIdField = z
     .string()

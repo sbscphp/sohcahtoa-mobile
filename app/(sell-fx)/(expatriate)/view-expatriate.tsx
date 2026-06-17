@@ -46,7 +46,23 @@ export default function ViewExpatriateScreen() {
             { label: 'Amount (₦)', value: formatCurrency(tx.nairaEquivalent) },
             { label: 'Equivalent Amount (FX)', value: formatCurrency(tx.foreignAmount, tx.currency === 'USD' ? '$' : tx.currency === 'GBP' ? '£' : tx.currency === 'EUR' ? '€' : tx.currency) },
             { label: 'Date Initiated', value: `${formatDate(tx.createdAt)}\n${formatTimeWithSeconds(tx.createdAt)}` },
-            ...(tx.cashPickup ? [{ label: 'Pickup Point', value: tx.cashPickup.address || 'N/A', isRightAligned: true }] : []),
+            ...(tx.cashPickup ? [
+                {
+                    label: 'Pickup Location',
+                    value: tx.cashPickup.pickupLocation || 'N/A',
+                    isRightAligned: true
+                },
+                ...(tx.cashPickup.scheduledPickupDate ? [{
+                    label: 'Pickup Date',
+                    value: formatDate(tx.cashPickup.scheduledPickupDate),
+                    isRightAligned: true
+                }] : []),
+                ...(tx.cashPickup.scheduledPickupTime ? [{
+                    label: 'Pickup Time',
+                    value: tx.cashPickup.scheduledPickupTime,
+                    isRightAligned: true
+                }] : []),
+            ] : []),
         ];
     }, [tx]);
     const detailsDocuments = useMemo(() => {

@@ -120,6 +120,13 @@ const btaFormSchema = z.object({
             });
         }
     }
+    if (data.passportIssueDate && data.passportExpiryDate && data.passportIssueDate === data.passportExpiryDate) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Passport Expiry Date cannot be the same as Passport Issue Date',
+            path: ['passportExpiryDate']
+        });
+    }
 });
 
 type BtaFormValues = z.infer<typeof btaFormSchema>;
@@ -284,7 +291,7 @@ export default function BusinessTravelAllowanceScreen() {
     const credentialFields = [
         { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number(BVN)" placeholder="Enter your BVN" required keyboardType="numeric" maxLength={11} filterType="numeric" disabled /> },
         { customComponent: <ControlledInput control={control} name="tin" label="Tax Identification Number(TIN)" placeholder="Enter your TIN" required keyboardType="numeric" maxLength={11} filterType="numeric" /> },
-        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number(NIN)" placeholder="Enter your NIN" required keyboardType="numeric" maxLength={11} filterType="numeric" /> },
+        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number(NIN) (Optional)" placeholder="Enter your NIN" keyboardType="numeric" maxLength={11} filterType="numeric" /> },
         { customComponent: <ControlledInput control={control} name="formAId" label="Form A ID" placeholder="Enter Form A ID" required /> },
         { customComponent: <ControlledInput control={control} name="passportNumber" label="International Passport Number" placeholder="Enter international passport" required maxLength={9} filterType="alphanumeric" /> }
     ];
@@ -468,7 +475,7 @@ export default function BusinessTravelAllowanceScreen() {
     };
 
 
-    const isStep0Valid = watchedFields.bvn && watchedFields.tin && watchedFields.nin && watchedFields.formAId && watchedFields.passportNumber;
+    const isStep0Valid = watchedFields.bvn && watchedFields.tin && watchedFields.formAId && watchedFields.passportNumber;
     const isStep1Valid = docs.passport.meta && docs.visa.meta && docs.corporateBodyLetter.meta && docs.partnerInvitationLetter.meta &&
         watchedFields.passportIssueDate && watchedFields.passportExpiryDate;
     const isStep2Valid = watchedFields.amount > 0;
