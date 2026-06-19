@@ -19,6 +19,7 @@ export default function ViewExpatriateScreen() {
     const { data: txResponse, isLoading } = useGetTransactionByIdQuery(transactionId || '');
     const tx = txResponse?.data;
     const showToast = useToastStore(s => s.showToast);
+    // console.log(JSON.stringify(tx, null, 2), "TX");
 
     const { upload: uploadFile, isPending: isUploading } = useDocumentUpload({
         transactionId: transactionId || undefined,
@@ -83,7 +84,7 @@ export default function ViewExpatriateScreen() {
             fileName: d.uploaded ? d.uploaded.fileName : null,
             docStatus: d.uploaded?.status,
             required: true,
-            onUpload: (!d.uploaded || d.uploaded.status === 'FAILED' || d.uploaded.status === 'REJECTED')
+            onUpload: (!d.uploaded || (d.uploaded.status !== 'FAILED' && d.uploaded.status !== 'REJECTED'))
                 ? () => uploadFile(d.type)
                 : undefined,
         }));

@@ -54,7 +54,7 @@ export default function PayoutMethodStep({
         defaultValue: ''
     });
 
-    const isElectronic = payoutMethod === 'Electronic Transfer (100%)' || payoutMethod === 'Electronic_Transfer';
+    const isElectronic = payoutMethod?.includes('Electronic') || payoutMethod === 'Electronic_Transfer';
 
     return (
         <View style={{ gap: moderateScale(14) }}>

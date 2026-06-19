@@ -37,7 +37,7 @@ export type BVNFormData = z.infer<typeof bvnSchema>;
 
 // Passport validation schema
 export const passportSchema = z.object({
-    passportNumber: passportValidation,
+    passportDocumentNumber: passportValidation,
 });
 
 export type PassportFormData = z.infer<typeof passportSchema>;

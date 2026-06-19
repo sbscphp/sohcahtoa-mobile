@@ -120,7 +120,7 @@ export default function ViewMedicalPaymentScreen() {
             fileName: doc.uploaded ? doc.uploaded.fileName : null,
             docStatus: doc.uploaded?.status,
             required: true,
-            onUpload: (!doc.uploaded || doc.uploaded.status === 'FAILED' || doc.uploaded.status === 'REJECTED')
+            onUpload: (!doc.uploaded || (doc.uploaded.status !== 'FAILED' && doc.uploaded.status !== 'REJECTED'))
                 ? () => uploadFile(doc.type)
                 : undefined,
         }));

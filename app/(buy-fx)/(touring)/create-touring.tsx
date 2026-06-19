@@ -8,15 +8,15 @@ import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import LocationStep from '@/components/transaction-flow/LocationStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
-import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
 import { useProfileQuery } from '@/hooks/queries/auth/useProfileQuery';
+import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
+import { useGetPickupCitiesQuery } from '@/hooks/queries/transactions/useGetPickupCitiesQuery';
 import { useGetPickupPointsQuery } from '@/hooks/queries/transactions/useGetPickupPointsQuery';
 import { useGetPickupStatesQuery } from '@/hooks/queries/transactions/useGetPickupStatesQuery';
-import { useGetPickupCitiesQuery } from '@/hooks/queries/transactions/useGetPickupCitiesQuery';
 import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useExchangeLogic } from '@/hooks/useExchangeLogic';
-import { useToastStore } from '@/stores/useToastStore';
 import { useAuthStore } from '@/stores/useAuthStore';
+import { useToastStore } from '@/stores/useToastStore';
 import { LocationItem } from '@/utils/locations';
 import { touringStep0Schema, touringStep1Schema, touringStep2Schema, touringStep3Schema } from '@/utils/validations/touring';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -26,19 +26,76 @@ import { useForm } from 'react-hook-form';
 import { View } from 'react-native';
 import { z } from 'zod';
 
-const touringFormSchema = touringStep0Schema
-    .merge(touringStep1Schema)
-    .merge(touringStep2Schema)
-    .merge(touringStep3Schema)
-    .superRefine((data, ctx) => {
-        if (data.passportIssueDate && data.passportExpiryDate && data.passportIssueDate === data.passportExpiryDate) {
-            ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: 'Passport Expiry Date cannot be the same as Passport Issue Date',
-                path: ['passportExpiryDate']
-            });
+import GenericSelectionSheet, { SelectionItem } from '@/components/GenericSelectionSheet';
+import AddNewAccountStep from '@/components/transaction-flow/AddNewAccountStep';
+import PayoutMethodStep from '@/components/transaction-flow/PayoutMethodStep';
+import { useGetBanksQuery } from '@/hooks/queries/banks/useGetBanksQuery';
+import { useGetSavedAccountsQuery } from '@/hooks/queries/banks/useGetSavedAccountsQuery';
+import { useLookupAccountMutation } from '@/hooks/queries/banks/useResolveAccountMutation';
+import { useSaveAccountMutation } from '@/hooks/queries/banks/useSaveAccountMutation';
+
+const PAYOUT_METHODS: SelectionItem[] = [
+    { id: '1', label: 'Electronic Transfer (100%)', value: 'Electronic Transfer (100%)' },
+    { id: '2', label: 'Card (100%)', value: 'Card (100%)' },
+    { id: '3', label: 'Card (75%) + Cash (25%)', value: 'Card (75%) + Cash (25%)', description: 'Maximum amount to be collected as cash is $500' },
+];
+
+const touringFormSchema = z.object({
+    ...touringStep0Schema.shape,
+    ...touringStep1Schema.shape,
+    ...touringStep2Schema.shape,
+    payoutMethod: z.string().min(1, 'Please select a payout method'),
+    customerBankName: z.string().optional().or(z.literal('')),
+    customerBankCode: z.string().optional().or(z.literal('')),
+    customerAccountNumber: z.string().optional().or(z.literal('')),
+    customerAccountName: z.string().optional().or(z.literal('')),
+    selectedState: z.any().optional(),
+    selectedCity: z.any().optional(),
+    selectedLocation: z.any().optional(),
+    pickupDate: z.string().optional().or(z.literal('')),
+    pickupTime: z.string().optional().or(z.literal('')),
+}).superRefine((data, ctx) => {
+    const isElectronicTransfer = data.payoutMethod?.includes('Electronic') || data.payoutMethod === 'Electronic_Transfer';
+
+    if (isElectronicTransfer) {
+        if (!data.customerBankName) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Please select your bank', path: ['customerBankName'] });
         }
-    });
+        if (!data.customerBankCode) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Please select your bank', path: ['customerBankCode'] });
+        }
+        if (!data.customerAccountNumber || data.customerAccountNumber.length !== 10) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Account number must be 10 digits', path: ['customerAccountNumber'] });
+        }
+        if (!data.customerAccountName) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Account name must be resolved', path: ['customerAccountName'] });
+        }
+    } else {
+        if (!data.selectedState) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Please select a state', path: ['selectedState'] });
+        }
+        if (!data.selectedCity) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Please select a city', path: ['selectedCity'] });
+        }
+        if (!data.selectedLocation) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Please select a pickup location', path: ['selectedLocation'] });
+        }
+        if (!data.pickupDate) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Please select a pickup date', path: ['pickupDate'] });
+        }
+        if (!data.pickupTime) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Please select a pickup time', path: ['pickupTime'] });
+        }
+    }
+
+    if (data.passportIssueDate && data.passportExpiryDate && data.passportIssueDate === data.passportExpiryDate) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Passport Expiry Date cannot be the same as Passport Issue Date',
+            path: ['passportExpiryDate']
+        });
+    }
+});
 
 type TouringFormValues = z.infer<typeof touringFormSchema>;
 
@@ -64,11 +121,15 @@ export default function TouringScreen() {
         resolver: zodResolver(touringFormSchema),
         defaultValues: {
             formAId: '',
-            passportNumber: '',
+            passportDocumentNumber: '',
             passportIssueDate: '',
             passportExpiryDate: '',
-            visaNumber: '',
             amount: 0,
+            payoutMethod: '',
+            customerBankName: '',
+            customerBankCode: '',
+            customerAccountNumber: '',
+            customerAccountName: '',
             selectedState: undefined as unknown as LocationItem,
             selectedCity: undefined as unknown as LocationItem,
             selectedLocation: undefined as unknown as LocationItem,
@@ -96,6 +157,67 @@ export default function TouringScreen() {
     const { data: states = [] } = useGetPickupStatesQuery();
     const { data: allLocations = [] } = useGetPickupPointsQuery();
 
+    const watchedFields = watch() as any;
+    const isElectronicTransfer = watchedFields.payoutMethod?.includes('Electronic') || watchedFields.payoutMethod === 'Electronic Transfer';
+
+    const { data: banksResponse } = useGetBanksQuery();
+    const banks = useMemo(
+        () => (banksResponse?.data || []).map(b => ({ id: b.code, label: b.name, value: b.code })),
+        [banksResponse]
+    );
+
+    const { data: savedAccountsResponse } = useGetSavedAccountsQuery();
+    const savedAccounts = useMemo(() => {
+        return (savedAccountsResponse?.data || []).map((a: any) => {
+            const clean = (str: string) => {
+                return (str || '')
+                    .toLowerCase()
+                    .replace(/\b(plc|limited|ltd|bank|microfinance|mgb|mfd)\b/g, '')
+                    .replace(/[^a-z0-9]/g, '')
+                    .trim();
+            };
+            const cleanedTarget = clean(a.bankName);
+            const foundBank = (banksResponse?.data || []).find((b: any) => {
+                const cleanedBank = clean(b.name);
+                return cleanedBank === cleanedTarget || cleanedBank.includes(cleanedTarget) || cleanedTarget.includes(cleanedBank);
+            });
+            return {
+                id: a.id,
+                bankName: a.bankName,
+                accountNumber: a.accountNumber,
+                accountName: a.accountName,
+                bankCode: foundBank?.code || ''
+            };
+        });
+    }, [savedAccountsResponse, banksResponse]);
+
+    const saveAccountMutation = useSaveAccountMutation();
+    const resolveAccount = useLookupAccountMutation();
+
+    const [selectedSavedAccountId, setSelectedSavedAccountId] = useState<string | null>('');
+    const [isAddingNewAccount, setIsAddingNewAccount] = useState(false);
+    const [payoutSheetVisible, setPayoutSheetVisible] = useState(false);
+
+    React.useEffect(() => {
+        if (!isAddingNewAccount) return;
+        if (watchedFields.customerAccountNumber?.length === 10 && watchedFields.customerBankCode) {
+            resolveAccount.mutate({
+                accountNumber: watchedFields.customerAccountNumber,
+                bankName: watchedFields.customerBankName
+            }, {
+                onSuccess: (res) => {
+                    if (res.success) {
+                        setValue('customerAccountName', res.data.accountName);
+                    }
+                },
+                onError: () => {
+                    setValue('customerAccountName', '');
+                    showToast('Could not resolve account name', 'error');
+                }
+            });
+        }
+    }, [watchedFields.customerAccountNumber, watchedFields.customerBankCode, isAddingNewAccount]);
+
     // Document upload state
     const [docs, setDocs] = useState({
         passport: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
@@ -122,7 +244,7 @@ export default function TouringScreen() {
 
     const credentialFields = [
         { customComponent: <ControlledInput control={control} name="formAId" label="Form A ID" placeholder="Enter Form A ID" required /> },
-        { customComponent: <ControlledInput control={control} name="passportNumber" label="International Passport Number" placeholder="Enter international passport" required maxLength={9} filterType="alphanumeric" /> },
+        { customComponent: <ControlledInput control={control} name="passportDocumentNumber" label="International Passport Number" placeholder="Enter international passport" required maxLength={9} filterType="alphanumeric" /> },
     ];
 
     const documentFields = [
@@ -151,9 +273,6 @@ export default function TouringScreen() {
             fileUri: docs.visa.file?.uri, fileUrl: docs.visa.meta?.fileUrl,
             fileType: docs.visa.file?.type,
             required: true,
-            associatedInputs: (
-                <ControlledInput control={control} name="visaNumber" label="Visa Number" placeholder="Enter visa number" required maxLength={8} filterType="alphanumeric" />
-            )
         },
         {
             label: 'Receipt for Initial Naira Purchase',
@@ -165,6 +284,30 @@ export default function TouringScreen() {
         },
     ];
 
+    const handleSaveNewAccount = async () => {
+        const isValid = await trigger([
+            'customerBankName',
+            'customerBankCode',
+            'customerAccountNumber',
+            'customerAccountName'
+        ]);
+
+        if (isValid) {
+            saveAccountMutation.mutate({
+                bankName: watchedFields.customerBankName || '',
+                accountNumber: watchedFields.customerAccountNumber || '',
+                accountName: watchedFields.customerAccountName || '',
+            }, {
+                onSuccess: (res) => {
+                    if (res.data?.id) {
+                        setSelectedSavedAccountId(res.data.id);
+                    }
+                    setIsAddingNewAccount(false);
+                }
+            });
+        }
+    };
+
     const handleNext = async () => {
         if (isUploading) {
             showToast('Please wait for files to finish uploading', 'warning');
@@ -173,21 +316,31 @@ export default function TouringScreen() {
 
         let isStepValid = false;
         if (currentStep === 0) {
-            isStepValid = await trigger(['formAId', 'passportNumber']);
+            isStepValid = await trigger(['formAId', 'passportDocumentNumber']);
         } else if (currentStep === 1) {
             if (!docs.passport.file || !docs.visa.file || !docs.receipt.file) {
                 showToast('Please upload all required documents', 'error');
                 return;
             }
-            isStepValid = await trigger(['passportIssueDate', 'passportExpiryDate', 'visaNumber']);
+            isStepValid = await trigger(['passportIssueDate', 'passportExpiryDate']);
         } else if (currentStep === 2) {
             isStepValid = await trigger(['amount']);
         } else if (currentStep === 3) {
+            if (isAddingNewAccount) {
+                return;
+            }
+            const fieldsToTrigger: any[] = ['payoutMethod'];
+            if (isElectronicTransfer) {
+                fieldsToTrigger.push('customerBankName', 'customerBankCode', 'customerAccountNumber', 'customerAccountName');
+            }
+            isStepValid = await trigger(fieldsToTrigger);
+        } else if (currentStep === 4) {
             isStepValid = await trigger(['selectedState', 'selectedCity', 'selectedLocation', 'pickupDate', 'pickupTime']);
         }
 
         if (isStepValid) {
-            if (currentStep < 3) {
+            const isElectronicTransferLatest = watchedFields.payoutMethod?.includes('Electronic') || watchedFields.payoutMethod === 'Electronic Transfer';
+            if (currentStep < (isElectronicTransferLatest ? 3 : 4)) {
                 setCurrentStep(currentStep + 1);
             } else {
                 setInitiateSheetVisible(true);
@@ -196,6 +349,10 @@ export default function TouringScreen() {
     };
 
     const handleBack = () => {
+        if (isAddingNewAccount) {
+            setIsAddingNewAccount(false);
+            return;
+        }
         if (currentStep > 0) {
             setCurrentStep(currentStep - 1);
         } else {
@@ -204,7 +361,7 @@ export default function TouringScreen() {
     };
 
     const onSubmit = (data: TouringFormValues) => {
-        const formatDateForApi = (dateStr: string): string => {
+        const formatDateForApi = (dateStr: string | undefined): string => {
             if (!dateStr) return '';
             const parts = dateStr.split('/');
             if (parts.length === 3) {
@@ -221,17 +378,16 @@ export default function TouringScreen() {
             purpose: 'I am Touring Nigeria',
             destinationCountry: currencyGet.country,
             formAId: data.formAId,
-            passportNumber: data.passportNumber,
+            passportDocumentNumber: data.passportDocumentNumber,
             passportIssueDate: data.passportIssueDate,
             passportExpiryDate: data.passportExpiryDate,
-            visaNumber: data.visaNumber,
             documents: [
                 ...(docs.passport.meta ? [docs.passport.meta] : []),
                 ...(docs.visa.meta ? [docs.visa.meta] : []),
                 ...(docs.receipt.meta ? [docs.receipt.meta] : []),
                 ...(docs.signature.meta ? [docs.signature.meta] : []),
             ],
-            pickupLocation: data.selectedLocation ? {
+            pickupLocation: (!(data.payoutMethod?.includes('Electronic') || data.payoutMethod === 'Electronic Transfer') && data.selectedLocation) ? {
                 name: (data.selectedLocation as LocationItem).title,
                 address: (data.selectedLocation as LocationItem).subtitle || '',
                 state: (data.selectedState as LocationItem)?.title || '',
@@ -239,6 +395,13 @@ export default function TouringScreen() {
                 scheduledPickupDate: formatDateForApi(data.pickupDate),
                 scheduledPickupTime: data.pickupTime,
             } : undefined,
+            payoutMethod: data.payoutMethod,
+            beneficiaryDetails: {
+                bankName: data.customerBankName,
+                bankCode: data.customerBankCode,
+                accountNumber: data.customerAccountNumber,
+                accountName: data.customerAccountName,
+            }
         };
 
         createTransaction.mutate(payload, {
@@ -254,8 +417,6 @@ export default function TouringScreen() {
         });
     };
 
-    const watchedFields = watch() as any;
-
     const { data: filteredCities = [] } = useGetPickupCitiesQuery(watchedFields.selectedState?.title);
 
     const filteredLocations = useMemo(() => {
@@ -263,29 +424,31 @@ export default function TouringScreen() {
         return allLocations.filter((loc: any) => loc.metadata.city === watchedFields.selectedCity.title);
     }, [watchedFields.selectedCity, allLocations]);
 
-    const isStep0Valid = watchedFields.formAId && watchedFields.passportNumber;
+    const isStep0Valid = watchedFields.formAId && watchedFields.passportDocumentNumber;
     const isStep1Valid = docs.passport.meta && docs.visa.meta && docs.receipt.meta &&
-        watchedFields.passportIssueDate && watchedFields.passportExpiryDate && watchedFields.visaNumber;
+        watchedFields.passportIssueDate && watchedFields.passportExpiryDate;
     const isStep2Valid = watchedFields.amount > 0;
-    const isStep3Valid = watchedFields.selectedState && watchedFields.selectedCity && watchedFields.selectedLocation && watchedFields.pickupDate && watchedFields.pickupTime;
+    const isStep3Valid = watchedFields.payoutMethod && (!isElectronicTransfer || (watchedFields.customerBankName && watchedFields.customerBankCode && watchedFields.customerAccountNumber && watchedFields.customerAccountName));
+    const isStep4Valid = watchedFields.selectedState && watchedFields.selectedCity && watchedFields.selectedLocation && watchedFields.pickupDate && watchedFields.pickupTime;
 
     const isNextDisabled =
         (currentStep === 0 && !isStep0Valid) ||
         (currentStep === 1 && !isStep1Valid) ||
         (currentStep === 2 && !isStep2Valid) ||
-        (currentStep === 3 && !isStep3Valid);
+        (currentStep === 3 && !isStep3Valid) ||
+        (currentStep === 4 && !isElectronicTransfer && !isStep4Valid);
 
     return (
         <View style={{ flex: 1 }}>
-            <LoadingBackdrop visible={isUploading || createTransaction.isPending} />
+            <LoadingBackdrop visible={isUploading || createTransaction.isPending || saveAccountMutation.isPending} />
             <TransactionLayout
                 title="Touring"
                 currentStep={currentStep}
-                totalSteps={4}
+                totalSteps={isElectronicTransfer ? 4 : 5}
                 onBack={handleBack}
-                onNext={handleNext}
+                onNext={isAddingNewAccount ? handleSaveNewAccount : handleNext}
                 isNextDisabled={isNextDisabled}
-                nextLabel={currentStep === 3 ? (watchedFields.selectedState && watchedFields.selectedCity ? "Initiate Transaction Request" : "Continue") : "Continue"}
+                nextLabel={isAddingNewAccount ? "Save" : (currentStep === (isElectronicTransfer ? 3 : 4) ? (isElectronicTransfer || (watchedFields.selectedState && watchedFields.selectedCity) ? "Initiate Transaction Request" : "Continue") : "Continue")}
             >
                 {currentStep === 0 && (
                     <CredentialStep fields={credentialFields} />
@@ -310,7 +473,29 @@ export default function TouringScreen() {
                         error={errors.amount?.message}
                     />
                 )}
-                {currentStep === 3 && (
+                {currentStep === 3 && !isAddingNewAccount && (
+                    <PayoutMethodStep
+                        control={control}
+                        setValue={setValue}
+                        setPayoutSheetVisible={setPayoutSheetVisible}
+                        savedAccounts={savedAccounts}
+                        selectedSavedAccountId={selectedSavedAccountId}
+                        setSelectedSavedAccountId={setSelectedSavedAccountId}
+                        setIsAddingNewAccount={setIsAddingNewAccount}
+                    />
+                )}
+
+                {currentStep === 3 && isAddingNewAccount && (
+                    <AddNewAccountStep
+                        control={control}
+                        setValue={setValue}
+                        banks={banks}
+                        isResolving={resolveAccount.isPending}
+                        selectedBankCode={watchedFields.customerBankCode}
+                    />
+                )}
+
+                {currentStep === 4 && !isElectronicTransfer && (
                     <LocationStep
                         states={states}
                         cities={filteredCities}
@@ -363,7 +548,7 @@ export default function TouringScreen() {
                         email: user?.email || '',
                         bvn: user?.kyc?.bvn || '',
                         address: user?.profile?.address || '',
-                        passportNumber: watchedFields.passportNumber || user?.kyc?.passportNumber || ''
+                        passportDocumentNumber: watchedFields.passportDocumentNumber || user?.kyc?.passportDocumentNumber || ''
                     }}
                     transactionDetails={{
                         type: 'Tourist',

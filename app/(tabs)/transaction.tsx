@@ -6,6 +6,7 @@ import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
+import { getStatusLabel, formatListDate, formatListTime, formatAmount } from '@/utils/helpers';
 import SearchEmpty from '../../assets/icons/empty-state.svg';
 import Header from '../../components/Header';
 import { useGetUnreadCountQuery } from '@/hooks/queries/notifications/useGetUnreadCountQuery';
@@ -17,49 +18,6 @@ const FILTER_TO_GROUP: Record<string, string | undefined> = {
     'Receive FX': 'REMITTANCE',
 };
 
-const formatDate = (dateStr: string): string => {
-    const d = new Date(dateStr);
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return `${months[d.getMonth()]} ${d.getDate()} ${d.getFullYear()}`;
-};
-
-const formatTime = (dateStr: string): string => {
-    const d = new Date(dateStr);
-    let hours = d.getHours();
-    const minutes = d.getMinutes();
-    const ampm = hours >= 12 ? 'pm' : 'am';
-    hours = hours % 12 || 12;
-    return `${hours}${minutes > 0 ? ':' + String(minutes).padStart(2, '0') : ''} ${ampm}`;
-};
-
-const formatAmount = (amount: number, currency: string): string => {
-    const symbol = currency === 'USD' ? '$' : currency === 'GBP' ? '£' : currency === 'EUR' ? '€' : currency === 'NGN' ? '₦' : currency;
-    const num = Number(amount);
-    if (isNaN(num)) return `${symbol}0`;
-    const parts = num.toString().split('.');
-    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-    return `${symbol}${parts.join('.')}`;
-};
-
-const getStatusLabel = (status: string): string => {
-    const map: Record<string, string> = {
-        'DRAFT': 'Draft',
-        'AWAITING_VERIFICATION': 'Pending',
-        'VERIFICATION_IN_PROGRESS': 'In Progress',
-        'VERIFICATION_COMPLETED': 'In Progress',
-        'AWAITING_DEPOSIT': 'Pending',
-        'DEPOSIT_PENDING': 'Pending',
-        'DEPOSIT_CONFIRMED': 'In Progress',
-        'COMPLIANCE_REVIEW': 'In Progress',
-        'ADMIN_APPROVAL_PENDING': 'Pending',
-        'APPROVED': 'Approved',
-        'DISBURSEMENT_IN_PROGRESS': 'In Progress',
-        'COMPLETED': 'Settled',
-        'REJECTED': 'Declined',
-        'CANCELLED': 'Declined',
-    };
-    return map[status] || status;
-};
 
 const getTransactionRoute = (type: string): string => {
     const routes: Record<string, string> = {
@@ -205,25 +163,27 @@ export default function TransactionScreen() {
                                     </View>
                                     <View style={styles.itemContent}>
                                         <Text style={styles.itemTitle} numberOfLines={1}>{item.purpose || item.type}</Text>
-                                        <Text style={styles.itemDate}>{formatDate(item.createdAt)} • {formatTime(item.createdAt)}</Text>
+                                        <Text style={styles.itemDate}>{formatListDate(item.createdAt)} • {formatListTime(item.createdAt)}</Text>
                                     </View>
                                     <View style={styles.itemRight}>
                                         <Text style={styles.itemAmount}>{formatAmount(item.foreignAmount, item.currency)}</Text>
                                         <View style={[
                                             styles.statusBadge,
-                                            statusLabel === 'Pending' && styles.badgePending,
+                                            ['Pending', 'Awaiting Verification', 'Awaiting Deposit', 'Deposit Pending', 'Admin Approval Pending', 'Awaiting Disbursement'].includes(statusLabel) && styles.badgePending,
                                             statusLabel === 'More Info' && styles.badgeMoreInfo,
-                                            statusLabel === 'Declined' && styles.badgeDeclined,
+                                            ['Declined', 'Rejected', 'Cancelled'].includes(statusLabel) && styles.badgeDeclined,
                                             statusLabel === 'Approved' && styles.badgeApproved,
-                                            statusLabel === 'Settled' && styles.badgeSettled,
+                                            ['Settled', 'Completed'].includes(statusLabel) && styles.badgeSettled,
+                                            ['In Progress', 'Verification In Progress', 'Verification Completed', 'Deposit Confirmed', 'Compliance Review', 'Disbursement In Progress'].includes(statusLabel) && styles.badgeInProgress,
                                         ]}>
                                             <Text style={[
                                                 styles.statusText,
-                                                statusLabel === 'Pending' && styles.textStatusPending,
+                                                ['Pending', 'Awaiting Verification', 'Awaiting Deposit', 'Deposit Pending', 'Admin Approval Pending', 'Awaiting Disbursement'].includes(statusLabel) && styles.textStatusPending,
                                                 statusLabel === 'More Info' && styles.textStatusMoreInfo,
-                                                statusLabel === 'Declined' && styles.textStatusDeclined,
+                                                ['Declined', 'Rejected', 'Cancelled'].includes(statusLabel) && styles.textStatusDeclined,
                                                 statusLabel === 'Approved' && styles.textStatusApproved,
-                                                statusLabel === 'Settled' && styles.textStatusSettled,
+                                                ['Settled', 'Completed'].includes(statusLabel) && styles.textStatusSettled,
+                                                ['In Progress', 'Verification In Progress', 'Verification Completed', 'Deposit Confirmed', 'Compliance Review', 'Disbursement In Progress'].includes(statusLabel) && styles.textStatusInProgress,
                                             ]}>
                                                 {statusLabel}
                                             </Text>
@@ -420,6 +380,9 @@ const styles = ScaledSheet.create({
     badgeSettled: {
         backgroundColor: '#ECFCCB',
     },
+    badgeInProgress: {
+        backgroundColor: '#EEF4FF',
+    },
     statusText: {
         fontSize: '11@ms',
         fontWeight: '500',
@@ -438,6 +401,9 @@ const styles = ScaledSheet.create({
     },
     textStatusSettled: {
         color: '#4D7C0F',
+    },
+    textStatusInProgress: {
+        color: '#3538CD',
     },
     emptyState: {
         alignItems: 'center',

@@ -26,7 +26,7 @@ export default function ViewTouringScreen() {
         onError: () => showToast('Failed to upload document. Please try again.', 'error'),
     });
 
-    console.log(JSON.stringify(tx, null, 2), "TRANSACTION");
+    // console.log(JSON.stringify(tx, null, 2), "TRANSACTION");
 
     const mapStatus = (s: string): TransactionStatus => {
         const map: Record<string, TransactionStatus> = { 'DRAFT': 'pending', 'AWAITING_VERIFICATION': 'pending', 'VERIFICATION_IN_PROGRESS': 'pending', 'VERIFICATION_COMPLETED': 'pending', 'AWAITING_DEPOSIT': 'awaiting_disbursement', 'DEPOSIT_PENDING': 'awaiting_disbursement', 'DEPOSIT_CONFIRMED': 'awaiting_disbursement', 'COMPLIANCE_REVIEW': 'pending', 'ADMIN_APPROVAL_PENDING': 'pending', 'APPROVED': 'approved', 'DISBURSEMENT_IN_PROGRESS': 'awaiting_disbursement', 'COMPLETED': 'settled', 'REJECTED': 'rejected', 'CANCELLED': 'rejected' };
@@ -86,7 +86,7 @@ export default function ViewTouringScreen() {
             fileName: d.uploaded ? d.uploaded.fileName : null,
             docStatus: d.uploaded?.status,
             required: true,
-            onUpload: (!d.uploaded || d.uploaded.status === 'FAILED' || d.uploaded.status === 'REJECTED')
+            onUpload: (!d.uploaded || (d.uploaded.status !== 'FAILED' && d.uploaded.status !== 'REJECTED'))
                 ? () => uploadFile(d.type)
                 : undefined,
         }));

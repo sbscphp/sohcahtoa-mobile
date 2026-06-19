@@ -113,7 +113,7 @@ export default function ViewSchoolFeesScreen() {
             fileName: d.uploaded ? d.uploaded.fileName : null,
             docStatus: d.uploaded?.status,
             required: true,
-            onUpload: (!d.uploaded || d.uploaded.status === 'FAILED' || d.uploaded.status === 'REJECTED')
+            onUpload: (!d.uploaded || (d.uploaded.status !== 'FAILED' && d.uploaded.status !== 'REJECTED'))
                 ? () => uploadFile(d.type)
                 : undefined,
         }));

@@ -1,4 +1,4 @@
-import { CalculateExchangeRatePayload, CalculateExchangeRateResponse, CreateTransactionPayload, CreateTransactionResponse, ExportTransactionsParams, GetExchangeRatesParams, GetExchangeRatesResponse, GetPickupPointsResponse, GetPickupStatesResponse, GetPickupCitiesResponse, GetTransactionByIdResponse, GetTransactionsParams, GetTransactionsResponse, GetTransactionTotalsPayload, GetTransactionTotalsResponse, UploadTransactionDocumentPayload, UploadTransactionDocumentResponse, AttachBankAccountsPayload, AttachBankAccountsResponse } from '@/types/api/transactions';
+import { CalculateExchangeRatePayload, CalculateExchangeRateResponse, CreateTransactionPayload, CreateTransactionResponse, ExportTransactionsParams, GetExchangeRatesParams, GetExchangeRatesResponse, GetPickupPointsResponse, GetPickupStatesResponse, GetPickupCitiesResponse, GetTransactionByIdResponse, GetTransactionsParams, GetTransactionsResponse, GetTransactionTotalsPayload, GetTransactionTotalsResponse, UploadTransactionDocumentPayload, UploadTransactionDocumentResponse, AttachBankAccountsPayload, AttachBankAccountsResponse, GetVirtualAccountResponse } from '@/types/api/transactions';
 import api from './api';
 
 export const createTransaction = async (payload: CreateTransactionPayload): Promise<CreateTransactionResponse> => {
@@ -79,5 +79,10 @@ export const getTransactionTotals = async (payload: GetTransactionTotalsPayload)
 export const attachBankAccounts = async (payload: AttachBankAccountsPayload): Promise<AttachBankAccountsResponse> => {
     const { transactionId, bankAccountIds } = payload;
     const response = await api.post(`/customer/transactions/${transactionId}/bank-accounts`, { bankAccountIds });
+    return response.data;
+};
+
+export const getVirtualAccount = async (transactionId: string): Promise<GetVirtualAccountResponse> => {
+    const response = await api.get(`/customer/transactions/${transactionId}/virtual-account`);
     return response.data;
 };

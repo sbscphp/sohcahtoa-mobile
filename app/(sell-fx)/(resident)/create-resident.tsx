@@ -7,11 +7,11 @@ import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import LocationStep from '@/components/transaction-flow/LocationStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
+import { useProfileQuery } from '@/hooks/queries/auth/useProfileQuery';
 import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
 import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useExchangeLogic } from '@/hooks/useExchangeLogic';
 import { useAuthStore } from '@/stores/useAuthStore';
-import { useProfileQuery } from '@/hooks/queries/auth/useProfileQuery';
 import { useToastStore } from '@/stores/useToastStore';
 import { LocationItem } from '@/utils/locations';
 import {
@@ -22,14 +22,14 @@ import {
 } from '@/utils/validations/resident';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { View } from 'react-native';
 import { z } from 'zod';
 
+import { useGetPickupCitiesQuery } from '@/hooks/queries/transactions/useGetPickupCitiesQuery';
 import { useGetPickupPointsQuery } from '@/hooks/queries/transactions/useGetPickupPointsQuery';
 import { useGetPickupStatesQuery } from '@/hooks/queries/transactions/useGetPickupStatesQuery';
-import { useGetPickupCitiesQuery } from '@/hooks/queries/transactions/useGetPickupCitiesQuery';
 
 const residentFormSchema = z.object({
     ...residentStep0Schema.shape,
@@ -71,11 +71,11 @@ export default function CreateResidentScreen() {
         resolver: zodResolver(residentFormSchema),
         defaultValues: {
             bvn: user?.kyc?.bvn || '',
-            nin: '',
-            passportNumber: '',
+            nin: user?.kyc?.nin || '',
+            tinNumber: user?.kyc?.tinNumber || '',
+            passportDocumentNumber: '',
             passportIssueDate: '',
             passportExpiryDate: '',
-            utilityNumber: '',
             amount: 0,
             selectedState: undefined as unknown as LocationItem,
             selectedCity: undefined as unknown as LocationItem,
@@ -87,6 +87,15 @@ export default function CreateResidentScreen() {
     });
 
     const watchedFields = watch() as any;
+
+    useEffect(() => {
+        if (user?.kyc?.nin) {
+            setValue('nin', user.kyc.nin);
+        }
+        if (user?.kyc?.tinNumber) {
+            setValue('tinNumber', user.kyc.tinNumber);
+        }
+    }, [user?.kyc?.nin, user?.kyc?.tinNumber, setValue]);
 
     const { data: filteredCities = [] } = useGetPickupCitiesQuery(watchedFields.selectedState?.title);
 
@@ -151,9 +160,10 @@ export default function CreateResidentScreen() {
                 <ControlledInput
                     control={control}
                     name="nin"
-                    label="National Identification Number (NIN) (Optional)"
+                    label="National Identification Number (NIN)"
                     placeholder="Enter NIN"
                     keyboardType="numeric"
+                    disabled
                 />
             )
         },
@@ -161,10 +171,23 @@ export default function CreateResidentScreen() {
             customComponent: (
                 <ControlledInput
                     control={control}
-                    name="passportNumber"
+                    name="tinNumber"
+                    label="Tax Identification Number (TIN)"
+                    placeholder="Enter TIN"
+                    keyboardType="numeric"
+                    required maxLength={11} filterType="numeric"
+                />
+            )
+        },
+        {
+            customComponent: (
+                <ControlledInput
+                    control={control}
+                    name="passportDocumentNumber"
                     label="International Passport Number"
                     placeholder="Enter international passport number"
                     required
+                    maxLength={9} filterType="alphanumeric"
                 />
             )
         },
@@ -202,23 +225,12 @@ export default function CreateResidentScreen() {
             ),
         },
         {
-            label: 'Utility bill  (Not more than 3 months old)',
+            label: 'Utility bill',
             onUpload: () => uploadFile('UTILITY_BILL'),
             fileName: docs.utility.file?.name,
             fileUri: docs.utility.file?.uri, fileUrl: docs.utility.meta?.fileUrl,
             fileType: docs.utility.file?.type,
             required: true,
-            associatedInputs: (
-                <View>
-                    <ControlledInput
-                        control={control}
-                        name="utilityNumber"
-                        label="Utility Bill"
-                        required
-                        placeholder="Enter Utility number"
-                    />
-                </View>
-            ),
         },
     ];
 
@@ -231,13 +243,13 @@ export default function CreateResidentScreen() {
         let isStepValid = false;
 
         if (currentStep === 0) {
-            isStepValid = await trigger(['nin', 'passportNumber']);
+            isStepValid = await trigger(['nin', 'passportDocumentNumber']);
         } else if (currentStep === 1) {
             if (!docs.passport.file || !docs.utility.file) {
                 showToast('Please upload all required documents', 'error');
                 return;
             }
-            isStepValid = await trigger(['passportIssueDate', 'passportExpiryDate', 'utilityNumber']);
+            isStepValid = await trigger(['passportIssueDate', 'passportExpiryDate']);
         } else if (currentStep === 2) {
             isStepValid = await trigger(['amount']);
         } else if (currentStep === 3) {
@@ -279,7 +291,8 @@ export default function CreateResidentScreen() {
             destinationCountry: currencyGet.country,
             bvn: data.bvn,
             nin: data.nin,
-            passportNumber: data.passportNumber,
+            passportDocumentNumber: data.passportDocumentNumber,
+            tinNumber: data.tinNumber,
             passportIssueDate: data.passportIssueDate,
             passportExpiryDate: data.passportExpiryDate,
             documents: [
@@ -311,9 +324,9 @@ export default function CreateResidentScreen() {
         });
     };
 
-    const isStep0Valid = !!watchedFields.passportNumber;
+    const isStep0Valid = !!watchedFields.passportDocumentNumber;
     const isStep1Valid = docs.passport.meta && docs.utility.meta &&
-        watchedFields.passportIssueDate && watchedFields.passportExpiryDate && watchedFields.utilityNumber;
+        watchedFields.passportIssueDate && watchedFields.passportExpiryDate;
     const isStep2Valid = watchedFields.amount > 0;
     const isStep3Valid = watchedFields.selectedState && watchedFields.selectedCity && watchedFields.selectedLocation && watchedFields.pickupDate && watchedFields.pickupTime;
 

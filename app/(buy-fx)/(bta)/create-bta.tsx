@@ -24,7 +24,7 @@ import { useExchangeLogic } from '@/hooks/useExchangeLogic';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useToastStore } from '@/stores/useToastStore';
 import { LocationItem } from '@/utils/locations';
-import { btaStep0Schema, btaStep1Schema, btaStep2Schema, btaStep3Schema } from '@/utils/validations/bta';
+import { btaStep0Schema, btaStep1Schema, btaStep2Schema } from '@/utils/validations/bta';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
@@ -156,10 +156,10 @@ export default function BusinessTravelAllowanceScreen() {
         resolver: zodResolver(btaFormSchema),
         defaultValues: {
             bvn: user?.kyc?.bvn || '',
-            nin: '',
+            nin: (user?.kyc as any)?.nin || (user as any)?.nin || '',
             formAId: '',
-            tin: '',
-            passportNumber: '',
+            tinNumber: '',
+            passportDocumentNumber: '',
             passportIssueDate: '',
             passportExpiryDate: '',
             amount: 0,
@@ -290,10 +290,10 @@ export default function BusinessTravelAllowanceScreen() {
 
     const credentialFields = [
         { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number(BVN)" placeholder="Enter your BVN" required keyboardType="numeric" maxLength={11} filterType="numeric" disabled /> },
-        { customComponent: <ControlledInput control={control} name="tin" label="Tax Identification Number(TIN)" placeholder="Enter your TIN" required keyboardType="numeric" maxLength={11} filterType="numeric" /> },
-        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number(NIN) (Optional)" placeholder="Enter your NIN" keyboardType="numeric" maxLength={11} filterType="numeric" /> },
+        { customComponent: <ControlledInput control={control} name="tinNumber" label="Tax Identification Number(TIN)" placeholder="Enter your TIN" required keyboardType="numeric" maxLength={11} filterType="numeric" /> },
+        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number(NIN)" placeholder="Enter your NIN" keyboardType="numeric" maxLength={11} filterType="numeric" disabled /> },
         { customComponent: <ControlledInput control={control} name="formAId" label="Form A ID" placeholder="Enter Form A ID" required /> },
-        { customComponent: <ControlledInput control={control} name="passportNumber" label="International Passport Number" placeholder="Enter international passport" required maxLength={9} filterType="alphanumeric" /> }
+        { customComponent: <ControlledInput control={control} name="passportDocumentNumber" label="International Passport Number" placeholder="Enter international passport" required maxLength={9} filterType="alphanumeric" /> }
     ];
 
     const documentFields = [
@@ -321,6 +321,22 @@ export default function BusinessTravelAllowanceScreen() {
             fileName: docs.visa.file?.name,
             fileUri: docs.visa.file?.uri, fileUrl: docs.visa.meta?.fileUrl,
             fileType: docs.visa.file?.type,
+            required: true,
+        },
+        {
+            label: 'Return Ticket',
+            onUpload: () => uploadFile('RETURN_TICKET'),
+            fileName: docs.returnTicket.file?.name,
+            fileUri: docs.returnTicket.file?.uri, fileUrl: docs.returnTicket.meta?.fileUrl,
+            fileType: docs.returnTicket.file?.type,
+            required: true,
+        },
+        {
+            label: 'Tax Clearance Certificate (TCC)',
+            onUpload: () => uploadFile('TCC'),
+            fileName: docs.tcc.file?.name,
+            fileUri: docs.tcc.file?.uri, fileUrl: docs.tcc.meta?.fileUrl,
+            fileType: docs.tcc.file?.type,
             required: true,
         },
         {
@@ -374,7 +390,7 @@ export default function BusinessTravelAllowanceScreen() {
         let isStepValid = false;
 
         if (currentStep === 0) {
-            isStepValid = await trigger(['bvn', 'tin', 'nin', 'formAId', 'passportNumber']);
+            isStepValid = await trigger(['bvn', 'tinNumber', 'nin', 'formAId', 'passportDocumentNumber']);
         } else if (currentStep === 1) {
             isStepValid = await trigger(['passportIssueDate', 'passportExpiryDate']);
         } else if (currentStep === 2) {
@@ -429,18 +445,21 @@ export default function BusinessTravelAllowanceScreen() {
             type: 'BTA',
             currency: currencyGet.code,
             amount: data.amount,
-            purpose: 'Business Travel Allowance (BTA)',
+            purpose: 'Business Travel Allowance',
             destinationCountry: currencyGet.country,
             bvn: data.bvn,
             nin: data.nin,
             formAId: data.formAId,
-            passportNumber: data.passportNumber,
+            tinNumber: data.tinNumber,
+            passportDocumentNumber: data.passportDocumentNumber,
             passportIssueDate: data.passportIssueDate,
             passportExpiryDate: data.passportExpiryDate,
             payoutMethod: data.payoutMethod,
             documents: [
                 ...(docs.passport.meta ? [docs.passport.meta] : []),
                 ...(docs.visa.meta ? [docs.visa.meta] : []),
+                ...(docs.returnTicket.meta ? [docs.returnTicket.meta] : []),
+                ...(docs.tcc.meta ? [docs.tcc.meta] : []),
                 ...(docs.corporateBodyLetter.meta ? [docs.corporateBodyLetter.meta] : []),
                 ...(docs.partnerInvitationLetter.meta ? [docs.partnerInvitationLetter.meta] : []),
             ],
@@ -459,7 +478,7 @@ export default function BusinessTravelAllowanceScreen() {
                 accountName: data.customerAccountName,
             }
         };
-        console.log(payload,"PAYLOAD")
+        console.log(payload, "PAYLOAD")
 
         createTransaction.mutate(payload, {
             onSuccess: (response: any) => {
@@ -475,8 +494,8 @@ export default function BusinessTravelAllowanceScreen() {
     };
 
 
-    const isStep0Valid = watchedFields.bvn && watchedFields.tin && watchedFields.formAId && watchedFields.passportNumber;
-    const isStep1Valid = docs.passport.meta && docs.visa.meta && docs.corporateBodyLetter.meta && docs.partnerInvitationLetter.meta &&
+    const isStep0Valid = watchedFields.bvn && watchedFields.tinNumber && watchedFields.formAId && watchedFields.passportDocumentNumber;
+    const isStep1Valid = docs.passport.meta && docs.visa.meta && docs.returnTicket.meta && docs.tcc.meta && docs.corporateBodyLetter.meta && docs.partnerInvitationLetter.meta &&
         watchedFields.passportIssueDate && watchedFields.passportExpiryDate;
     const isStep2Valid = watchedFields.amount > 0;
     const isStep3Valid = watchedFields.payoutMethod && (!isElectronicTransfer || (watchedFields.customerBankName && watchedFields.customerBankCode && watchedFields.customerAccountNumber && watchedFields.customerAccountName));

@@ -8,7 +8,7 @@ export interface CreateTransactionPayload {
     nin?: string;
     formAId?: string;
     admissionType?: string;
-    passportNumber?: string;
+    passportDocumentNumber?: string;
     passportIssueDate?: string;
     passportExpiryDate?: string;
     identificationNumber?: string;
@@ -138,7 +138,7 @@ export interface Transaction {
         bvn?: string;
         nin?: string;
         admissionType?: string;
-        passportNumber?: string;
+        passportDocumentNumber?: string;
         passportDocumentNumber?: string;
         passportIssueDate?: string;
         passportExpiryDate?: string;
@@ -310,7 +310,7 @@ export interface GetTransactionByIdResponse {
             bvn?: string;
             nin?: string;
             admissionType?: string;
-            passportNumber?: string;
+            passportDocumentNumber?: string;
             passportDocumentNumber?: string;
             passportIssueDate?: string;
             passportExpiryDate?: string;
@@ -416,4 +416,16 @@ export interface AttachBankAccountsResponse {
     success: boolean;
     message?: string;
     data?: any;
+}
+
+export interface GetVirtualAccountResponse {
+    success: boolean;
+    message?: string;
+    data: {
+        accountNumber: string;
+        bankName: string;
+        accountName: string;
+        expiryDate?: string;
+        expiresAt?: string;
+    };
 }

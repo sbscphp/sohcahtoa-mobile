@@ -1,42 +1,95 @@
 import ControlledDatePicker from '@/components/ControlledDatePicker';
 import ControlledInput from '@/components/ControlledInput';
 import FileUpload from '@/components/FileUpload';
+import GenericSelectionSheet, { SelectionItem } from '@/components/GenericSelectionSheet';
 import InitiateTransactionSheet from '@/components/InitiateTransactionSheet';
 import LoadingBackdrop from '@/components/LoadingBackdrop';
-import { LocationItem } from '@/utils/locations';
+import AddNewAccountStep from '@/components/transaction-flow/AddNewAccountStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import LocationStep from '@/components/transaction-flow/LocationStep';
+import PayoutMethodStep from '@/components/transaction-flow/PayoutMethodStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
+import { useProfileQuery } from '@/hooks/queries/auth/useProfileQuery';
+import { useGetBanksQuery } from '@/hooks/queries/banks/useGetBanksQuery';
+import { useGetSavedAccountsQuery } from '@/hooks/queries/banks/useGetSavedAccountsQuery';
+import { useLookupAccountMutation } from '@/hooks/queries/banks/useResolveAccountMutation';
+import { useSaveAccountMutation } from '@/hooks/queries/banks/useSaveAccountMutation';
 import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
 import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useExchangeLogic } from '@/hooks/useExchangeLogic';
 import { useAuthStore } from '@/stores/useAuthStore';
-import { useProfileQuery } from '@/hooks/queries/auth/useProfileQuery';
 import { useToastStore } from '@/stores/useToastStore';
+import { LocationItem } from '@/utils/locations';
 import {
     expatriateStep0Schema,
     expatriateStep1Schema,
-    expatriateStep2Schema,
-    expatriateStep3Schema,
+    expatriateStep2Schema
 } from '@/utils/validations/expatriate';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Text, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import { z } from 'zod';
 
-import { useGetPickupStatesQuery } from '@/hooks/queries/transactions/useGetPickupStatesQuery';
-import { useGetPickupPointsQuery } from '@/hooks/queries/transactions/useGetPickupPointsQuery';
 import { useGetPickupCitiesQuery } from '@/hooks/queries/transactions/useGetPickupCitiesQuery';
+import { useGetPickupPointsQuery } from '@/hooks/queries/transactions/useGetPickupPointsQuery';
+import { useGetPickupStatesQuery } from '@/hooks/queries/transactions/useGetPickupStatesQuery';
+
+const PAYOUT_METHODS: SelectionItem[] = [
+    { id: '1', label: 'Electronic Transfer', value: 'Electronic Transfer' },
+    { id: '2', label: 'Cash Pickup', value: 'Cash Pickup' }
+];
 
 const expatriateFormSchema = z.object({
     ...expatriateStep0Schema.shape,
     ...expatriateStep1Schema.shape,
     ...expatriateStep2Schema.shape,
-    ...expatriateStep3Schema.shape
+    payoutMethod: z.string().min(1, 'Please select a payout method'),
+    customerBankName: z.string().optional().or(z.literal('')),
+    customerBankCode: z.string().optional().or(z.literal('')),
+    customerAccountNumber: z.string().optional().or(z.literal('')),
+    customerAccountName: z.string().optional().or(z.literal('')),
+    selectedState: z.any().optional(),
+    selectedCity: z.any().optional(),
+    selectedLocation: z.any().optional(),
+    pickupDate: z.string().optional().or(z.literal('')),
+    pickupTime: z.string().optional().or(z.literal('')),
 }).superRefine((data, ctx) => {
+    const isElectronicTransfer = data.payoutMethod?.includes('Electronic') || data.payoutMethod === 'Electronic_Transfer';
+
+    if (isElectronicTransfer) {
+        if (!data.customerBankName) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Please select your bank', path: ['customerBankName'] });
+        }
+        if (!data.customerBankCode) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Please select your bank', path: ['customerBankCode'] });
+        }
+        if (!data.customerAccountNumber || data.customerAccountNumber.length !== 10) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Account number must be 10 digits', path: ['customerAccountNumber'] });
+        }
+        if (!data.customerAccountName) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Account name must be resolved', path: ['customerAccountName'] });
+        }
+    } else {
+        if (!data.selectedState) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Please select a state', path: ['selectedState'] });
+        }
+        if (!data.selectedCity) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Please select a city', path: ['selectedCity'] });
+        }
+        if (!data.selectedLocation) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Please select a pickup location', path: ['selectedLocation'] });
+        }
+        if (!data.pickupDate) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Please select a pickup date', path: ['pickupDate'] });
+        }
+        if (!data.pickupTime) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Please select a pickup time', path: ['pickupTime'] });
+        }
+    }
+
     if (data.passportIssueDate && data.passportExpiryDate && data.passportIssueDate === data.passportExpiryDate) {
         ctx.addIssue({
             code: z.ZodIssueCode.custom,
@@ -71,13 +124,16 @@ export default function CreateExpatriateScreen() {
         resolver: zodResolver(expatriateFormSchema),
         defaultValues: {
             bvn: user?.kyc?.bvn || '',
-            nin: '',
-            passportNumber: '',
-            workPermitNumber: '',
+            nin: user?.kyc?.nin || '',
+            passportDocumentNumber: '',
             passportIssueDate: '',
             passportExpiryDate: '',
-            utilityBillNumber: '',
             amount: 0,
+            payoutMethod: '',
+            customerBankName: '',
+            customerBankCode: '',
+            customerAccountNumber: '',
+            customerAccountName: '',
             selectedState: undefined as unknown as LocationItem,
             selectedCity: undefined as unknown as LocationItem,
             selectedLocation: undefined as unknown as LocationItem,
@@ -88,6 +144,13 @@ export default function CreateExpatriateScreen() {
     });
 
     const watchedFields = watch() as any;
+    const isElectronicTransfer = watchedFields.payoutMethod?.includes('Electronic') || watchedFields.payoutMethod === 'Electronic Transfer';
+
+    useEffect(() => {
+        if (user?.kyc?.nin) {
+            setValue('nin', user.kyc.nin);
+        }
+    }, [user?.kyc?.nin, setValue]);
 
     const { data: filteredCities = [] } = useGetPickupCitiesQuery(watchedFields.selectedState?.title);
 
@@ -96,7 +159,64 @@ export default function CreateExpatriateScreen() {
         return allLocations.filter((loc: any) => loc.metadata.city === watchedFields.selectedCity.title);
     }, [watchedFields.selectedCity, allLocations]);
 
-    // Step 1: Uploaded files
+    const { data: banksResponse } = useGetBanksQuery();
+    const banks = useMemo(
+        () => (banksResponse?.data || []).map(b => ({ id: b.code, label: b.name, value: b.code })),
+        [banksResponse]
+    );
+
+    const { data: savedAccountsResponse } = useGetSavedAccountsQuery();
+    const savedAccounts = useMemo(() => {
+        return (savedAccountsResponse?.data || []).map((a: any) => {
+            const clean = (str: string) => {
+                return (str || '')
+                    .toLowerCase()
+                    .replace(/\b(plc|limited|ltd|bank|microfinance|mgb|mfd)\b/g, '')
+                    .replace(/[^a-z0-9]/g, '')
+                    .trim();
+            };
+            const cleanedTarget = clean(a.bankName);
+            const foundBank = (banksResponse?.data || []).find((b: any) => {
+                const cleanedBank = clean(b.name);
+                return cleanedBank === cleanedTarget || cleanedBank.includes(cleanedTarget) || cleanedTarget.includes(cleanedBank);
+            });
+            return {
+                id: a.id,
+                bankName: a.bankName,
+                accountNumber: a.accountNumber,
+                accountName: a.accountName,
+                bankCode: foundBank?.code || ''
+            };
+        });
+    }, [savedAccountsResponse, banksResponse]);
+
+    const saveAccountMutation = useSaveAccountMutation();
+    const resolveAccount = useLookupAccountMutation();
+
+    const [selectedSavedAccountId, setSelectedSavedAccountId] = useState<string | null>('');
+    const [isAddingNewAccount, setIsAddingNewAccount] = useState(false);
+    const [payoutSheetVisible, setPayoutSheetVisible] = useState(false);
+
+    React.useEffect(() => {
+        if (!isAddingNewAccount) return;
+        if (watchedFields.customerAccountNumber?.length === 10 && watchedFields.customerBankCode) {
+            resolveAccount.mutate({
+                accountNumber: watchedFields.customerAccountNumber,
+                bankName: watchedFields.customerBankName
+            }, {
+                onSuccess: (res) => {
+                    if (res.success) {
+                        setValue('customerAccountName', res.data.accountName);
+                    }
+                },
+                onError: () => {
+                    setValue('customerAccountName', '');
+                    showToast('Could not resolve account name', 'error');
+                }
+            });
+        }
+    }, [watchedFields.customerAccountNumber, watchedFields.customerBankCode, isAddingNewAccount]);
+
     const [docs, setDocs] = useState({
         workPermit: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
         passport: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
@@ -136,6 +256,30 @@ export default function CreateExpatriateScreen() {
     // Step 3: Pickup
     const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
 
+    const handleSaveNewAccount = async () => {
+        const isValid = await trigger([
+            'customerBankName',
+            'customerBankCode',
+            'customerAccountNumber',
+            'customerAccountName'
+        ]);
+
+        if (isValid) {
+            saveAccountMutation.mutate({
+                bankName: watchedFields.customerBankName || '',
+                accountNumber: watchedFields.customerAccountNumber || '',
+                accountName: watchedFields.customerAccountName || '',
+            }, {
+                onSuccess: (res) => {
+                    if (res.data?.id) {
+                        setSelectedSavedAccountId(res.data.id);
+                    }
+                    setIsAddingNewAccount(false);
+                }
+            });
+        }
+    };
+
     const handleNext = async () => {
         if (isUploading) {
             showToast('Please wait for files to finish uploading', 'warning');
@@ -145,21 +289,31 @@ export default function CreateExpatriateScreen() {
         let isStepValid = false;
 
         if (currentStep === 0) {
-            isStepValid = await trigger(['nin', 'passportNumber']);
+            isStepValid = await trigger(['nin', 'passportDocumentNumber']);
         } else if (currentStep === 1) {
             if (!docs.workPermit.file || !docs.passport.file || !docs.utility.file) {
                 showToast('Please upload all required documents', 'error');
                 return;
             }
-            isStepValid = await trigger(['workPermitNumber', 'passportIssueDate', 'passportExpiryDate', 'utilityBillNumber']);
+            isStepValid = await trigger(['passportIssueDate', 'passportExpiryDate']);
         } else if (currentStep === 2) {
             isStepValid = await trigger(['amount']);
         } else if (currentStep === 3) {
+            if (isAddingNewAccount) {
+                return;
+            }
+
+            const fieldsToTrigger: any[] = ['payoutMethod'];
+            if (isElectronicTransfer) {
+                fieldsToTrigger.push('customerBankName', 'customerBankCode', 'customerAccountNumber', 'customerAccountName');
+            }
+            isStepValid = await trigger(fieldsToTrigger);
+        } else if (currentStep === 4) {
             isStepValid = await trigger(['selectedState', 'selectedCity', 'selectedLocation', 'pickupDate', 'pickupTime']);
         }
 
         if (isStepValid) {
-            if (currentStep < 3) {
+            if (currentStep < (isElectronicTransfer ? 3 : 4)) {
                 setCurrentStep(currentStep + 1);
             } else {
                 setInitiateSheetVisible(true);
@@ -176,7 +330,7 @@ export default function CreateExpatriateScreen() {
     };
 
     const onSubmit = (data: ExpatriateFormValues) => {
-        const formatDateForApi = (dateStr: string): string => {
+        const formatDateForApi = (dateStr?: string): string => {
             if (!dateStr) return '';
             const parts = dateStr.split('/');
             if (parts.length === 3) {
@@ -185,7 +339,7 @@ export default function CreateExpatriateScreen() {
             return dateStr;
         };
 
-        const payload = {
+        const payload: any = {
             type: 'EXPATRIATE_FX',
             currency: currencySend.code,
             amount: data.amount,
@@ -193,25 +347,33 @@ export default function CreateExpatriateScreen() {
             destinationCountry: currencySend.country,
             bvn: data.bvn,
             nin: data.nin,
-            passportNumber: data.passportNumber,
-            workPermitNumber: data.workPermitNumber,
+            passportDocumentNumber: data.passportDocumentNumber,
             passportIssueDate: data.passportIssueDate,
             passportExpiryDate: data.passportExpiryDate,
-            utilityBillNumber: data.utilityBillNumber,
             documents: [
                 ...(docs.workPermit.meta ? [docs.workPermit.meta] : []),
                 ...(docs.passport.meta ? [docs.passport.meta] : []),
                 ...(docs.utility.meta ? [docs.utility.meta] : []),
             ],
-            pickupLocation: data.selectedLocation ? {
+            payoutMethod: data.payoutMethod,
+            beneficiaryDetails: {
+                bankName: data.customerBankName,
+                bankCode: data.customerBankCode,
+                accountNumber: data.customerAccountNumber,
+                accountName: data.customerAccountName,
+            }
+        };
+
+        if (!isElectronicTransfer && data.selectedLocation) {
+            payload.pickupLocation = {
                 name: data.selectedLocation.title,
                 address: data.selectedLocation.subtitle || '',
                 state: data.selectedState?.title || '',
                 city: data.selectedCity?.title || '',
                 scheduledPickupDate: formatDateForApi(data.pickupDate),
                 scheduledPickupTime: data.pickupTime,
-            } : undefined,
-        };
+            };
+        }
 
         createTransaction.mutate(payload, {
             onSuccess: (response: any) => {
@@ -228,17 +390,19 @@ export default function CreateExpatriateScreen() {
         });
     };
 
-    const isStep0Valid = !!watchedFields.passportNumber;
+    const isStep0Valid = !!watchedFields.passportDocumentNumber;
     const isStep1Valid = !!(docs.workPermit.meta && docs.passport.meta && docs.utility.meta &&
-        watchedFields.workPermitNumber && watchedFields.passportIssueDate && watchedFields.passportExpiryDate && watchedFields.utilityBillNumber);
+        watchedFields.passportIssueDate && watchedFields.passportExpiryDate);
     const isStep2Valid = watchedFields.amount > 0;
-    const isStep3Valid = !!(watchedFields.selectedState && watchedFields.selectedCity && watchedFields.selectedLocation && watchedFields.pickupDate && watchedFields.pickupTime);
+    const isStep3Valid = watchedFields.payoutMethod && (!isElectronicTransfer || (watchedFields.customerBankName && watchedFields.customerBankCode && watchedFields.customerAccountNumber && watchedFields.customerAccountName));
+    const isStep4Valid = watchedFields.selectedState && watchedFields.selectedCity && watchedFields.selectedLocation && watchedFields.pickupDate && watchedFields.pickupTime;
 
     const isNextDisabled =
         (currentStep === 0 && !isStep0Valid) ||
         (currentStep === 1 && !isStep1Valid) ||
         (currentStep === 2 && !isStep2Valid) ||
-        (currentStep === 3 && !isStep3Valid);
+        (currentStep === 3 && !isStep3Valid) ||
+        (currentStep === 4 && !isElectronicTransfer && !isStep4Valid);
 
     return (
         <View style={{ flex: 1 }}>
@@ -246,11 +410,11 @@ export default function CreateExpatriateScreen() {
             <TransactionLayout
                 title="Expatriate"
                 currentStep={currentStep}
-                totalSteps={4}
+                totalSteps={isElectronicTransfer ? 4 : 5}
                 onBack={handleBack}
-                onNext={handleNext}
+                onNext={isAddingNewAccount ? handleSaveNewAccount : handleNext}
                 isNextDisabled={isNextDisabled}
-                nextLabel={currentStep === 3 ? "Initiate Transaction Request" : "Continue"}
+                nextLabel={isAddingNewAccount ? "Save" : (currentStep === (isElectronicTransfer ? 3 : 4) ? (isElectronicTransfer || (watchedFields.selectedState && watchedFields.selectedCity) ? "Initiate Transaction Request" : "Continue") : "Continue")}
             >
                 {currentStep === 0 && (
                     <View style={styles.container}>
@@ -271,16 +435,17 @@ export default function CreateExpatriateScreen() {
                         <ControlledInput
                             control={control}
                             name="nin"
-                            label="National Identification Number (NIN) (Optional)"
+                            label="National Identification Number (NIN)"
                             placeholder="Enter NIN"
                             keyboardType="numeric"
                             maxLength={11}
                             filterType="numeric"
+                            disabled
                         />
 
                         <ControlledInput
                             control={control}
-                            name="passportNumber"
+                            name="passportDocumentNumber"
                             label="International Passport Number"
                             placeholder="Enter international passport number"
                             required
@@ -294,7 +459,7 @@ export default function CreateExpatriateScreen() {
                     <View style={styles.container}>
                         <Text style={styles.sectionTitle}>Upload Relevant Documents</Text>
 
-                        {/* Work Permit */}
+
                         <View style={styles.documentSection}>
                             <Text style={styles.documentLabel}>
                                 Work Permit <Text style={styles.required}>*</Text>
@@ -304,13 +469,6 @@ export default function CreateExpatriateScreen() {
                                 fileName={docs.workPermit.file?.name ?? null}
                                 fileUri={docs.workPermit.file?.uri ?? null} fileUrl={docs.workPermit.meta?.fileUrl ?? null}
                                 fileType={docs.workPermit.file?.type ?? null}
-                            />
-                            <ControlledInput
-                                control={control}
-                                name="workPermitNumber"
-                                label="Work Permit Number"
-                                placeholder="Enter work permit number"
-                                required
                             />
                         </View>
 
@@ -358,13 +516,6 @@ export default function CreateExpatriateScreen() {
                                 fileUri={docs.utility.file?.uri ?? null} fileUrl={docs.utility.meta?.fileUrl ?? null}
                                 fileType={docs.utility.file?.type ?? null}
                             />
-                            <ControlledInput
-                                control={control}
-                                name="utilityBillNumber"
-                                label="Utility Bill Number"
-                                placeholder="Enter utility bill number"
-                                required
-                            />
                         </View>
                     </View>
                 )}
@@ -387,7 +538,29 @@ export default function CreateExpatriateScreen() {
                     />
                 )}
 
-                {currentStep === 3 && (
+                {currentStep === 3 && !isAddingNewAccount && (
+                    <PayoutMethodStep
+                        control={control}
+                        setValue={setValue}
+                        setPayoutSheetVisible={setPayoutSheetVisible}
+                        savedAccounts={savedAccounts}
+                        selectedSavedAccountId={selectedSavedAccountId}
+                        setSelectedSavedAccountId={setSelectedSavedAccountId}
+                        setIsAddingNewAccount={setIsAddingNewAccount}
+                    />
+                )}
+
+                {currentStep === 3 && isAddingNewAccount && (
+                    <AddNewAccountStep
+                        control={control}
+                        setValue={setValue}
+                        banks={banks}
+                        isResolving={resolveAccount.isPending}
+                        selectedBankCode={watchedFields.customerBankCode}
+                    />
+                )}
+
+                {currentStep === 4 && !isElectronicTransfer && (
                     <LocationStep
                         title="Where would you like to receive your funds"
                         states={states}
@@ -426,6 +599,20 @@ export default function CreateExpatriateScreen() {
                     onConfirm={handleSubmit(onSubmit)}
                     title="Initiate Expatriate Transaction request?"
                     loading={createTransaction.isPending}
+                />
+
+                <GenericSelectionSheet
+                    visible={payoutSheetVisible}
+                    onClose={() => setPayoutSheetVisible(false)}
+                    title="Choose a Payout Method"
+                    subtitle="Select an option below"
+                    items={PAYOUT_METHODS}
+                    selectedItem={watchedFields.payoutMethod}
+                    onSelect={(item) => {
+                        setValue('payoutMethod', item.value);
+                        setPayoutSheetVisible(false);
+                    }}
+                    confirmButtonText="Select a Payout Method"
                 />
             </TransactionLayout>
         </View>

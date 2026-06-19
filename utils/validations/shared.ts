@@ -15,7 +15,7 @@ export const invoiceNumberField = z
     .min(5, 'Please enter a valid Invoice Number')
     .max(20, 'Invoice Number is too long');
 
-export const passportNumberField = z
+export const passportDocumentNumberField = z
     .string()
     .regex(/^[A-Za-z]\d{8}$/, 'Please enter a valid International Passport Number');
 
@@ -56,7 +56,7 @@ export const baseCredentialSchema = z.object({
     bvn: bvnField,
     nin: ninField,
     formAId: formAIdField,
-    passportNumber: passportNumberField,
+    passportDocumentNumber: passportDocumentNumberField,
 });
 
 /** Step 3: Location (pickup point) — used by BTA, Touring */
@@ -144,5 +144,5 @@ export const professionalBankDetailsStepSchema = z.object({
 /** Step 0: Tourist Credentials (Form A + Passport) — no BVN/NIN for tourists */
 export const touristCredentialSchema = z.object({
     formAId: formAIdField,
-    passportNumber: passportNumberField,
+    passportDocumentNumber: passportDocumentNumberField,
 });

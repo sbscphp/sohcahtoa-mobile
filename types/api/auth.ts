@@ -80,7 +80,7 @@ export interface CreateAccountResponse {
 }
 
 export interface VerifyPassportPayload {
-    passportNumber: string;
+    passportDocumentNumber: string;
 }
 
 export interface VerifyExpatriatePassportPayload {
@@ -232,11 +232,13 @@ export interface ProfileResponse {
         kyc: {
             status: string;
             bvn: string;
-            tin: string;
-            passportNumber: string;
+            nin: string;
+            tinNumber: string;
+            passportDocumentNumber: string;
             passportDocumentUrl: string;
             bvnVerified: boolean;
-            tinVerified: boolean;
+            ninVerified: boolean;
+            tinNumberVerified: boolean;
             passportVerified: boolean;
             verifiedAt: string;
             rejectedAt: string;

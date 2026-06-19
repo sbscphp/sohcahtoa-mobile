@@ -63,6 +63,25 @@ export default function ProfessionalBankDetailsStep({
                         </View>
                     )}
                 />
+
+
+
+            <ControlledInput
+                control={control}
+                name="membershipName"
+                label="Member Name"
+                placeholder="Enter membership name"
+                required
+            />
+
+            <ControlledInput
+                control={control}
+                name="organizationName"
+                label="Organization Name"
+                placeholder="Enter organization name"
+                required
+            />
+
     
             <ControlledInput
                 control={control}

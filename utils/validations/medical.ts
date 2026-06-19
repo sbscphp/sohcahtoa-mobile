@@ -5,7 +5,10 @@ import { amountStepSchema, baseCredentialSchema, medicalBankDetailsStepSchema, t
 export const medicalStep0Schema = baseCredentialSchema;
 
 /** Step 1: Document details */
-export const medicalStep1Schema = z.object({});
+export const medicalStep1Schema = z.object({
+    passportIssueDate: z.string().min(1, 'Please select Passport Issue Date'),
+    passportExpiryDate: z.string().min(1, 'Please select Passport Expiry Date'),
+});
 
 /** Step 2: Medical amount — max $5,000 */
 export const medicalStep2Schema = amountStepSchema(5000, 'Medical FX');

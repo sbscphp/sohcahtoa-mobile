@@ -1,19 +1,19 @@
 import ProgressBar from '@/components/ProgressBar';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ScaledSheet } from 'react-native-size-matters';
-import AuthHeader from '../../components/AuthHeader';
-import ControlledInput from '../../components/ControlledInput';
-import PrimaryButton from '../../components/PrimaryButton';
-import Toast from '../../components/Toast';
 import { useVerifyPassportMutation } from '@/hooks/queries/auth/useVerifyPassportMutation';
 import { PassportFormData, passportValidation } from '@/lib/validations/auth';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { ScrollView, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ScaledSheet } from 'react-native-size-matters';
 import { z } from 'zod';
+import AuthHeader from '../../components/AuthHeader';
+import ControlledInput from '../../components/ControlledInput';
+import PrimaryButton from '../../components/PrimaryButton';
+import Toast from '../../components/Toast';
 
 export default function PassportVerificationScreen() {
     const router = useRouter();
@@ -22,7 +22,7 @@ export default function PassportVerificationScreen() {
     const [showToast, setShowToast] = useState(false);
 
     const schema = z.object({
-        passportNumber: passportValidation
+        passportDocumentNumber: passportValidation
     });
 
     const {
@@ -32,7 +32,7 @@ export default function PassportVerificationScreen() {
     } = useForm<PassportFormData>({
         resolver: zodResolver(schema),
         defaultValues: {
-            passportNumber: '',
+            passportDocumentNumber: '',
         },
         mode: 'onChange'
     });
@@ -64,7 +64,7 @@ export default function PassportVerificationScreen() {
             }
         };
 
-        verifyPassport({ passportNumber: data.passportNumber }, { onSuccess });
+        verifyPassport({ passportDocumentNumber: data.passportDocumentNumber }, { onSuccess });
     };
 
     return (
@@ -79,7 +79,7 @@ export default function PassportVerificationScreen() {
                     <View style={styles.inputSpacing}>
                         <ControlledInput
                             control={control}
-                            name="passportNumber"
+                            name="passportDocumentNumber"
                             label="International Passport Number"
                             placeholder="Enter your Passport Number"
                             required

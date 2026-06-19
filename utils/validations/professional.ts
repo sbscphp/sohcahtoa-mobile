@@ -1,8 +1,11 @@
 import { z } from 'zod';
 import { amountStepSchema, baseCredentialSchema } from './shared';
 
-/** Step 0: Professional credentials — standard BVN, NIN, Form A, Passport */
-export const professionalStep0Schema = baseCredentialSchema;
+export const professionalStep0Schema = baseCredentialSchema.extend({
+    passportIssueDate: z.string().min(1, 'Please select Passport Issue Date'),
+    passportExpiryDate: z.string().min(1, 'Please select Passport Expiry Date'),
+    memberNumber: z.string().min(1, 'Evidence of Membership or Registration number is required'),
+});
 
 /** Step 1: Professional documents */
 export const professionalStep1Schema = z.object({});

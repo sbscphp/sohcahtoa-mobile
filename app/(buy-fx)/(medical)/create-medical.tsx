@@ -1,12 +1,11 @@
+import ControlledDatePicker from '@/components/ControlledDatePicker';
 import ControlledInput from '@/components/ControlledInput';
 import GenericSelectionSheet, { SelectionItem } from '@/components/GenericSelectionSheet';
 import InitiateTransactionSheet from '@/components/InitiateTransactionSheet';
 import LoadingBackdrop from '@/components/LoadingBackdrop';
-import AddNewAccountStep from '@/components/transaction-flow/AddNewAccountStep';
 import CredentialStep from '@/components/transaction-flow/CredentialStep';
 import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
-import PayoutMethodStep from '@/components/transaction-flow/PayoutMethodStep';
 import ProfessionalBankDetailsStep from '@/components/transaction-flow/ProfessionalBankDetailsStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
 import { useProfileQuery } from '@/hooks/queries/auth/useProfileQuery';
@@ -71,9 +70,11 @@ export default function MedicalPaymentScreen() {
         resolver: zodResolver(medicalFormSchema),
         defaultValues: {
             bvn: user?.kyc?.bvn || '',
-            nin: '',
+            nin: user?.kyc?.nin || '',
             formAId: '',
-            passportNumber: '',
+            passportDocumentNumber: '',
+            passportIssueDate: '',
+            passportExpiryDate: '',
             amount: 0,
             organizationName: '',
             beneficiaryPhone: '',
@@ -120,7 +121,7 @@ export default function MedicalPaymentScreen() {
         calculateExchangeRate,
     } = useExchangeLogic({ setValue, initialAmount: '0', maxLimit: 5000 });
 
-   
+
     const [docs, setDocs] = useState({
         passport: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
         visa: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
@@ -203,9 +204,9 @@ export default function MedicalPaymentScreen() {
 
     const credentialFields = [
         { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number (BVN)" placeholder="Enter your BVN" required keyboardType="numeric" maxLength={11} filterType="numeric" disabled /> },
-        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number (NIN) (Optional)" placeholder="Enter your NIN" keyboardType="numeric" maxLength={11} filterType="numeric" /> },
+        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number" placeholder="Enter your NIN" keyboardType="numeric" maxLength={11} filterType="numeric" disabled /> },
         { customComponent: <ControlledInput control={control} name="formAId" label="Form A ID" placeholder="Enter Form A ID" required /> },
-        { customComponent: <ControlledInput control={control} name="passportNumber" label="International Passport Number" placeholder="Enter international passport" required maxLength={9} filterType="alphanumeric" /> },
+        { customComponent: <ControlledInput control={control} name="passportDocumentNumber" label="International Passport Number" placeholder="Enter international passport" required maxLength={9} filterType="alphanumeric" /> },
     ];
 
     const documentFields = [
@@ -216,6 +217,28 @@ export default function MedicalPaymentScreen() {
             fileUri: docs.passport.file?.uri, fileUrl: docs.passport.meta?.fileUrl,
             fileType: docs.passport.file?.type,
             required: true,
+            associatedInputs: (
+                <View style={{ flexDirection: 'row', gap: 12 }}>
+                    <View style={{ flex: 1 }}>
+                        <ControlledDatePicker
+                            control={control}
+                            name="passportIssueDate"
+                            label="Passport Issue Date"
+                            required
+                            maximumDate={new Date()}
+                        />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                        <ControlledDatePicker
+                            control={control}
+                            name="passportExpiryDate"
+                            label="Passport Expiry Date"
+                            required
+                            minimumDate={new Date()}
+                        />
+                    </View>
+                </View>
+            ),
         },
         {
             label: 'Valid Visa',
@@ -275,13 +298,13 @@ export default function MedicalPaymentScreen() {
 
         let isStepValid = false;
         if (currentStep === 0) {
-            isStepValid = await trigger(['bvn', 'nin', 'formAId', 'passportNumber']);
+            isStepValid = await trigger(['bvn', 'nin', 'formAId', 'passportDocumentNumber']);
         } else if (currentStep === 1) {
             if (!docs.passport.file || !docs.visa.file || !docs.referenceLetter.file || !docs.overseaDoctorLetter.file) {
                 showToast('Please upload all required documents', 'error');
                 return;
             }
-            isStepValid = true;
+            isStepValid = await trigger(['passportIssueDate', 'passportExpiryDate']);
         } else if (currentStep === 2) {
             isStepValid = await trigger(['amount']);
         } else if (currentStep === 3) {
@@ -303,7 +326,7 @@ export default function MedicalPaymentScreen() {
 
             const fieldsToTrigger = [
                 'beneficiaryCountry', 'bankAccountName', 'beneficiaryAddress', 'bankName', 'bankAccountNumber',
-                'bankAccountAddress', 'bankAccountSwiftCode', 'paymentReference'
+                'bankAccountAddress', 'bankAccountSwiftCode', 'paymentReference', 'organizationName'
             ];
             if (isAustralia) fieldsToTrigger.push('bsbCode');
             if (isUSA) fieldsToTrigger.push('routingNumber');
@@ -340,7 +363,9 @@ export default function MedicalPaymentScreen() {
             bvn: data.bvn,
             nin: data.nin,
             formAId: data.formAId,
-            passportNumber: data.passportNumber,
+            passportDocumentNumber: data.passportDocumentNumber,
+            passportIssueDate: data.passportIssueDate,
+            passportExpiryDate: data.passportExpiryDate,
             documents: [
                 ...(docs.passport.meta ? [docs.passport.meta] : []),
                 ...(docs.visa.meta ? [docs.visa.meta] : []),
@@ -385,8 +410,8 @@ export default function MedicalPaymentScreen() {
         });
     };
 
-    const isStep0Valid = watchedFields.bvn && watchedFields.formAId && watchedFields.passportNumber;
-    const isStep1Valid = docs.passport.meta && docs.visa.meta && docs.referenceLetter.meta && docs.overseaDoctorLetter.meta;
+    const isStep0Valid = watchedFields.bvn && watchedFields.formAId && watchedFields.passportDocumentNumber;
+    const isStep1Valid = !!(docs.passport.meta && docs.visa.meta && docs.referenceLetter.meta && docs.overseaDoctorLetter.meta && watchedFields.passportIssueDate && watchedFields.passportExpiryDate);
     const isStep2Valid = watchedFields.amount > 0;
     const beneficiaryCountryStep4 = watchedFields.beneficiaryCountry?.toLowerCase() || '';
     const isAustralia = beneficiaryCountryStep4?.includes('australia');

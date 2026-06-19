@@ -1,4 +1,5 @@
 import { TransactionStatus } from '@/components/transaction-flow/TransactionStatusView';
+import { Transaction } from '@/types/api/transactions';
 
 export const mapApiStatusToViewStatus = (status: string): TransactionStatus => {
     const map: Record<string, TransactionStatus> = {
@@ -125,17 +126,17 @@ export const getTransactionDocuments = (tx: any): { label: string; value: string
     const nin = getValue(tx.personalInfo?.nin, ['nin']);
     const admissionType = getValue(tx.personalInfo?.admissionType, ['admissionType']);
 
-    const tin = getValue(tx.taxClearanceNumber || tx.personalInfo?.tin, ['tin', 'taxClearanceNumber']);
+    const tin = getValue(tx.taxClearanceNumber || tx.personalInfo?.tinNumber, ['tinNumber', 'taxClearanceNumber']);
     const formAId = getValue(tx.formAId, ['formAId']);
-    const passport = getValue(tx.personalInfo?.passportDocumentNumber || tx.personalInfo?.passportNumber, ['passportDocumentNumber', 'passportNumber']);
+    const passport = getValue(tx.personalInfo?.passportDocumentNumber || tx.personalInfo?.passportDocumentNumber, ['passportDocumentNumber', 'passportDocumentNumber']);
     const passportIssueDate = getValue(tx.personalInfo?.passportIssueDate, ['passportIssueDate']);
     const passportExpiryDate = getValue(tx.personalInfo?.passportExpiryDate, ['passportExpiryDate']);
     const schoolInvoiceNumber = getValue(tx.beneficiaryDetails?.admissionNumber, ['admissionNumber', 'beneficiaryDetails.admissionNumber']);
 
     if (bvn && tx.type !== 'TOURING' && tx.type !== 'TOURIST_FX') docs.push({ label: 'BVN Number', value: bvn });
-    if (nin) docs.push({ label: 'NIN', value: nin });
+    if (nin && tx.type !== 'TOURIST_FX') docs.push({ label: 'NIN', value: nin });
     if (admissionType) docs.push({ label: 'Admission Type', value: admissionType });
-    if (tin) docs.push({ label: 'TIN', value: tin });
+    if (tin && tx.type !== 'TOURIST_FX') docs.push({ label: 'TIN', value: tin });
     if (formAId) docs.push({ label: 'Form A ID', value: formAId });
     if (passport) docs.push({ label: 'International Passport Number', value: passport });
     if (passportIssueDate) docs.push({ label: 'Passport Issue Date', value: passportIssueDate });
@@ -143,4 +144,121 @@ export const getTransactionDocuments = (tx: any): { label: string; value: string
     if (schoolInvoiceNumber) docs.push({ label: 'School Invoice Number', value: schoolInvoiceNumber });
 
     return docs;
+};
+
+export const getStatusLabel = (status: string): string => {
+    const map: Record<string, string> = {
+        'DRAFT': 'Draft',
+        'AWAITING_VERIFICATION': 'Awaiting Verification',
+        'VERIFICATION_IN_PROGRESS': 'Verification In Progress',
+        'VERIFICATION_COMPLETED': 'Verification Completed',
+        'AWAITING_DEPOSIT': 'Awaiting Deposit',
+        'DEPOSIT_PENDING': 'Deposit Pending',
+        'DEPOSIT_CONFIRMED': 'Deposit Confirmed',
+        'COMPLIANCE_REVIEW': 'Compliance Review',
+        'ADMIN_APPROVAL_PENDING': 'Admin Approval Pending',
+        'AWAITING_DISBURSEMENT': 'Awaiting Disbursement',
+        'APPROVED': 'Approved',
+        'DISBURSEMENT_IN_PROGRESS': 'Disbursement In Progress',
+        'COMPLETED': 'Completed',
+        'REJECTED': 'Rejected',
+        'CANCELLED': 'Cancelled',
+    };
+    return map[status] || status;
+};
+
+export const getStatusStyle = (status: string) => {
+    switch (status) {
+        case 'AWAITING_VERIFICATION':
+        case 'AWAITING_DEPOSIT':
+        case 'DEPOSIT_PENDING':
+        case 'ADMIN_APPROVAL_PENDING':
+        case 'AWAITING_DISBURSEMENT':
+        case 'Pending':
+        case 'Awaiting Verification':
+        case 'Awaiting Deposit':
+        case 'Deposit Pending':
+        case 'Admin Approval Pending':
+        case 'Awaiting Disbursement':
+            return { color: '#B54708', bg: '#FFFAEB', backgroundColor: '#FFFAEB' };
+        case 'VERIFICATION_IN_PROGRESS':
+        case 'VERIFICATION_COMPLETED':
+        case 'DEPOSIT_CONFIRMED':
+        case 'COMPLIANCE_REVIEW':
+        case 'DISBURSEMENT_IN_PROGRESS':
+        case 'In Progress':
+        case 'Verification In Progress':
+        case 'Verification Completed':
+        case 'Deposit Confirmed':
+        case 'Compliance Review':
+        case 'Disbursement In Progress':
+            return { color: '#3538CD', bg: '#EEF4FF', backgroundColor: '#EEF4FF' };
+        case 'REJECTED':
+        case 'CANCELLED':
+        case 'Declined':
+        case 'Rejected':
+        case 'Cancelled':
+            return { color: '#B42318', bg: '#FEF3F2', backgroundColor: '#FEF3F2' };
+        case 'APPROVED':
+        case 'COMPLETED':
+        case 'Approved':
+        case 'Settled':
+        case 'Completed':
+            return { color: '#027A48', bg: '#ECFDF3', backgroundColor: '#ECFDF3' };
+        case 'DRAFT':
+        case 'Draft':
+            return { color: '#344054', bg: '#F2F4F7', backgroundColor: '#F2F4F7' };
+        default:
+            return { color: '#344054', bg: '#F2F4F7', backgroundColor: '#F2F4F7' };
+    }
+};
+
+export const formatListDate = (dateStr: string): string => {
+    const d = new Date(dateStr);
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${months[d.getMonth()]} ${d.getDate()} ${d.getFullYear()}`;
+};
+
+export const formatListTime = (dateStr: string): string => {
+    const d = new Date(dateStr);
+    let hours = d.getHours();
+    const minutes = d.getMinutes();
+    const ampm = hours >= 12 ? 'pm' : 'am';
+    hours = hours % 12 || 12;
+    return `${hours}${minutes > 0 ? ':' + String(minutes).padStart(2, '0') : ''} ${ampm}`;
+};
+
+export const formatAmount = (amount: number, currency: string): string => {
+    const symbol = currency === 'USD' ? '$' : currency === 'GBP' ? '£' : currency === 'EUR' ? '€' : currency === 'NGN' ? '₦' : currency;
+    const num = Number(amount);
+    if (isNaN(num)) return `${symbol}0`;
+    const parts = num.toString().split('.');
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return `${symbol}${parts.join('.')}`;
+};
+
+export const getSectionTitle = (dateStr: string): string => {
+    const d = new Date(dateStr);
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+
+    if (d.toDateString() === today.toDateString()) return 'Today';
+    if (d.toDateString() === yesterday.toDateString()) return 'Yesterday';
+
+    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+};
+
+export const groupTransactionsByDate = (transactions: Transaction[]) => {
+    const groups: Record<string, Transaction[]> = {};
+    transactions.forEach((tx) => {
+        const dateKey = new Date(tx.createdAt).toDateString();
+        if (!groups[dateKey]) groups[dateKey] = [];
+        groups[dateKey].push(tx);
+    });
+    return Object.entries(groups).map(([_, data]) => ({
+        title: getSectionTitle(data[0].createdAt),
+        data,
+    }));
 };

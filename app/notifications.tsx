@@ -93,8 +93,7 @@ export default function NotificationsScreen() {
 
     const tabs: { key: FilterTab; label: string }[] = [
         { key: 'all', label: `All ${notifications.length}` },
-        { key: 'unread', label: `Unread ${unreadCount}` },
-        { key: 'transactions', label: 'Transactions' },
+        { key: 'unread', label: `Unread ${unreadCount}` }
     ];
 
     const renderSectionHeader = ({ section }: { section: Section }) => (

@@ -19,6 +19,7 @@ import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCr
 import { useGetPickupCitiesQuery } from '@/hooks/queries/transactions/useGetPickupCitiesQuery';
 import { useGetPickupPointsQuery } from '@/hooks/queries/transactions/useGetPickupPointsQuery';
 import { useGetPickupStatesQuery } from '@/hooks/queries/transactions/useGetPickupStatesQuery';
+import { useGetTransactionsQuery } from '@/hooks/queries/transactions/useGetTransactionsQuery';
 import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useExchangeLogic } from '@/hooks/useExchangeLogic';
 import { useAuthStore } from '@/stores/useAuthStore';
@@ -31,6 +32,28 @@ import React, { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { View } from 'react-native';
 import { z } from 'zod';
+
+const formatDateToPickerFormat = (dateStr: string | undefined | null): string => {
+    if (!dateStr) return '';
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) return dateStr;
+    try {
+        const date = new Date(dateStr);
+        if (isNaN(date.getTime())) {
+            const parts = dateStr.split('-');
+            if (parts.length === 3) {
+                if (parts[0].length === 4) return `${parts[2].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[0]}`;
+                if (parts[2].length === 4) return `${parts[0].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[2]}`;
+            }
+            return '';
+        }
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+    } catch (e) {
+        return '';
+    }
+};
 
 const PAYOUT_METHODS: SelectionItem[] = [
     { id: '1', label: 'Electronic Transfer (100%)', value: 'Electronic Transfer (100%)' },
@@ -139,6 +162,8 @@ export default function PersonalTravelAllowanceScreen() {
     const showToast = useToastStore(s => s.showToast);
     useProfileQuery();
     const user = useAuthStore(s => s.user);
+    const { data: transactionsResponse } = useGetTransactionsQuery();
+    const transactions = transactionsResponse?.data || [];
 
     const [currentStep, setCurrentStep] = useState(0);
     const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
@@ -160,7 +185,7 @@ export default function PersonalTravelAllowanceScreen() {
             bvn: user?.kyc?.bvn || '',
             nin: (user?.kyc as any)?.nin || (user as any)?.nin || '',
             formAId: '',
-            passportNumber: '',
+            passportDocumentNumber: '',
             passportIssueDate: '',
             passportExpiryDate: '',
             amount: 0,
@@ -261,7 +286,46 @@ export default function PersonalTravelAllowanceScreen() {
         }
     }, [watchedFields.customerAccountNumber, watchedFields.customerBankCode, isAddingNewAccount]);
 
-   
+
+    React.useEffect(() => {
+        if (transactions.length > 0) {
+            let foundPassportNumber = '';
+            let foundPassportIssueDate = '';
+            let foundPassportExpiryDate = '';
+
+            for (const tx of transactions) {
+                const passportVal = tx.personalInfo?.passportDocumentNumber || tx.personalInfo?.passportDocumentNumber || (tx as any).passportDocumentNumber;
+                const issueDateVal = tx.personalInfo?.passportIssueDate;
+                const expiryDateVal = tx.personalInfo?.passportExpiryDate;
+
+                if (!foundPassportNumber && passportVal) foundPassportNumber = String(passportVal);
+                if (!foundPassportIssueDate && issueDateVal) foundPassportIssueDate = String(issueDateVal);
+                if (!foundPassportExpiryDate && expiryDateVal) foundPassportExpiryDate = String(expiryDateVal);
+
+                if (foundPassportNumber && foundPassportIssueDate && foundPassportExpiryDate) break;
+            }
+
+            const profilePassportNumber = user?.kyc?.passportDocumentNumber || '';
+            const finalPassportNumber = foundPassportNumber || profilePassportNumber;
+
+            if (finalPassportNumber && !watchedFields.passportDocumentNumber) {
+                setValue('passportDocumentNumber', finalPassportNumber, { shouldValidate: true, shouldDirty: true });
+            }
+            if (foundPassportIssueDate && !watchedFields.passportIssueDate) {
+                setValue('passportIssueDate', formatDateToPickerFormat(foundPassportIssueDate), { shouldValidate: true, shouldDirty: true });
+            }
+            if (foundPassportExpiryDate && !watchedFields.passportExpiryDate) {
+                setValue('passportExpiryDate', formatDateToPickerFormat(foundPassportExpiryDate), { shouldValidate: true, shouldDirty: true });
+            }
+        } else {
+            const profilePassportNumber = user?.kyc?.passportDocumentNumber || '';
+            if (profilePassportNumber && !watchedFields.passportDocumentNumber) {
+                setValue('passportDocumentNumber', profilePassportNumber, { shouldValidate: true, shouldDirty: true });
+            }
+        }
+    }, [transactions, user, setValue, watchedFields.passportDocumentNumber, watchedFields.passportIssueDate, watchedFields.passportExpiryDate]);
+
+
     const [docs, setDocs] = useState({
         visa: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
         returnTicket: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
@@ -283,9 +347,9 @@ export default function PersonalTravelAllowanceScreen() {
 
     const credentialFields = [
         { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number(BVN)" placeholder="Enter your BVN" required keyboardType="numeric" maxLength={11} filterType="numeric" disabled /> },
-        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number(NIN) (Optional)" placeholder="Enter your NIN" keyboardType="numeric" maxLength={11} filterType="numeric" /> },
+        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number(NIN)" placeholder="Enter your NIN" keyboardType="numeric" maxLength={11} filterType="numeric" disabled /> },
         { customComponent: <ControlledInput control={control} name="formAId" label="Form A ID" placeholder="Enter Form A ID" required /> },
-        { customComponent: <ControlledInput control={control} name="passportNumber" label="International Passport Number" placeholder="Enter international passport" required maxLength={9} filterType="alphanumeric" /> },
+        { customComponent: <ControlledInput control={control} name="passportDocumentNumber" label="International Passport Number" placeholder="Enter international passport" required maxLength={9} filterType="alphanumeric" /> },
         {
             customComponent: (
                 <View style={{ flexDirection: 'row', gap: 12, marginTop: 6 }}>
@@ -402,12 +466,12 @@ export default function PersonalTravelAllowanceScreen() {
             type: 'PTA',
             currency: currencyGet.code,
             amount: data.amount,
-            purpose: 'Personal Travel Allowance (PTA)',
+            purpose: 'Personal Travel Allowance',
             destinationCountry: currencyGet.country,
             bvn: data.bvn,
             nin: data.nin,
             formAId: data.formAId,
-            passportNumber: data.passportNumber,
+            passportDocumentNumber: data.passportDocumentNumber,
             passportIssueDate: data.passportIssueDate,
             passportExpiryDate: data.passportExpiryDate,
             documents: [

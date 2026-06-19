@@ -73,6 +73,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
     }
 
     const isImage = (fileUri || fileUrl) && (fileType?.startsWith('image/') || /\.(jpeg|jpg|png|gif|webp)$/i.test(fileName || ''));
+    const showChangeButton = !!fileName && status !== 'rejected';
 
     const displayUri = fileUrl || fileUri;
 
@@ -90,7 +91,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
                     </View>
                 )}
 
-                {status === 'rejected' && (
+                {showChangeButton && (
                     <TouchableOpacity style={styles.changeButton} onPress={onUpload}>
                         <Text style={styles.changeButtonText}>Change</Text>
                     </TouchableOpacity>

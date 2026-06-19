@@ -72,6 +72,13 @@ export default function SchoolBankDetailsStep({
             />
 
             <Text style={styles.sectionTitle}>For the School (Beneficiary)</Text>
+            <ControlledInput
+                control={control}
+                name="organizationName"
+                label="Organization Name"
+                placeholder="Enter organization name"
+                required
+            />
 
             <ControlledInput
                 control={control}

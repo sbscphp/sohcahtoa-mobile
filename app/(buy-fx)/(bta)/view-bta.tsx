@@ -22,9 +22,11 @@ export default function ViewBtaScreen() {
     const tx = txResponse?.data;
     const showToast = useToastStore(s => s.showToast);
 
+    // console.log('Transaction:', JSON.stringify(tx, null, 2));
+
     const { upload: uploadFile, isPending: isUploading } = useDocumentUpload({
         transactionId: transactionId || undefined,
-        onSuccess: () => {},
+        onSuccess: () => { },
         onError: () => showToast('Failed to upload document. Please try again.', 'error'),
     });
 
@@ -53,26 +55,65 @@ export default function ViewBtaScreen() {
 
     const detailsItems = useMemo(() => {
         if (!tx) return [];
+
+        const pickupLocation = tx.cashPickup ? (
+            tx.cashPickup.pickupLocation?.trim() || [tx.cashPickup.pickupCity, tx.cashPickup.pickupState].filter(Boolean).join(', ')
+        ) : null;
+
         return [
             { label: 'Transaction ID', value: tx.referenceNumber },
+            { label: 'Status', value: tx.status.replace(/_/g, ' ') },
             { label: 'Amount (₦)', value: formatCurrency(tx.nairaEquivalent) },
             { label: 'Equivalent Amount (FX)', value: formatCurrency(tx.foreignAmount, tx.currency === 'USD' ? '$' : tx.currency === 'GBP' ? '£' : tx.currency === 'EUR' ? '€' : tx.currency) },
             { label: 'Date Initiated', value: `${formatDate(tx.createdAt)}\n${formatTimeWithSeconds(tx.createdAt)}` },
+            ...(tx.personalInfo?.passportDocumentNumber ? [{ label: 'Passport Number', value: tx.personalInfo.passportDocumentNumber }] : []),
+            ...((tx as any).tinNumber || tx.taxClearanceNumber ? [{ label: 'Tax Identification Number (TIN)', value: (tx as any).tinNumber || tx.taxClearanceNumber }] : []),
             ...(tx.cashPickup ? [
                 {
-                    label: 'Pickup Location',
-                    value: tx.cashPickup.pickupLocation || 'N/A',
-                    isRightAligned: true
+                    label: 'Pickup Cash Amount',
+                    value: formatCurrency(tx.cashPickup.amount, tx.currency === 'USD' ? '$' : tx.currency === 'GBP' ? '£' : tx.currency === 'EUR' ? '€' : tx.currency) || 'N/A',
                 },
+                {
+                    label: 'Pickup Cash Status',
+                    value: tx.cashPickup.status
+                },
+                {
+                    label: 'Pickup Location',
+                    value: pickupLocation || 'N/A',
+                },
+                {
+                    label: 'Pickup City',
+                    value: tx.cashPickup.pickupCity || 'N/A',
+                    isRightAligned: true,
+                },
+                {
+                    label: 'Pickup State',
+                    value: tx.cashPickup.pickupState || 'N/A',
+                    isRightAligned: true,
+                },
+                {
+                    label: 'Pickup Code',
+                    value: tx.cashPickup.pickupCode || 'N/A',
+                },
+                ...(tx.cashPickup.recipientPhone ? [{
+                    label: 'Recipient Phone',
+                    value: tx.cashPickup.recipientPhone,
+                    isRightAligned: true,
+                }] : []),
                 ...(tx.cashPickup.scheduledPickupDate ? [{
                     label: 'Pickup Date',
                     value: formatDate(tx.cashPickup.scheduledPickupDate),
-                    isRightAligned: true
+                    isRightAligned: true,
                 }] : []),
                 ...(tx.cashPickup.scheduledPickupTime ? [{
                     label: 'Pickup Time',
                     value: tx.cashPickup.scheduledPickupTime,
-                    isRightAligned: true
+                    isRightAligned: true,
+                }] : []),
+                ...(tx.cashPickup.expiryDate ? [{
+                    label: 'Expiry Date',
+                    value: formatDate(tx.cashPickup.expiryDate),
+                    isRightAligned: true,
                 }] : []),
             ] : []),
         ];
@@ -100,7 +141,7 @@ export default function ViewBtaScreen() {
             fileName: doc.uploaded ? doc.uploaded.fileName : null,
             docStatus: doc.uploaded?.status,
             required: true,
-            onUpload: (!doc.uploaded || doc.uploaded.status === 'FAILED' || doc.uploaded.status === 'REJECTED')
+            onUpload: (!doc.uploaded || (doc.uploaded.status !== 'FAILED' && doc.uploaded.status !== 'REJECTED'))
                 ? () => uploadFile(doc.type)
                 : undefined,
         }));
@@ -125,42 +166,43 @@ export default function ViewBtaScreen() {
 
     return (
         <>
-        <LoadingBackdrop visible={isUploading} />
-        <TransactionViewLayout
-            title="Transaction"
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-            tabs={tabs}
-            onBack={handleBack}
-            showActionButton={status !== 'pending' && status !== 'rejected' && status !== 'settled'}
-            actionButtonTitle={status === 'approved' || status === 'awaiting_disbursement' ? "Proceed to Payment" : "Resubmit Transaction Request"}
-            onActionPress={handleProceed}
-        >
-            {activeTab === 'overview' && (
-                <TransactionStatusView
-                    status={status}
-                    id={tx?.referenceNumber?.slice(-6) || ''}
-                    date={tx ? formatDate(tx.createdAt) : ''}
-                    time={tx ? formatTime(tx.createdAt) : ''}
-                    message={getMessage()}
-                    comments={tx?.comments}
-                />
-            )}
+            <LoadingBackdrop visible={isUploading} />
+            <TransactionViewLayout
+                title="Transaction"
+                activeTab={activeTab}
+                onTabChange={setActiveTab}
+                tabs={tabs}
+                onBack={handleBack}
+                showActionButton={status !== 'pending' && status !== 'rejected' && status !== 'settled'}
+                actionButtonTitle={status === 'approved' || status === 'awaiting_disbursement' ? "Proceed to Payment" : "Resubmit Transaction Request"}
+                onActionPress={handleProceed}
+            >
+                {activeTab === 'overview' && (
+                    <TransactionStatusView
+                        status={status}
+                        apiStatus={tx?.status}
+                        id={tx?.referenceNumber?.slice(-6) || ''}
+                        date={tx ? formatDate(tx.createdAt) : ''}
+                        time={tx ? formatTime(tx.createdAt) : ''}
+                        message={getMessage()}
+                        comments={tx?.comments}
+                    />
+                )}
 
-            {activeTab === 'details' && (
-                <TransactionDetailsView
-                    details={detailsItems}
-                    documents={detailsDocuments}
-                />
-            )}
+                {activeTab === 'details' && (
+                    <TransactionDetailsView
+                        details={detailsItems}
+                        documents={detailsDocuments}
+                    />
+                )}
 
-            {activeTab === 'docs' && (
-                <TransactionDocsView
-                    status={status}
-                    documents={docsItems}
-                />
-            )}
-        </TransactionViewLayout>
+                {activeTab === 'docs' && (
+                    <TransactionDocsView
+                        status={status}
+                        documents={docsItems}
+                    />
+                )}
+            </TransactionViewLayout>
         </>
     );
 }

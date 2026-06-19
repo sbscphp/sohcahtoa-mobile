@@ -35,7 +35,7 @@ const ADMISSION_TYPES: SelectionItem[] = [
     { id: '1', label: 'Undergraduate', value: 'Undergraduate', icon: Teacher },
     { id: '2', label: 'Post-Graduate', value: 'Post-Graduate', icon: Teacher },
     { id: '3', label: 'Others (high school, pre-school etc)', value: 'Others', icon: Teacher },
-   
+
 ];
 
 const PAYOUT_METHODS: SelectionItem[] = [
@@ -49,7 +49,7 @@ const formatDateToPickerFormat = (dateStr: string | undefined | null): string =>
     if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) {
         return dateStr;
     }
-    
+
     try {
         const date = new Date(dateStr);
         if (isNaN(date.getTime())) {
@@ -119,7 +119,7 @@ export default function SchoolFeesScreen() {
         defaultValues: {
             nin: '',
             formAId: '',
-            passportNumber: '',
+            passportDocumentNumber: '',
             admissionType: '',
             passportIssueDate: '',
             passportExpiryDate: '',
@@ -262,7 +262,7 @@ export default function SchoolFeesScreen() {
 
             for (const tx of transactions) {
                 const ninVal = tx.personalInfo?.nin || (tx as any).nin;
-                const passportVal = tx.personalInfo?.passportNumber || tx.personalInfo?.passportDocumentNumber || (tx as any).passportNumber;
+                const passportVal = tx.personalInfo?.passportDocumentNumber || tx.personalInfo?.passportDocumentNumber || (tx as any).passportDocumentNumber;
                 const issueDateVal = tx.personalInfo?.passportIssueDate;
                 const expiryDateVal = tx.personalInfo?.passportExpiryDate;
 
@@ -284,7 +284,7 @@ export default function SchoolFeesScreen() {
                 }
             }
 
-            const profilePassportNumber = user?.kyc?.passportNumber || '';
+            const profilePassportNumber = user?.kyc?.passportDocumentNumber || '';
             const profileNin = (user?.kyc as any)?.nin || (user as any)?.nin || '';
 
             const finalNin = foundNin || profileNin;
@@ -293,8 +293,8 @@ export default function SchoolFeesScreen() {
             if (finalNin && !watchedFields.nin) {
                 setValue('nin', finalNin, { shouldValidate: true, shouldDirty: true });
             }
-            if (finalPassportNumber && !watchedFields.passportNumber) {
-                setValue('passportNumber', finalPassportNumber, { shouldValidate: true, shouldDirty: true });
+            if (finalPassportNumber && !watchedFields.passportDocumentNumber) {
+                setValue('passportDocumentNumber', finalPassportNumber, { shouldValidate: true, shouldDirty: true });
             }
             if (foundPassportIssueDate && !watchedFields.passportIssueDate) {
                 setValue('passportIssueDate', formatDateToPickerFormat(foundPassportIssueDate), { shouldValidate: true, shouldDirty: true });
@@ -303,23 +303,23 @@ export default function SchoolFeesScreen() {
                 setValue('passportExpiryDate', formatDateToPickerFormat(foundPassportExpiryDate), { shouldValidate: true, shouldDirty: true });
             }
         } else {
-            const profilePassportNumber = user?.kyc?.passportNumber || '';
+            const profilePassportNumber = user?.kyc?.passportDocumentNumber || '';
             const profileNin = (user?.kyc as any)?.nin || (user as any)?.nin || '';
-            
+
             if (profileNin && !watchedFields.nin) {
                 setValue('nin', profileNin, { shouldValidate: true, shouldDirty: true });
             }
-            if (profilePassportNumber && !watchedFields.passportNumber) {
-                setValue('passportNumber', profilePassportNumber, { shouldValidate: true, shouldDirty: true });
+            if (profilePassportNumber && !watchedFields.passportDocumentNumber) {
+                setValue('passportDocumentNumber', profilePassportNumber, { shouldValidate: true, shouldDirty: true });
             }
         }
-    }, [transactions, user, setValue, watchedFields.nin, watchedFields.passportNumber, watchedFields.passportIssueDate, watchedFields.passportExpiryDate]);
+    }, [transactions, user, setValue, watchedFields.nin, watchedFields.passportDocumentNumber, watchedFields.passportIssueDate, watchedFields.passportExpiryDate]);
 
     const credentialFields = [
         { customComponent: <ControlledInput control={control} name="studentName" label="Student Name" placeholder="Enter student name" required /> },
-        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number(NIN) (Optional)" placeholder="Enter your NIN" keyboardType="numeric" maxLength={11} filterType="numeric" /> },
+        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number(NIN)" placeholder="Enter your NIN" keyboardType="numeric" maxLength={11} filterType="numeric" disabled /> },
         { customComponent: <ControlledInput control={control} name="formAId" label="Form A ID" placeholder="Enter Form A ID" required /> },
-        { customComponent: <ControlledInput control={control} name="passportNumber" label="International Passport" placeholder="Enter international passport" required maxLength={9} filterType="alphanumeric" /> },
+        { customComponent: <ControlledInput control={control} name="passportDocumentNumber" label="International Passport" placeholder="Enter international passport" required maxLength={9} filterType="alphanumeric" /> },
         ...(admissionType !== 'Others' ? [
             {
                 customComponent: (
@@ -355,6 +355,14 @@ export default function SchoolFeesScreen() {
             required: true,
         },
         {
+            label: 'School Invoice',
+            onUpload: () => uploadFile('INVOICE'),
+            fileName: docs.invoice.file?.name,
+            fileUri: docs.invoice.file?.uri, fileUrl: docs.invoice.meta?.fileUrl,
+            fileType: docs.invoice.file?.type,
+            required: true,
+        },
+        {
             label: 'International Passport',
             onUpload: () => uploadFile('PASSPORT'),
             fileName: docs.passport.file?.name,
@@ -374,6 +382,14 @@ export default function SchoolFeesScreen() {
             required: true,
         },
         {
+            label: 'School Invoice',
+            onUpload: () => uploadFile('INVOICE'),
+            fileName: docs.invoice.file?.name,
+            fileUri: docs.invoice.file?.uri, fileUrl: docs.invoice.meta?.fileUrl,
+            fileType: docs.invoice.file?.type,
+            required: true,
+        },
+        {
             label: 'First Degree Certificate',
             onUpload: () => uploadFile('MEMBERSHIP_CARD'),
             fileName: docs.degree.file?.name,
@@ -387,6 +403,14 @@ export default function SchoolFeesScreen() {
             fileName: docs.result.file?.name,
             fileUri: docs.result.file?.uri, fileUrl: docs.result.meta?.fileUrl,
             fileType: docs.result.file?.type,
+            required: true,
+        },
+        {
+            label: 'International Passport',
+            onUpload: () => uploadFile('PASSPORT'),
+            fileName: docs.passport.file?.name,
+            fileUri: docs.passport.file?.uri, fileUrl: docs.passport.meta?.fileUrl,
+            fileType: docs.passport.file?.type,
             required: true,
         },
     ];
@@ -416,6 +440,14 @@ export default function SchoolFeesScreen() {
             fileName: docs.admission.file?.name,
             fileUri: docs.admission.file?.uri, fileUrl: docs.admission.meta?.fileUrl,
             fileType: docs.admission.file?.type,
+            required: true,
+        },
+        {
+            label: 'School Invoice',
+            onUpload: () => uploadFile('INVOICE'),
+            fileName: docs.invoice.file?.name,
+            fileUri: docs.invoice.file?.uri, fileUrl: docs.invoice.meta?.fileUrl,
+            fileType: docs.invoice.file?.type,
             required: true,
         },
     ];
@@ -458,17 +490,17 @@ export default function SchoolFeesScreen() {
 
         let isStepValid = false;
         if (currentStep === 0) {
-            const fieldsToTrigger = ['studentName', 'nin', 'formAId', 'passportNumber', 'admissionType'];
+            const fieldsToTrigger = ['studentName', 'nin', 'formAId', 'passportDocumentNumber', 'admissionType'];
             if (watchedFields.admissionType !== 'Others') {
                 fieldsToTrigger.push('passportIssueDate', 'passportExpiryDate');
             }
             isStepValid = await trigger(fieldsToTrigger as any);
         } else if (currentStep === 1) {
-            const hasRequiredUgDocs = docs.admission.file && docs.passport.file;
-            const hasRequiredPgDocs = docs.admission.file && docs.degree.file && docs.result.file;
+            const hasRequiredUgDocs = docs.admission.file && docs.passport.file && docs.invoice.file;
+            const hasRequiredPgDocs = docs.admission.file && docs.degree.file && docs.result.file && docs.passport.file && docs.invoice.file;
 
             if (watchedFields.admissionType === 'Others') {
-                const hasRequiredOthersDocs = docs.passport.file && docs.admission.file;
+                const hasRequiredOthersDocs = docs.passport.file && docs.admission.file && docs.invoice.file;
                 if (!hasRequiredOthersDocs) {
                     showToast('Please upload all required documents', 'error');
                     return;
@@ -533,18 +565,18 @@ export default function SchoolFeesScreen() {
             nin: data.nin,
             formAId: data.formAId,
             admissionType: data.admissionType,
-            passportNumber: data.passportNumber,
+            passportDocumentNumber: data.passportDocumentNumber,
             passportIssueDate: data.passportIssueDate,
             passportExpiryDate: data.passportExpiryDate,
-            documents: isPostGrad ? [
+            documents: [
                 ...(docs.admission.meta ? [docs.admission.meta] : []),
-                ...(docs.degree.meta ? [docs.degree.meta] : []),
-                ...(docs.result.meta ? [docs.result.meta] : []),
-            ] : [
-                ...(docs.admission.meta ? [docs.admission.meta] : []),
+                ...(docs.invoice.meta ? [docs.invoice.meta] : []),
                 ...(docs.passport.meta ? [docs.passport.meta] : []),
+                ...(isPostGrad && docs.degree.meta ? [docs.degree.meta] : []),
+                ...(isPostGrad && docs.result.meta ? [docs.result.meta] : []),
             ],
             beneficiaryDetails: {
+                organizationName: data.organizationName || '',
                 studentName: data.studentName,
                 studentPassportNumber: data.studentPassportNumber,
                 bankAccountName: data.bankAccountName,
@@ -586,15 +618,15 @@ export default function SchoolFeesScreen() {
     };
 
 
-    const isStep0Valid = watchedFields.studentName && watchedFields.formAId && watchedFields.passportNumber && watchedFields.admissionType && (watchedFields.admissionType === 'Others' || (watchedFields.passportIssueDate && watchedFields.passportExpiryDate));
+    const isStep0Valid = watchedFields.studentName && watchedFields.formAId && watchedFields.passportDocumentNumber && watchedFields.admissionType && (watchedFields.admissionType === 'Others' || (watchedFields.passportIssueDate && watchedFields.passportExpiryDate));
 
     let isStep1Valid = false;
     if (watchedFields.admissionType === 'Post-Graduate') {
-        isStep1Valid = !!(docs.admission.meta && docs.degree.meta && docs.result.meta);
+        isStep1Valid = !!(docs.admission.meta && docs.degree.meta && docs.result.meta && docs.passport.meta && docs.invoice.meta);
     } else if (watchedFields.admissionType === 'Others') {
-        isStep1Valid = !!(docs.admission.meta && docs.passport.meta && watchedFields.passportIssueDate && watchedFields.passportExpiryDate);
+        isStep1Valid = !!(docs.admission.meta && docs.passport.meta && docs.invoice.meta && watchedFields.passportIssueDate && watchedFields.passportExpiryDate);
     } else {
-        isStep1Valid = !!(docs.admission.meta && docs.passport.meta);
+        isStep1Valid = !!(docs.admission.meta && docs.passport.meta && docs.invoice.meta);
     }
 
     const isStep2Valid = watchedFields.amount > 0;
@@ -716,7 +748,7 @@ export default function SchoolFeesScreen() {
                         email: user?.email || '',
                         bvn: user?.kyc?.bvn || '',
                         address: user?.profile?.address || '',
-                        passportNumber: watchedFields.passportNumber || user?.kyc?.passportNumber || ''
+                        passportDocumentNumber: watchedFields.passportDocumentNumber || user?.kyc?.passportDocumentNumber || ''
                     }}
                     transactionDetails={{
                         type: 'School Fees',

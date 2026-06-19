@@ -10,7 +10,7 @@ import {
 
 /** Step 0: BTA credentials — standard + TIN */
 export const btaStep0Schema = baseCredentialSchema.extend({
-    tin: tinField,
+    tinNumber: tinField,
 });
 
 /** Step 1: BTA document details */

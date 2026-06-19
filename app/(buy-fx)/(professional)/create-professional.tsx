@@ -1,12 +1,11 @@
+import ControlledDatePicker from '@/components/ControlledDatePicker';
 import ControlledInput from '@/components/ControlledInput';
 import GenericSelectionSheet, { SelectionItem } from '@/components/GenericSelectionSheet';
 import InitiateTransactionSheet from '@/components/InitiateTransactionSheet';
 import LoadingBackdrop from '@/components/LoadingBackdrop';
-import AddNewAccountStep from '@/components/transaction-flow/AddNewAccountStep';
 import CredentialStep from '@/components/transaction-flow/CredentialStep';
 import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
-import PayoutMethodStep from '@/components/transaction-flow/PayoutMethodStep';
 import ProfessionalBankDetailsStep from '@/components/transaction-flow/ProfessionalBankDetailsStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
 import { useProfileQuery } from '@/hooks/queries/auth/useProfileQuery';
@@ -70,9 +69,11 @@ export default function ProfessionalScreen() {
         resolver: zodResolver(professionalFormSchema),
         defaultValues: {
             bvn: user?.kyc?.bvn || '',
-            nin: '',
+            nin: user?.kyc?.nin || '',
             formAId: '',
-            passportNumber: '',
+            passportDocumentNumber: '',
+            passportIssueDate: '',
+            passportExpiryDate: '',
             amount: 0,
             memberName: '',
             memberNumber: '',
@@ -140,7 +141,7 @@ export default function ProfessionalScreen() {
 
     const watchedFields = watch() as any;
 
-    
+
     const { data: banksResponse } = useGetBanksQuery();
     const banks = useMemo(() =>
         (banksResponse?.data || []).map(b => ({ id: b.code, label: b.name, value: b.code })),
@@ -197,9 +198,44 @@ export default function ProfessionalScreen() {
 
     const credentialFields = [
         { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number(BVN)" placeholder="Enter your BVN" required keyboardType="numeric" maxLength={11} filterType="numeric" disabled /> },
-        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number(NIN) (Optional)" placeholder="Enter your NIN" keyboardType="numeric" maxLength={11} filterType="numeric" /> },
+        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number(NIN)" placeholder="Enter your NIN" keyboardType="numeric" maxLength={11} filterType="numeric" disabled /> },
         { customComponent: <ControlledInput control={control} name="formAId" label="Form A ID" placeholder="Enter Form A ID" required /> },
-        { customComponent: <ControlledInput control={control} name="passportNumber" label="International Passport Number" placeholder="Enter international passport" required maxLength={9} filterType="alphanumeric" /> },
+        { customComponent: <ControlledInput control={control} name="passportDocumentNumber" label="International Passport Number" placeholder="Enter international passport" required maxLength={9} filterType="alphanumeric" /> },
+        {
+            customComponent: (
+                <View style={{ flexDirection: 'row', gap: 12 }}>
+                    <View style={{ flex: 1 }}>
+                        <ControlledDatePicker
+                            control={control}
+                            name="passportIssueDate"
+                            label="Passport Issue Date"
+                            required
+                            maximumDate={new Date()}
+                        />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                        <ControlledDatePicker
+                            control={control}
+                            name="passportExpiryDate"
+                            label="Passport Expiry Date"
+                            required
+                            minimumDate={new Date()}
+                        />
+                    </View>
+                </View>
+            )
+        },
+        {
+            customComponent: (
+                <ControlledInput
+                    control={control}
+                    name="memberNumber"
+                    label="Evidence of Membership or Registration Number"
+                    placeholder="Enter registration or membership number"
+                    required
+                />
+            )
+        },
     ];
 
     const documentFields = [
@@ -210,6 +246,7 @@ export default function ProfessionalScreen() {
             fileUri: docs.membership.file?.uri, fileUrl: docs.membership.meta?.fileUrl,
             fileType: docs.membership.file?.type,
             required: true,
+
         },
         {
             label: 'Invoice from Professional Body',
@@ -253,7 +290,7 @@ export default function ProfessionalScreen() {
 
         let isStepValid = false;
         if (currentStep === 0) {
-            isStepValid = await trigger(['bvn', 'nin', 'formAId', 'passportNumber']);
+            isStepValid = await trigger(['bvn', 'nin', 'formAId', 'passportDocumentNumber', 'passportIssueDate', 'passportExpiryDate', 'memberNumber']);
         } else if (currentStep === 1) {
             if (!docs.membership.file || !docs.invoice.file) {
                 showToast('Please upload all required documents', 'error');
@@ -272,7 +309,7 @@ export default function ProfessionalScreen() {
 
             const fieldsToTrigger = [
                 'beneficiaryCountry', 'bankAccountName', 'beneficiaryAddress', 'bankName', 'bankAccountNumber',
-                'bankAccountAddress', 'bankAccountSwiftCode', 'paymentReference'
+                'bankAccountAddress', 'bankAccountSwiftCode', 'paymentReference', 'organizationName'
             ];
             if (isAustralia) fieldsToTrigger.push('bsbCode');
             if (isUSA || isCanada) fieldsToTrigger.push('routingNumber');
@@ -309,7 +346,9 @@ export default function ProfessionalScreen() {
             bvn: data.bvn,
             nin: data.nin,
             formAId: data.formAId,
-            passportNumber: data.passportNumber,
+            passportDocumentNumber: data.passportDocumentNumber,
+            passportIssueDate: data.passportIssueDate,
+            passportExpiryDate: data.passportExpiryDate,
             memberName: data.memberName,
             memberNumber: data.memberNumber,
             documents: [
@@ -318,6 +357,7 @@ export default function ProfessionalScreen() {
             ],
             beneficiaryDetails: {
                 organizationName: data.organizationName || '',
+                memberName: data.memberName,
                 phone: data.beneficiaryPhone || '',
                 email: data.beneficiaryEmail || '',
                 address: data.beneficiaryAddress,
@@ -354,7 +394,7 @@ export default function ProfessionalScreen() {
         });
     };
 
-    const isStep0Valid = watchedFields.bvn && watchedFields.formAId && watchedFields.passportNumber;
+    const isStep0Valid = watchedFields.bvn && watchedFields.formAId && watchedFields.passportDocumentNumber && watchedFields.passportIssueDate && watchedFields.passportExpiryDate && watchedFields.memberNumber;
     const isStep1Valid = docs.membership.meta && docs.invoice.meta;
     const isStep2Valid = watchedFields.amount > 0;
 

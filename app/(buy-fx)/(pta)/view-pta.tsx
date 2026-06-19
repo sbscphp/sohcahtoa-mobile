@@ -52,26 +52,59 @@ export default function ViewPtaScreen() {
 
     const detailsItems = useMemo(() => {
         if (!tx) return [];
+
+        const pickupLocation = tx.cashPickup ? (
+            tx.cashPickup.pickupLocation?.trim() || [tx.cashPickup.pickupCity, tx.cashPickup.pickupState].filter(Boolean).join(', ')
+        ) : null;
+
         return [
             { label: 'Transaction ID', value: tx.referenceNumber },
+            { label: 'Status', value: tx.status.replace(/_/g, ' ') },
             { label: 'Amount (₦)', value: formatCurrency(tx.nairaEquivalent) },
             { label: 'Equivalent Amount (FX)', value: formatCurrency(tx.foreignAmount, tx.currency === 'USD' ? '$' : tx.currency === 'GBP' ? '£' : tx.currency === 'EUR' ? '€' : tx.currency) },
             { label: 'Date Initiated', value: `${formatDate(tx.createdAt)}\n${formatTimeWithSeconds(tx.createdAt)}` },
             ...(tx.cashPickup ? [
                 {
-                    label: 'Pickup Location',
-                    value: tx.cashPickup.pickupLocation || 'N/A',
-                    isRightAligned: true
+                    label: 'Pickup Status',
+                    value: tx.cashPickup.status?.replace(/_/g, ' ') || 'N/A',
                 },
+                {
+                    label: 'Pickup Location',
+                    value: pickupLocation || 'N/A',
+                },
+                {
+                    label: 'Pickup City',
+                    value: tx.cashPickup.pickupCity || 'N/A',
+                    isRightAligned: true,
+                },
+                {
+                    label: 'Pickup State',
+                    value: tx.cashPickup.pickupState || 'N/A',
+                    isRightAligned: true,
+                },
+                {
+                    label: 'Pickup Code',
+                    value: tx.cashPickup.pickupCode || 'N/A',
+                },
+                ...(tx.cashPickup.recipientPhone ? [{
+                    label: 'Recipient Phone',
+                    value: tx.cashPickup.recipientPhone,
+                    isRightAligned: true,
+                }] : []),
                 ...(tx.cashPickup.scheduledPickupDate ? [{
                     label: 'Pickup Date',
                     value: formatDate(tx.cashPickup.scheduledPickupDate),
-                    isRightAligned: true
+                    isRightAligned: true,
                 }] : []),
                 ...(tx.cashPickup.scheduledPickupTime ? [{
                     label: 'Pickup Time',
                     value: tx.cashPickup.scheduledPickupTime,
-                    isRightAligned: true
+                    isRightAligned: true,
+                }] : []),
+                ...(tx.cashPickup.expiryDate ? [{
+                    label: 'Expiry Date',
+                    value: formatDate(tx.cashPickup.expiryDate),
+                    isRightAligned: true,
                 }] : []),
             ] : []),
         ];
@@ -99,7 +132,7 @@ export default function ViewPtaScreen() {
             fileName: doc.uploaded ? truncateFileName(doc.uploaded.fileName) : null,
             docStatus: doc.uploaded?.status,
             required: true,
-            onUpload: (!doc.uploaded || doc.uploaded.status === 'FAILED' || doc.uploaded.status === 'REJECTED')
+            onUpload: (!doc.uploaded || (doc.uploaded.status !== 'FAILED' && doc.uploaded.status !== 'REJECTED'))
                 ? () => uploadFile(doc.type)
                 : undefined,
         }));
@@ -138,6 +171,7 @@ export default function ViewPtaScreen() {
             {activeTab === 'overview' && (
                 <TransactionStatusView
                     status={status}
+                    apiStatus={tx?.status}
                     id={tx?.referenceNumber?.slice(-6) || ''}
                     date={tx ? formatDate(tx.createdAt) : ''}
                     time={tx ? formatTime(tx.createdAt) : ''}

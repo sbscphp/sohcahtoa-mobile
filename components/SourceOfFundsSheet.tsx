@@ -2,8 +2,8 @@ import { InfoCircle } from 'iconsax-react-nativejs';
 import React from 'react';
 import { Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
-import PrimaryButton from './PrimaryButton';
 import FileUpload from './FileUpload';
+import PrimaryButton from './PrimaryButton';
 
 interface InfoRowProps {
     label: string;
@@ -27,7 +27,7 @@ interface SourceOfFundsSheetProps {
         email: string;
         bvn: string;
         address: string;
-        passportNumber: string;
+        passportDocumentNumber: string;
     };
     transactionDetails: {
         type: string;
@@ -83,7 +83,7 @@ export default function SourceOfFundsSheet({
                             <InfoRow label="Email Address" value={customerInfo.email} />
                             <InfoRow label="BVN" value={customerInfo.bvn} />
                             <InfoRow label="Resident Address" value={customerInfo.address} />
-                            <InfoRow label="Passport Number" value={customerInfo.passportNumber} />
+                            <InfoRow label="Passport Number" value={customerInfo.passportDocumentNumber} />
                         </View>
 
 
@@ -96,7 +96,7 @@ export default function SourceOfFundsSheet({
                             <InfoRow label="Purpose of Transaction" value={transactionDetails.purpose} />
                         </View>
 
-                       
+
 
                         <View style={styles.uploadSection}>
                             <FileUpload

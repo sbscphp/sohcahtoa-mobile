@@ -1,18 +1,18 @@
 import { z } from 'zod';
-import { locationStepSchema, utilityNumberField } from './shared';
+import { locationStepSchema } from './shared';
 
 /** Step 0: Resident credentials */
 export const residentStep0Schema = z.object({
     bvn: z.string().optional(),
     nin: z.string().optional().or(z.literal('')),
-    passportNumber: z.string().regex(/^[A-Za-z]\d{8}$/, 'Please enter a valid International Passport Number'),
+    tinNumber: z.string().optional().or(z.literal('')),
+    passportDocumentNumber: z.string().regex(/^[A-Za-z]\d{8}$/, 'Please enter a valid International Passport Number'),
 });
 
 /** Step 1: Resident documents */
 export const residentStep1Schema = z.object({
     passportIssueDate: z.string().min(1, 'Please select Passport Issue Date'),
     passportExpiryDate: z.string().min(1, 'Please select Passport Expiry Date'),
-    utilityNumber: utilityNumberField,
 });
 
 /** Step 2: Resident amount */

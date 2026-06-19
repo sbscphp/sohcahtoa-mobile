@@ -23,11 +23,13 @@ export interface User {
     kyc: {
         status: string;
         bvn: string;
-        tin: string;
-        passportNumber: string;
+        nin: string;
+        tinNumber: string;
+        passportDocumentNumber: string;
         passportDocumentUrl: string;
         bvnVerified: boolean;
-        tinVerified: boolean;
+        ninVerified: boolean;
+        tinNumberVerified: boolean;
         passportVerified: boolean;
         verifiedAt: string;
         rejectedAt: string;
