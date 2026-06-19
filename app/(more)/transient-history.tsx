@@ -32,7 +32,7 @@ export default function TransientHistoryScreen() {
 
     const entries = ledgerData?.entries || [];
     const totalPages = ledgerData?.meta?.totalPages || 1;
-    const currentBalance = ledgerData?.data?.balance;
+    // const currentBalance = ledgerData?.data?.balance;
     const currentCurrency = ledgerData?.data?.currency || 'NGN';
 
     const groups = useMemo(() => groupEntriesByDate(entries), [entries]);
