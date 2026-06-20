@@ -491,7 +491,12 @@ export default function MedicalPaymentScreen() {
                     loading={createTransaction.isPending}
                     items={[
                         {
-                            title: "",
+                            title: "Request Summary",
+                            description: `you are requesting ${currencyGet.code === 'USD' ? '$' : currencyGet.code === 'GBP' ? '£' : currencyGet.code === 'EUR' ? '€' : ''}${amountGetStr} ${currencyGet.code.toLowerCase()}. you will be sent approximately ₦${amountSendStr}`,
+                            iconType: 'info'
+                        },
+                        {
+                            title: "Maximum Limit",
                             description: "Please note that the maximum you can transact is $5,000 per quarter.",
                             iconType: 'limit'
                         }

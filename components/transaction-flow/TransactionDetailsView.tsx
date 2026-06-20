@@ -1,6 +1,6 @@
-import { Download } from 'lucide-react-native';
+import { Download, FileText } from 'lucide-react-native';
 import React from 'react';
-import { Text, View } from 'react-native';
+import { Linking, Text, TouchableOpacity, View } from 'react-native';
 import { ScaledSheet, moderateScale, verticalScale } from 'react-native-size-matters';
 
 interface DetailItem {
@@ -14,6 +14,7 @@ interface DocumentItem {
     label: string;
     value?: string;
     fileName?: string;
+    fileUrl?: string;
     onDownload?: () => void;
 }
 
@@ -30,82 +31,129 @@ interface TransactionDetailsViewProps {
     beneficiaryDetails?: DetailItem[];
     paymentDetails?: DetailItem[];
     disbursementDetails?: DisbursementDetails;
+    settlementDetails?: DetailItem[];
+    bankAccountsDetails?: DetailItem[];
+    currentStep?: string;
 }
 
-export default function TransactionDetailsView({ details, documents = [], documentSectionTitle = "Required Document", beneficiaryDetails, paymentDetails, disbursementDetails }: TransactionDetailsViewProps) {
-    return (
-        <View style={styles.container}>
-            <Text style={styles.sectionHeader}>Transaction Details</Text>
-            {details.map((item, index) => (
-                <View key={index}>
-                    <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>{item.label}</Text>
-                        <View style={item.isRightAligned ? { flex: 1, alignItems: 'flex-end' } : {}}>
+const getStatusColors = (status: string) => {
+    const normalized = (status || '').toUpperCase().replace(/_/g, ' ');
+    if (
+        normalized.includes('SUCCESS') ||
+        normalized.includes('COMPLETED') ||
+        normalized.includes('VERIFIED') ||
+        normalized.includes('APPROVED') ||
+        normalized.includes('SETTLED') ||
+        normalized.includes('DISBURSED')
+    ) {
+        return { bg: '#ECFDF5', text: '#059669' };
+    }
+    if (
+        normalized.includes('FAILED') ||
+        normalized.includes('REJECTED') ||
+        normalized.includes('DECLINED') ||
+        normalized.includes('CANCELLED')
+    ) {
+        return { bg: '#FEF2F2', text: '#DC2626' };
+    }
+    return { bg: '#FFFBEB', text: '#D97706' };
+};
+
+export default function TransactionDetailsView({
+    details,
+    documents = [],
+    documentSectionTitle = "Required Document",
+    beneficiaryDetails,
+    paymentDetails,
+    disbursementDetails,
+    settlementDetails,
+    bankAccountsDetails,
+    currentStep
+}: TransactionDetailsViewProps) {
+    const renderedDetails = [...details];
+    if (currentStep) {
+        const hasStep = renderedDetails.some(item => item.label.toLowerCase().includes('step'));
+        if (!hasStep) {
+            const statusIdx = renderedDetails.findIndex(item => item.label.toLowerCase() === 'status');
+            const stepItem = {
+                label: 'Current Step',
+                value: currentStep.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())
+            };
+            if (statusIdx !== -1) {
+                renderedDetails.splice(statusIdx + 1, 0, stepItem);
+            } else {
+                renderedDetails.push(stepItem);
+            }
+        }
+    }
+
+    const renderDetailRow = (item: DetailItem, index: number, totalLength: number) => {
+        const isStatusOrStep = item.label.toLowerCase().includes('status') || item.label.toLowerCase().includes('step');
+        const colors = isStatusOrStep ? getStatusColors(item.value) : null;
+
+        return (
+            <View key={index}>
+                <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>{item.label}</Text>
+                    <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                        {isStatusOrStep && colors ? (
+                            <View style={[styles.statusBadge, { backgroundColor: colors.bg }]}>
+                                <Text style={[styles.statusText, { color: colors.text }]}>
+                                    {item.value}
+                                </Text>
+                            </View>
+                        ) : (
                             <Text
                                 style={[
                                     styles.detailValue,
-                                    item.isRightAligned && { textAlign: 'right' }
+                                    { textAlign: 'right' }
                                 ]}
-
                             >
                                 {item.value}
                             </Text>
-                            {item.secondaryValue && (
-                                <Text style={styles.secondaryValue}>
-                                    {item.secondaryValue}
-                                </Text>
-                            )}
-                        </View>
+                        )}
+                        {item.secondaryValue && (
+                            <Text style={styles.secondaryValue}>
+                                {item.secondaryValue}
+                            </Text>
+                        )}
                     </View>
-                    {index < details.length - 1 && <View style={[styles.separator, { marginTop: verticalScale(12) }]} />}
                 </View>
-            ))}
+                {index < totalLength - 1 && <View style={[styles.separator, { marginTop: verticalScale(12) }]} />}
+            </View>
+        );
+    };
+
+    return (
+        <View style={styles.container}>
+            <Text style={styles.sectionHeader}>Transaction Details</Text>
+            {renderedDetails.map((item, index) => renderDetailRow(item, index, renderedDetails.length))}
 
             {beneficiaryDetails && beneficiaryDetails.length > 0 && (
                 <>
                     <Text style={[styles.sectionHeader, { marginTop: moderateScale(62) }]}>Beneficiary Details</Text>
-                    {beneficiaryDetails.map((item, index) => (
-                        <View key={index}>
-                            <View style={styles.detailRow}>
-                                <Text style={styles.detailLabel}>{item.label}</Text>
-                                <Text
-                                    style={[
-                                        styles.detailValue,
-                                        item.isRightAligned && { flex: 1, textAlign: 'right' }
-                                    ]}
-                                    numberOfLines={2}
-                                >
-                                    {item.value}
-                                </Text>
-                            </View>
-                            {index < beneficiaryDetails.length - 1 && <View style={[styles.separator, { marginTop: verticalScale(12) }]} />}
-                        </View>
-                    ))}
-
+                    {beneficiaryDetails.map((item, index) => renderDetailRow(item, index, beneficiaryDetails.length))}
                 </>
             )}
 
             {paymentDetails && paymentDetails.length > 0 && (
                 <>
                     <Text style={[styles.sectionHeader, { marginTop: moderateScale(62) }]}>Payment Details</Text>
-                    {paymentDetails.map((item, index) => (
-                        <View key={index}>
-                            <View style={styles.detailRow}>
-                                <Text style={styles.detailLabel}>{item.label}</Text>
-                                <Text
-                                    style={[
-                                        styles.detailValue,
-                                        item.isRightAligned && { flex: 1, textAlign: 'right' }
-                                    ]}
-                                    numberOfLines={2}
-                                >
-                                    {item.value}
-                                </Text>
-                            </View>
-                            {index < paymentDetails.length - 1 && <View style={[styles.separator, { marginTop: verticalScale(12) }]} />}
-                        </View>
-                    ))}
+                    {paymentDetails.map((item, index) => renderDetailRow(item, index, paymentDetails.length))}
+                </>
+            )}
 
+            {settlementDetails && settlementDetails.length > 0 && (
+                <>
+                    <Text style={[styles.sectionHeader, { marginTop: moderateScale(62) }]}>Settlement Details</Text>
+                    {settlementDetails.map((item, index) => renderDetailRow(item, index, settlementDetails.length))}
+                </>
+            )}
+
+            {bankAccountsDetails && bankAccountsDetails.length > 0 && (
+                <>
+                    <Text style={[styles.sectionHeader, { marginTop: moderateScale(62) }]}>Bank Accounts</Text>
+                    {bankAccountsDetails.map((item, index) => renderDetailRow(item, index, bankAccountsDetails.length))}
                 </>
             )}
 
@@ -113,28 +161,18 @@ export default function TransactionDetailsView({ details, documents = [], docume
                 <>
                     <Text style={[styles.sectionHeader, { marginTop: moderateScale(62) }]}>Disbursement Details</Text>
 
-
-                    {disbursementDetails.paymentInfo.map((item, index) => (
-                        <View key={index}>
-                            <View style={styles.detailRow}>
-                                <Text style={styles.detailLabel}>{item.label}</Text>
-                                <Text style={styles.detailValue}>{item.value}</Text>
-                            </View>
-                            {index < disbursementDetails.paymentInfo.length - 1 && <View style={[styles.separator, { marginTop: verticalScale(12) }]} />}
-                        </View>
-                    ))}
+                    {disbursementDetails.paymentInfo.map((item, index) => renderDetailRow(item, index, disbursementDetails.paymentInfo.length))}
 
                     {/* Disbursement Status */}
                     {disbursementDetails.paymentInfo.length > 0 && <View style={[styles.separator, { marginTop: verticalScale(12) }]} />}
                     <View style={styles.detailRow}>
                         <Text style={styles.detailLabel}>Disbursement Status</Text>
-                        <View style={[styles.statusBadge, { backgroundColor: disbursementDetails.statusColor || '#FEF3C7' }]}>
-                            <Text style={styles.statusText}>{disbursementDetails.status}</Text>
+                        <View style={[styles.statusBadge, { backgroundColor: getStatusColors(disbursementDetails.status).bg }]}>
+                            <Text style={[styles.statusText, { color: getStatusColors(disbursementDetails.status).text }]}>{disbursementDetails.status}</Text>
                         </View>
                     </View>
                 </>
-            )
-            }
+            )}
 
             {
                 documents.length > 0 && (
@@ -157,15 +195,23 @@ export default function TransactionDetailsView({ details, documents = [], docume
                                     {doc.value ? (
                                         <View style={styles.detailRow}>
                                             <Text style={styles.detailLabel}>{doc.label}</Text>
-                                            <Text style={styles.detailValue} numberOfLines={2}>{doc.value}</Text>
+                                            <Text style={styles.detailValue}>{doc.value}</Text>
                                         </View>
                                     ) : (
                                         <View style={styles.docRow}>
                                             <Text style={styles.detailLabel}>{doc.label}</Text>
-                                            <View style={styles.downloadContainer}>
+                                            <TouchableOpacity
+                                                style={styles.downloadContainer}
+                                                onPress={() => {
+                                                    if (doc.fileUrl) {
+                                                        Linking.openURL(doc.fileUrl).catch(err => console.error("Couldn't open URL", err));
+                                                    }
+                                                }}
+                                                disabled={!doc.fileUrl}
+                                            >
                                                 <Text style={styles.docName} numberOfLines={1}>{truncateFileName(doc.fileName)}</Text>
-                                                {/* <Download size={moderateScale(14)} color="rgba(152, 162, 179, 1)" /> */}
-                                            </View>
+                                                <FileText size={moderateScale(16)} color={doc.fileUrl ? "#FF6813" : "rgba(152, 162, 179, 1)"} />
+                                            </TouchableOpacity>
                                         </View>
                                     )}
                                     {index < documents.length - 1 && <View style={[styles.separator, { marginTop: verticalScale(12) }]} />}
@@ -185,6 +231,7 @@ export default function TransactionDetailsView({ details, documents = [], docume
 const styles = ScaledSheet.create({
     container: {
         gap: '10@vs',
+        paddingBottom: verticalScale(20)
     },
     sectionHeader: {
         fontSize: '14@ms',

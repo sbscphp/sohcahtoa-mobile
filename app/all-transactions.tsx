@@ -4,9 +4,9 @@ import FilterBottomSheet from '@/components/FilterBottomSheet';
 import Header from '@/components/Header';
 import { useGetTransactionsQuery } from '@/hooks/queries/transactions/useGetTransactionsQuery';
 import { Transaction } from '@/types/api/transactions';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Refresh } from 'iconsax-react-nativejs';
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import { ActivityIndicator, SectionList, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
@@ -39,10 +39,27 @@ export default function AllTransactionsScreen() {
     const insets = useSafeAreaInsets();
     const [filterVisible, setFilterVisible] = useState(false);
     const [queryParams, setQueryParams] = useState<Record<string, string | undefined>>({});
+    const LIMIT = 40;
 
-    const { data: transactionsData, isLoading } = useGetTransactionsQuery(queryParams);
+    const {
+        data: transactionsData,
+        isLoading,
+        refetch,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage
+    } = useGetTransactionsQuery({
+        ...queryParams,
+        limit: LIMIT,
+    });
 
-    const transactions: Transaction[] = transactionsData?.data || [];
+    useFocusEffect(
+        useCallback(() => {
+            refetch();
+        }, [refetch])
+    );
+
+    const transactions: Transaction[] = transactionsData?.pages?.flatMap(p => p.data) || [];
     const sections = useMemo(() => groupTransactionsByDate(transactions), [transactions]);
 
     const handleFilter = (filters: { startDate: string; endDate: string; status: string; type: string; group: string; currency: string }) => {
@@ -64,7 +81,6 @@ export default function AllTransactionsScreen() {
         if (filters.group) params.group = filters.group;
         if (filters.currency) params.currency = filters.currency;
 
-        console.log('🚀 Query params:', JSON.stringify(params, null, 2));
         setQueryParams(params);
         setFilterVisible(false);
     };
@@ -106,6 +122,23 @@ export default function AllTransactionsScreen() {
         );
     };
 
+    const renderFooter = () => {
+        if (!hasNextPage) return null;
+        return (
+            <TouchableOpacity
+                style={styles.loadMoreButton}
+                disabled={isFetchingNextPage}
+                onPress={() => fetchNextPage()}
+            >
+                {isFetchingNextPage ? (
+                    <ActivityIndicator size="small" color="#FF6B2C" />
+                ) : (
+                    <Text style={styles.loadMoreButtonText}>Load More</Text>
+                )}
+            </TouchableOpacity>
+        );
+    };
+
     return (
         <View style={[styles.container, { paddingTop: insets.top }]}>
             <Header
@@ -129,6 +162,7 @@ export default function AllTransactionsScreen() {
                     contentContainerStyle={styles.listContent}
                     stickySectionHeadersEnabled={false}
                     showsVerticalScrollIndicator={false}
+                    ListFooterComponent={renderFooter}
                 />
             ) : (
                 <View style={styles.emptyContainer}>
@@ -295,5 +329,21 @@ const styles = ScaledSheet.create({
         color: '#0F172A',
         fontSize: '16@ms',
         fontWeight: '600',
+    },
+    loadMoreButton: {
+        paddingVertical: '12@vs',
+        borderRadius: '8@ms',
+        backgroundColor: '#F1F5F9',
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: '16@vs',
+        marginBottom: '24@vs',
+    },
+    loadMoreButtonText: {
+        fontSize: '13@ms',
+        fontWeight: '600',
+        color: '#0F172A',
     },
 });

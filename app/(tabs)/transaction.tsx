@@ -1,8 +1,8 @@
 import { useGetTransactionsQuery } from '@/hooks/queries/transactions/useGetTransactionsQuery';
 import { Transaction } from '@/types/api/transactions';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Notification, Refresh } from 'iconsax-react-nativejs';
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
@@ -44,15 +44,21 @@ export default function TransactionScreen() {
     const filters = ['All', 'Buy FX', 'Sell FX', 'Receive FX'];
 
     const group = FILTER_TO_GROUP[activeFilter];
-    const { data: transactionsData, isLoading } = useGetTransactionsQuery(
+    const { data: transactionsData, isLoading, refetch } = useGetTransactionsQuery(
         group ? { group } : undefined
+    );
+
+    useFocusEffect(
+        useCallback(() => {
+            refetch();
+        }, [refetch])
     );
     const { data: unreadData } = useGetUnreadCountQuery();
     const unreadCount = unreadData?.data?.count || 0;
 
 
 
-    const transactions: Transaction[] = transactionsData?.data || [];
+    const transactions: Transaction[] = transactionsData?.pages?.flatMap(p => p.data) || [];
     const totalCount = transactions.length;
 
     // console.log('transactions', transactions);

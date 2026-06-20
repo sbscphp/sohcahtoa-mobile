@@ -80,7 +80,7 @@ export default function SchoolFeesScreen() {
     useProfileQuery();
     const user = useAuthStore(s => s.user);
     const { data: transactionsResponse } = useGetTransactionsQuery();
-    const transactions = transactionsResponse?.data || [];
+    const transactions = transactionsResponse?.pages?.flatMap(p => p.data) || [];
 
     const [currentStep, setCurrentStep] = useState(0);
     const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
@@ -576,7 +576,7 @@ export default function SchoolFeesScreen() {
                 ...(isPostGrad && docs.result.meta ? [docs.result.meta] : []),
             ],
             beneficiaryDetails: {
-                organizationName: data.organizationName || '',
+                organizationName: '',
                 studentName: data.studentName,
                 studentPassportNumber: data.studentPassportNumber,
                 bankAccountName: data.bankAccountName,
@@ -697,7 +697,12 @@ export default function SchoolFeesScreen() {
                     title={`Initiate ${admissionType} Transaction request?`}
                     items={[
                         {
-                            title: "",
+                            title: "Request Summary",
+                            description: `you are requesting ${currencyGet.code === 'USD' ? '$' : currencyGet.code === 'GBP' ? '£' : currencyGet.code === 'EUR' ? '€' : ''}${amountGetStr} ${currencyGet.code.toLowerCase()}. you will be sent approximately ₦${amountSendStr}`,
+                            iconType: 'info'
+                        },
+                        {
+                            title: "Maximum Limit",
                             description: "Please note that the maximum you can transact is $10,000 per quarter.",
                             iconType: 'limit'
                         }

@@ -4,6 +4,7 @@ import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import PrimaryButton from './PrimaryButton';
+import { useGetWalletLedgerQuery } from '@/hooks/queries/wallet/useGetWalletLedgerQuery';
 
 interface InfoItemProps {
     title: string;
@@ -40,6 +41,10 @@ const InitiateTransactionSheet: React.FC<InitiateTransactionSheetProps> = ({
     ]
 }) => {
     const insets = useSafeAreaInsets();
+    const { data: ledgerData } = useGetWalletLedgerQuery({ page: 1, limit: 1 });
+    const firstPage = ledgerData?.pages?.[0];
+    const balance = firstPage?.data?.balance;
+    const currency = firstPage?.data?.currency || 'NGN';
 
     const renderIcon = (item: InfoItemProps) => {
         if (item.icon) return item.icon;
@@ -88,6 +93,15 @@ const InitiateTransactionSheet: React.FC<InitiateTransactionSheetProps> = ({
 
                     <Text style={styles.title}>{title}</Text>
                     <Text style={styles.subtitle}>{subtitle}</Text>
+
+                    {balance !== undefined && (
+                        <View style={styles.balanceContainer}>
+                            <Text style={styles.balanceLabelText}>Wallet Balance</Text>
+                            <Text style={styles.balanceValueText}>
+                                {currency === 'USD' ? '$' : currency === 'EUR' ? '€' : '₦'}{balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </Text>
+                        </View>
+                    )}
 
                     {/* Info Box */}
                     <View style={styles.infoBox}>
@@ -204,7 +218,29 @@ const styles = ScaledSheet.create({
         color: '#0F172A',
         fontSize: '14@ms',
         fontWeight: '600',
-    }
+    },
+    balanceContainer: {
+        backgroundColor: '#F8FAFC',
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+        borderRadius: '12@ms',
+        paddingHorizontal: '16@s',
+        paddingVertical: '12@vs',
+        marginBottom: '16@vs',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    balanceLabelText: {
+        fontSize: '13@ms',
+        color: '#64748B',
+        fontWeight: '500',
+    },
+    balanceValueText: {
+        fontSize: '14@ms',
+        fontWeight: '700',
+        color: '#0F172A',
+    },
 });
 
 export default InitiateTransactionSheet;

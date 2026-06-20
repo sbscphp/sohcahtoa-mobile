@@ -6,9 +6,9 @@ import { useGetTransactionTotalsMutation } from '@/hooks/queries/transactions/us
 import { useGetTransactionsQuery } from '@/hooks/queries/transactions/useGetTransactionsQuery';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { formatCurrency, formatDate, formatTime, getStatusLabel, getStatusStyle } from '@/utils/helpers';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Add, ArrowDown2, Bank, Buildings, Eye, EyeSlash, Hospital, ImportCircle, Notification, People, Refresh, Teacher, User, WalletAdd1, WalletMinus } from 'iconsax-react-nativejs';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
@@ -231,8 +231,14 @@ export default function HomeScreen() {
         return params;
     }, [selectedFilter, selectedTxFilter]);
 
-    const { data: transactionsData, isLoading: isLoadingTransactions } = useGetTransactionsQuery(queryParams);
-    const transactions = transactionsData?.data || [];
+    const { data: transactionsData, isLoading: isLoadingTransactions, refetch } = useGetTransactionsQuery(queryParams);
+
+    useFocusEffect(
+        useCallback(() => {
+            refetch();
+        }, [refetch])
+    );
+    const transactions = transactionsData?.pages?.flatMap(p => p.data) || [];
 
     const FILTERS = ['All', 'FX bought', 'FX sold', 'Received FX'];
 

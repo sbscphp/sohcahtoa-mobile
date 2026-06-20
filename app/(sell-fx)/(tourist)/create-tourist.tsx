@@ -72,7 +72,6 @@ export default function CreateTouristScreen() {
             passportDocumentNumber: '',
             passportIssueDate: '',
             passportExpiryDate: '',
-            ticketNumber: '',
             amount: 0,
             selectedState: undefined as unknown as LocationItem,
             selectedCity: undefined as unknown as LocationItem,
@@ -204,15 +203,6 @@ export default function CreateTouristScreen() {
             fileUri: docs.ticket.file?.uri, fileUrl: docs.ticket.meta?.fileUrl,
             fileType: docs.ticket.file?.type,
             required: true,
-            associatedInputs: (
-                <ControlledInput
-                    control={control}
-                    name="ticketNumber"
-                    label="Ticket Number"
-                    placeholder="Enter ticket number"
-                    required
-                />
-            )
         },
         {
             label: 'Receipt for Initial Naira Purchase',
@@ -239,7 +229,7 @@ export default function CreateTouristScreen() {
                 showToast('Please upload all required documents', 'error');
                 return;
             }
-            isStepValid = await trigger(['passportIssueDate', 'passportExpiryDate', 'ticketNumber']);
+            isStepValid = await trigger(['passportIssueDate', 'passportExpiryDate']);
         } else if (currentStep === 2) {
             setValue('amount', parseFloat(amountSend.replace(/,/g, '')) || 0);
             isStepValid = await trigger(['amount']);
@@ -290,7 +280,6 @@ export default function CreateTouristScreen() {
             passportDocumentNumber: data.passportDocumentNumber,
             passportIssueDate: data.passportIssueDate,
             passportExpiryDate: data.passportExpiryDate,
-            ticketNumber: data.ticketNumber,
         };
 
         if (data.selectedLocation) {
@@ -321,7 +310,7 @@ export default function CreateTouristScreen() {
 
     const isStep0Valid = !!watchedFields.passportDocumentNumber;
     const isStep1Valid = !!(docs.passport.meta && docs.visa.meta && docs.ticket.meta && docs.receipt.meta &&
-        watchedFields.passportIssueDate && watchedFields.passportExpiryDate && watchedFields.ticketNumber);
+        watchedFields.passportIssueDate && watchedFields.passportExpiryDate);
     const isStep2Valid = watchedFields.amount > 0;
 
     const isStep3Valid = !!(watchedFields.selectedState && watchedFields.selectedCity && watchedFields.selectedLocation && watchedFields.pickupDate && watchedFields.pickupTime);
@@ -411,6 +400,13 @@ export default function CreateTouristScreen() {
                     onConfirm={handleSubmit(onSubmit)}
                     title="Initiate Tourist Transaction request?"
                     loading={createTransaction.isPending}
+                    items={[
+                        {
+                            title: "Request Summary",
+                            description: `you are requesting ${currencyGet.code === 'USD' ? '$' : currencyGet.code === 'GBP' ? '£' : currencyGet.code === 'EUR' ? '€' : ''}${amountGet} ${currencyGet.code.toLowerCase()}. you will be sent approximately ₦${amountSend}`,
+                            iconType: 'info'
+                        }
+                    ]}
                 />
 
                 <SourceOfFundsSheet

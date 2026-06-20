@@ -7,8 +7,8 @@ import { useGetTransactionByIdQuery } from '@/hooks/queries/transactions/useGetT
 import { useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useToastStore } from '@/stores/useToastStore';
 import { commonDocTypeLabels, getTransactionDocuments, formatDate, formatTime, formatTimeWithSeconds, formatCurrency } from '@/utils/helpers';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useMemo, useState } from 'react';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
+import React, { useMemo, useState, useCallback } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 
 export default function ViewTouristScreen() {
@@ -16,9 +16,15 @@ export default function ViewTouristScreen() {
     const { transactionId } = useLocalSearchParams<{ transactionId: string }>();
     const [activeTab, setActiveTab] = useState('overview');
 
-    const { data: txResponse, isLoading } = useGetTransactionByIdQuery(transactionId || '');
+    const { data: txResponse, isLoading, refetch } = useGetTransactionByIdQuery(transactionId || '');
     const tx = txResponse?.data;
     const showToast = useToastStore(s => s.showToast);
+
+    useFocusEffect(
+        useCallback(() => {
+            refetch();
+        }, [refetch])
+    );
 
     const { upload: uploadFile, isPending: isUploading } = useDocumentUpload({
         transactionId: transactionId || undefined,
@@ -73,7 +79,8 @@ export default function ViewTouristScreen() {
 
         const uploadedDocs = tx.requiredDocuments.filter(d => !!d.uploaded).map(d => ({
             label: commonDocTypeLabels[d.type] || d.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
-            fileName: d.uploaded!.fileName
+            fileName: d.uploaded!.fileName,
+            fileUrl: d.uploaded!.fileUrl,
         }));
         return [...docs, ...uploadedDocs];
     }, [tx]);
@@ -112,7 +119,13 @@ export default function ViewTouristScreen() {
             onActionPress={handleProceed}
         >
             {activeTab === 'overview' && (<TransactionStatusView status={status} id={tx?.referenceNumber?.slice(-6) || ''} date={tx ? formatDate(tx.createdAt) : ''} time={tx ? formatTime(tx.createdAt) : ''} message={getMessage()} comments={tx?.comments} />)}
-            {activeTab === 'details' && (<TransactionDetailsView details={detailsItems} documents={detailsDocuments} />)}
+            {activeTab === 'details' && (
+                <TransactionDetailsView
+                    details={detailsItems}
+                    documents={detailsDocuments}
+                    currentStep={tx?.currentStep}
+                />
+            )}
             {activeTab === 'docs' && (<TransactionDocsView status={status} documents={docsItems} />)}
         </TransactionViewLayout>
         </>

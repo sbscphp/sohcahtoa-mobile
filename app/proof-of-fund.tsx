@@ -24,9 +24,12 @@ export default function ProofOfFundScreen() {
     
     const [slots, setSlots] = useState<UploadSlot[]>([
         { id: '1', label: 'Proof of fund', file: null, metadata: null },
-        { id: '2', label: 'Proof of fund', file: null, metadata: null },
-        { id: '3', label: 'Proof of fund', file: null, metadata: null },
     ]);
+
+    const addSlot = () => {
+        const newId = Date.now().toString();
+        setSlots(prev => [...prev, { id: newId, label: 'Proof of fund', file: null, metadata: null }]);
+    };
 
     const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
 
@@ -51,9 +54,13 @@ export default function ProofOfFundScreen() {
     };
 
     const handleDelete = (index: number) => {
-        setSlots(prev => prev.map((slot, idx) => 
-            idx === index ? { ...slot, file: null, metadata: null } : slot
-        ));
+        if (slots.length > 1) {
+            setSlots(prev => prev.filter((_, idx) => idx !== index));
+        } else {
+            setSlots(prev => prev.map((slot, idx) => 
+                idx === index ? { ...slot, file: null, metadata: null } : slot
+            ));
+        }
     };
 
     const handleAttach = () => {
@@ -106,6 +113,11 @@ export default function ProofOfFundScreen() {
                         )}
                     </View>
                 ))}
+
+                <TouchableOpacity style={styles.addMoreButton} onPress={addSlot}>
+                    <Ionicons name="add-circle-outline" size={moderateScale(20)} color="#FF6813" />
+                    <Text style={styles.addMoreText}>Add more input</Text>
+                </TouchableOpacity>
             </ScrollView>
 
             <View style={styles.footer}>
@@ -190,5 +202,23 @@ const styles = ScaledSheet.create({
     footer: {
         padding: '20@ms',
         paddingBottom: '30@vs',
+    },
+    addMoreButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1.5,
+        borderColor: '#FF6813',
+        borderStyle: 'dashed',
+        borderRadius: '30@ms',
+        paddingVertical: '12@vs',
+        marginVertical: '10@vs',
+        backgroundColor: '#FFF7ED',
+    },
+    addMoreText: {
+        fontSize: '15@ms',
+        color: '#FF6813',
+        fontWeight: '600',
+        marginLeft: '6@s',
     },
 });

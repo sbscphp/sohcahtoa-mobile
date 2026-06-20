@@ -16,7 +16,6 @@ export default function PaymentScreen() {
     return (
         <PaymentLayout
             transactionId={transactionId}
-            infoText="Once payment is confirmed, your foreign exchange will be available for pickup at your selected location. Please bring your work permit and passport documents."
             onSent={handleSent}
         />
     );

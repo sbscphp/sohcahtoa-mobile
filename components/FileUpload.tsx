@@ -73,7 +73,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
     }
 
     const isImage = (fileUri || fileUrl) && (fileType?.startsWith('image/') || /\.(jpeg|jpg|png|gif|webp)$/i.test(fileName || ''));
-    const showChangeButton = !!fileName && status !== 'rejected';
+    const showChangeButton = !!fileName && status !== 'rejected' && status !== 'approved';
 
     const displayUri = fileUrl || fileUri;
 

@@ -60,4 +60,15 @@ describe('TransactionDetailsView', () => {
         expect(getByText('Bank Transfer')).toBeTruthy();
         expect(getByText('Access Bank')).toBeTruthy();
     });
+
+    it('injects and renders currentStep and status badges', () => {
+        const props = {
+            ...defaultProps,
+            currentStep: 'DEPOSIT_CONFIRMATION',
+        };
+        const { getByText } = render(<TransactionDetailsView {...props} />);
+
+        expect(getByText('Current Step')).toBeTruthy();
+        expect(getByText('Deposit Confirmation')).toBeTruthy();
+    });
 });

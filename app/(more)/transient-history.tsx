@@ -25,17 +25,29 @@ const groupEntriesByDate = (entries: WalletLedgerEntry[]) => {
 export default function TransientHistoryScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
-    const [page, setPage] = useState(1);
-    const LIMIT = 10;
+    const LIMIT = 30;
 
-    const { data: ledgerData, isLoading } = useGetWalletLedgerQuery({ page, limit: LIMIT });
+    const {
+        data: ledgerData,
+        isLoading,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage
+    } = useGetWalletLedgerQuery({ limit: LIMIT });
 
-    const entries = ledgerData?.entries || [];
-    const totalPages = ledgerData?.meta?.totalPages || 1;
-    // const currentBalance = ledgerData?.data?.balance;
-    const currentCurrency = ledgerData?.data?.currency || 'NGN';
+    const entries = ledgerData?.pages?.flatMap(p => p.entries) || [];
+    const firstPage = ledgerData?.pages?.[0];
+    const currentBalance = firstPage?.data?.balance;
+    const currentCurrency = firstPage?.data?.currency || 'NGN';
 
-    const groups = useMemo(() => groupEntriesByDate(entries), [entries]);
+    const [activeFilter, setActiveFilter] = useState<'ALL' | 'CREDIT' | 'DEBIT'>('ALL');
+
+    const filteredEntries = useMemo(() => {
+        if (activeFilter === 'ALL') return entries;
+        return entries.filter(e => e.type === activeFilter);
+    }, [entries, activeFilter]);
+
+    const groups = useMemo(() => groupEntriesByDate(filteredEntries), [filteredEntries]);
 
     const renderEmptyState = () => (
         <View style={styles.emptyContainer}>
@@ -56,80 +68,101 @@ export default function TransientHistoryScreen() {
                     <View style={styles.loadingContainer}>
                         <ActivityIndicator size="large" color="#FF6B2C" />
                     </View>
-                ) : entries.length === 0 ? (
-                    renderEmptyState()
                 ) : (
                     <>
-                        {groups.map((group, groupIdx) => (
-                            <View key={groupIdx} style={styles.groupContainer}>
-                                <Text style={styles.sectionHeader}>{group.title}</Text>
-                                <View style={styles.listContainer}>
-                                    {group.data.map((item, index) => {
-                                        const isLast = index === group.data.length - 1;
-                                        const isCredit = item.type === 'CREDIT';
-                                        const currencySymbol = currentCurrency === 'USD' ? '$' : currentCurrency === 'EUR' ? '€' : '₦';
-                                        const amountText = `${isCredit ? '+' : '-'}${formatCurrency(item.amount, currencySymbol)}`;
+                        {/* Wallet Balance Card */}
+                        <View style={styles.balanceCard}>
+                            <Text style={styles.balanceLabel}>Wallet Balance</Text>
+                            <Text style={styles.balanceAmount}>
+                                {formatCurrency(currentBalance ?? 0, currentCurrency === 'USD' ? '$' : currentCurrency === 'EUR' ? '€' : '₦')}
+                            </Text>
+                        </View>
 
-                                        return (
-                                            <View key={item.id}>
-                                                <TouchableOpacity 
-                                                    style={styles.transactionItem}
-                                                    activeOpacity={0.8}
-                                                >
-                                                    <View style={styles.iconContainer}>
-                                                        <EmptyWallet 
-                                                            size={moderateScale(18)} 
-                                                            color={isCredit ? '#16A34A' : '#EF4444'} 
-                                                            variant="Linear" 
-                                                        />
-                                                    </View>
-                                                    <View style={styles.itemContent}>
-                                                        <Text style={styles.itemTitle}>{item.description}</Text>
-                                                        <Text style={styles.itemDate}>
-                                                            {formatListDate(item.createdAt)} • {formatListTime(item.createdAt)}
-                                                        </Text>
-                                                    </View>
-                                                    <View style={styles.itemRight}>
-                                                        <Text style={[styles.itemAmount, { color: isCredit ? '#16A34A' : '#EF4444' }]}>
-                                                            {amountText}
-                                                        </Text>
-                                                        <Text style={styles.itemStatus}>{item.status}</Text>
-                                                    </View>
-                                                </TouchableOpacity>
-                                                {!isLast && <View style={styles.divider} />}
-                                            </View>
-                                        );
-                                    })}
-                                </View>
-                            </View>
-                        ))}
-
-                        {totalPages > 1 && (
-                            <View style={styles.paginationContainer}>
+                        {/* Filter Chips */}
+                        <View style={styles.filterContainer}>
+                            {(['ALL', 'CREDIT', 'DEBIT'] as const).map((type) => (
                                 <TouchableOpacity
-                                    style={[styles.paginationButton, page === 1 && styles.paginationButtonDisabled]}
-                                    disabled={page === 1}
-                                    onPress={() => setPage(p => Math.max(1, p - 1))}
+                                    key={type}
+                                    style={[
+                                        styles.filterChip,
+                                        activeFilter === type && styles.filterChipActive
+                                    ]}
+                                    onPress={() => setActiveFilter(type)}
                                 >
-                                    <Text style={[styles.paginationButtonText, page === 1 && styles.paginationButtonTextDisabled]}>
-                                        Previous
+                                    <Text
+                                        style={[
+                                            styles.filterChipText,
+                                            activeFilter === type && styles.filterChipTextActive
+                                        ]}
+                                    >
+                                        {type === 'ALL' ? 'All' : type === 'CREDIT' ? 'Credit' : 'Debit'}
                                     </Text>
                                 </TouchableOpacity>
+                            ))}
+                        </View>
 
-                                <Text style={styles.paginationInfo}>
-                                    Page {page} of {totalPages}
-                                </Text>
+                        {filteredEntries.length === 0 ? (
+                            renderEmptyState()
+                        ) : (
+                            <>
+                                {groups.map((group, groupIdx) => (
+                                    <View key={groupIdx} style={styles.groupContainer}>
+                                        <Text style={styles.sectionHeader}>{group.title}</Text>
+                                        <View style={styles.listContainer}>
+                                            {group.data.map((item, index) => {
+                                                const isLast = index === group.data.length - 1;
+                                                const isCredit = item.type === 'CREDIT';
+                                                const currencySymbol = currentCurrency === 'USD' ? '$' : currentCurrency === 'EUR' ? '€' : '₦';
+                                                const amountText = `${isCredit ? '+' : '-'}${formatCurrency(item.amount, currencySymbol)}`;
 
-                                <TouchableOpacity
-                                    style={[styles.paginationButton, page === totalPages && styles.paginationButtonDisabled]}
-                                    disabled={page === totalPages}
-                                    onPress={() => setPage(p => Math.min(totalPages, p + 1))}
-                                >
-                                    <Text style={[styles.paginationButtonText, page === totalPages && styles.paginationButtonTextDisabled]}>
-                                        Next
-                                    </Text>
-                                </TouchableOpacity>
-                            </View>
+                                                return (
+                                                    <View key={item.id}>
+                                                        <TouchableOpacity 
+                                                            style={styles.transactionItem}
+                                                            activeOpacity={0.8}
+                                                        >
+                                                            <View style={styles.iconContainer}>
+                                                                <EmptyWallet 
+                                                                    size={moderateScale(18)} 
+                                                                    color={isCredit ? '#16A34A' : '#EF4444'} 
+                                                                    variant="Linear" 
+                                                                />
+                                                            </View>
+                                                            <View style={styles.itemContent}>
+                                                                <Text style={styles.itemTitle}>{item.description}</Text>
+                                                                <Text style={styles.itemDate}>
+                                                                    {formatListDate(item.createdAt)} • {formatListTime(item.createdAt)}
+                                                                </Text>
+                                                            </View>
+                                                            <View style={styles.itemRight}>
+                                                                <Text style={[styles.itemAmount, { color: isCredit ? '#16A34A' : '#EF4444' }]}>
+                                                                    {amountText}
+                                                                </Text>
+                                                                <Text style={styles.itemStatus}>{item.status}</Text>
+                                                            </View>
+                                                        </TouchableOpacity>
+                                                        {!isLast && <View style={styles.divider} />}
+                                                    </View>
+                                                );
+                                            })}
+                                        </View>
+                                    </View>
+                                ))}
+
+                                {hasNextPage && (
+                                    <TouchableOpacity
+                                        style={styles.loadMoreButton}
+                                        disabled={isFetchingNextPage}
+                                        onPress={() => fetchNextPage()}
+                                    >
+                                        {isFetchingNextPage ? (
+                                            <ActivityIndicator size="small" color="#FF6B2C" />
+                                        ) : (
+                                            <Text style={styles.loadMoreButtonText}>Load More</Text>
+                                        )}
+                                    </TouchableOpacity>
+                                )}
+                            </>
                         )}
                     </>
                 )}
@@ -259,38 +292,46 @@ const styles = ScaledSheet.create({
         textAlign: 'center',
         maxWidth: '250@s',
     },
-    paginationContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingVertical: '16@vs',
-        borderTopWidth: 1,
-        borderTopColor: '#E2E8F0',
-        marginTop: '20@vs',
-    },
-    paginationButton: {
-        paddingHorizontal: '16@s',
-        paddingVertical: '8@vs',
+    loadMoreButton: {
+        paddingVertical: '12@vs',
         borderRadius: '8@ms',
         backgroundColor: '#F1F5F9',
         borderWidth: 1,
         borderColor: '#E2E8F0',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: '16@vs',
+        marginBottom: '24@vs',
     },
-    paginationButtonDisabled: {
-        backgroundColor: '#F8FAFC',
-        borderColor: '#F1F5F9',
-    },
-    paginationButtonText: {
+    loadMoreButtonText: {
         fontSize: '13@ms',
         fontWeight: '600',
         color: '#0F172A',
     },
-    paginationButtonTextDisabled: {
-        color: '#94A3B8',
+    filterContainer: {
+        flexDirection: 'row',
+        gap: '8@s',
+        marginTop: '16@vs',
+        marginBottom: '8@vs',
     },
-    paginationInfo: {
+    filterChip: {
+        paddingHorizontal: '14@s',
+        paddingVertical: '6@vs',
+        borderRadius: '20@ms',
+        backgroundColor: '#FFFFFF',
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+    },
+    filterChipActive: {
+        backgroundColor: 'rgba(248, 220, 205, 1)',
+        borderColor: '#d8d8d8ff',
+    },
+    filterChipText: {
         fontSize: '13@ms',
         color: '#64748B',
+    },
+    filterChipTextActive: {
+        color: 'rgba(255, 104, 19, 1)',
         fontWeight: '500',
     },
 });

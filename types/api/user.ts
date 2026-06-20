@@ -24,7 +24,8 @@ export interface User {
         status: string;
         bvn: string;
         nin: string;
-        tinNumber: string;
+        tin?: string;
+        tinNumber?: string;
         passportDocumentNumber: string;
         passportDocumentUrl: string;
         bvnVerified: boolean;

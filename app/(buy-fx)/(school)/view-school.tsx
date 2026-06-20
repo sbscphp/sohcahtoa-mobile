@@ -7,8 +7,8 @@ import { useGetTransactionByIdQuery } from '@/hooks/queries/transactions/useGetT
 import { useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useToastStore } from '@/stores/useToastStore';
 import { commonDocTypeLabels, getTransactionDocuments, formatDate, formatTime, formatTimeWithSeconds, formatCurrency } from '@/utils/helpers';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useMemo, useState } from 'react';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
+import React, { useMemo, useState, useCallback } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 
 export default function ViewSchoolFeesScreen() {
@@ -16,9 +16,15 @@ export default function ViewSchoolFeesScreen() {
     const { transactionId } = useLocalSearchParams<{ transactionId: string }>();
     const [activeTab, setActiveTab] = useState('overview');
 
-    const { data: txResponse, isLoading } = useGetTransactionByIdQuery(transactionId || '');
+    const { data: txResponse, isLoading, refetch } = useGetTransactionByIdQuery(transactionId || '');
     const tx = txResponse?.data;
     const showToast = useToastStore(s => s.showToast);
+
+    useFocusEffect(
+        useCallback(() => {
+            refetch();
+        }, [refetch])
+    );
 
     // console.log(JSON.stringify(tx, null, 2), "TX");
 
@@ -73,7 +79,8 @@ export default function ViewSchoolFeesScreen() {
 
         const uploadedDocs = tx.requiredDocuments.filter(d => !!d.uploaded).map(d => ({
             label: commonDocTypeLabels[d.type] || d.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
-            fileName: d.uploaded!.fileName
+            fileName: d.uploaded!.fileName,
+            fileUrl: d.uploaded!.fileUrl,
         }));
         return [...docs, ...uploadedDocs];
     }, [tx]);
@@ -118,15 +125,65 @@ export default function ViewSchoolFeesScreen() {
                 : undefined,
         }));
     }, [tx, uploadFile]);
-    console.log(docsItems, "DOCS");
+    const paymentDetailsItems = useMemo(() => {
+        const pdList = tx?.paymentDetails as any;
+        if (!tx || !pdList || !Array.isArray(pdList)) return undefined;
+        const items: any[] = [];
+        pdList.forEach((pd: any, idx: number) => {
+            const prefix = pdList.length > 1 ? `[Payment ${idx + 1}] ` : '';
+            if (pd.amount) items.push({ label: `${prefix}Amount`, value: formatCurrency(pd.amount, pd.currency === 'NGN' ? '₦' : pd.currency) });
+            if (pd.settledAmount) items.push({ label: `${prefix}Settled Amount`, value: formatCurrency(pd.settledAmount, pd.currency === 'NGN' ? '₦' : pd.currency) });
+            if (pd.feeAmount) items.push({ label: `${prefix}Fee Amount`, value: formatCurrency(pd.feeAmount, pd.currency === 'NGN' ? '₦' : pd.currency) });
+            if (pd.sessionId) items.push({ label: `${prefix}Session ID`, value: pd.sessionId });
+            if (pd.sourceAccountName) items.push({ label: `${prefix}Source Account Name`, value: pd.sourceAccountName });
+            if (pd.sourceAccountNumber) items.push({ label: `${prefix}Source Account Number`, value: pd.sourceAccountNumber });
+            if (pd.sourceBankName) items.push({ label: `${prefix}Source Bank Name`, value: pd.sourceBankName });
+            if (pd.tranRemarks) items.push({ label: `${prefix}Remarks`, value: pd.tranRemarks });
+            if (pd.status) items.push({ label: `${prefix}Status`, value: pd.status });
+            if (pd.tranDateTime) items.push({ label: `${prefix}Transaction Time`, value: `${formatDate(pd.tranDateTime)}\n${formatTime(pd.tranDateTime)}` });
+        });
+        return items;
+    }, [tx]);
+
+    const settlementItems = useMemo(() => {
+        const setl = (tx as any)?.settlement;
+        if (!tx || !setl) return undefined;
+        return [
+            ...(setl.amount ? [{ label: 'Amount', value: formatCurrency(setl.amount, setl.currency === 'NGN' ? '₦' : setl.currency) }] : []),
+            ...(setl.paymentMethod ? [{ label: 'Payment Method', value: setl.paymentMethod.replace(/_/g, ' ') }] : []),
+            ...(setl.paymentReference ? [{ label: 'Payment Reference', value: setl.paymentReference }] : []),
+            ...(setl.status ? [{ label: 'Status', value: setl.status }] : []),
+            ...(setl.notes ? [{ label: 'Notes', value: setl.notes }] : []),
+            ...(setl.depositedAt ? [{ label: 'Deposited At', value: `${formatDate(setl.depositedAt)}\n${formatTime(setl.depositedAt)}` }] : []),
+            ...(setl.confirmedAt ? [{ label: 'Confirmed At', value: `${formatDate(setl.confirmedAt)}\n${formatTime(setl.confirmedAt)}` }] : []),
+        ];
+    }, [tx]);
+
+    const bankAccountsItems = useMemo(() => {
+        const baList = (tx as any)?.bankAccounts;
+        if (!tx || !baList || !Array.isArray(baList)) return undefined;
+        const items: any[] = [];
+        baList.forEach((ba: any, idx: number) => {
+            const prefix = baList.length > 1 ? `[Account ${idx + 1}] ` : '';
+            if (ba.bankName) items.push({ label: `${prefix}Bank Name`, value: ba.bankName });
+            if (ba.accountName) items.push({ label: `${prefix}Account Name`, value: ba.accountName });
+            if (ba.accountNumber) items.push({ label: `${prefix}Account Number`, value: ba.accountNumber });
+            items.push({ label: `${prefix}Default`, value: ba.isDefault ? 'Yes' : 'No' });
+            items.push({ label: `${prefix}Verified`, value: ba.isVerified ? 'Yes' : 'No' });
+        });
+        return items;
+    }, [tx]);
+
+
+
     const getMessage = () => {
         if (!tx) return '';
         if (status === 'approved' || status === 'awaiting_disbursement' || status === 'settled') return "Congratulations! Your school fees payment request has been approved. Please proceed to payment.";
         if (status === 'rejected') return tx.rejection?.reason || "Your application has been declined.";
         return `Your transaction is currently ${tx.status.replace(/_/g, ' ').toLowerCase()}. Please check back for updates.`;
     };
-    if (isLoading) return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}><ActivityIndicator size="large" color="#FF6B2C" /></View>;
 
+    if (isLoading) return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}><ActivityIndicator size="large" color="#FF6B2C" /></View>;
 
     return (
         <>
@@ -142,7 +199,17 @@ export default function ViewSchoolFeesScreen() {
             onActionPress={handleProceed}
         >
             {activeTab === 'overview' && (<TransactionStatusView status={status} id={tx?.referenceNumber?.slice(-6) || ''} date={tx ? formatDate(tx.createdAt) : ''} time={tx ? formatTime(tx.createdAt) : ''} message={getMessage()} comments={tx?.comments} />)}
-            {activeTab === 'details' && (<TransactionDetailsView details={detailsItems} documents={detailsDocuments} beneficiaryDetails={beneficiaryItems} />)}
+            {activeTab === 'details' && (
+                <TransactionDetailsView
+                    details={detailsItems}
+                    documents={detailsDocuments}
+                    beneficiaryDetails={beneficiaryItems}
+                    paymentDetails={paymentDetailsItems}
+                    settlementDetails={settlementItems}
+                    bankAccountsDetails={bankAccountsItems}
+                    currentStep={tx?.currentStep}
+                />
+            )}
             {activeTab === 'docs' && (<TransactionDocsView status={status} documents={docsItems} />)}
         </TransactionViewLayout>
         </>  

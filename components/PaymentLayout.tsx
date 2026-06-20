@@ -9,27 +9,26 @@ import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import * as Clipboard from 'expo-clipboard';
 import { useToastStore } from '@/stores/useToastStore';
 import { useGetTransactionByIdQuery } from '@/hooks/queries/transactions/useGetTransactionByIdQuery';
-import { useGetVirtualAccountQuery } from '@/hooks/queries/transactions/useGetVirtualAccountQuery';
+import { useGetDepositInstructionsQuery } from '@/hooks/queries/transactions/useGetDepositInstructionsQuery';
 
 interface PaymentLayoutProps {
     transactionId?: string;
     amount?: string;
-    infoText: string;
     onSent: () => void;
 }
 
-export default function PaymentLayout({ transactionId, amount: initialAmount, infoText, onSent }: PaymentLayoutProps) {
+export default function PaymentLayout({ transactionId, amount: initialAmount, onSent }: PaymentLayoutProps) {
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const showToast = useToastStore(s => s.showToast);
     const [timeLeft, setTimeLeft] = useState(1770); 
 
     const { data: transactionData, isLoading: isLoadingTx } = useGetTransactionByIdQuery(transactionId || '');
-    const { data: virtualAccountResponse, isLoading: isLoadingVA } = useGetVirtualAccountQuery(transactionId || '');
-    const virtualAccount = virtualAccountResponse?.data;
+    const { data: depositResponse, isLoading: isLoadingDeposit } = useGetDepositInstructionsQuery(transactionId || '');
+    const depositData = depositResponse?.data;
 
-    const displayAmount = transactionData?.data?.nairaEquivalent
-        ? `₦ ${transactionData.data.nairaEquivalent.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    const displayAmount = depositData?.amount
+        ? `₦ ${depositData.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
         : initialAmount || '...';
 
     const formatExpiryDate = (dateStr: string | undefined | null) => {
@@ -51,7 +50,7 @@ export default function PaymentLayout({ transactionId, amount: initialAmount, in
         }
     };
 
-    const expiryTimeStr = virtualAccount?.expiryDate || virtualAccount?.expiresAt;
+    const expiryTimeStr = depositData?.expiresAt;
     const formattedExpiryDate = formatExpiryDate(expiryTimeStr);
 
     useEffect(() => {
@@ -89,7 +88,8 @@ export default function PaymentLayout({ transactionId, amount: initialAmount, in
         showToast(`${label} copied to clipboard`, 'success');
     };
 
-    const instructionsText = `Transfer the exact amount specified to the account number provided. Kindly use your registered name as the sender’s name.\n\nThe account is valid for single use only. Complete the transfer before ${formattedExpiryDate}.\n\nYour transaction will be automatically confirmed once the deposit is received. Do not share this account number with anyone`;
+    const instructionsText = depositData?.instructions?.join('\n\n') ||
+        `Transfer the exact amount specified to the account number provided. Kindly use your registered name as the sender’s name.\n\nThe account is valid for single use only. Complete the transfer before ${formattedExpiryDate}.\n\nYour transaction will be automatically confirmed once the deposit is received. Do not share this account number with anyone`;
 
     return (
         <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -112,7 +112,7 @@ export default function PaymentLayout({ transactionId, amount: initialAmount, in
                                 <Text style={styles.currencyText}>Naira (₦)</Text>
                             </View>
                         </View>
-                        {isLoadingTx ? (
+                        {isLoadingDeposit ? (
                             <ActivityIndicator size="small" color="#0F172A" />
                         ) : (
                             <Text style={styles.amountValue}>{displayAmount}</Text>
@@ -125,12 +125,12 @@ export default function PaymentLayout({ transactionId, amount: initialAmount, in
                         <View style={styles.detailRow}>
                             <Text style={styles.detailLabel}>Account Number</Text>
                             <View style={styles.copyRow}>
-                                {isLoadingVA ? (
+                                {isLoadingDeposit ? (
                                     <ActivityIndicator size="small" color="#64748B" />
                                 ) : (
                                     <>
-                                        <Text style={styles.detailValue}>{virtualAccount?.accountNumber || '...'}</Text>
-                                        <TouchableOpacity onPress={() => handleCopy(virtualAccount?.accountNumber || '', 'Account number')}>
+                                        <Text style={styles.detailValue}>{depositData?.accountNumber || '...'}</Text>
+                                        <TouchableOpacity onPress={() => handleCopy(depositData?.accountNumber || '', 'Account number')}>
                                             <Copy size={moderateScale(16)} color="#64748B" variant="Linear" />
                                         </TouchableOpacity>
                                     </>
@@ -142,12 +142,12 @@ export default function PaymentLayout({ transactionId, amount: initialAmount, in
                         <View style={styles.detailRow}>
                             <Text style={styles.detailLabel}>Bank Name</Text>
                             <View style={styles.copyRow}>
-                                {isLoadingVA ? (
+                                {isLoadingDeposit ? (
                                     <ActivityIndicator size="small" color="#64748B" />
                                 ) : (
                                     <>
-                                        <Text style={styles.detailValue}>{virtualAccount?.bankName || '...'}</Text>
-                                        <TouchableOpacity onPress={() => handleCopy(virtualAccount?.bankName || '', 'Bank name')}>
+                                        <Text style={styles.detailValue}>{depositData?.bankName || '...'}</Text>
+                                        <TouchableOpacity onPress={() => handleCopy(depositData?.bankName || '', 'Bank name')}>
                                             <Copy size={moderateScale(16)} color="#64748B" variant="Linear" />
                                         </TouchableOpacity>
                                     </>
@@ -159,12 +159,12 @@ export default function PaymentLayout({ transactionId, amount: initialAmount, in
                         <View style={styles.detailRow}>
                             <Text style={styles.detailLabel}>Account Name</Text>
                             <View style={styles.copyRow}>
-                                {isLoadingVA ? (
+                                {isLoadingDeposit ? (
                                     <ActivityIndicator size="small" color="#64748B" />
                                 ) : (
                                     <>
-                                        <Text style={styles.detailValue}>{virtualAccount?.accountName || '...'}</Text>
-                                        <TouchableOpacity onPress={() => handleCopy(virtualAccount?.accountName || '', 'Account name')}>
+                                        <Text style={styles.detailValue}>{depositData?.accountName || '...'}</Text>
+                                        <TouchableOpacity onPress={() => handleCopy(depositData?.accountName || '', 'Account name')}>
                                             <Copy size={moderateScale(16)} color="#64748B" variant="Linear" />
                                         </TouchableOpacity>
                                     </>
@@ -180,13 +180,22 @@ export default function PaymentLayout({ transactionId, amount: initialAmount, in
                         <Text style={styles.timerValue}>{formatTime(timeLeft)}</Text>
                     </View>
 
-                    {/* Info Box */}
+             
                     <View style={styles.infoBox}>
                         <InfoCircle size={moderateScale(20)} color="rgba(221, 79, 5, 1)" variant="Bold" style={{ marginTop: 2 }} />
                         <Text style={styles.infoText}>
                             {instructionsText}
                         </Text>
                     </View>
+
+                    {depositData?.warningNote && (
+                        <View style={styles.warningBox}>
+                            <InfoCircle size={moderateScale(18)} color="#DC2626" variant="Bold" style={{ marginTop: 2 }} />
+                            <Text style={styles.warningText}>
+                                {depositData.warningNote}
+                            </Text>
+                        </View>
+                    )}
 
                 </ScrollView>
             </KeyboardAvoidingView>
@@ -208,6 +217,7 @@ const styles = ScaledSheet.create({
     scrollContent: {
         paddingHorizontal: '20@s',
         paddingVertical: '40@vs',
+        paddingBottom: '120@vs'
     },
     amountContainer: {
         backgroundColor: '#F8F9FA',
@@ -327,5 +337,22 @@ const styles = ScaledSheet.create({
     footerLabel: {
         fontSize: '14@ms',
         color: '#64748B',
+    },
+    warningBox: {
+        flexDirection: 'row',
+        gap: '10@s',
+        padding: '14@ms',
+        backgroundColor: '#FEF2F2',
+        borderRadius: '12@ms',
+        borderWidth: 1,
+        borderColor: '#FCA5A5',
+        marginTop: '16@vs',
+    },
+    warningText: {
+        flex: 1,
+        fontSize: '13@ms',
+        color: '#991B1B',
+        lineHeight: '18@ms',
+        fontWeight: '500',
     },
 });

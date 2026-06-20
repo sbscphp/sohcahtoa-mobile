@@ -19,10 +19,9 @@ export default function MyProfileScreen() {
 
     const basicDetails = [
         { label: 'Full name', value: user?.profile ? `${user.profile.firstName} ${user.profile.lastName}` : 'N/A' },
-        { label: 'Gender', value: 'N/A' },
         { label: 'Date of Birth', value: user?.profile?.dateOfBirth ? new Date(user.profile.dateOfBirth).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A' },
         { label: 'BVN', value: user?.kyc?.bvn || 'N/A' },
-        { label: 'TIN', value: user?.kyc?.tinNumber || 'N/A' },
+        { label: 'TIN', value: user?.kyc?.tin || user?.kyc?.tinNumber || 'N/A' },
         { label: 'Phone Number', value: user?.phoneNumber || 'N/A' },
         { label: 'Email Address', value: user?.email || 'N/A' },
         { label: 'Date Joined', value: user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'N/A' },
@@ -40,17 +39,11 @@ export default function MyProfileScreen() {
                             <View style={styles.avatarCircle}>
                                 <Text style={styles.avatarInitials}>{initials}</Text>
                             </View>
-                            <View style={styles.editIconOverlay}>
-                                <SquarePen size={moderateScale(18)} color="#FF8A65" />
-                            </View>
                         </View>
                         <View style={styles.nameContainer}>
                             <Text style={styles.profileName}>{user?.profile ? `${user.profile.firstName} ${user.profile.lastName}` : 'User'}</Text>
                             <Text style={styles.profileHandle}>{user?.role}</Text>
                         </View>
-                        <TouchableOpacity style={styles.editBtn}>
-                            <Edit2 size={moderateScale(18)} color="#FF8A65" variant="Linear" />
-                        </TouchableOpacity>
                     </View>
                 </View>
 
@@ -119,7 +112,7 @@ const styles = ScaledSheet.create({
         width: '100%',
         height: '100%',
         borderRadius: '28@ms',
-        backgroundColor: '#FFF7ED',
+        backgroundColor: '#6b6b6bff',
         justifyContent: 'center',
         alignItems: 'center',
     },

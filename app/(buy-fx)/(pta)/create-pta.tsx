@@ -163,7 +163,7 @@ export default function PersonalTravelAllowanceScreen() {
     useProfileQuery();
     const user = useAuthStore(s => s.user);
     const { data: transactionsResponse } = useGetTransactionsQuery();
-    const transactions = transactionsResponse?.data || [];
+    const transactions = transactionsResponse?.pages?.flatMap(p => p.data) || [];
 
     const [currentStep, setCurrentStep] = useState(0);
     const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
@@ -616,6 +616,18 @@ export default function PersonalTravelAllowanceScreen() {
                 onClose={() => setInitiateSheetVisible(false)}
                 onConfirm={handleSubmit(handleInitiate)}
                 loading={createTransaction.isPending}
+                items={[
+                    {
+                        title: "Request Summary",
+                        description: `you are requesting ${currencyGet.code === 'USD' ? '$' : currencyGet.code === 'GBP' ? '£' : currencyGet.code === 'EUR' ? '€' : ''}${amountGetStr} ${currencyGet.code.toLowerCase()}. you will be sent approximately ₦${amountSendStr}`,
+                        iconType: 'info'
+                    },
+                    {
+                        title: "Maximum Limit",
+                        description: "Please note that the maximum you can transact is $4,000 per quarter.",
+                        iconType: 'limit'
+                    }
+                ]}
             />
 
             <GenericSelectionSheet

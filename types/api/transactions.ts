@@ -139,7 +139,6 @@ export interface Transaction {
         nin?: string;
         admissionType?: string;
         passportDocumentNumber?: string;
-        passportDocumentNumber?: string;
         passportIssueDate?: string;
         passportExpiryDate?: string;
     };
@@ -311,7 +310,6 @@ export interface GetTransactionByIdResponse {
             nin?: string;
             admissionType?: string;
             passportDocumentNumber?: string;
-            passportDocumentNumber?: string;
             passportIssueDate?: string;
             passportExpiryDate?: string;
         };
@@ -428,4 +426,22 @@ export interface GetVirtualAccountResponse {
         expiryDate?: string;
         expiresAt?: string;
     };
+}
+
+export interface DepositInstructionsData {
+    accountNumber: string;
+    accountName: string;
+    bankName: string;
+    amount: number;
+    baseAmount: number;
+    feeAmount: number;
+    currency: string;
+    expiresAt: string;
+    instructions: string[];
+    warningNote: string;
+}
+
+export interface GetDepositInstructionsResponse {
+    success: boolean;
+    data: DepositInstructionsData;
 }

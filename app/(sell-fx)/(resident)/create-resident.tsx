@@ -413,6 +413,13 @@ export default function CreateResidentScreen() {
                     onConfirm={handleSubmit(onSubmit)}
                     title="Initiate Resident Transaction request?"
                     loading={createTransaction.isPending}
+                    items={[
+                        {
+                            title: "Request Summary",
+                            description: `you are requesting ${currencyGet.code === 'USD' ? '$' : currencyGet.code === 'GBP' ? '£' : currencyGet.code === 'EUR' ? '€' : ''}${amountGet} ${currencyGet.code.toLowerCase()}. you will be sent approximately ₦${amountSend}`,
+                            iconType: 'info'
+                        }
+                    ]}
                 />
             </TransactionLayout>
         </View>
