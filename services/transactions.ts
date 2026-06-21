@@ -1,4 +1,4 @@
-import { CalculateExchangeRatePayload, CalculateExchangeRateResponse, CreateTransactionPayload, CreateTransactionResponse, ExportTransactionsParams, GetExchangeRatesParams, GetExchangeRatesResponse, GetPickupPointsResponse, GetPickupStatesResponse, GetPickupCitiesResponse, GetTransactionByIdResponse, GetTransactionsParams, GetTransactionsResponse, GetTransactionTotalsPayload, GetTransactionTotalsResponse, UploadTransactionDocumentPayload, UploadTransactionDocumentResponse, AttachBankAccountsPayload, AttachBankAccountsResponse, GetVirtualAccountResponse, GetDepositInstructionsResponse } from '@/types/api/transactions';
+import { CalculateExchangeRatePayload, CalculateExchangeRateResponse, CreateTransactionPayload, CreateTransactionResponse, ExportTransactionsParams, GetExchangeRatesParams, GetExchangeRatesResponse, GetPickupPointsResponse, GetPickupStatesResponse, GetPickupCitiesResponse, GetTransactionByIdResponse, GetTransactionsParams, GetTransactionsResponse, GetTransactionTotalsPayload, GetTransactionTotalsResponse, UploadTransactionDocumentPayload, UploadTransactionDocumentResponse, AttachBankAccountsPayload, AttachBankAccountsResponse, GetVirtualAccountResponse, GetDepositInstructionsResponse, ReuploadTransactionDocumentPayload } from '@/types/api/transactions';
 import api from './api';
 
 export const createTransaction = async (payload: CreateTransactionPayload): Promise<CreateTransactionResponse> => {
@@ -32,6 +32,19 @@ export const uploadTransactionDocument = async (payload: UploadTransactionDocume
     }
 
     const response = await api.post('/documents/upload', formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        },
+    });
+    return response.data;
+};
+
+export const reuploadTransactionDocument = async (payload: ReuploadTransactionDocumentPayload): Promise<UploadTransactionDocumentResponse> => {
+    const formData = new FormData();
+    formData.append('documentType', payload.documentType);
+    formData.append('documents', payload.document as any);
+
+    const response = await api.post(`/customer/transactions/${payload.transactionId}/documents`, formData, {
         headers: {
             'Content-Type': 'multipart/form-data',
         },
@@ -91,3 +104,9 @@ export const getDepositInstructions = async (transactionId: string): Promise<Get
     const response = await api.get(`/customer/transactions/${transactionId}/deposit-instructions`);
     return response.data;
 };
+
+export const getDepositStatus = async (transactionId: string): Promise<any> => {
+    const response = await api.get(`/customer/transactions/${transactionId}/deposit-status`);
+    return response.data;
+};
+

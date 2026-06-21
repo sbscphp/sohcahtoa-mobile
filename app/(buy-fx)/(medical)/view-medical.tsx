@@ -102,7 +102,7 @@ export default function ViewMedicalPaymentScreen() {
             { label: 'Beneficiary Name', value: details.bankAccountName || details.name },
             ...(details.address ? [{ label: 'Beneficiary Address', value: details.address }] : []),
             ...(details.country ? [{ label: 'Country', value: details.country }] : []),
-            { label: 'Bank Name', value: details.bankName },
+
             { label: 'Account Number', value: details.bankAccountNumber || details.accountNumber },
             ...(details.bankAccountAddress || details.bankAddress ? [{ label: 'Bank Address', value: details.bankAccountAddress || details.bankAddress }] : []),
             ...(details.bankAccountSwiftCode || details.swiftCode ? [{ label: 'SWIFT Code', value: details.bankAccountSwiftCode || details.swiftCode }] : []),
@@ -127,8 +127,8 @@ export default function ViewMedicalPaymentScreen() {
             fileName: doc.uploaded ? doc.uploaded.fileName : null,
             docStatus: doc.uploaded?.status,
             required: true,
-            onUpload: (!doc.uploaded || (doc.uploaded.status !== 'FAILED' && doc.uploaded.status !== 'REJECTED'))
-                ? () => uploadFile(doc.type)
+            onUpload: (!doc.uploaded || doc.uploaded.status === 'REQUIRES_MANUAL_REVIEW')
+                ? () => uploadFile(doc.type, doc.uploaded?.status === 'REQUIRES_MANUAL_REVIEW')
                 : undefined,
         }));
     }, [tx, uploadFile]);    const paymentDetailsItems = useMemo(() => {

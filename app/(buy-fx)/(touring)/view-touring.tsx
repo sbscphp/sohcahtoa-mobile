@@ -93,8 +93,8 @@ export default function ViewTouringScreen() {
             fileName: d.uploaded ? d.uploaded.fileName : null,
             docStatus: d.uploaded?.status,
             required: true,
-            onUpload: (!d.uploaded || (d.uploaded.status !== 'FAILED' && d.uploaded.status !== 'REJECTED'))
-                ? () => uploadFile(d.type)
+            onUpload: (!d.uploaded || d.uploaded.status === 'REQUIRES_MANUAL_REVIEW')
+                ? () => uploadFile(d.type, d.uploaded?.status === 'REQUIRES_MANUAL_REVIEW')
                 : undefined,
         }));
     }, [tx, uploadFile]);

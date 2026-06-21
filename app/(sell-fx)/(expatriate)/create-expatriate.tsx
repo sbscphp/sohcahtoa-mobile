@@ -602,7 +602,7 @@ export default function CreateExpatriateScreen() {
                     items={[
                         {
                             title: "Request Summary",
-                            description: `you are requesting ${currencyGet.code === 'USD' ? '$' : currencyGet.code === 'GBP' ? '£' : currencyGet.code === 'EUR' ? '€' : ''}${amountGet} ${currencyGet.code.toLowerCase()}. you will be sent approximately ₦${amountSend}`,
+                            description: `You are requesting ${currencyGet.code === 'USD' ? '$' : currencyGet.code === 'GBP' ? '£' : currencyGet.code === 'EUR' ? '€' : ''}${amountGet} ${currencyGet.code.toUpperCase()}. You will be sent approximately ₦${amountSend}`,
                             iconType: 'info'
                         }
                     ]}

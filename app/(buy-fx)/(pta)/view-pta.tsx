@@ -139,8 +139,8 @@ export default function ViewPtaScreen() {
             fileName: doc.uploaded ? truncateFileName(doc.uploaded.fileName) : null,
             docStatus: doc.uploaded?.status,
             required: true,
-            onUpload: (!doc.uploaded || (doc.uploaded.status !== 'FAILED' && doc.uploaded.status !== 'REJECTED'))
-                ? () => uploadFile(doc.type)
+            onUpload: (!doc.uploaded || doc.uploaded.status === 'REQUIRES_MANUAL_REVIEW')
+                ? () => uploadFile(doc.type, doc.uploaded?.status === 'REQUIRES_MANUAL_REVIEW')
                 : undefined,
         }));
     }, [tx, uploadFile]);

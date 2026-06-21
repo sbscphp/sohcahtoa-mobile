@@ -138,6 +138,7 @@ export default function CreateTouristScreen() {
 
     const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
     const [showSourceOfFundsSheet, setShowSourceOfFundsSheet] = useState(false);
+    const [initials, setInitials] = useState('');
 
     // Configuration for Step 0
     const credentialFields = [
@@ -403,7 +404,7 @@ export default function CreateTouristScreen() {
                     items={[
                         {
                             title: "Request Summary",
-                            description: `you are requesting ${currencyGet.code === 'USD' ? '$' : currencyGet.code === 'GBP' ? '£' : currencyGet.code === 'EUR' ? '€' : ''}${amountGet} ${currencyGet.code.toLowerCase()}. you will be sent approximately ₦${amountSend}`,
+                            description: `You are requesting ${currencyGet.code === 'USD' ? '$' : currencyGet.code === 'GBP' ? '£' : currencyGet.code === 'EUR' ? '€' : ''}${amountGet} ${currencyGet.code.toUpperCase()}. You will be sent approximately ₦${amountSend}`,
                             iconType: 'info'
                         }
                     ]}
@@ -434,6 +435,8 @@ export default function CreateTouristScreen() {
                     onUploadSignature={() => uploadFile('DIGITAL_SIGNATURE')}
                     signatureFile={docs.signature.file?.name}
                     isUploadingSignature={isUploading}
+                    initials={initials}
+                    onChangeInitials={setInitials}
                 />
             </TransactionLayout>
         </View>

@@ -5,7 +5,7 @@ import { useToastStore } from '@/stores/useToastStore';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Trash } from 'iconsax-react-nativejs';
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
@@ -31,25 +31,26 @@ export default function ProofOfFundScreen() {
         setSlots(prev => [...prev, { id: newId, label: 'Proof of fund', file: null, metadata: null }]);
     };
 
-    const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
+    const uploadingIndexRef = useRef<number | null>(null);
 
     const { upload, isPending } = useDocumentUpload({
         onSuccess: (type, { file, metadata }) => {
-            if (uploadingIndex !== null) {
+            const activeIndex = uploadingIndexRef.current;
+            if (activeIndex !== null) {
                 setSlots(prev => prev.map((slot, idx) => 
-                    idx === uploadingIndex ? { ...slot, file, metadata } : slot
+                    idx === activeIndex ? { ...slot, file, metadata } : slot
                 ));
-                setUploadingIndex(null);
+                uploadingIndexRef.current = null;
             }
         },
         onError: () => {
             showToast('Failed to upload document', 'error');
-            setUploadingIndex(null);
+            uploadingIndexRef.current = null;
         },
     });
 
     const handleUpload = (index: number) => {
-        setUploadingIndex(index);
+        uploadingIndexRef.current = index;
         upload('PROOF_OF_FUNDS');
     };
 
@@ -87,14 +88,21 @@ export default function ProofOfFundScreen() {
                         </Text>
                         
                         {!slot.file ? (
-                            <TouchableOpacity 
-                                style={styles.uploadBox} 
-                                onPress={() => handleUpload(index)}
-                                disabled={isPending}
-                            >
-                                <FilePlus width={moderateScale(20)} height={moderateScale(20)} />
-                                <Text style={styles.placeholder}>Click to upload</Text>
-                            </TouchableOpacity>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: moderateScale(12) }}>
+                                <TouchableOpacity 
+                                    style={[styles.uploadBox, { flex: 1 }]} 
+                                    onPress={() => handleUpload(index)}
+                                    disabled={isPending}
+                                >
+                                    <FilePlus width={moderateScale(20)} height={moderateScale(20)} />
+                                    <Text style={styles.placeholder}>Click to upload</Text>
+                                </TouchableOpacity>
+                                {slots.length > 1 && (
+                                    <TouchableOpacity onPress={() => handleDelete(index)}>
+                                        <Trash size={moderateScale(20)} color="#D92D20" variant="Outline" />
+                                    </TouchableOpacity>
+                                )}
+                            </View>
                         ) : (
                             <View style={styles.fileBox}>
                                 <View style={styles.fileInfo}>

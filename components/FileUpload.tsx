@@ -12,7 +12,7 @@ interface FileUploadProps {
     fileType?: string | null;
     title?: string;
     subtitle?: string;
-    status?: 'default' | 'approved' | 'pending' | 'error' | 'rejected';
+    status?: 'default' | 'approved' | 'pending' | 'error' | 'rejected' | 'review';
     error?: string;
 }
 
@@ -33,6 +33,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
             case 'rejected':
             case 'error': return '#FCA5A5';
             case 'pending': return '#FDBA74';
+            case 'review': return '#FDBA74';
             default: return error ? '#EF4444' : '#E2E8F0';
         }
     };
@@ -41,6 +42,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
         switch (status) {
             case 'approved': return '#86EFAC';
             case 'pending': return '#7c807eff';
+            case 'review': return '#7c807eff';
             case 'rejected':
             case 'error': return '#FCA5A5';
             default: return '#7c807eff';
@@ -73,7 +75,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
     }
 
     const isImage = (fileUri || fileUrl) && (fileType?.startsWith('image/') || /\.(jpeg|jpg|png|gif|webp)$/i.test(fileName || ''));
-    const showChangeButton = !!fileName && status !== 'rejected' && status !== 'approved';
+    const showChangeButton = !!fileName && (status === 'default' || status === 'review');
 
     const displayUri = fileUrl || fileUri;
 

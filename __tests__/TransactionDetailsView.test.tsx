@@ -61,14 +61,14 @@ describe('TransactionDetailsView', () => {
         expect(getByText('Access Bank')).toBeTruthy();
     });
 
-    it('injects and renders currentStep and status badges', () => {
+    it('does not inject and render currentStep anymore', () => {
         const props = {
             ...defaultProps,
             currentStep: 'DEPOSIT_CONFIRMATION',
         };
-        const { getByText } = render(<TransactionDetailsView {...props} />);
+        const { queryByText } = render(<TransactionDetailsView {...props} />);
 
-        expect(getByText('Current Step')).toBeTruthy();
-        expect(getByText('Deposit Confirmation')).toBeTruthy();
+        expect(queryByText('Current Step')).toBeNull();
+        expect(queryByText('Deposit Confirmation')).toBeNull();
     });
 });

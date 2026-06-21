@@ -86,6 +86,7 @@ export default function SchoolFeesScreen() {
     const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
     const [admissionSheetVisible, setAdmissionSheetVisible] = useState(false);
     const [showSourceOfFundsSheet, setShowSourceOfFundsSheet] = useState(false);
+    const [initials, setInitials] = useState('');
     const [payoutSheetVisible, setPayoutSheetVisible] = useState(false);
     const [selectedSavedAccountId, setSelectedSavedAccountId] = useState<string | null>('');
     const [isAddingNewAccount, setIsAddingNewAccount] = useState(false);
@@ -698,7 +699,7 @@ export default function SchoolFeesScreen() {
                     items={[
                         {
                             title: "Request Summary",
-                            description: `you are requesting ${currencyGet.code === 'USD' ? '$' : currencyGet.code === 'GBP' ? '£' : currencyGet.code === 'EUR' ? '€' : ''}${amountGetStr} ${currencyGet.code.toLowerCase()}. you will be sent approximately ₦${amountSendStr}`,
+                            description: `You are requesting ${currencyGet.code === 'USD' ? '$' : currencyGet.code === 'GBP' ? '£' : currencyGet.code === 'EUR' ? '€' : ''}${amountGetStr} ${currencyGet.code.toUpperCase()}. You will be sent approximately ₦${amountSendStr}`,
                             iconType: 'info'
                         },
                         {
@@ -764,6 +765,8 @@ export default function SchoolFeesScreen() {
                     onUploadSignature={() => uploadFile('DIGITAL_SIGNATURE')}
                     signatureFile={docs.signature.file?.name}
                     isUploadingSignature={isUploading}
+                    initials={initials}
+                    onChangeInitials={setInitials}
                 />
             </TransactionLayout>
         </View>

@@ -11,6 +11,7 @@ interface ProfessionalBankDetailsStepProps {
     watch: any;
     setValue: any;
     errors: any;
+    isMedical?: boolean;
 }
 
 const COUNTRIES: SelectionItem[] = [
@@ -19,13 +20,15 @@ const COUNTRIES: SelectionItem[] = [
     { id: '3', label: '🇨🇦 Canada', value: 'Canada' },
     { id: '4', label: '🇮🇳 India', value: 'India' },
     { id: '5', label: '🇦🇺 Australia', value: 'Australia' },
+    { id: '6', label: 'Others', value: 'Others' },
 ];
 
 export default function ProfessionalBankDetailsStep({
     control,
     watch,
     setValue,
-    errors
+    errors,
+    isMedical
 }: ProfessionalBankDetailsStepProps) {
     const beneficiaryCountry = watch('beneficiaryCountry');
     const [countrySheetVisible, setCountrySheetVisible] = React.useState(false);
@@ -35,13 +38,11 @@ export default function ProfessionalBankDetailsStep({
     const isCanada = beneficiaryCountry?.toLowerCase() === 'canada';
     const isIndia = beneficiaryCountry?.toLowerCase() === 'india';
     const isAustralia = beneficiaryCountry?.toLowerCase() === 'australia';
+    const isOthers = beneficiaryCountry?.toLowerCase() === 'others';
    
     return (
         <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-            <Text style={styles.title}>Bank details</Text>
 
-           
-            
                 <Controller
                     control={control}
                     name="beneficiaryCountry"
@@ -64,205 +65,238 @@ export default function ProfessionalBankDetailsStep({
                     )}
                 />
 
-
-
-            <ControlledInput
-                control={control}
-                name="membershipName"
-                label="Member Name"
-                placeholder="Enter membership name"
-                required
-            />
-
-            <ControlledInput
-                control={control}
-                name="organizationName"
-                label="Organization Name"
-                placeholder="Enter organization name"
-                required
-            />
-
-    
-            <ControlledInput
-                control={control}
-                name="bankAccountName"
-                label="Beneficiary Name"
-                placeholder="As it appears on the account"
-                required
-            />
-
-            <ControlledInput
-                control={control}
-                name="beneficiaryEmail"
-                label="Beneficiary Email"
-                placeholder="Enter email address"
-                keyboardType="email-address"
-            />
-
-            <ControlledInput
-                control={control}
-                name="beneficiaryAddress"
-                label="Beneficiary Address"
-                placeholder="Street, state, city, postal code, country"
-                required
-            />
-
-           
-
-                <>
+            <Text style={styles.sectionTitle}>Beneficiary details</Text>
+            <View style={styles.sectionContainer}>
+                {!isMedical && (
                     <ControlledInput
                         control={control}
-                        name="beneficiaryCity"
-                        label="City"
-                        placeholder="Enter city"
+                        name="memberName"
+                        label="Member Name"
+                        placeholder="Enter membership name"
                         required
                     />
+                )}
+
+                {!isMedical && (
                     <ControlledInput
                         control={control}
-                        name="beneficiaryState"
-                        label="State"
-                        placeholder="Enter state"
+                        name="memberNumber"
+                        label="Member Number"
+                        placeholder="Enter membership number"
                         required
                     />
-                    <ControlledInput
-                        control={control}
-                        name="beneficiaryCountry"
-                        label="Country"
-                        placeholder="Enter country"
-                        required
-                    />
-                </>
-            
-           
+                )}
 
-            <ControlledInput
-                control={control}
-                name="correspondenceBankName"
-                label="Correspondence bank name"
-                placeholder="Optional"
-            />
-
-            <ControlledInput
-                control={control}
-                name="correspondenceBankAddress"
-                label="Correspondence bank address"
-                placeholder="Optional"
-            />
-
-            <ControlledInput
-                control={control}
-                name="correspondenceBankSwiftCode"
-                label="Correspondence bank SWIFT"
-                placeholder="Optional"
-                maxLength={11}
-                filterType="alphanumeric"
-                autoCapitalize="characters"
-            />
-
-            <ControlledInput
-                control={control}
-                name="bankName"
-                label="Bank Name"
-                placeholder="Enter beneficiary bank"
-                required
-            />
-
-            <ControlledInput
-                control={control}
-                name="bankAccountNumber"
-                label="Account Number"
-                placeholder="Enter account number"
-                required
-                keyboardType="numeric"
-                maxLength={34}
-                filterType="numeric"
-            />
-
-            <ControlledInput
-                control={control}
-                name="bankAccountAddress"
-                label="Bank Address"
-                placeholder={isUK ? "Enter branch or head office address" : "Enter bank address"}
-                required
-            />
-
-            <ControlledInput
-                control={control}
-                name="bankAccountSwiftCode"
-                label="SWIFT CODE"
-                placeholder={isUK ? "e.g ABCDUS33XXX" : "e.g ABCDUS33XXXcode"}
-                required
-                maxLength={11}
-                filterType="alphanumeric"
-                autoCapitalize="characters"
-            />
-
-            <ControlledInput
-                control={control}
-                name="paymentReference"
-                label="Payment Reference ID"
-                placeholder="Enter payment reference id"
-                required
-            />
-
-            {isUK && (
                 <ControlledInput
                     control={control}
-                    name="bankAccountIban"
-                    label="IBAN"
-                    placeholder="e.g GB29 NWBK 6016 13331 9268 19"
+                    name="organizationName"
+                    label="Organization Name"
+                    placeholder="Enter organization name"
                     required
+                />
+
+                <ControlledInput
+                    control={control}
+                    name="bankAccountName"
+                    label="Beneficiary Name"
+                    placeholder="As it appears on the account"
+                    required
+                />
+
+                <ControlledInput
+                    control={control}
+                    name="beneficiaryEmail"
+                    label="Beneficiary Email"
+                    placeholder="Enter email address"
+                    keyboardType="email-address"
+                />
+
+                <ControlledInput
+                    control={control}
+                    name="beneficiaryPhone"
+                    label="Phone number"
+                    placeholder="Enter phone number"
+                    keyboardType="phone-pad"
+                />
+
+                <ControlledInput
+                    control={control}
+                    name="beneficiaryAddress"
+                    label="Beneficiary Address"
+                    placeholder="Street, state, city, postal code, country"
+                    required
+                />
+
+                <ControlledInput
+                    control={control}
+                    name="beneficiaryCity"
+                    label="City"
+                    placeholder="Enter city"
+                    required
+                />
+                <ControlledInput
+                    control={control}
+                    name="beneficiaryState"
+                    label="State"
+                    placeholder="Enter state"
+                    required
+                />
+                <ControlledInput
+                    control={control}
+                    name="beneficiaryCountry"
+                    label="Country"
+                    placeholder="Enter country"
+                    required
+                />
+            </View>
+
+            <Text style={styles.sectionTitle}>Beneficiary Bank details</Text>
+            <View style={styles.sectionContainer}>
+                <ControlledInput
+                    control={control}
+                    name="bankName"
+                    label="Bank Name"
+                    placeholder="Enter beneficiary bank"
+                    required
+                />
+
+                <ControlledInput
+                    control={control}
+                    name="bankAccountNumber"
+                    label="Account Number"
+                    placeholder="Enter account number"
+                    required
+                    keyboardType="numeric"
                     maxLength={34}
+                    filterType="numeric"
+                />
+
+                <ControlledInput
+                    control={control}
+                    name="bankAccountAddress"
+                    label="Bank Address"
+                    placeholder={isUK ? "Enter branch or head office address" : "Enter bank address"}
+                    required
+                />
+
+                <ControlledInput
+                    control={control}
+                    name="bankAccountSwiftCode"
+                    label="SWIFT CODE"
+                    placeholder={isUK ? "e.g ABCDUS33XXX" : "e.g ABCDUS33XXXcode"}
+                    required
+                    maxLength={11}
                     filterType="alphanumeric"
                     autoCapitalize="characters"
                 />
-            )}
 
-            {(isUSA || isCanada) && (
                 <ControlledInput
                     control={control}
-                    name="routingNumber"
-                    label="Routing Number"
-                    placeholder="e.g 026009593"
+                    name="paymentReference"
+                    label="Payment Reference ID"
+                    placeholder="Enter payment reference id"
                     required
-                    keyboardType="numeric"
-                    maxLength={9}
-                    filterType="numeric"
                 />
-            )}
 
-            {isIndia && (
-                <>
+                {(isUK || isOthers) && (
                     <ControlledInput
                         control={control}
-                        name="ifscCode"
-                        label="IFSC Number"
-                        placeholder="e.g SBIN0000001"
+                        name="bankAccountIban"
+                        label="IBAN"
+                        placeholder="e.g GB29 NWBK 6016 13331 9268 19"
                         required
-                        maxLength={11}
+                        maxLength={34}
                         filterType="alphanumeric"
                         autoCapitalize="characters"
                     />
+                )}
+
+                {(isUSA || isCanada) && (
                     <ControlledInput
                         control={control}
-                        name="purposeCode"
-                        label="Purpose Code"
-                        placeholder="e.g GFT/P1301"
+                        name="routingNumber"
+                        label="Routing Number"
+                        placeholder="e.g 026009593"
                         required
+                        keyboardType="numeric"
+                        maxLength={9}
+                        filterType="numeric"
                     />
-                </>
-            )}
+                )}
 
-            {isAustralia && (
+                {isIndia && (
+                    <>
+                        <ControlledInput
+                            control={control}
+                            name="ifscCode"
+                            label="IFSC Number"
+                            placeholder="e.g SBIN0000001"
+                            required
+                            maxLength={11}
+                            filterType="alphanumeric"
+                            autoCapitalize="characters"
+                        />
+                        <ControlledInput
+                            control={control}
+                            name="purposeCode"
+                            label="Purpose Code"
+                            placeholder="e.g GFT/P1301"
+                            required
+                        />
+                    </>
+                )}
+
+                {isAustralia && (
+                    <ControlledInput
+                        control={control}
+                        name="bsbCode"
+                        label="BSB Code"
+                        placeholder="e.g 123 - 456"
+                        required
+                        maxLength={8}
+                    />
+                )}
+
+                {isOthers && (
+                    <ControlledInput
+                        control={control}
+                        name="otherBankDetails"
+                        label="Other bank details"
+                        placeholder="Any extra identifiers or instructions for this country (clearing codes, intermediary bank, etc.)"
+                        multiline={true}
+                        numberOfLines={4}
+                        style={{ height: moderateScale(80), textAlignVertical: 'top' }}
+                        wrapperStyle={{ height: moderateScale(90), borderRadius: moderateScale(12), alignItems: 'flex-start', paddingTop: moderateScale(8) }}
+                    />
+                )}
+            </View>
+
+            <Text style={styles.sectionTitle}>Correspondence Bank details</Text>
+            <View style={styles.sectionContainer}>
                 <ControlledInput
                     control={control}
-                    name="bsbCode"
-                    label="BSB Code"
-                    placeholder="e.g 123 - 456"
-                    required
-                    maxLength={8}
+                    name="correspondenceBankName"
+                    label="Correspondence bank name"
+                    placeholder="Enter bank name"
                 />
-            )}
+
+                <ControlledInput
+                    control={control}
+                    name="correspondenceBankAddress"
+                    label="Correspondence bank address"
+                    placeholder="Enter address"
+                />
+
+                <ControlledInput
+                    control={control}
+                    name="correspondenceBankSwiftCode"
+                    label="Correspondence bank SWIFT"
+                    placeholder="Enter bank swift"
+                    maxLength={11}
+                    filterType="alphanumeric"
+                    autoCapitalize="characters"
+                />
+            </View>
 
             <GenericSelectionSheet
                 visible={countrySheetVisible}
@@ -278,6 +312,7 @@ export default function ProfessionalBankDetailsStep({
                     setValue('ifscCode', '');
                     setValue('purposeCode', '');
                     setValue('bsbCode', '');
+                    setValue('otherBankDetails', '');
                 }}
                 confirmButtonText="Select Country/Region"
             />
@@ -336,5 +371,20 @@ const styles = ScaledSheet.create({
     },
     dropdownError: {
         borderColor: '#EF4444',
+    },
+    sectionTitle: {
+        fontSize: '14@ms',
+        fontWeight: '600',
+        color: '#64748B',
+        marginVertical: '8@vs',
+    },
+    sectionContainer: {
+      
+        borderRadius: '12@ms',
+        padding: '16@ms',
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+        marginBottom: '16@vs',
+        gap: '12@vs',
     },
 });

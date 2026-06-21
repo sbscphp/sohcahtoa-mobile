@@ -2,14 +2,14 @@ import Header from '@/components/Header';
 import PrimaryButton from '@/components/PrimaryButton';
 import { useRouter } from 'expo-router';
 import { Copy, InfoCircle } from 'iconsax-react-nativejs';
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View, Modal } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import * as Clipboard from 'expo-clipboard';
 import { useToastStore } from '@/stores/useToastStore';
-import { useGetTransactionByIdQuery } from '@/hooks/queries/transactions/useGetTransactionByIdQuery';
 import { useGetDepositInstructionsQuery } from '@/hooks/queries/transactions/useGetDepositInstructionsQuery';
+import { getDepositStatus } from '../services/transactions';
 
 interface PaymentLayoutProps {
     transactionId?: string;
@@ -22,8 +22,80 @@ export default function PaymentLayout({ transactionId, amount: initialAmount, on
     const insets = useSafeAreaInsets();
     const showToast = useToastStore(s => s.showToast);
     const [timeLeft, setTimeLeft] = useState(1770); 
+    const [isChecking, setIsChecking] = useState(false);
+    const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-    const { data: transactionData, isLoading: isLoadingTx } = useGetTransactionByIdQuery(transactionId || '');
+    useEffect(() => {
+        return () => {
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+            }
+        };
+    }, []);
+
+    const handleCloseConfirming = () => {
+        setIsChecking(false);
+        if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+        }
+    };
+
+    const handleSentPress = async () => {
+        if (!transactionId) {
+            onSent();
+            return;
+        }
+
+        setIsChecking(true);
+
+        const checkStatus = async () => {
+            try {
+                const res = await getDepositStatus(transactionId);
+                const data = res.success ? res.data : res;
+                if (data.depositConfirmed || data.depositStatus === 'SETTLED' || (data.transactionStatus && data.transactionStatus !== 'AWAITING_DEPOSIT')) {
+                    setIsChecking(false);
+                    if (intervalRef.current) {
+                        clearInterval(intervalRef.current);
+                        intervalRef.current = null;
+                    }
+                    onSent();
+                    return true;
+                }
+            } catch (err) {
+                console.error("Error checking deposit status:", err);
+            }
+            return false;
+        };
+
+
+        const confirmed = await checkStatus();
+        if (confirmed) return;
+
+       
+        if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+        }
+
+        let attempts = 0;
+        const maxAttempts = 60; 
+
+        intervalRef.current = setInterval(async () => {
+            attempts++;
+            const done = await checkStatus();
+            if (done || attempts >= maxAttempts) {
+                if (intervalRef.current) {
+                    clearInterval(intervalRef.current);
+                    intervalRef.current = null;
+                }
+                if (attempts >= maxAttempts) {
+                    setIsChecking(false);
+                    showToast("Confirmation is taking longer than expected. You can check the transaction status on your dashboard.", "warning");
+                }
+            }
+        }, 5000);
+    };
+
     const { data: depositResponse, isLoading: isLoadingDeposit } = useGetDepositInstructionsQuery(transactionId || '');
     const depositData = depositResponse?.data;
 
@@ -117,6 +189,13 @@ export default function PaymentLayout({ transactionId, amount: initialAmount, on
                         ) : (
                             <Text style={styles.amountValue}>{displayAmount}</Text>
                         )}
+                        {!isLoadingDeposit && depositData && depositData.feeAmount > 0 && (
+                            <View style={styles.chargeBreakdown}>
+                                <Text style={styles.chargeLabel}>
+                                    Includes ₦{depositData.feeAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} processing fee
+                                </Text>
+                            </View>
+                        )}
                     </View>
 
                     <Text style={styles.sectionTitle}>Account Details</Text>
@@ -200,11 +279,32 @@ export default function PaymentLayout({ transactionId, amount: initialAmount, on
                 </ScrollView>
             </KeyboardAvoidingView>
 
-            {/* Footer */}
+           
             <View style={[styles.footer, { paddingBottom: insets.bottom + moderateScale(10) }]}>
                 <Text style={styles.footerLabel}>Have you send the Money?</Text>
-                <PrimaryButton title="Yes, I have sent the Money" onPress={onSent} />
+                <PrimaryButton title="Yes, I have sent the Money" onPress={handleSentPress} />
             </View>
+
+            <Modal
+                visible={isChecking}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={handleCloseConfirming}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <ActivityIndicator size="large" color="rgba(255, 104, 19, 1)" style={styles.modalLoader} />
+                        <Text style={styles.modalTitle}>Confirming payment</Text>
+                        <Text style={styles.modalMessage}>
+                            Please wait while we confirm your transaction. This should take between 3-5 minutes.{"\n\n"}
+                            Please keep this window open while we continue checking your transfer.
+                        </Text>
+                        <TouchableOpacity style={styles.modalCloseButton} onPress={handleCloseConfirming}>
+                            <Text style={styles.modalCloseText}>Cancel</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 }
@@ -354,5 +454,63 @@ const styles = ScaledSheet.create({
         color: '#991B1B',
         lineHeight: '18@ms',
         fontWeight: '500',
+    },
+    chargeBreakdown: {
+        marginTop: '12@vs',
+        width: '100%',
+        borderTopWidth: 1,
+        borderTopColor: '#E2E8F0',
+        paddingTop: '8@vs',
+        gap: '4@vs',
+        alignItems: 'center',
+    },
+    chargeLabel: {
+        fontSize: '12@ms',
+        color: '#64748B',
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: '24@s',
+    },
+    modalContent: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: '16@ms',
+        padding: '24@ms',
+        alignItems: 'center',
+        width: '100%',
+        maxWidth: '320@s',
+    },
+    modalLoader: {
+        marginBottom: '16@vs',
+    },
+    modalTitle: {
+        fontSize: '18@ms',
+        fontWeight: '700',
+        color: '#0F172A',
+        marginBottom: '12@vs',
+        textAlign: 'center',
+    },
+    modalMessage: {
+        fontSize: '13@ms',
+        color: '#64748B',
+        textAlign: 'center',
+        lineHeight: '18@ms',
+        marginBottom: '20@vs',
+    },
+    modalCloseButton: {
+        paddingVertical: '10@vs',
+        paddingHorizontal: '20@s',
+        borderRadius: '20@ms',
+        backgroundColor: '#F1F5F9',
+        width: '100%',
+        alignItems: 'center',
+    },
+    modalCloseText: {
+        color: '#64748B',
+        fontSize: '13@ms',
+        fontWeight: '600',
     },
 });

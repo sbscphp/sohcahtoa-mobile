@@ -70,22 +70,15 @@ export default function TransactionDetailsView({
     bankAccountsDetails,
     currentStep
 }: TransactionDetailsViewProps) {
-    const renderedDetails = [...details];
-    if (currentStep) {
-        const hasStep = renderedDetails.some(item => item.label.toLowerCase().includes('step'));
-        if (!hasStep) {
-            const statusIdx = renderedDetails.findIndex(item => item.label.toLowerCase() === 'status');
-            const stepItem = {
-                label: 'Current Step',
-                value: currentStep.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())
-            };
-            if (statusIdx !== -1) {
-                renderedDetails.splice(statusIdx + 1, 0, stepItem);
-            } else {
-                renderedDetails.push(stepItem);
-            }
-        }
-    }
+    const mainDetails = details.filter(item => 
+        !item.label.toLowerCase().includes('pickup') && 
+        !item.label.toLowerCase().includes('scheduled')
+    );
+
+    const pickupDetails = details.filter(item => 
+        item.label.toLowerCase().includes('pickup') || 
+        item.label.toLowerCase().includes('scheduled')
+    );
 
     const renderDetailRow = (item: DetailItem, index: number, totalLength: number) => {
         const isStatusOrStep = item.label.toLowerCase().includes('status') || item.label.toLowerCase().includes('step');
@@ -127,9 +120,16 @@ export default function TransactionDetailsView({
     return (
         <View style={styles.container}>
             <Text style={styles.sectionHeader}>Transaction Details</Text>
-            {renderedDetails.map((item, index) => renderDetailRow(item, index, renderedDetails.length))}
+            {mainDetails.map((item, index) => renderDetailRow(item, index, mainDetails.length))}
 
-            {beneficiaryDetails && beneficiaryDetails.length > 0 && (
+            {pickupDetails.length > 0 && (
+                <>
+                    <Text style={[styles.sectionHeader, { marginTop: moderateScale(62) }]}>Cash Pickup Details</Text>
+                    {pickupDetails.map((item, index) => renderDetailRow(item, index, pickupDetails.length))}
+                </>
+            )}
+
+            {beneficiaryDetails && beneficiaryDetails.length > 0 && !(bankAccountsDetails && bankAccountsDetails.length > 0) && (
                 <>
                     <Text style={[styles.sectionHeader, { marginTop: moderateScale(62) }]}>Beneficiary Details</Text>
                     {beneficiaryDetails.map((item, index) => renderDetailRow(item, index, beneficiaryDetails.length))}
@@ -143,16 +143,9 @@ export default function TransactionDetailsView({
                 </>
             )}
 
-            {settlementDetails && settlementDetails.length > 0 && (
-                <>
-                    <Text style={[styles.sectionHeader, { marginTop: moderateScale(62) }]}>Settlement Details</Text>
-                    {settlementDetails.map((item, index) => renderDetailRow(item, index, settlementDetails.length))}
-                </>
-            )}
-
             {bankAccountsDetails && bankAccountsDetails.length > 0 && (
                 <>
-                    <Text style={[styles.sectionHeader, { marginTop: moderateScale(62) }]}>Bank Accounts</Text>
+                    <Text style={[styles.sectionHeader, { marginTop: moderateScale(62) }]}>Bank Details</Text>
                     {bankAccountsDetails.map((item, index) => renderDetailRow(item, index, bankAccountsDetails.length))}
                 </>
             )}
@@ -163,7 +156,7 @@ export default function TransactionDetailsView({
 
                     {disbursementDetails.paymentInfo.map((item, index) => renderDetailRow(item, index, disbursementDetails.paymentInfo.length))}
 
-                    {/* Disbursement Status */}
+
                     {disbursementDetails.paymentInfo.length > 0 && <View style={[styles.separator, { marginTop: verticalScale(12) }]} />}
                     <View style={styles.detailRow}>
                         <Text style={styles.detailLabel}>Disbursement Status</Text>

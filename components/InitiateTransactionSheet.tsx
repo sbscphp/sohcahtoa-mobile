@@ -1,8 +1,9 @@
 import { InfoCircle, Verify } from 'iconsax-react-nativejs';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
+import { Ionicons } from '@expo/vector-icons';
 import PrimaryButton from './PrimaryButton';
 import { useGetWalletLedgerQuery } from '@/hooks/queries/wallet/useGetWalletLedgerQuery';
 
@@ -45,6 +46,14 @@ const InitiateTransactionSheet: React.FC<InitiateTransactionSheetProps> = ({
     const firstPage = ledgerData?.pages?.[0];
     const balance = firstPage?.data?.balance;
     const currency = firstPage?.data?.currency || 'NGN';
+
+    const [isChecked, setIsChecked] = useState(false);
+
+    useEffect(() => {
+        if (visible) {
+            setIsChecked(false);
+        }
+    }, [visible]);
 
     const renderIcon = (item: InfoItemProps) => {
         if (item.icon) return item.icon;
@@ -94,16 +103,7 @@ const InitiateTransactionSheet: React.FC<InitiateTransactionSheetProps> = ({
                     <Text style={styles.title}>{title}</Text>
                     <Text style={styles.subtitle}>{subtitle}</Text>
 
-                    {balance !== undefined && (
-                        <View style={styles.balanceContainer}>
-                            <Text style={styles.balanceLabelText}>Wallet Balance</Text>
-                            <Text style={styles.balanceValueText}>
-                                {currency === 'USD' ? '$' : currency === 'EUR' ? '€' : '₦'}{balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </Text>
-                        </View>
-                    )}
-
-                    {/* Info Box */}
+                  
                     <View style={styles.infoBox}>
                         {items.map((item, index) => (
                             <View key={index} style={styles.infoItem}>
@@ -116,11 +116,29 @@ const InitiateTransactionSheet: React.FC<InitiateTransactionSheetProps> = ({
                         ))}
                     </View>
 
+                    <TouchableOpacity
+                        style={styles.checkboxContainer}
+                        activeOpacity={0.8}
+                        onPress={() => setIsChecked(!isChecked)}
+                    >
+                        <View style={styles.checkbox}>
+                            {isChecked ? (
+                                <Ionicons name="checkbox" size={moderateScale(20)} color="#FF6B2C" />
+                            ) : (
+                                <Ionicons name="square-outline" size={moderateScale(20)} color="#64748B" />
+                            )}
+                        </View>
+                        <Text style={styles.checkboxLabel}>
+                            I confirm that the information I have provided is correct.
+                        </Text>
+                    </TouchableOpacity>
+
                     <View style={styles.footerActions}>
                         <PrimaryButton
                             title={confirmText}
                             onPress={onConfirm}
                             loading={loading}
+                            disabled={!isChecked}
                         />
                         <TouchableOpacity style={styles.secondaryBtn} onPress={onClose}>
                             <Text style={styles.secondaryBtnText}>No, Close</Text>
@@ -240,6 +258,23 @@ const styles = ScaledSheet.create({
         fontSize: '14@ms',
         fontWeight: '700',
         color: '#0F172A',
+    },
+    checkboxContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: '20@vs',
+        gap: '8@s',
+        paddingHorizontal: '4@s',
+    },
+    checkbox: {
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    checkboxLabel: {
+        fontSize: '13@ms',
+        color: '#475569',
+        flex: 1,
+        lineHeight: '18@ms',
     },
 });
 

@@ -1,5 +1,7 @@
 import { useGetTransactionsQuery } from '@/hooks/queries/transactions/useGetTransactionsQuery';
 import { Transaction } from '@/types/api/transactions';
+import { useQuery } from '@tanstack/react-query';
+import { getTransactions } from '@/services/transactions';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Notification, Refresh } from 'iconsax-react-nativejs';
 import React, { useMemo, useState, useCallback } from 'react';
@@ -48,10 +50,16 @@ export default function TransactionScreen() {
         group ? { group } : undefined
     );
 
+    const { data: allTransactionsResponse, refetch: refetchAll } = useQuery({
+        queryKey: ['all-transactions-for-stats', group],
+        queryFn: () => getTransactions(group ? { group, limit: 10000 } : { limit: 10000 }),
+    });
+
     useFocusEffect(
         useCallback(() => {
             refetch();
-        }, [refetch])
+            refetchAll();
+        }, [refetch, refetchAll])
     );
     const { data: unreadData } = useGetUnreadCountQuery();
     const unreadCount = unreadData?.data?.count || 0;
@@ -59,16 +67,17 @@ export default function TransactionScreen() {
 
 
     const transactions: Transaction[] = transactionsData?.pages?.flatMap(p => p.data) || [];
-    const totalCount = transactions.length;
+    const totalCount = transactionsData?.pages?.[0]?.pagination?.total ?? 0;
 
     // console.log('transactions', transactions);
 
     const statusCounts = useMemo(() => {
-        const completed = transactions.filter(t => ['COMPLETED', 'APPROVED'].includes(t.status)).length;
-        const declined = transactions.filter(t => ['REJECTED', 'CANCELLED'].includes(t.status)).length;
-        const pending = transactions.filter(t => ['DRAFT', 'AWAITING_VERIFICATION', 'VERIFICATION_IN_PROGRESS', 'VERIFICATION_COMPLETED', 'AWAITING_DEPOSIT', 'DEPOSIT_PENDING', 'DEPOSIT_CONFIRMED', 'COMPLIANCE_REVIEW', 'ADMIN_APPROVAL_PENDING', 'DISBURSEMENT_IN_PROGRESS'].includes(t.status)).length;
+        const allTransactions = allTransactionsResponse?.data || [];
+        const completed = allTransactions.filter(t => ['COMPLETED', 'APPROVED'].includes(t.status)).length;
+        const declined = allTransactions.filter(t => ['REJECTED', 'CANCELLED'].includes(t.status)).length;
+        const pending = allTransactions.filter(t => ['DRAFT', 'AWAITING_VERIFICATION', 'VERIFICATION_IN_PROGRESS', 'VERIFICATION_COMPLETED', 'AWAITING_DEPOSIT', 'DEPOSIT_PENDING', 'DEPOSIT_CONFIRMED', 'COMPLIANCE_REVIEW', 'ADMIN_APPROVAL_PENDING', 'DISBURSEMENT_IN_PROGRESS'].includes(t.status)).length;
         return { completed, declined, pending };
-    }, [transactions]);
+    }, [allTransactionsResponse]);
 
     const renderEmpty = () => (
         <View style={styles.emptyState}>

@@ -92,6 +92,7 @@ export default function MedicalPaymentScreen() {
             correspondenceBankName: '',
             correspondenceBankAddress: '',
             correspondenceBankSwiftCode: '',
+            otherBankDetails: '',
             paymentReference: '',
             bsbCode: '',
             routingNumber: '',
@@ -249,6 +250,14 @@ export default function MedicalPaymentScreen() {
             required: true,
         },
         {
+            label: 'Return Ticket',
+            onUpload: () => uploadFile('RETURN_TICKET'),
+            fileName: docs.returnTicket.file?.name,
+            fileUri: docs.returnTicket.file?.uri, fileUrl: docs.returnTicket.meta?.fileUrl,
+            fileType: docs.returnTicket.file?.type,
+            required: true,
+        },
+        {
             label: 'Reference Letter (Nigerian Specialist Doctor or Hospital)',
             onUpload: () => uploadFile('MEDICAL_LETTER'),
             fileName: docs.referenceLetter.file?.name,
@@ -300,7 +309,7 @@ export default function MedicalPaymentScreen() {
         if (currentStep === 0) {
             isStepValid = await trigger(['bvn', 'nin', 'formAId', 'passportDocumentNumber']);
         } else if (currentStep === 1) {
-            if (!docs.passport.file || !docs.visa.file || !docs.referenceLetter.file || !docs.overseaDoctorLetter.file) {
+            if (!docs.passport.file || !docs.visa.file || !docs.returnTicket.file || !docs.referenceLetter.file || !docs.overseaDoctorLetter.file) {
                 showToast('Please upload all required documents', 'error');
                 return;
             }
@@ -369,6 +378,7 @@ export default function MedicalPaymentScreen() {
             documents: [
                 ...(docs.passport.meta ? [docs.passport.meta] : []),
                 ...(docs.visa.meta ? [docs.visa.meta] : []),
+                ...(docs.returnTicket.meta ? [docs.returnTicket.meta] : []),
                 ...(docs.referenceLetter.meta ? [docs.referenceLetter.meta] : []),
                 ...(docs.overseaDoctorLetter.meta ? [docs.overseaDoctorLetter.meta] : []),
             ],
@@ -411,7 +421,7 @@ export default function MedicalPaymentScreen() {
     };
 
     const isStep0Valid = watchedFields.bvn && watchedFields.formAId && watchedFields.passportDocumentNumber;
-    const isStep1Valid = !!(docs.passport.meta && docs.visa.meta && docs.referenceLetter.meta && docs.overseaDoctorLetter.meta && watchedFields.passportIssueDate && watchedFields.passportExpiryDate);
+    const isStep1Valid = !!(docs.passport.meta && docs.visa.meta && docs.returnTicket.meta && docs.referenceLetter.meta && docs.overseaDoctorLetter.meta && watchedFields.passportIssueDate && watchedFields.passportExpiryDate);
     const isStep2Valid = watchedFields.amount > 0;
     const beneficiaryCountryStep4 = watchedFields.beneficiaryCountry?.toLowerCase() || '';
     const isAustralia = beneficiaryCountryStep4?.includes('australia');
@@ -480,7 +490,7 @@ export default function MedicalPaymentScreen() {
                 )}
 
                 {currentStep === 3 && (
-                    <ProfessionalBankDetailsStep control={control} watch={watch} setValue={setValue} errors={errors} />
+                    <ProfessionalBankDetailsStep control={control} watch={watch} setValue={setValue} errors={errors} isMedical={true} />
                 )}
 
                 <InitiateTransactionSheet
@@ -492,7 +502,7 @@ export default function MedicalPaymentScreen() {
                     items={[
                         {
                             title: "Request Summary",
-                            description: `you are requesting ${currencyGet.code === 'USD' ? '$' : currencyGet.code === 'GBP' ? '£' : currencyGet.code === 'EUR' ? '€' : ''}${amountGetStr} ${currencyGet.code.toLowerCase()}. you will be sent approximately ₦${amountSendStr}`,
+                            description: `You are requesting ${currencyGet.code === 'USD' ? '$' : currencyGet.code === 'GBP' ? '£' : currencyGet.code === 'EUR' ? '€' : ''}${amountGetStr} ${currencyGet.code.toUpperCase()}. You will be sent approximately ₦${amountSendStr}`,
                             iconType: 'info'
                         },
                         {

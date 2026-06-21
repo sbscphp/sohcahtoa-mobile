@@ -109,6 +109,7 @@ export default function TouringScreen() {
     const [currentStep, setCurrentStep] = useState(0);
     const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
     const [showSourceOfFundsSheet, setShowSourceOfFundsSheet] = useState(false);
+    const [initials, setInitials] = useState('');
 
     const {
         control,
@@ -275,6 +276,14 @@ export default function TouringScreen() {
             required: true,
         },
         {
+            label: 'Return Ticket',
+            onUpload: () => uploadFile('RETURN_TICKET'),
+            fileName: docs.ticket.file?.name,
+            fileUri: docs.ticket.file?.uri, fileUrl: docs.ticket.meta?.fileUrl,
+            fileType: docs.ticket.file?.type,
+            required: true,
+        },
+        {
             label: 'Receipt for Initial Naira Purchase',
             onUpload: () => uploadFile('RECEIPT'),
             fileName: docs.receipt.file?.name,
@@ -318,7 +327,7 @@ export default function TouringScreen() {
         if (currentStep === 0) {
             isStepValid = await trigger(['formAId', 'passportDocumentNumber']);
         } else if (currentStep === 1) {
-            if (!docs.passport.file || !docs.visa.file || !docs.receipt.file) {
+            if (!docs.passport.file || !docs.visa.file || !docs.ticket.file || !docs.receipt.file) {
                 showToast('Please upload all required documents', 'error');
                 return;
             }
@@ -384,6 +393,7 @@ export default function TouringScreen() {
             documents: [
                 ...(docs.passport.meta ? [docs.passport.meta] : []),
                 ...(docs.visa.meta ? [docs.visa.meta] : []),
+                ...(docs.ticket.meta ? [docs.ticket.meta] : []),
                 ...(docs.receipt.meta ? [docs.receipt.meta] : []),
                 ...(docs.signature.meta ? [docs.signature.meta] : []),
             ],
@@ -425,7 +435,7 @@ export default function TouringScreen() {
     }, [watchedFields.selectedCity, allLocations]);
 
     const isStep0Valid = watchedFields.formAId && watchedFields.passportDocumentNumber;
-    const isStep1Valid = docs.passport.meta && docs.visa.meta && docs.receipt.meta &&
+    const isStep1Valid = docs.passport.meta && docs.visa.meta && docs.ticket.meta && docs.receipt.meta &&
         watchedFields.passportIssueDate && watchedFields.passportExpiryDate;
     const isStep2Valid = watchedFields.amount > 0;
     const isStep3Valid = watchedFields.payoutMethod && (!isElectronicTransfer || (watchedFields.customerBankName && watchedFields.customerBankCode && watchedFields.customerAccountNumber && watchedFields.customerAccountName));
@@ -536,7 +546,7 @@ export default function TouringScreen() {
                     items={[
                         {
                             title: "Request Summary",
-                            description: `you are requesting ${currencyGet.code === 'USD' ? '$' : currencyGet.code === 'GBP' ? '£' : currencyGet.code === 'EUR' ? '€' : ''}${amountGetStr} ${currencyGet.code.toLowerCase()}. you will be sent approximately ₦${amountSendStr}`,
+                            description: `You are requesting ${currencyGet.code === 'USD' ? '$' : currencyGet.code === 'GBP' ? '£' : currencyGet.code === 'EUR' ? '€' : ''}${amountGetStr} ${currencyGet.code.toUpperCase()}. You will be sent approximately ₦${amountSendStr}`,
                             iconType: 'info'
                         },
                         {
@@ -571,6 +581,21 @@ export default function TouringScreen() {
                     onUploadSignature={() => uploadFile('DIGITAL_SIGNATURE')}
                     signatureFile={docs.signature.file?.name}
                     isUploadingSignature={isUploading}
+                    initials={initials}
+                    onChangeInitials={setInitials}
+                />
+                <GenericSelectionSheet
+                    visible={payoutSheetVisible}
+                    onClose={() => setPayoutSheetVisible(false)}
+                    title="Choose a Payout Method"
+                    subtitle="Select an option below"
+                    items={PAYOUT_METHODS}
+                    selectedItem={watchedFields.payoutMethod}
+                    onSelect={(item) => {
+                        setValue('payoutMethod', item.value);
+                        setPayoutSheetVisible(false);
+                    }}
+                    confirmButtonText="Select a Payout Method"
                 />
             </TransactionLayout>
         </View>

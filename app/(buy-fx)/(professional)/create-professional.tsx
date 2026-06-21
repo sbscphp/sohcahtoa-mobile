@@ -75,7 +75,7 @@ export default function ProfessionalScreen() {
             passportIssueDate: '',
             passportExpiryDate: '',
             amount: 0,
-            memberName: '',
+            memberName: user?.profile ? `${user.profile.firstName || ''} ${user.profile.lastName || ''}`.trim() : '',
             memberNumber: '',
             organizationName: '',
             beneficiaryPhone: '',
@@ -98,6 +98,7 @@ export default function ProfessionalScreen() {
             correspondenceBankName: '',
             correspondenceBankAddress: '',
             correspondenceBankSwiftCode: '',
+            otherBankDetails: '',
             payoutMethod: '',
             customerBankName: '',
             customerBankCode: '',
@@ -195,6 +196,15 @@ export default function ProfessionalScreen() {
             });
         }
     }, [watchedFields.customerAccountNumber, watchedFields.customerBankCode, isAddingNewAccount]);
+
+    React.useEffect(() => {
+        if (user?.profile) {
+            const fullName = `${user.profile.firstName || ''} ${user.profile.lastName || ''}`.trim();
+            if (fullName) {
+                setValue('memberName', fullName);
+            }
+        }
+    }, [user, setValue]);
 
     const credentialFields = [
         { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number(BVN)" placeholder="Enter your BVN" required keyboardType="numeric" maxLength={11} filterType="numeric" disabled /> },
@@ -477,7 +487,7 @@ export default function ProfessionalScreen() {
                     items={[
                         {
                             title: "Request Summary",
-                            description: `you are requesting ${currencyGet.code === 'USD' ? '$' : currencyGet.code === 'GBP' ? '£' : currencyGet.code === 'EUR' ? '€' : ''}${amountGetStr} ${currencyGet.code.toLowerCase()}. you will be sent approximately ₦${amountSendStr}`,
+                            description: `You are requesting ${currencyGet.code === 'USD' ? '$' : currencyGet.code === 'GBP' ? '£' : currencyGet.code === 'EUR' ? '€' : ''}${amountGetStr} ${currencyGet.code.toUpperCase()}. You will be sent approximately ₦${amountSendStr}`,
                             iconType: 'info'
                         },
                         {

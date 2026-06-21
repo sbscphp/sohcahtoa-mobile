@@ -31,6 +31,7 @@ export const professionalStep3Schema = z.object({
     ifscCode: z.string().optional(),
     purposeCode: z.string().optional(),
     bsbCode: z.string().optional(),
+    otherBankDetails: z.string().optional(),
 
     // Keep old fields as optional to prevent react-hook-form initialization or submission issues
     memberName: z.string().optional(),

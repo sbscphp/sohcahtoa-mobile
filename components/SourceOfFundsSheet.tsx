@@ -4,6 +4,7 @@ import { Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import FileUpload from './FileUpload';
 import PrimaryButton from './PrimaryButton';
+import InputField from './InputField';
 
 interface InfoRowProps {
     label: string;
@@ -38,6 +39,8 @@ interface SourceOfFundsSheetProps {
     signatureFile?: string | null;
     onUploadSignature: () => void;
     isUploadingSignature?: boolean;
+    initials?: string;
+    onChangeInitials?: (text: string) => void;
 }
 
 export default function SourceOfFundsSheet({
@@ -49,6 +52,8 @@ export default function SourceOfFundsSheet({
     signatureFile,
     onUploadSignature,
     isUploadingSignature,
+    initials,
+    onChangeInitials,
 }: SourceOfFundsSheetProps) {
 
     return (
@@ -96,7 +101,13 @@ export default function SourceOfFundsSheet({
                             <InfoRow label="Purpose of Transaction" value={transactionDetails.purpose} />
                         </View>
 
-
+                        <InputField
+                            label="Initials"
+                            placeholder="Enter your initials"
+                            value={initials}
+                            onChangeText={onChangeInitials}
+                            required
+                        />
 
                         <View style={styles.uploadSection}>
                             <FileUpload

@@ -445,3 +445,13 @@ export interface GetDepositInstructionsResponse {
     success: boolean;
     data: DepositInstructionsData;
 }
+
+export interface ReuploadTransactionDocumentPayload {
+    transactionId: string;
+    documentType: string;
+    document: {
+        uri: string;
+        name: string;
+        type: string;
+    };
+}
