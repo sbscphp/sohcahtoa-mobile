@@ -28,7 +28,7 @@ export default function ViewBtaScreen() {
         }, [refetch])
     );
 
-    console.log('Transaction:', JSON.stringify(tx, null, 2));
+    // console.log('Transaction:', JSON.stringify(tx, null, 2));
 
     const { upload: uploadFile, isPending: isUploading } = useDocumentUpload({
         transactionId: transactionId || undefined,
