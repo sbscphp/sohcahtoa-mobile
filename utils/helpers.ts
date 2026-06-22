@@ -157,6 +157,7 @@ export const getStatusLabel = (status: string): string => {
         'DEPOSIT_CONFIRMED': 'Deposit Confirmed',
         'COMPLIANCE_REVIEW': 'Compliance Review',
         'ADMIN_APPROVAL_PENDING': 'Admin Approval Pending',
+        'AWAITING_REFUND_VERIFICATION': 'Awaiting Refund Verification',
         'AWAITING_DISBURSEMENT': 'Awaiting Disbursement',
         'APPROVED': 'Approved',
         'DISBURSEMENT_IN_PROGRESS': 'Disbursement In Progress',
@@ -180,6 +181,7 @@ export const getStatusStyle = (status: string) => {
         case 'Deposit Pending':
         case 'Admin Approval Pending':
         case 'Awaiting Disbursement':
+        case 'Awaiting Refund Verification':
             return { color: '#B54708', bg: '#FFFAEB', backgroundColor: '#FFFAEB' };
         case 'VERIFICATION_IN_PROGRESS':
         case 'VERIFICATION_COMPLETED':

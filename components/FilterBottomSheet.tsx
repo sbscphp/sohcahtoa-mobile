@@ -6,11 +6,21 @@ import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 
 const STATUS_OPTIONS = [
     { label: 'Draft', value: 'DRAFT' },
-    { label: 'Pending', value: 'AWAITING_VERIFICATION' },
-    { label: 'In Progress', value: 'VERIFICATION_IN_PROGRESS' },
+    { label: 'Awaiting Verification', value: 'AWAITING_VERIFICATION' },
+    { label: 'Verification In Progress', value: 'VERIFICATION_IN_PROGRESS' },
+    { label: 'Verification Completed', value: 'VERIFICATION_COMPLETED' },
+    { label: 'Awaiting Deposit', value: 'AWAITING_DEPOSIT' },
+    { label: 'Deposit Pending', value: 'DEPOSIT_PENDING' },
+    { label: 'Deposit Confirmed', value: 'DEPOSIT_CONFIRMED' },
+    { label: 'Compliance Review', value: 'COMPLIANCE_REVIEW' },
+    { label: 'Admin Approval Pending', value: 'ADMIN_APPROVAL_PENDING' },
+    { label: 'Awaiting Refund Verification', value: 'AWAITING_REFUND_VERIFICATION' },
+    { label: 'Awaiting Disbursement', value: 'AWAITING_DISBURSEMENT' },
     { label: 'Approved', value: 'APPROVED' },
+    { label: 'Disbursement In Progress', value: 'DISBURSEMENT_IN_PROGRESS' },
     { label: 'Completed', value: 'COMPLETED' },
-    { label: 'Declined', value: 'REJECTED' },
+    { label: 'Rejected', value: 'REJECTED' },
+    { label: 'Cancelled', value: 'CANCELLED' },
 ];
 
 const TYPE_OPTIONS = [

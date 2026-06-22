@@ -32,7 +32,7 @@ export default function ViewPtaScreen() {
         onError: () => showToast('Failed to upload document. Please try again.', 'error'),
     });
 
-    console.log('Transaction:', JSON.stringify(tx, null, 2));
+    // console.log('Transaction:', JSON.stringify(tx, null, 2));
 
     const status: TransactionStatus = tx ? mapApiStatusToViewStatus(tx.status) : 'pending';
 

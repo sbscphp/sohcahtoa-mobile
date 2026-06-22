@@ -29,7 +29,7 @@ const getApiStatusColors = (rawStatus: string) => {
     if (['REJECTED', 'CANCELLED'].includes(status)) {
         return { background: '#FECACA', text: '#991B1B' };
     }
-    if (['AWAITING_DEPOSIT', 'DEPOSIT_PENDING', 'DEPOSIT_CONFIRMED', 'DISBURSEMENT_IN_PROGRESS', 'AWAITING_DISBURSEMENT'].includes(status)) {
+    if (['AWAITING_DEPOSIT', 'DEPOSIT_PENDING', 'DEPOSIT_CONFIRMED', 'DISBURSEMENT_IN_PROGRESS', 'AWAITING_DISBURSEMENT', 'AWAITING_REFUND_VERIFICATION'].includes(status)) {
         return { background: '#DBEAFE', text: '#1E3A8A' };
     }
     if (['PENDING', 'AWAITING_VERIFICATION', 'VERIFICATION_IN_PROGRESS', 'COMPLIANCE_REVIEW', 'ADMIN_APPROVAL_PENDING'].includes(status)) {
