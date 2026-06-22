@@ -60,14 +60,14 @@ export default function ViewProfessionalScreen() {
                     value: tx.cashPickup.pickupLocation || 'N/A',
                     isRightAligned: true
                 },
-                ...(tx.cashPickup.scheduledPickupDate ? [{
+                ...((tx.cashPickup.scheduledPickupDate || tx.cashPickup.schedulePickupDate) ? [{
                     label: 'Pickup Date',
-                    value: formatDate(tx.cashPickup.scheduledPickupDate),
+                    value: formatDate(tx.cashPickup.scheduledPickupDate || tx.cashPickup.schedulePickupDate),
                     isRightAligned: true
                 }] : []),
-                ...(tx.cashPickup.scheduledPickupTime ? [{
+                ...((tx.cashPickup.scheduledPickupTime || tx.cashPickup.schedulePickupTime) ? [{
                     label: 'Pickup Time',
-                    value: tx.cashPickup.scheduledPickupTime,
+                    value: tx.cashPickup.scheduledPickupTime || tx.cashPickup.schedulePickupTime,
                     isRightAligned: true
                 }] : []),
             ] : []),
@@ -92,7 +92,7 @@ export default function ViewProfessionalScreen() {
             { label: 'Beneficiary Name', value: details.bankAccountName || details.name },
             ...(details.address ? [{ label: 'Beneficiary Address', value: details.address }] : []),
             ...(details.country ? [{ label: 'Country', value: details.country }] : []),
-            { label: 'Bank Name', value: details.bankName },
+            ...(details.bankName ? [{ label: 'Bank Name', value: details.bankName }] : []),
             { label: 'Account Number', value: details.bankAccountNumber || details.accountNumber },
             ...(details.bankAccountAddress || details.bankAddress ? [{ label: 'Bank Address', value: details.bankAccountAddress || details.bankAddress }] : []),
             ...(details.bankAccountSwiftCode || details.swiftCode ? [{ label: 'SWIFT Code', value: details.bankAccountSwiftCode || details.swiftCode }] : []),

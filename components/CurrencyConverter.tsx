@@ -162,7 +162,7 @@ export default function CurrencyConverter({
                                 Amount is higher than $ 10,000. Please <Text style={{ fontSize: moderateScale(12), color: 'rgba(217, 45, 32, 1)', fontWeight: '400', textDecorationLine: 'underline' }}>Upload a proof of fund</Text>
                             </Text>
                         </TouchableOpacity>
-                        <TouchableOpacity onPress={onDownloadPress}>
+                        <TouchableOpacity>
                             <Text style={{ fontSize: moderateScale(12), color: 'rgba(217, 45, 32, 1)', fontWeight: '400'}}>
                                 Need help? You can <Text style={{ fontSize: moderateScale(12), color: 'rgba(12, 12, 12, 1)', fontWeight: '400', textDecorationLine: 'underline' }}>Download our Proof of Funds Template </Text> to ensure your documentation meets the necessary requirements.
                             </Text>

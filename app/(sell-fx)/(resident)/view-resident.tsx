@@ -58,14 +58,14 @@ export default function ViewResidentScreen() {
                     value: tx.cashPickup.pickupLocation || 'N/A',
                     isRightAligned: true
                 },
-                ...(tx.cashPickup.scheduledPickupDate ? [{
+                ...((tx.cashPickup.scheduledPickupDate || tx.cashPickup.schedulePickupDate) ? [{
                     label: 'Pickup Date',
-                    value: formatDate(tx.cashPickup.scheduledPickupDate),
+                    value: formatDate(tx.cashPickup.scheduledPickupDate || tx.cashPickup.schedulePickupDate),
                     isRightAligned: true
                 }] : []),
-                ...(tx.cashPickup.scheduledPickupTime ? [{
+                ...((tx.cashPickup.scheduledPickupTime || tx.cashPickup.schedulePickupTime) ? [{
                     label: 'Pickup Time',
-                    value: tx.cashPickup.scheduledPickupTime,
+                    value: tx.cashPickup.scheduledPickupTime || tx.cashPickup.schedulePickupTime,
                     isRightAligned: true
                 }] : []),
             ] : []),

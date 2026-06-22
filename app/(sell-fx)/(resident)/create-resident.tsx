@@ -11,6 +11,7 @@ import { useProfileQuery } from '@/hooks/queries/auth/useProfileQuery';
 import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
 import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useExchangeLogic } from '@/hooks/useExchangeLogic';
+import SourceOfFundsSheet from '@/components/SourceOfFundsSheet';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useToastStore } from '@/stores/useToastStore';
 import { LocationItem } from '@/utils/locations';
@@ -226,6 +227,7 @@ export default function CreateResidentScreen() {
     const [docs, setDocs] = useState({
         passport: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
         utility: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        signature: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
     });
 
     const updateDoc = (key: keyof typeof docs, file: UploadedFile, metadata: UploadedMetadata) => {
@@ -238,6 +240,7 @@ export default function CreateResidentScreen() {
         onSuccess: (documentType, { file, metadata }) => {
             if (documentType === 'PASSPORT') updateDoc('passport', file, metadata);
             else if (documentType === 'UTILITY_BILL') updateDoc('utility', file, metadata);
+            else if (documentType === 'DIGITAL_SIGNATURE') updateDoc('signature', file, metadata);
         },
         onError: () => showToast('Failed to upload document. Please try again.', 'error'),
     });
@@ -258,6 +261,8 @@ export default function CreateResidentScreen() {
     } = useExchangeLogic({ setValue, initialAmount: '0', initialTransactionType: 'sell' });
 
     const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
+    const [showSourceOfFundsSheet, setShowSourceOfFundsSheet] = useState(false);
+    const [initials, setInitials] = useState('');
 
     const credentialFields = [
         {
@@ -454,6 +459,7 @@ export default function CreateResidentScreen() {
             documents: [
                 ...(docs.passport.meta ? [docs.passport.meta] : []),
                 ...(docs.utility.meta ? [docs.utility.meta] : []),
+                ...(docs.signature.meta ? [docs.signature.meta] : []),
             ],
             payoutMethod: data.payoutMethod,
             beneficiaryDetails: {
@@ -534,11 +540,14 @@ export default function CreateResidentScreen() {
                         onCurrencySendChange={setCurrencySend}
                         amountGet={amountGet}
                         amountSend={amountSend}
-                        rate={`1 ${currencyGet.code} = ${currentRate.toLocaleString()} ${currencySend.code}`}
+                        rate={`1 ${currencySend.code} = ${currentRate.toLocaleString()} ${currencyGet.code}`}
                         onAmountGetChange={setAmountGet}
                         onAmountSendChange={setAmountSend}
                         allowedModes={['sell']}
                         error={errors.amount?.message as string | undefined}
+                        showLimitWarning
+                        onLimitWarningPress={() => router.push('/proof-of-fund')}
+                        onDownloadPress={() => setShowSourceOfFundsSheet(true)}
                     />
                 )}
 
@@ -623,6 +632,32 @@ export default function CreateResidentScreen() {
                         setPayoutSheetVisible(false);
                     }}
                     confirmButtonText="Select a Payout Method"
+                />
+                <SourceOfFundsSheet
+                    visible={showSourceOfFundsSheet}
+                    onClose={() => setShowSourceOfFundsSheet(false)}
+                    onSubmit={() => {
+                        setShowSourceOfFundsSheet(false);
+                    }}
+                    customerInfo={{
+                        fullName: `${user?.profile?.firstName || ''} ${user?.profile?.lastName || ''}`,
+                        phoneNumber: user?.phoneNumber || '',
+                        email: user?.email || '',
+                        bvn: user?.kyc?.bvn || '',
+                        address: user?.profile?.address || '',
+                        passportDocumentNumber: watchedFields.passportDocumentNumber || user?.kyc?.passportDocumentNumber || ''
+                    }}
+                    transactionDetails={{
+                        type: 'Resident',
+                        currency: currencySend.currencyName,
+                        amount: `${currencySend.code} ${amountSend}`,
+                        purpose: 'Exchange'
+                    }}
+                    onUploadSignature={() => uploadFile('DIGITAL_SIGNATURE')}
+                    signatureFile={docs.signature.file?.name}
+                    isUploadingSignature={isUploading}
+                    initials={initials}
+                    onChangeInitials={setInitials}
                 />
             </TransactionLayout>
         </View>

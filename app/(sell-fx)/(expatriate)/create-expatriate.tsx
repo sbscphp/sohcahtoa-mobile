@@ -17,6 +17,7 @@ import { useSaveAccountMutation } from '@/hooks/queries/banks/useSaveAccountMuta
 import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
 import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useExchangeLogic } from '@/hooks/useExchangeLogic';
+import SourceOfFundsSheet from '@/components/SourceOfFundsSheet';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useToastStore } from '@/stores/useToastStore';
 import { LocationItem } from '@/utils/locations';
@@ -221,6 +222,7 @@ export default function CreateExpatriateScreen() {
         workPermit: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
         passport: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
         utility: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        signature: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
     });
 
     const updateDoc = (key: keyof typeof docs, file: UploadedFile, metadata: UploadedMetadata) => {
@@ -234,6 +236,7 @@ export default function CreateExpatriateScreen() {
             if (documentType === 'WORK_PERMIT') updateDoc('workPermit', file, metadata);
             else if (documentType === 'PASSPORT') updateDoc('passport', file, metadata);
             else if (documentType === 'UTILITY_BILL') updateDoc('utility', file, metadata);
+            else if (documentType === 'DIGITAL_SIGNATURE') updateDoc('signature', file, metadata);
         },
         onError: () => showToast('Failed to upload document. Please try again.', 'error'),
     });
@@ -255,6 +258,8 @@ export default function CreateExpatriateScreen() {
 
     // Step 3: Pickup
     const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
+    const [showSourceOfFundsSheet, setShowSourceOfFundsSheet] = useState(false);
+    const [initials, setInitials] = useState('');
 
     const handleSaveNewAccount = async () => {
         const isValid = await trigger([
@@ -354,6 +359,7 @@ export default function CreateExpatriateScreen() {
                 ...(docs.workPermit.meta ? [docs.workPermit.meta] : []),
                 ...(docs.passport.meta ? [docs.passport.meta] : []),
                 ...(docs.utility.meta ? [docs.utility.meta] : []),
+                ...(docs.signature.meta ? [docs.signature.meta] : []),
             ],
             payoutMethod: data.payoutMethod,
             beneficiaryDetails: {
@@ -535,6 +541,9 @@ export default function CreateExpatriateScreen() {
                         onAmountSendChange={setAmountSend}
                         allowedModes={['sell']}
                         error={errors.amount?.message as string | undefined}
+                        showLimitWarning
+                        onLimitWarningPress={() => router.push('/proof-of-fund')}
+                        onDownloadPress={() => setShowSourceOfFundsSheet(true)}
                     />
                 )}
 
@@ -620,6 +629,32 @@ export default function CreateExpatriateScreen() {
                         setPayoutSheetVisible(false);
                     }}
                     confirmButtonText="Select a Payout Method"
+                />
+                <SourceOfFundsSheet
+                    visible={showSourceOfFundsSheet}
+                    onClose={() => setShowSourceOfFundsSheet(false)}
+                    onSubmit={() => {
+                        setShowSourceOfFundsSheet(false);
+                    }}
+                    customerInfo={{
+                        fullName: `${user?.profile?.firstName || ''} ${user?.profile?.lastName || ''}`,
+                        phoneNumber: user?.phoneNumber || '',
+                        email: user?.email || '',
+                        bvn: user?.kyc?.bvn || '',
+                        address: user?.profile?.address || '',
+                        passportDocumentNumber: watchedFields.passportDocumentNumber || user?.kyc?.passportDocumentNumber || ''
+                    }}
+                    transactionDetails={{
+                        type: 'Expatriate',
+                        currency: currencySend.currencyName,
+                        amount: `${currencySend.code} ${amountSend}`,
+                        purpose: 'Exchange'
+                    }}
+                    onUploadSignature={() => uploadFile('DIGITAL_SIGNATURE')}
+                    signatureFile={docs.signature.file?.name}
+                    isUploadingSignature={isUploading}
+                    initials={initials}
+                    onChangeInitials={setInitials}
                 />
             </TransactionLayout>
         </View>

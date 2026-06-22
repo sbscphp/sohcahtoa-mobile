@@ -404,6 +404,8 @@ export default function TouringScreen() {
                 city: (data.selectedCity as LocationItem)?.title || '',
                 scheduledPickupDate: formatDateForApi(data.pickupDate),
                 scheduledPickupTime: data.pickupTime,
+                amount: Number(data.amount) || 0,
+                currency: currencyGet.code,
             } : undefined,
             payoutMethod: data.payoutMethod,
             beneficiaryDetails: {
@@ -481,6 +483,9 @@ export default function TouringScreen() {
                         onAmountSendChange={setAmountSendStr}
                         allowedModes={['buy']}
                         error={errors.amount?.message}
+                        showLimitWarning
+                        onLimitWarningPress={() => router.push('/proof-of-fund')}
+                        onDownloadPress={() => setShowSourceOfFundsSheet(true)}
                     />
                 )}
                 {currentStep === 3 && !isAddingNewAccount && (
@@ -546,7 +551,7 @@ export default function TouringScreen() {
                     items={[
                         {
                             title: "Request Summary",
-                            description: `You are requesting ${currencyGet.code === 'USD' ? '$' : currencyGet.code === 'GBP' ? '£' : currencyGet.code === 'EUR' ? '€' : ''}${amountGetStr} ${currencyGet.code.toUpperCase()}. You will be sent approximately ₦${amountSendStr}`,
+                            description: `You are requesting ${currencyGet.code === 'USD' ? '$' : currencyGet.code === 'GBP' ? '£' : currencyGet.code === 'EUR' ? '€' : ''}${amountGetStr} ${currencyGet.code.toUpperCase()}. You will pay approximately ₦${amountSendStr}`,
                             iconType: 'info'
                         },
                         {

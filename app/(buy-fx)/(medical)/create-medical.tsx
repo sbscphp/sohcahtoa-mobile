@@ -129,6 +129,7 @@ export default function MedicalPaymentScreen() {
         returnTicket: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
         referenceLetter: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
         overseaDoctorLetter: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        invoice: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
     });
 
     const updateDoc = (key: keyof typeof docs, file: UploadedFile, metadata: UploadedMetadata) => {
@@ -142,6 +143,7 @@ export default function MedicalPaymentScreen() {
             else if (documentType === 'RETURN_TICKET') updateDoc('returnTicket', file, metadata);
             else if (documentType === 'MEDICAL_LETTER') updateDoc('referenceLetter', file, metadata);
             else if (documentType === 'OVERSEAS_MEDICAL_LETTER') updateDoc('overseaDoctorLetter', file, metadata);
+            else if (documentType === 'INVOICE') updateDoc('invoice', file, metadata);
         },
         onError: () => showToast('Failed to upload document. Please try again.', 'error'),
     });
@@ -381,6 +383,7 @@ export default function MedicalPaymentScreen() {
                 ...(docs.returnTicket.meta ? [docs.returnTicket.meta] : []),
                 ...(docs.referenceLetter.meta ? [docs.referenceLetter.meta] : []),
                 ...(docs.overseaDoctorLetter.meta ? [docs.overseaDoctorLetter.meta] : []),
+                ...(docs.invoice.meta ? [docs.invoice.meta] : []),
             ],
             beneficiaryDetails: {
                 organizationName: data.organizationName,
@@ -490,7 +493,16 @@ export default function MedicalPaymentScreen() {
                 )}
 
                 {currentStep === 3 && (
-                    <ProfessionalBankDetailsStep control={control} watch={watch} setValue={setValue} errors={errors} isMedical={true} />
+                    <ProfessionalBankDetailsStep
+                        control={control}
+                        watch={watch}
+                        setValue={setValue}
+                        errors={errors}
+                        isMedical={true}
+                        invoiceFile={docs.invoice.file}
+                        onUploadInvoice={() => uploadFile('INVOICE')}
+                        isUploadingInvoice={isUploading}
+                    />
                 )}
 
                 <InitiateTransactionSheet
@@ -502,7 +514,7 @@ export default function MedicalPaymentScreen() {
                     items={[
                         {
                             title: "Request Summary",
-                            description: `You are requesting ${currencyGet.code === 'USD' ? '$' : currencyGet.code === 'GBP' ? '£' : currencyGet.code === 'EUR' ? '€' : ''}${amountGetStr} ${currencyGet.code.toUpperCase()}. You will be sent approximately ₦${amountSendStr}`,
+                            description: `You are requesting ${currencyGet.code === 'USD' ? '$' : currencyGet.code === 'GBP' ? '£' : currencyGet.code === 'EUR' ? '€' : ''}${amountGetStr} ${currencyGet.code.toUpperCase()}. You will pay approximately ₦${amountSendStr}`,
                             iconType: 'info'
                         },
                         {

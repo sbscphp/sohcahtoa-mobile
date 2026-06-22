@@ -277,6 +277,7 @@ export default function CreateTouristScreen() {
                 ...(docs.visa.meta ? [docs.visa.meta] : []),
                 ...(docs.ticket.meta ? [docs.ticket.meta] : []),
                 ...(docs.receipt.meta ? [docs.receipt.meta] : []),
+                ...(docs.signature.meta ? [docs.signature.meta] : []),
             ],
             passportDocumentNumber: data.passportDocumentNumber,
             passportIssueDate: data.passportIssueDate,
@@ -416,7 +417,7 @@ export default function CreateTouristScreen() {
                     onSubmit={() => {
                         setShowSourceOfFundsSheet(false);
 
-                        // console.log('Source of Funds Declaration Submitted');
+                       
                     }}
                     customerInfo={{
                         fullName: `${user?.profile?.firstName || ''} ${user?.profile?.lastName || ''}`,

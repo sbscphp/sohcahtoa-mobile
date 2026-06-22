@@ -1,5 +1,6 @@
 import ControlledInput from '@/components/ControlledInput';
 import GenericSelectionSheet, { SelectionItem } from '@/components/GenericSelectionSheet';
+import FileUpload from '@/components/FileUpload';
 import { ArrowDown2 } from 'iconsax-react-nativejs';
 import React from 'react';
 import { Controller } from 'react-hook-form';
@@ -12,6 +13,10 @@ interface ProfessionalBankDetailsStepProps {
     setValue: any;
     errors: any;
     isMedical?: boolean;
+    isSchool?: boolean;
+    invoiceFile?: any;
+    onUploadInvoice?: () => void;
+    isUploadingInvoice?: boolean;
 }
 
 const COUNTRIES: SelectionItem[] = [
@@ -28,7 +33,11 @@ export default function ProfessionalBankDetailsStep({
     watch,
     setValue,
     errors,
-    isMedical
+    isMedical,
+    isSchool,
+    invoiceFile,
+    onUploadInvoice,
+    isUploadingInvoice
 }: ProfessionalBankDetailsStepProps) {
     const beneficiaryCountry = watch('beneficiaryCountry');
     const [countrySheetVisible, setCountrySheetVisible] = React.useState(false);
@@ -39,6 +48,7 @@ export default function ProfessionalBankDetailsStep({
     const isIndia = beneficiaryCountry?.toLowerCase() === 'india';
     const isAustralia = beneficiaryCountry?.toLowerCase() === 'australia';
     const isOthers = beneficiaryCountry?.toLowerCase() === 'others';
+    const showInvoiceUpload = isOthers || isMedical || isSchool;
    
     return (
         <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
@@ -268,6 +278,21 @@ export default function ProfessionalBankDetailsStep({
                         style={{ height: moderateScale(80), textAlignVertical: 'top' }}
                         wrapperStyle={{ height: moderateScale(90), borderRadius: moderateScale(12), alignItems: 'flex-start', paddingTop: moderateScale(8) }}
                     />
+                )}
+
+                {showInvoiceUpload && (
+                    <View style={{ marginTop: moderateScale(12), gap: moderateScale(6) }}>
+                        <Text style={{ fontSize: moderateScale(12.5), color: '#475569' }}>
+                            Upload invoice (optional – with beneficiary details for verification)
+                        </Text>
+                        <FileUpload
+                            onUpload={onUploadInvoice || (() => {})}
+                            fileName={invoiceFile?.name}
+                            fileUri={invoiceFile?.uri}
+                            fileUrl={invoiceFile?.fileUrl || invoiceFile?.url}
+                            status={isUploadingInvoice ? 'pending' : 'default'}
+                        />
+                    </View>
                 )}
             </View>
 

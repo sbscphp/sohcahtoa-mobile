@@ -57,10 +57,10 @@ export const useExchangeLogic = ({ setValue, initialAmount = '1', maxLimit, init
     }, [exchangeRates, transactionType]);
 
     const handleAmountGetChange = (amount: string) => {
-        // Remove all non-numeric/non-decimal characters
+      
         let cleanAmount = amount.replace(/[^0-9.]/g, '');
         
-        // Handle multiple decimal points by keeping only the first one
+      
         const parts = cleanAmount.split('.');
         if (parts.length > 2) {
             cleanAmount = parts[0] + '.' + parts.slice(1).join('');

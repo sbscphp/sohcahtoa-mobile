@@ -475,7 +475,15 @@ export default function ProfessionalScreen() {
                 )}
 
                 {currentStep === 3 && (
-                    <ProfessionalBankDetailsStep control={control} watch={watch} setValue={setValue} errors={errors} />
+                    <ProfessionalBankDetailsStep
+                        control={control}
+                        watch={watch}
+                        setValue={setValue}
+                        errors={errors}
+                        invoiceFile={docs.invoice.file}
+                        onUploadInvoice={() => uploadFile('INVOICE')}
+                        isUploadingInvoice={isUploading}
+                    />
                 )}
 
                 <InitiateTransactionSheet
@@ -487,7 +495,7 @@ export default function ProfessionalScreen() {
                     items={[
                         {
                             title: "Request Summary",
-                            description: `You are requesting ${currencyGet.code === 'USD' ? '$' : currencyGet.code === 'GBP' ? '£' : currencyGet.code === 'EUR' ? '€' : ''}${amountGetStr} ${currencyGet.code.toUpperCase()}. You will be sent approximately ₦${amountSendStr}`,
+                            description: `You are requesting ${currencyGet.code === 'USD' ? '$' : currencyGet.code === 'GBP' ? '£' : currencyGet.code === 'EUR' ? '€' : ''}${amountGetStr} ${currencyGet.code.toUpperCase()}. You will pay approximately ₦${amountSendStr}`,
                             iconType: 'info'
                         },
                         {

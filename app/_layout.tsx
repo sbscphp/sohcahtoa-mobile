@@ -7,6 +7,10 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { clearStoredCredentials } from '@/utils/biometrics';
+import { useAuthStore } from '@/stores/useAuthStore';
+import InactiveSessionTracker from '@/components/InactiveSessionTracker';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useProtectedRoute } from '@/hooks/useProtectedRoute';
@@ -60,6 +64,27 @@ export default function RootLayout() {
     }
   }, [loaded]);
 
+  useEffect(() => {
+    const handleFirstRun = async () => {
+      try {
+        const hasRunBefore = await AsyncStorage.getItem('has_run_before');
+        if (!hasRunBefore) {
+          // Clear Zustand store persisted key
+          await AsyncStorage.removeItem('auth-storage');
+          // Clear secure store email/password
+          await clearStoredCredentials();
+          // Reset auth store memory state
+          useAuthStore.getState().logout();
+          // Set run flag
+          await AsyncStorage.setItem('has_run_before', 'true');
+        }
+      } catch (err) {
+        console.error('Error in first-run check:', err);
+      }
+    };
+    handleFirstRun();
+  }, []);
+
   if (!loaded) {
     return null;
   }
@@ -67,9 +92,11 @@ export default function RootLayout() {
   return (
     <QueryProvider>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <InitialLayout />
-        <GlobalToast />
-        <StatusBar style="auto" />
+        <InactiveSessionTracker>
+          <InitialLayout />
+          <GlobalToast />
+          <StatusBar style="auto" />
+        </InactiveSessionTracker>
       </ThemeProvider>
     </QueryProvider>
   );

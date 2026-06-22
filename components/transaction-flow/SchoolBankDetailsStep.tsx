@@ -1,5 +1,6 @@
 import ControlledInput from '@/components/ControlledInput';
 import GenericSelectionSheet, { SelectionItem } from '@/components/GenericSelectionSheet';
+import FileUpload from '@/components/FileUpload';
 import { ArrowDown2 } from 'iconsax-react-nativejs';
 import React from 'react';
 import { Controller } from 'react-hook-form';
@@ -11,6 +12,9 @@ interface SchoolBankDetailsStepProps {
     watch: any;
     setValue: any;
     errors: any;
+    invoiceFile?: any;
+    onUploadInvoice?: () => void;
+    isUploadingInvoice?: boolean;
 }
 
 const COUNTRIES: SelectionItem[] = [
@@ -19,13 +23,17 @@ const COUNTRIES: SelectionItem[] = [
     { id: '3', label: '🇨🇦 Canada', value: 'Canada' },
     { id: '4', label: '🇮🇳 India', value: 'India' },
     { id: '5', label: '🇦🇺 Australia', value: 'Australia' },
+    { id: '6', label: 'Others', value: 'Others' },
 ];
 
 export default function SchoolBankDetailsStep({
     control,
     watch,
     setValue,
-    errors
+    errors,
+    invoiceFile,
+    onUploadInvoice,
+    isUploadingInvoice
 }: SchoolBankDetailsStepProps) {
     const beneficiaryCountry = watch('beneficiaryCountry');
     const [countrySheetVisible, setCountrySheetVisible] = React.useState(false);
@@ -156,6 +164,19 @@ export default function SchoolBankDetailsStep({
                 }}
                 confirmButtonText="Select Country/Region"
             />
+
+            <View style={{ marginTop: moderateScale(16), gap: moderateScale(6) }}>
+                <Text style={{ fontSize: moderateScale(12.5), color: '#475569' }}>
+                    Upload invoice (optional – with beneficiary details for verification)
+                </Text>
+                <FileUpload
+                    onUpload={onUploadInvoice || (() => {})}
+                    fileName={invoiceFile?.name}
+                    fileUri={invoiceFile?.uri}
+                    fileUrl={invoiceFile?.fileUrl || invoiceFile?.url}
+                    status={isUploadingInvoice ? 'pending' : 'default'}
+                />
+            </View>
         </ScrollView>
     );
 }

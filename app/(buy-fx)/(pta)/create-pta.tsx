@@ -487,6 +487,8 @@ export default function PersonalTravelAllowanceScreen() {
                 locationId: data.selectedLocation?.id || '',
                 date: data.pickupDate || '',
                 time: data.pickupTime || '',
+                amount: Number(data.amount) || 0,
+                currency: currencyGet.code,
             } : undefined,
             payoutMethod: data.payoutMethod,
             beneficiaryDetails: {
@@ -619,7 +621,7 @@ export default function PersonalTravelAllowanceScreen() {
                 items={[
                     {
                         title: "Request Summary",
-                        description: `You are requesting ${currencyGet.code === 'USD' ? '$' : currencyGet.code === 'GBP' ? '£' : currencyGet.code === 'EUR' ? '€' : ''}${amountGetStr} ${currencyGet.code.toUpperCase()}. You will be sent approximately ₦${amountSendStr}`,
+                        description: `You are requesting ${currencyGet.code === 'USD' ? '$' : currencyGet.code === 'GBP' ? '£' : currencyGet.code === 'EUR' ? '€' : ''}${amountGetStr} ${currencyGet.code.toUpperCase()}. You will pay approximately ₦${amountSendStr}`,
                         iconType: 'info'
                     },
                     {

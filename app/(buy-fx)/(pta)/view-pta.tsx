@@ -32,7 +32,7 @@ export default function ViewPtaScreen() {
         onError: () => showToast('Failed to upload document. Please try again.', 'error'),
     });
 
-    // console.log('Transaction:', JSON.stringify(tx, null, 2));
+    console.log('Transaction:', JSON.stringify(tx, null, 2));
 
     const status: TransactionStatus = tx ? mapApiStatusToViewStatus(tx.status) : 'pending';
 
@@ -71,6 +71,10 @@ export default function ViewPtaScreen() {
             { label: 'Date Initiated', value: `${formatDate(tx.createdAt)}\n${formatTimeWithSeconds(tx.createdAt)}` },
             ...(tx.cashPickup ? [
                 {
+                    label: 'Pickup Cash Amount',
+                    value: formatCurrency(tx.cashPickup.amount, (tx.cashPickup.currency || tx.currency) === 'USD' ? '$' : (tx.cashPickup.currency || tx.currency) === 'GBP' ? '£' : (tx.cashPickup.currency || tx.currency) === 'EUR' ? '€' : (tx.cashPickup.currency || tx.currency)) || 'N/A',
+                },
+                {
                     label: 'Pickup Status',
                     value: tx.cashPickup.status?.replace(/_/g, ' ') || 'N/A',
                 },
@@ -97,14 +101,14 @@ export default function ViewPtaScreen() {
                     value: tx.cashPickup.recipientPhone,
                     isRightAligned: true,
                 }] : []),
-                ...(tx.cashPickup.scheduledPickupDate ? [{
+                ...((tx.cashPickup.scheduledPickupDate || tx.cashPickup.schedulePickupDate) ? [{
                     label: 'Pickup Date',
-                    value: formatDate(tx.cashPickup.scheduledPickupDate),
+                    value: formatDate(tx.cashPickup.scheduledPickupDate || tx.cashPickup.schedulePickupDate),
                     isRightAligned: true,
                 }] : []),
-                ...(tx.cashPickup.scheduledPickupTime ? [{
+                ...((tx.cashPickup.scheduledPickupTime || tx.cashPickup.schedulePickupTime) ? [{
                     label: 'Pickup Time',
-                    value: tx.cashPickup.scheduledPickupTime,
+                    value: tx.cashPickup.scheduledPickupTime || tx.cashPickup.schedulePickupTime,
                     isRightAligned: true,
                 }] : []),
                 ...(tx.cashPickup.expiryDate ? [{

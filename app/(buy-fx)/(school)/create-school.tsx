@@ -687,7 +687,15 @@ export default function SchoolFeesScreen() {
                 )}
 
                 {currentStep === 3 && (
-                    <SchoolBankDetailsStep control={control} watch={watch} setValue={setValue} errors={errors} />
+                    <SchoolBankDetailsStep
+                        control={control}
+                        watch={watch}
+                        setValue={setValue}
+                        errors={errors}
+                        invoiceFile={docs.invoice.file}
+                        onUploadInvoice={() => uploadFile('INVOICE')}
+                        isUploadingInvoice={isUploading}
+                    />
                 )}
 
                 <InitiateTransactionSheet
@@ -699,7 +707,7 @@ export default function SchoolFeesScreen() {
                     items={[
                         {
                             title: "Request Summary",
-                            description: `You are requesting ${currencyGet.code === 'USD' ? '$' : currencyGet.code === 'GBP' ? '£' : currencyGet.code === 'EUR' ? '€' : ''}${amountGetStr} ${currencyGet.code.toUpperCase()}. You will be sent approximately ₦${amountSendStr}`,
+                            description: `You are requesting ${currencyGet.code === 'USD' ? '$' : currencyGet.code === 'GBP' ? '£' : currencyGet.code === 'EUR' ? '€' : ''}${amountGetStr} ${currencyGet.code.toUpperCase()}. You will pay approximately ₦${amountSendStr}`,
                             iconType: 'info'
                         },
                         {

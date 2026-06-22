@@ -108,6 +108,13 @@ export interface TransactionCashPickup {
     pickupCity?: string;
     pickupState?: string;
     address?: string;
+    amount?: number;
+    currency?: string;
+    pickupCode?: string;
+    recipientPhone?: string;
+    expiryDate?: string;
+    schedulePickupDate?: string;
+    schedulePickupTime?: string;
 }
 
 export interface TransactionComment {

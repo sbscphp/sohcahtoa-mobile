@@ -470,6 +470,8 @@ export default function BusinessTravelAllowanceScreen() {
                 city: (data.selectedCity as LocationItem)?.title || '',
                 scheduledPickupDate: formatDateForApi(data.pickupDate || ''),
                 scheduledPickupTime: data.pickupTime || '',
+                amount: Number(data.amount) || 0,
+                currency: currencyGet.code,
             } : undefined,
             beneficiaryDetails: {
                 bankName: data.customerBankName,
@@ -609,7 +611,7 @@ export default function BusinessTravelAllowanceScreen() {
                     items={[
                         {
                             title: "Request Summary",
-                            description: `You are requesting ${currencyGet.code === 'USD' ? '$' : currencyGet.code === 'GBP' ? '£' : currencyGet.code === 'EUR' ? '€' : ''}${amountGetStr} ${currencyGet?.code?.toUpperCase()}. You will be sent approximately ₦${amountSendStr}`,
+                            description: `You are requesting ${currencyGet.code === 'USD' ? '$' : currencyGet.code === 'GBP' ? '£' : currencyGet.code === 'EUR' ? '€' : ''}${amountGetStr} ${currencyGet?.code?.toUpperCase()}. You will pay approximately ₦${amountSendStr}`,
                             iconType: 'info'
                         },
                         {
