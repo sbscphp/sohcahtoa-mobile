@@ -38,7 +38,7 @@ export function useDocumentUpload({ onSuccess, onError, transactionId }: UseDocu
     const upload = async (documentType: string, isReupload?: boolean) => {
         try {
             const result = await DocumentPicker.getDocumentAsync({
-                type: ['application/pdf', 'image/*'],
+                type: ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg', 'image/heic', 'image/webp'],
                 copyToCacheDirectory: true,
             });
 

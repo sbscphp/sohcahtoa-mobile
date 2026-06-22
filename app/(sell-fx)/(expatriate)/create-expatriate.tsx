@@ -418,7 +418,7 @@ export default function CreateExpatriateScreen() {
             >
                 {currentStep === 0 && (
                     <View style={styles.container}>
-                        <Text style={styles.sectionTitle}>{""}</Text>
+                        <Text style={styles.sectionTitle}>{"Enter Bank Verification Number (BVN),National Identification Number (NIN) and International Passport"}</Text>
 
                         <ControlledInput
                             control={control}
