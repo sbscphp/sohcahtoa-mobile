@@ -3,7 +3,7 @@ import { PanResponder, View, AppState, AppStateStatus } from 'react-native';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useToastStore } from '@/stores/useToastStore';
 
-// Timeout set to 5 minutes (300,000 milliseconds)
+
 const INACTIVITY_TIMEOUT = 5 * 60 * 1000;
 
 export default function InactiveSessionTracker({ children }: { children: React.ReactNode }) {
@@ -26,21 +26,19 @@ export default function InactiveSessionTracker({ children }: { children: React.R
     const handleLogout = (message: string) => {
         if (isAuthenticated) {
             logout();
-            // Show toast message
             useToastStore.getState().showToast(message, 'warning');
         }
     };
 
-    // Set up PanResponder to capture interaction on startup
     const panResponder = useRef(
         PanResponder.create({
             onStartShouldSetPanResponderCapture: () => {
                 resetTimer();
-                return false; // Let the event pass to child views
+                return false;
             },
             onMoveShouldSetPanResponderCapture: () => {
                 resetTimer();
-                return false; // Let the event pass to child views
+                return false;
             },
         })
     ).current;

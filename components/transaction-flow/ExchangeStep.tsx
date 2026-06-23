@@ -32,6 +32,7 @@ interface ExchangeStepProps {
     onDownloadPress?: () => void;
     error?: string;
     isLoading?: boolean;
+    isSchool?: boolean;
 }
 
 export default function ExchangeStep({
@@ -51,7 +52,8 @@ export default function ExchangeStep({
     onLimitWarningPress,
     onDownloadPress,
     error,
-    isLoading
+    isLoading,
+    isSchool
 }: ExchangeStepProps) {
 
 
@@ -77,6 +79,7 @@ export default function ExchangeStep({
                 onDownloadPress={onDownloadPress}
                 error={error}
                 isLoading={isLoading}
+                isSchool={isSchool}
             />
         </View>
     );

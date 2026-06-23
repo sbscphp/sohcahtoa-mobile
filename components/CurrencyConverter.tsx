@@ -35,6 +35,7 @@ export interface CurrencyConverterProps {
     onLimitWarningPress?: () => void;
     error?: string;
     isLoading?: boolean;
+    isSchool?: boolean;
 }
 
 export default function CurrencyConverter({
@@ -54,7 +55,8 @@ export default function CurrencyConverter({
     onLimitWarningPress,
     onDownloadPress,
     error,
-    isLoading = false
+    isLoading = false,
+    isSchool = false
 }: CurrencyConverterProps) {
     const [currencySheetVisible, setCurrencySheetVisible] = useState(false);
     const [activeCurrencyField, setActiveCurrencyField] = useState<'get' | 'send' | null>(null);
@@ -162,7 +164,7 @@ export default function CurrencyConverter({
                                 Amount is higher than $ 10,000. Please <Text style={{ fontSize: moderateScale(12), color: 'rgba(217, 45, 32, 1)', fontWeight: '400', textDecorationLine: 'underline' }}>Upload a proof of fund</Text>
                             </Text>
                         </TouchableOpacity>
-                        <TouchableOpacity>
+                      {isSchool ? null : <>  <TouchableOpacity>
                             <Text style={{ fontSize: moderateScale(12), color: 'rgba(217, 45, 32, 1)', fontWeight: '400'}}>
                                 Need help? You can <Text style={{ fontSize: moderateScale(12), color: 'rgba(12, 12, 12, 1)', fontWeight: '400', textDecorationLine: 'underline' }}>Download our Proof of Funds Template </Text> to ensure your documentation meets the necessary requirements.
                             </Text>
@@ -170,6 +172,8 @@ export default function CurrencyConverter({
                         <TouchableOpacity onPress={onDownloadPress}>
                             <Text style={{ fontSize: moderateScale(12), color: 'rgba(12, 12, 12, 1)', fontWeight: '400', textDecorationLine: 'underline' }}>View declaration form to upload signature </Text>.
                         </TouchableOpacity>
+                        </>
+}
                         </>
                     )}
                 </View>

@@ -393,7 +393,7 @@ const styles = ScaledSheet.create({
         backgroundColor: '#F0FDF4',
     },
     badgeSettled: {
-        backgroundColor: '#ECFCCB',
+        backgroundColor: '#F0FDF4',
     },
     badgeInProgress: {
         backgroundColor: '#EEF4FF',
@@ -415,7 +415,7 @@ const styles = ScaledSheet.create({
         color: '#16A34A',
     },
     textStatusSettled: {
-        color: '#4D7C0F',
+        color: '#16A34A',
     },
     textStatusInProgress: {
         color: '#3538CD',

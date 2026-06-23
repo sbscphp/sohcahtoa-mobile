@@ -93,7 +93,7 @@ const InitiateTransactionSheet: React.FC<InitiateTransactionSheetProps> = ({
 
                 <View style={[styles.sheetContent, { paddingBottom: insets.bottom + moderateScale(4) }]}>
 
-                    {/* Header Icon */}
+                
                     <View style={styles.headerIconContainer}>
                         <View style={styles.iconCircle}>
                             <InfoCircle size={moderateScale(24)} color="#FF6B2C" variant="Bold" />

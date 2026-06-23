@@ -630,7 +630,9 @@ export default function SchoolFeesScreen() {
         isStep1Valid = !!(docs.admission.meta && docs.passport.meta && docs.invoice.meta);
     }
 
-    const isStep2Valid = watchedFields.amount > 0;
+    const foreignAmountStr = currencyGet.code !== 'NGN' ? amountGetStr : amountSendStr;
+    const foreignAmount = parseFloat(foreignAmountStr.replace(/,/g, '')) || 0;
+    const isStep2Valid = watchedFields.amount > 0 && foreignAmount < 10000;
     const isStep3Valid = !!(
         watchedFields.beneficiaryCountry &&
         watchedFields.studentName &&
@@ -683,6 +685,7 @@ export default function SchoolFeesScreen() {
                         error={errors.amount?.message as string | undefined}
                         showLimitWarning
                         onLimitWarningPress={() => router.push('/proof-of-fund')}
+                        isSchool={true}
                     />
                 )}
 
