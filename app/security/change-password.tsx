@@ -4,6 +4,10 @@ import PasswordStrengthValidator, { validatePassword } from '@/components/Passwo
 import PrimaryButton from '@/components/PrimaryButton';
 import ProgressBar from '@/components/ProgressBar';
 import { useChangePasswordMutation } from '@/hooks/queries/user/useChangePasswordMutation';
+import { loginUser } from '@/services/auth';
+import { useAuthStore } from '@/stores/useAuthStore';
+import { useToastStore } from '@/stores/useToastStore';
+import { clearStoredCredentials } from '@/utils/biometrics';
 import { useRouter } from 'expo-router';
 import { Lock } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
@@ -20,14 +24,39 @@ export default function ChangePasswordScreen() {
     const [newPassword, setNewPassword] = useState('');
     const [confirmNewPassword, setConfirmNewPassword] = useState('');
 
+    const user = useAuthStore((state) => state.user);
+    const logout = useAuthStore((state) => state.logout);
+    const showToast = useToastStore((state) => state.showToast);
+
     const { mutate: changePassword, isPending } = useChangePasswordMutation();
+    const [isValidating, setIsValidating] = useState(false);
 
-    const handleContinue = () => {
+    const handleContinue = async () => {
+        if (!currentPassword) return;
 
-        if (currentPassword && currentPassword === confirmCurrentPassword) {
-            setStep(2);
-        } else {
-            console.warn("Passwords must match");
+        if (currentPassword !== confirmCurrentPassword) {
+            showToast("Passwords must match", "error");
+            return;
+        }
+
+        if (!user?.email) {
+            showToast("User email not found", "error");
+            return;
+        }
+
+        setIsValidating(true);
+        try {
+            const response = await loginUser({ email: user.email, password: currentPassword });
+            if (response.success) {
+                setStep(2);
+            } else {
+                showToast("Incorrect current password", "error");
+            }
+        } catch (error: any) {
+            const message = error.response?.data?.error?.message || error.message || 'Verification Failed';
+            showToast(message, 'error');
+        } finally {
+            setIsValidating(false);
         }
     };
 
@@ -36,14 +65,18 @@ export default function ChangePasswordScreen() {
         const isValid = Object.values(validations).every(Boolean);
 
         if (isValid && newPassword === confirmNewPassword) {
-
             changePassword({ oldPassword: currentPassword, newPassword }, {
-                onSuccess: () => {
-                    router.back();
+                onSuccess: async () => {
+                    showToast('Password changed successfully. Please login again.', 'success');
+                    await clearStoredCredentials();
+                    useAuthStore.getState().setBiometricEnabled(false);
+                    await useAuthStore.getState().checkCredentials();
+                    logout();
+                    router.replace('/(auth)/login');
                 }
             });
         } else {
-            console.warn("Invalid new password");
+            showToast("Invalid new password", "error");
         }
     };
 
@@ -124,7 +157,8 @@ export default function ChangePasswordScreen() {
                         <PrimaryButton
                             title="Continue"
                             onPress={handleContinue}
-                            disabled={!currentPassword || currentPassword !== confirmCurrentPassword}
+                            disabled={!currentPassword || currentPassword !== confirmCurrentPassword || isValidating}
+                            loading={isValidating}
                         />
                     ) : (
                         <PrimaryButton

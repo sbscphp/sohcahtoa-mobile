@@ -1,16 +1,28 @@
+import ControlledDatePicker from '@/components/ControlledDatePicker';
 import ControlledInput from '@/components/ControlledInput';
+import GenericSelectionSheet, { SelectionItem } from '@/components/GenericSelectionSheet';
 import InitiateTransactionSheet from '@/components/InitiateTransactionSheet';
 import LoadingBackdrop from '@/components/LoadingBackdrop';
+import AddNewAccountStep from '@/components/transaction-flow/AddNewAccountStep';
 import CredentialStep from '@/components/transaction-flow/CredentialStep';
 import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import LocationStep from '@/components/transaction-flow/LocationStep';
+import PayoutMethodStep from '@/components/transaction-flow/PayoutMethodStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
+import { useProfileQuery } from '@/hooks/queries/auth/useProfileQuery';
+import { useGetBanksQuery } from '@/hooks/queries/banks/useGetBanksQuery';
+import { useGetSavedAccountsQuery } from '@/hooks/queries/banks/useGetSavedAccountsQuery';
+import { useLookupAccountMutation } from '@/hooks/queries/banks/useResolveAccountMutation';
+import { useSaveAccountMutation } from '@/hooks/queries/banks/useSaveAccountMutation';
 import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
+import { useGetPickupCitiesQuery } from '@/hooks/queries/transactions/useGetPickupCitiesQuery';
 import { useGetPickupPointsQuery } from '@/hooks/queries/transactions/useGetPickupPointsQuery';
 import { useGetPickupStatesQuery } from '@/hooks/queries/transactions/useGetPickupStatesQuery';
+import { useGetTransactionsQuery } from '@/hooks/queries/transactions/useGetTransactionsQuery';
 import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useExchangeLogic } from '@/hooks/useExchangeLogic';
+import { useAuthStore } from '@/stores/useAuthStore';
 import { useToastStore } from '@/stores/useToastStore';
 import { LocationItem } from '@/utils/locations';
 import { ptaStep0Schema, ptaStep1Schema, ptaStep2Schema, ptaStep3Schema } from '@/utils/validations/pta';
@@ -21,11 +33,125 @@ import { useForm } from 'react-hook-form';
 import { View } from 'react-native';
 import { z } from 'zod';
 
+const formatDateToPickerFormat = (dateStr: string | undefined | null): string => {
+    if (!dateStr) return '';
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) return dateStr;
+    try {
+        const date = new Date(dateStr);
+        if (isNaN(date.getTime())) {
+            const parts = dateStr.split('-');
+            if (parts.length === 3) {
+                if (parts[0].length === 4) return `${parts[2].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[0]}`;
+                if (parts[2].length === 4) return `${parts[0].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[2]}`;
+            }
+            return '';
+        }
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+    } catch (e) {
+        return '';
+    }
+};
+
+const PAYOUT_METHODS: SelectionItem[] = [
+    { id: '1', label: 'Electronic Transfer (100%)', value: 'Electronic Transfer (100%)' },
+    { id: '2', label: 'Card (100%)', value: 'Card (100%)' },
+    { id: '3', label: 'Card (75%) + Cash (25%)', value: 'Card (75%) + Cash (25%)', description: 'Maximum amount to be collected as cash is $500' },
+];
+
+
+
 const ptaFormSchema = z.object({
     ...ptaStep0Schema.shape,
     ...ptaStep1Schema.shape,
     ...ptaStep2Schema.shape,
-    ...ptaStep3Schema.shape
+    payoutMethod: z.string().min(1, 'Please select a payout method'),
+    customerBankName: z.string().optional().or(z.literal('')),
+    customerBankCode: z.string().optional().or(z.literal('')),
+    customerAccountNumber: z.string().optional().or(z.literal('')),
+    customerAccountName: z.string().optional().or(z.literal('')),
+    selectedState: z.any().optional(),
+    selectedCity: z.any().optional(),
+    selectedLocation: z.any().optional(),
+    pickupDate: z.string().optional().or(z.literal('')),
+    pickupTime: z.string().optional().or(z.literal('')),
+}).superRefine((data, ctx) => {
+    const isElectronicTransfer = data.payoutMethod?.includes('Electronic') || data.payoutMethod === 'Electronic_Transfer';
+    if (isElectronicTransfer) {
+        if (!data.customerBankName) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'Please select your bank',
+                path: ['customerBankName']
+            });
+        }
+        if (!data.customerBankCode) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'Please select your bank',
+                path: ['customerBankCode']
+            });
+        }
+        if (!data.customerAccountNumber || data.customerAccountNumber.length !== 10) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'Account number must be 10 digits',
+                path: ['customerAccountNumber']
+            });
+        }
+        if (!data.customerAccountName) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'Account name must be resolved',
+                path: ['customerAccountName']
+            });
+        }
+    } else {
+        if (!data.selectedState) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'Please select a state',
+                path: ['selectedState']
+            });
+        }
+        if (!data.selectedCity) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'Please select a city',
+                path: ['selectedCity']
+            });
+        }
+        if (!data.selectedLocation) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'Please select a pickup location',
+                path: ['selectedLocation']
+            });
+        }
+        if (!data.pickupDate) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'Please select a pickup date',
+                path: ['pickupDate']
+            });
+        }
+        if (!data.pickupTime) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'Please select a pickup time',
+                path: ['pickupTime']
+            });
+        }
+    }
+    if (data.passportIssueDate && data.passportExpiryDate && data.passportIssueDate === data.passportExpiryDate) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Passport Expiry Date cannot be the same as Passport Issue Date',
+            path: ['passportExpiryDate']
+        });
+    }
 });
 
 type PtaFormValues = z.infer<typeof ptaFormSchema>;
@@ -34,9 +160,16 @@ export default function PersonalTravelAllowanceScreen() {
     const router = useRouter();
     const createTransaction = useCreateTransactionMutation();
     const showToast = useToastStore(s => s.showToast);
+    useProfileQuery();
+    const user = useAuthStore(s => s.user);
+    const { data: transactionsResponse } = useGetTransactionsQuery();
+    const transactions = transactionsResponse?.pages?.flatMap(p => p.data) || [];
 
     const [currentStep, setCurrentStep] = useState(0);
     const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
+    const [payoutSheetVisible, setPayoutSheetVisible] = useState(false);
+    const [selectedSavedAccountId, setSelectedSavedAccountId] = useState<string | null>('');
+    const [isAddingNewAccount, setIsAddingNewAccount] = useState(false);
 
     const {
         control,
@@ -44,22 +177,28 @@ export default function PersonalTravelAllowanceScreen() {
         trigger,
         watch,
         setValue,
+        getValues,
         formState: { errors }
     } = useForm<PtaFormValues>({
         resolver: zodResolver(ptaFormSchema),
         defaultValues: {
-            bvn: '',
-            nin: '',
+            bvn: user?.kyc?.bvn || '',
+            nin: (user?.kyc as any)?.nin || (user as any)?.nin || '',
             formAId: '',
-            passportNumber: '',
-            visaNumber: '',
-            ticketNumber: '',
+            passportDocumentNumber: '',
+            passportIssueDate: '',
+            passportExpiryDate: '',
             amount: 0,
             selectedState: undefined as unknown as LocationItem,
             selectedCity: undefined as unknown as LocationItem,
             selectedLocation: undefined as unknown as LocationItem,
             pickupDate: '',
             pickupTime: '',
+            payoutMethod: '',
+            customerBankName: '',
+            customerBankCode: '',
+            customerAccountNumber: '',
+            customerAccountName: '',
         },
         mode: 'onChange'
     });
@@ -76,41 +215,121 @@ export default function PersonalTravelAllowanceScreen() {
         amountSendStr,
         setAmountSendStr,
         currentRate,
-    } = useExchangeLogic({ setValue, initialAmount: '0' });
+    } = useExchangeLogic({ setValue, initialAmount: '0', maxLimit: 4000 });
 
     // Dynamic Locations
     const { data: states = [] } = useGetPickupStatesQuery();
     const { data: allLocations = [] } = useGetPickupPointsQuery();
 
-    console.log(states, "states")
-    console.log(allLocations, "allLocations")
-
     const watchedFields = watch() as any;
+    const isElectronicTransfer = watchedFields.payoutMethod?.includes('Electronic') || watchedFields.payoutMethod === 'Electronic_Transfer';
 
-    const filteredCities = useMemo(() => {
-        if (!watchedFields.selectedState) return [];
-        const citiesMap = new Map<string, LocationItem>();
-        allLocations.forEach((loc: any) => {
-            const point = loc.metadata;
-            if (point && point.location) {
-                citiesMap.set(point.location, {
-                    id: `city-${point.location}`,
-                    title: point.location
-                });
-            }
-        });
-        return Array.from(citiesMap.values());
-    }, [watchedFields.selectedState, allLocations]);
+    const { data: filteredCities = [] } = useGetPickupCitiesQuery(watchedFields.selectedState?.title);
 
     const filteredLocations = useMemo(() => {
         if (!watchedFields.selectedCity) return [];
-        return allLocations.filter((loc: any) => loc.metadata.location === watchedFields.selectedCity.title);
+        return allLocations.filter((loc: any) => loc.metadata.city === watchedFields.selectedCity.title);
     }, [watchedFields.selectedCity, allLocations]);
 
-    // Document upload files state
+    // Banks and Account Resolution
+    const { data: banksResponse } = useGetBanksQuery();
+    const banks = useMemo(() =>
+        (banksResponse?.data || []).map(b => ({ id: b.code, label: b.name, value: b.code })),
+        [banksResponse]);
+
+    const { data: savedAccountsResponse } = useGetSavedAccountsQuery();
+    const savedAccounts = useMemo(() => {
+        return (savedAccountsResponse?.data || []).map(a => {
+            const clean = (str: string) => {
+                return (str || '')
+                    .toLowerCase()
+                    .replace(/\b(plc|limited|ltd|bank|microfinance|mgb|mfd)\b/g, '')
+                    .replace(/[^a-z0-9]/g, '')
+                    .trim();
+            };
+            const cleanedTarget = clean(a.bankName);
+            const foundBank = (banksResponse?.data || []).find(b => {
+                const cleanedBank = clean(b.name);
+                return cleanedBank === cleanedTarget || cleanedBank.includes(cleanedTarget) || cleanedTarget.includes(cleanedBank);
+            });
+            return {
+                id: a.id,
+                bankName: a.bankName,
+                accountNumber: a.accountNumber,
+                accountName: a.accountName,
+                bankCode: foundBank?.code || ''
+            };
+        });
+    }, [savedAccountsResponse, banksResponse]);
+
+    const saveAccountMutation = useSaveAccountMutation();
+
+    const resolveAccount = useLookupAccountMutation();
+
+    React.useEffect(() => {
+        if (!isAddingNewAccount) return;
+        if (watchedFields.customerAccountNumber?.length === 10 && watchedFields.customerBankCode) {
+            resolveAccount.mutate({
+                accountNumber: watchedFields.customerAccountNumber,
+                bankName: watchedFields.customerBankName
+            }, {
+                onSuccess: (res) => {
+                    if (res.success) {
+                        setValue('customerAccountName', res.data.accountName);
+                    }
+                },
+                onError: () => {
+                    setValue('customerAccountName', '');
+                    showToast('Could not resolve account name', 'error');
+                }
+            });
+        }
+    }, [watchedFields.customerAccountNumber, watchedFields.customerBankCode, isAddingNewAccount]);
+
+
+    React.useEffect(() => {
+        if (transactions.length > 0) {
+            let foundPassportNumber = '';
+            let foundPassportIssueDate = '';
+            let foundPassportExpiryDate = '';
+
+            for (const tx of transactions) {
+                const passportVal = tx.personalInfo?.passportDocumentNumber || tx.personalInfo?.passportDocumentNumber || (tx as any).passportDocumentNumber;
+                const issueDateVal = tx.personalInfo?.passportIssueDate;
+                const expiryDateVal = tx.personalInfo?.passportExpiryDate;
+
+                if (!foundPassportNumber && passportVal) foundPassportNumber = String(passportVal);
+                if (!foundPassportIssueDate && issueDateVal) foundPassportIssueDate = String(issueDateVal);
+                if (!foundPassportExpiryDate && expiryDateVal) foundPassportExpiryDate = String(expiryDateVal);
+
+                if (foundPassportNumber && foundPassportIssueDate && foundPassportExpiryDate) break;
+            }
+
+            const profilePassportNumber = user?.kyc?.passportDocumentNumber || '';
+            const finalPassportNumber = foundPassportNumber || profilePassportNumber;
+
+            if (finalPassportNumber && !watchedFields.passportDocumentNumber) {
+                setValue('passportDocumentNumber', finalPassportNumber, { shouldValidate: true, shouldDirty: true });
+            }
+            if (foundPassportIssueDate && !watchedFields.passportIssueDate) {
+                setValue('passportIssueDate', formatDateToPickerFormat(foundPassportIssueDate), { shouldValidate: true, shouldDirty: true });
+            }
+            if (foundPassportExpiryDate && !watchedFields.passportExpiryDate) {
+                setValue('passportExpiryDate', formatDateToPickerFormat(foundPassportExpiryDate), { shouldValidate: true, shouldDirty: true });
+            }
+        } else {
+            const profilePassportNumber = user?.kyc?.passportDocumentNumber || '';
+            if (profilePassportNumber && !watchedFields.passportDocumentNumber) {
+                setValue('passportDocumentNumber', profilePassportNumber, { shouldValidate: true, shouldDirty: true });
+            }
+        }
+    }, [transactions, user, setValue, watchedFields.passportDocumentNumber, watchedFields.passportIssueDate, watchedFields.passportExpiryDate]);
+
+
     const [docs, setDocs] = useState({
         visa: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
-        ticket: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        returnTicket: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        passport: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
     });
 
     const updateDoc = (key: keyof typeof docs, file: UploadedFile, metadata: UploadedMetadata) => {
@@ -120,16 +339,29 @@ export default function PersonalTravelAllowanceScreen() {
     const { upload: uploadFile, isPending: isUploading } = useDocumentUpload({
         onSuccess: (documentType, { file, metadata }) => {
             if (documentType === 'VISA') updateDoc('visa', file, metadata);
-            else if (documentType === 'RETURN_TICKET') updateDoc('ticket', file, metadata);
+            else if (documentType === 'RETURN_TICKET') updateDoc('returnTicket', file, metadata);
+            else if (documentType === 'PASSPORT') updateDoc('passport', file, metadata);
         },
         onError: () => showToast('Failed to upload document. Please try again.', 'error'),
     });
 
     const credentialFields = [
-        { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number(BVN)" placeholder="Enter your BVN" required keyboardType="numeric" maxLength={11} filterType="numeric" /> },
-        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number(NIN)" placeholder="Enter your NIN" required keyboardType="numeric" maxLength={11} filterType="numeric" /> },
+        { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number(BVN)" placeholder="Enter your BVN" required keyboardType="numeric" maxLength={11} filterType="numeric" disabled /> },
+        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number(NIN)" placeholder="Enter your NIN" keyboardType="numeric" maxLength={11} filterType="numeric" disabled /> },
         { customComponent: <ControlledInput control={control} name="formAId" label="Form A ID" placeholder="Enter Form A ID" required /> },
-        { customComponent: <ControlledInput control={control} name="passportNumber" label="International Passport Number" placeholder="Enter international passport" required maxLength={9} filterType="alphanumeric" /> },
+        { customComponent: <ControlledInput control={control} name="passportDocumentNumber" label="International Passport Number" placeholder="Enter international passport" required maxLength={9} filterType="alphanumeric" /> },
+        {
+            customComponent: (
+                <View style={{ flexDirection: 'row', gap: 12, marginTop: 6 }}>
+                    <View style={{ flex: 1 }}>
+                        <ControlledDatePicker control={control} name="passportIssueDate" label="Passport Issue Date" required maximumDate={new Date()} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                        <ControlledDatePicker control={control} name="passportExpiryDate" label="Passport Expiry Date" required minimumDate={new Date()} />
+                    </View>
+                </View>
+            )
+        }
     ];
 
     const documentFields = [
@@ -140,33 +372,76 @@ export default function PersonalTravelAllowanceScreen() {
             fileUri: docs.visa.file?.uri, fileUrl: docs.visa.meta?.fileUrl,
             fileType: docs.visa.file?.type,
             required: true,
-            associatedInputs: (
-                <View>
-                    <ControlledInput control={control} name="visaNumber" label="Valid Visa Number" required placeholder="Enter valid visa number" maxLength={8} filterType="alphanumeric" />
-                </View>
-            )
         },
         {
             label: 'Return Ticket',
             onUpload: () => uploadFile('RETURN_TICKET'),
-            fileName: docs.ticket.file?.name,
-            fileUri: docs.ticket.file?.uri, fileUrl: docs.ticket.meta?.fileUrl,
-            fileType: docs.ticket.file?.type,
+            fileName: docs.returnTicket.file?.name,
+            fileUri: docs.returnTicket.file?.uri, fileUrl: docs.returnTicket.meta?.fileUrl,
+            fileType: docs.returnTicket.file?.type,
             required: true,
-            associatedInputs: (
-                <View>
-                    <ControlledInput control={control} name="ticketNumber" label="Return Ticket Number" required placeholder="Enter return ticket number" maxLength={13} filterType="numeric" keyboardType="numeric" />
-                </View>
-            )
+        },
+        {
+            label: 'International Passport',
+            onUpload: () => uploadFile('PASSPORT'),
+            fileName: docs.passport.file?.name,
+            fileUri: docs.passport.file?.uri, fileUrl: docs.passport.meta?.fileUrl,
+            fileType: docs.passport.file?.type,
+            required: true,
         }
     ];
 
-    const handleNext = async () => {
-        const stepSchemas = [ptaStep0Schema, ptaStep1Schema, ptaStep2Schema, ptaStep3Schema];
-        const isValid = await trigger(Object.keys(stepSchemas[currentStep].shape) as any);
+    const handleSaveNewAccount = async () => {
+        const isValid = await trigger([
+            'customerBankName',
+            'customerBankCode',
+            'customerAccountNumber',
+            'customerAccountName'
+        ]);
 
         if (isValid) {
-            if (currentStep < 3) {
+            saveAccountMutation.mutate({
+                bankName: watchedFields.customerBankName || '',
+                accountNumber: watchedFields.customerAccountNumber || '',
+                accountName: watchedFields.customerAccountName || '',
+            }, {
+                onSuccess: (res) => {
+                    if (res.data?.id) {
+                        setSelectedSavedAccountId(res.data.id);
+                    }
+                    setIsAddingNewAccount(false);
+                }
+            });
+        }
+    };
+
+    const handleNext = async () => {
+        const stepSchemas = [
+            ptaStep0Schema,
+            ptaStep1Schema,
+            ptaStep2Schema,
+            z.object({ payoutMethod: z.string().min(1) }),
+            ptaStep3Schema
+        ];
+
+        let isValid = false;
+        if (currentStep === 3) {
+            if (isAddingNewAccount) {
+                return;
+            }
+            const fieldsToTrigger: any[] = ['payoutMethod'];
+            if (isElectronicTransfer) {
+                fieldsToTrigger.push('customerBankName', 'customerBankCode', 'customerAccountNumber', 'customerAccountName');
+            }
+            isValid = await trigger(fieldsToTrigger);
+        } else {
+            isValid = await trigger(Object.keys(stepSchemas[currentStep].shape) as any);
+        }
+
+        if (isValid) {
+            const values = getValues();
+            const isElectronicTransferLatest = values.payoutMethod?.includes('Electronic') || values.payoutMethod === 'Electronic_Transfer';
+            if (currentStep < (isElectronicTransferLatest ? 3 : 4)) {
                 setCurrentStep(prev => prev + 1);
             } else {
                 setInitiateSheetVisible(true);
@@ -175,6 +450,10 @@ export default function PersonalTravelAllowanceScreen() {
     };
 
     const handleBack = () => {
+        if (isAddingNewAccount) {
+            setIsAddingNewAccount(false);
+            return;
+        }
         if (currentStep > 0) {
             setCurrentStep(prev => prev - 1);
         } else {
@@ -185,31 +464,42 @@ export default function PersonalTravelAllowanceScreen() {
     const handleInitiate = (data: PtaFormValues) => {
         const payload = {
             type: 'PTA',
+             mode: "BUY",
             currency: currencyGet.code,
             amount: data.amount,
-            purpose: 'Personal Travel Allowance (PTA)',
+            purpose: 'Personal Travel Allowance',
             destinationCountry: currencyGet.country,
             bvn: data.bvn,
             nin: data.nin,
             formAId: data.formAId,
-            passportNumber: data.passportNumber,
-            visaNumber: data.visaNumber,
-            ticketNumber: data.ticketNumber,
+            passportDocumentNumber: data.passportDocumentNumber,
+            passportIssueDate: data.passportIssueDate,
+            passportExpiryDate: data.passportExpiryDate,
             documents: [
                 ...(docs.visa.meta ? [docs.visa.meta] : []),
-                ...(docs.ticket.meta ? [docs.ticket.meta] : []),
+                ...(docs.returnTicket.meta ? [docs.returnTicket.meta] : []),
+                ...(docs.passport.meta ? [docs.passport.meta] : []),
             ],
-            pickupLocation: {
-                state: data.selectedState.title,
-                city: data.selectedCity.title,
-                name: data.selectedLocation.title,
-                address: data.selectedLocation.subtitle || '',
-                locationId: data.selectedLocation.id,
-                date: data.pickupDate,
-                time: data.pickupTime,
+            pickupLocation: (!(data.payoutMethod?.includes('Electronic') || data.payoutMethod === 'Electronic_Transfer') && data.selectedLocation) ? {
+                state: data.selectedState?.title || '',
+                city: data.selectedCity?.title || '',
+                name: data.selectedLocation?.title || '',
+                address: data.selectedLocation?.subtitle || '',
+                locationId: data.selectedLocation?.id || '',
+                date: data.pickupDate || '',
+                time: data.pickupTime || '',
+                amount: Number(data.amount) || 0,
+                currency: currencyGet.code,
+            } : undefined,
+            payoutMethod: data.payoutMethod,
+            beneficiaryDetails: {
+                bankName: data.customerBankName,
+                bankCode: data.customerBankCode,
+                accountNumber: data.customerAccountNumber,
+                accountName: data.customerAccountName,
             }
         };
-
+//  console.log(payload, "PAYLOAD")
         createTransaction.mutate(payload, {
             onSuccess: (response: any) => {
                 if (response.success) {
@@ -226,21 +516,25 @@ export default function PersonalTravelAllowanceScreen() {
         });
     };
 
-    const isNextDisabled = currentStep === 1
-        ? !docs.visa.file || !docs.ticket.file
-        : false;
+    const isStep3Valid = watchedFields.payoutMethod && (!isElectronicTransfer || (watchedFields.customerBankName && watchedFields.customerBankCode && watchedFields.customerAccountNumber && watchedFields.customerAccountName));
+    const isStep4Valid = watchedFields.selectedState && watchedFields.selectedCity && watchedFields.selectedLocation && watchedFields.pickupDate && watchedFields.pickupTime;
+
+    const isNextDisabled =
+        (currentStep === 1 && (!docs.visa.file || !docs.returnTicket.file || !docs.passport.file)) ||
+        (currentStep === 3 && !isStep3Valid) ||
+        (currentStep === 4 && !isElectronicTransfer && !isStep4Valid);
 
     return (
         <View style={{ flex: 1 }}>
-            <LoadingBackdrop visible={isUploading || createTransaction.isPending} />
+            <LoadingBackdrop visible={isUploading || createTransaction.isPending || saveAccountMutation.isPending} />
             <TransactionLayout
                 title="Personal Travel Allowance (PTA)"
                 currentStep={currentStep}
-                totalSteps={4}
+                totalSteps={isElectronicTransfer ? 4 : 5}
                 onBack={handleBack}
-                onNext={handleNext}
+                onNext={isAddingNewAccount ? handleSaveNewAccount : handleNext}
                 isNextDisabled={isNextDisabled}
-                nextLabel={currentStep === 3 ? (watchedFields.selectedState && watchedFields.selectedCity ? "Initiate Transaction Request" : "Continue") : "Continue"}
+                nextLabel={isAddingNewAccount ? "Save" : (currentStep === (isElectronicTransfer ? 3 : 4) ? (isElectronicTransfer || (watchedFields.selectedState && watchedFields.selectedCity) ? "Initiate Transaction Request" : "Continue") : "Continue")}
             >
                 {currentStep === 0 && (
                     <CredentialStep fields={credentialFields} />
@@ -265,7 +559,29 @@ export default function PersonalTravelAllowanceScreen() {
                         error={errors.amount?.message}
                     />
                 )}
-                {currentStep === 3 && (
+                {currentStep === 3 && !isAddingNewAccount && (
+                    <PayoutMethodStep
+                        control={control}
+                        setValue={setValue}
+                        setPayoutSheetVisible={setPayoutSheetVisible}
+                        savedAccounts={savedAccounts}
+                        selectedSavedAccountId={selectedSavedAccountId}
+                        setSelectedSavedAccountId={setSelectedSavedAccountId}
+                        setIsAddingNewAccount={setIsAddingNewAccount}
+                    />
+                )}
+
+                {currentStep === 3 && isAddingNewAccount && (
+                    <AddNewAccountStep
+                        control={control}
+                        setValue={setValue}
+                        banks={banks}
+                        isResolving={resolveAccount.isPending}
+                        selectedBankCode={watchedFields.customerBankCode}
+                    />
+                )}
+
+                {currentStep === 4 && !isElectronicTransfer && (
                     <LocationStep
                         states={states}
                         cities={filteredCities}
@@ -287,7 +603,13 @@ export default function PersonalTravelAllowanceScreen() {
                         onPickupDateChange={(date) => setValue('pickupDate', date)}
                         pickupTime={watchedFields.pickupTime}
                         onPickupTimeChange={(time) => setValue('pickupTime', time)}
-                        errors={errors as any}
+                        errors={{
+                            state: errors.selectedState?.message as string | undefined,
+                            city: errors.selectedCity?.message as string | undefined,
+                            location: errors.selectedLocation?.message as string | undefined,
+                            pickupDate: errors.pickupDate?.message as string | undefined,
+                            pickupTime: errors.pickupTime?.message as string | undefined
+                        }}
                     />
                 )}
             </TransactionLayout>
@@ -297,7 +619,35 @@ export default function PersonalTravelAllowanceScreen() {
                 onClose={() => setInitiateSheetVisible(false)}
                 onConfirm={handleSubmit(handleInitiate)}
                 loading={createTransaction.isPending}
+                items={[
+                    {
+                        title: "Request Summary",
+                        description: `You are requesting ${currencyGet.code === 'USD' ? '$' : currencyGet.code === 'GBP' ? '£' : currencyGet.code === 'EUR' ? '€' : ''}${amountGetStr} ${currencyGet.code.toUpperCase()}. You will pay approximately ₦${amountSendStr}`,
+                        iconType: 'info'
+                    },
+                    {
+                        title: "Maximum Limit",
+                        description: "Please note that the maximum you can transact is $4,000 per quarter.",
+                        iconType: 'limit'
+                    }
+                ]}
             />
+
+            <GenericSelectionSheet
+                visible={payoutSheetVisible}
+                onClose={() => setPayoutSheetVisible(false)}
+                title="Choose a Payout Method"
+                subtitle="Select an option below"
+                items={PAYOUT_METHODS}
+                selectedItem={watchedFields.payoutMethod}
+                onSelect={(item) => {
+                    setValue('payoutMethod', item.value);
+                    setPayoutSheetVisible(false);
+                }}
+                confirmButtonText="Select a Payout Method"
+            />
+
+
         </View>
     );
 }

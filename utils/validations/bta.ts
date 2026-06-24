@@ -2,27 +2,21 @@ import { z } from 'zod';
 import {
     amountStepSchema,
     baseCredentialSchema,
-    formAIdField,
     locationStepSchema,
     passportExpiryDateField,
     passportIssueDateField,
-    tccNumberField,
-    ticketNumberField,
     tinField,
-    visaNumberField,
 } from './shared';
 
 /** Step 0: BTA credentials — standard + TIN */
 export const btaStep0Schema = baseCredentialSchema.extend({
-    tin: tinField,
+    tinNumber: tinField,
 });
 
 /** Step 1: BTA document details */
 export const btaStep1Schema = z.object({
-    tccNumber: tccNumberField,
     passportIssueDate: passportIssueDateField,
     passportExpiryDate: passportExpiryDateField,
-    visaNumber: visaNumberField,
 });
 
 /** Step 2: BTA amount */

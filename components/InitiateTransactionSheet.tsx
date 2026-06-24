@@ -1,9 +1,11 @@
 import { InfoCircle, Verify } from 'iconsax-react-nativejs';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
+import { Ionicons } from '@expo/vector-icons';
 import PrimaryButton from './PrimaryButton';
+import { useGetWalletLedgerQuery } from '@/hooks/queries/wallet/useGetWalletLedgerQuery';
 
 interface InfoItemProps {
     title: string;
@@ -33,13 +35,25 @@ const InitiateTransactionSheet: React.FC<InitiateTransactionSheetProps> = ({
     loading,
     items = [
         {
-            title: "Verification before approval",
-            description: "You will be able to process your transaction once your documents are verified and approved.",
-            iconType: 'verify'
+            title: "",
+            description: "Please note that the maximum you can transact is $4,000 per quarter.",
+            iconType: 'limit'
         }
     ]
 }) => {
     const insets = useSafeAreaInsets();
+    const { data: ledgerData } = useGetWalletLedgerQuery({ page: 1, limit: 1 });
+    const firstPage = ledgerData?.pages?.[0];
+    const balance = firstPage?.data?.balance;
+    const currency = firstPage?.data?.currency || 'NGN';
+
+    const [isChecked, setIsChecked] = useState(false);
+
+    useEffect(() => {
+        if (visible) {
+            setIsChecked(false);
+        }
+    }, [visible]);
 
     const renderIcon = (item: InfoItemProps) => {
         if (item.icon) return item.icon;
@@ -79,7 +93,7 @@ const InitiateTransactionSheet: React.FC<InitiateTransactionSheetProps> = ({
 
                 <View style={[styles.sheetContent, { paddingBottom: insets.bottom + moderateScale(4) }]}>
 
-                    {/* Header Icon */}
+                
                     <View style={styles.headerIconContainer}>
                         <View style={styles.iconCircle}>
                             <InfoCircle size={moderateScale(24)} color="#FF6B2C" variant="Bold" />
@@ -89,24 +103,42 @@ const InitiateTransactionSheet: React.FC<InitiateTransactionSheetProps> = ({
                     <Text style={styles.title}>{title}</Text>
                     <Text style={styles.subtitle}>{subtitle}</Text>
 
-                    {/* Info Box */}
+                  
                     <View style={styles.infoBox}>
                         {items.map((item, index) => (
                             <View key={index} style={styles.infoItem}>
                                 {renderIcon(item)}
                                 <View style={styles.infoTextContainer}>
-                                    <Text style={styles.infoTitle}>{item.title}</Text>
+                                    {item.title ? <Text style={styles.infoTitle}>{item.title}</Text> : null}
                                     <Text style={styles.infoDescription}>{item.description}</Text>
                                 </View>
                             </View>
                         ))}
                     </View>
 
+                    <TouchableOpacity
+                        style={styles.checkboxContainer}
+                        activeOpacity={0.8}
+                        onPress={() => setIsChecked(!isChecked)}
+                    >
+                        <View style={styles.checkbox}>
+                            {isChecked ? (
+                                <Ionicons name="checkbox" size={moderateScale(20)} color="#FF6B2C" />
+                            ) : (
+                                <Ionicons name="square-outline" size={moderateScale(20)} color="#64748B" />
+                            )}
+                        </View>
+                        <Text style={styles.checkboxLabel}>
+                            I confirm that the information I have provided is correct.
+                        </Text>
+                    </TouchableOpacity>
+
                     <View style={styles.footerActions}>
                         <PrimaryButton
                             title={confirmText}
                             onPress={onConfirm}
                             loading={loading}
+                            disabled={!isChecked}
                         />
                         <TouchableOpacity style={styles.secondaryBtn} onPress={onClose}>
                             <Text style={styles.secondaryBtnText}>No, Close</Text>
@@ -204,7 +236,46 @@ const styles = ScaledSheet.create({
         color: '#0F172A',
         fontSize: '14@ms',
         fontWeight: '600',
-    }
+    },
+    balanceContainer: {
+        backgroundColor: '#F8FAFC',
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+        borderRadius: '12@ms',
+        paddingHorizontal: '16@s',
+        paddingVertical: '12@vs',
+        marginBottom: '16@vs',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    balanceLabelText: {
+        fontSize: '13@ms',
+        color: '#64748B',
+        fontWeight: '500',
+    },
+    balanceValueText: {
+        fontSize: '14@ms',
+        fontWeight: '700',
+        color: '#0F172A',
+    },
+    checkboxContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: '20@vs',
+        gap: '8@s',
+        paddingHorizontal: '4@s',
+    },
+    checkbox: {
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    checkboxLabel: {
+        fontSize: '13@ms',
+        color: '#475569',
+        flex: 1,
+        lineHeight: '18@ms',
+    },
 });
 
 export default InitiateTransactionSheet;

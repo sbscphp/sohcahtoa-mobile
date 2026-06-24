@@ -60,4 +60,15 @@ describe('TransactionDetailsView', () => {
         expect(getByText('Bank Transfer')).toBeTruthy();
         expect(getByText('Access Bank')).toBeTruthy();
     });
+
+    it('does not inject and render currentStep anymore', () => {
+        const props = {
+            ...defaultProps,
+            currentStep: 'DEPOSIT_CONFIRMATION',
+        };
+        const { queryByText } = render(<TransactionDetailsView {...props} />);
+
+        expect(queryByText('Current Step')).toBeNull();
+        expect(queryByText('Deposit Confirmation')).toBeNull();
+    });
 });

@@ -9,6 +9,7 @@ export type TransactionStatus = 'pending' | 'approved' | 'more_info' | 'rejected
 
 interface TransactionStatusViewProps {
     status: TransactionStatus;
+    apiStatus?: string;
     id: string;
     date: string;
     time: string;
@@ -16,7 +17,36 @@ interface TransactionStatusViewProps {
     comments?: TransactionComment[];
 }
 
-export default function TransactionStatusView({ status, id, date, time, message, comments }: TransactionStatusViewProps) {
+const formatApiStatus = (rawStatus?: string) => rawStatus
+    ? rawStatus.replace(/_/g, ' ')
+    : 'Unknown';
+
+const getApiStatusColors = (rawStatus: string) => {
+    const status = rawStatus.toUpperCase();
+    if (['APPROVED', 'COMPLETED', 'SETTLED'].includes(status)) {
+        return { background: '#DCFCE7', text: '#166534' };
+    }
+    if (['REJECTED', 'CANCELLED'].includes(status)) {
+        return { background: '#FECACA', text: '#991B1B' };
+    }
+    if (['AWAITING_DEPOSIT', 'DEPOSIT_PENDING', 'DEPOSIT_CONFIRMED', 'DISBURSEMENT_IN_PROGRESS', 'AWAITING_DISBURSEMENT', 'AWAITING_REFUND_VERIFICATION'].includes(status)) {
+        return { background: '#DBEAFE', text: '#1E3A8A' };
+    }
+    if (['PENDING', 'AWAITING_VERIFICATION', 'VERIFICATION_IN_PROGRESS', 'COMPLIANCE_REVIEW', 'ADMIN_APPROVAL_PENDING'].includes(status)) {
+        return { background: '#FEF3C7', text: '#92400E' };
+    }
+    return { background: '#E2E8F0', text: '#475569' };
+};
+
+export default function TransactionStatusView({ status, apiStatus, id, date, time, message, comments }: TransactionStatusViewProps) {
+    const apiStatusLabel = apiStatus ? formatApiStatus(apiStatus) : undefined;
+    const apiStatusColors = apiStatus ? getApiStatusColors(apiStatus) : undefined;
+    const statusLabel = apiStatusLabel || (status === 'approved' ? 'Approved' :
+        status === 'awaiting_disbursement' ? 'Awaiting Disbursement' :
+            status === 'rejected' ? 'Rejected' :
+                status === 'settled' ? 'Settled' :
+                    'Information Pending');
+
     const renderComments = () => {
         if (!comments || comments.length === 0) return null;
 
@@ -156,21 +186,19 @@ export default function TransactionStatusView({ status, id, date, time, message,
                 <Text style={styles.txStatusLabel}>Transaction Status</Text>
                 <View style={[
                     styles.txStatusBadge,
-                    status === 'more_info' && styles.txStatusBadgeMoreInfo,
-                    status === 'awaiting_disbursement' && styles.txStatusBadgeAwaiting,
-                    status === 'rejected' && styles.txStatusBadgeRejected
+                    !apiStatus && status === 'more_info' && styles.txStatusBadgeMoreInfo,
+                    !apiStatus && status === 'awaiting_disbursement' && styles.txStatusBadgeAwaiting,
+                    !apiStatus && status === 'rejected' && styles.txStatusBadgeRejected,
+                    apiStatus && apiStatusColors && { backgroundColor: apiStatusColors.background }
                 ]}>
                     <Text style={[
                         styles.txStatusText,
-                        status === 'more_info' && styles.txStatusTextMoreInfo,
-                        status === 'awaiting_disbursement' && styles.txStatusTextAwaiting,
-                        status === 'rejected' && styles.txStatusTextRejected
+                        !apiStatus && status === 'more_info' && styles.txStatusTextMoreInfo,
+                        !apiStatus && status === 'awaiting_disbursement' && styles.txStatusTextAwaiting,
+                        !apiStatus && status === 'rejected' && styles.txStatusTextRejected,
+                        apiStatus && apiStatusColors && { color: apiStatusColors.text }
                     ]}>
-                        {status === 'approved' ? 'Approved' :
-                            status === 'awaiting_disbursement' ? 'Awaiting Disbursement' :
-                                status === 'rejected' ? 'Rejected' :
-                                    status === 'settled' ? 'Settled' :
-                                        'Information Pending'}
+                        {statusLabel}
                     </Text>
                 </View>
             </View>

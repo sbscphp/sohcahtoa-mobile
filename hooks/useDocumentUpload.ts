@@ -1,4 +1,5 @@
 import { useUploadTransactionDocumentMutation } from '@/hooks/queries/transactions/useUploadTransactionDocumentMutation';
+import { useReuploadTransactionDocumentMutation } from '@/hooks/queries/transactions/useReuploadTransactionDocumentMutation';
 import { useAuthStore } from '@/stores/useAuthStore';
 import * as DocumentPicker from 'expo-document-picker';
 
@@ -32,11 +33,12 @@ interface UseDocumentUploadOptions {
 export function useDocumentUpload({ onSuccess, onError, transactionId }: UseDocumentUploadOptions) {
     const user = useAuthStore((state) => state.user);
     const uploadDocument = useUploadTransactionDocumentMutation();
+    const reuploadDocument = useReuploadTransactionDocumentMutation();
 
-    const upload = async (documentType: string) => {
+    const upload = async (documentType: string, isReupload?: boolean) => {
         try {
             const result = await DocumentPicker.getDocumentAsync({
-                type: ['application/pdf', 'image/*'],
+                type: ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg', 'image/heic', 'image/webp'],
                 copyToCacheDirectory: true,
             });
 
@@ -49,38 +51,72 @@ export function useDocumentUpload({ onSuccess, onError, transactionId }: UseDocu
                 return;
             }
 
-            uploadDocument.mutate(
-                {
-                    userId: user.id,
-                    transactionId,
-                    documentType,
-                    document: {
-                        uri: asset.uri,
-                        name: asset.name,
-                        type: asset.mimeType || 'application/octet-stream',
+            if (transactionId && isReupload) {
+                reuploadDocument.mutate(
+                    {
+                        transactionId,
+                        documentType,
+                        document: {
+                            uri: asset.uri,
+                            name: asset.name,
+                            type: asset.mimeType || 'application/octet-stream',
+                        },
                     },
-                },
-                {
-                    onSuccess: (response: any) => {
-                        const uploaded = response.data;
-                        if (uploaded) {
-                            const file: UploadedFile = {
-                                uri: asset.uri,
-                                name: asset.name,
-                                type: asset.mimeType || 'application/octet-stream',
-                                size: asset.size || 0,
-                            };
-                            const metadata: UploadedMetadata = {
-                                documentType,
-                                fileUrl: uploaded.fileUrl,
-                                fileName: uploaded.fileName,
-                                fileSize: uploaded.fileSize || asset.size || 0,
-                            };
-                            onSuccess(documentType, { file, metadata, response });
-                        }
+                    {
+                        onSuccess: (response: any) => {
+                            const uploaded = response.data;
+                            if (uploaded) {
+                                const file: UploadedFile = {
+                                    uri: asset.uri,
+                                    name: asset.name,
+                                    type: asset.mimeType || 'application/octet-stream',
+                                    size: asset.size || 0,
+                                };
+                                const metadata: UploadedMetadata = {
+                                    documentType,
+                                    fileUrl: uploaded.fileUrl,
+                                    fileName: uploaded.fileName,
+                                    fileSize: uploaded.fileSize || asset.size || 0,
+                                };
+                                onSuccess(documentType, { file, metadata, response });
+                            }
+                        },
+                    }
+                );
+            } else {
+                uploadDocument.mutate(
+                    {
+                        userId: user.id,
+                        transactionId,
+                        documentType,
+                        document: {
+                            uri: asset.uri,
+                            name: asset.name,
+                            type: asset.mimeType || 'application/octet-stream',
+                        },
                     },
-                }
-            );
+                    {
+                        onSuccess: (response: any) => {
+                            const uploaded = response.data;
+                            if (uploaded) {
+                                const file: UploadedFile = {
+                                    uri: asset.uri,
+                                    name: asset.name,
+                                    type: asset.mimeType || 'application/octet-stream',
+                                    size: asset.size || 0,
+                                };
+                                const metadata: UploadedMetadata = {
+                                    documentType,
+                                    fileUrl: uploaded.fileUrl,
+                                    fileName: uploaded.fileName,
+                                    fileSize: uploaded.fileSize || asset.size || 0,
+                                };
+                                onSuccess(documentType, { file, metadata, response });
+                            }
+                        },
+                    }
+                );
+            }
         } catch (error) {
             console.error('Error picking document:', error);
             onError?.(error);
@@ -89,6 +125,6 @@ export function useDocumentUpload({ onSuccess, onError, transactionId }: UseDocu
 
     return {
         upload,
-        isPending: uploadDocument.isPending,
+        isPending: transactionId ? reuploadDocument.isPending : uploadDocument.isPending,
     };
 }

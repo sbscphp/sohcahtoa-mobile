@@ -4,16 +4,34 @@ export interface CreateTransactionPayload {
     amount: number;
     purpose: string;
     destinationCountry: string;
-    bvn: string;
-    nin: string;
+    bvn?: string;
+    nin?: string;
     formAId?: string;
     admissionType?: string;
+    passportDocumentNumber?: string;
+    passportIssueDate?: string;
+    passportExpiryDate?: string;
+    identificationNumber?: string;
+    visaNumber?: string;
+    ticketNumber?: string;
     beneficiaryDetails?: {
-        name: string;
-        accountNumber: string;
-        accountName: string;
-        bankName: string;
-        iban: string;
+        name?: string;
+        accountNumber?: string;
+        accountName?: string;
+        bankName?: string;
+        iban?: string;
+        address?: string;
+        swiftCode?: string;
+        studentName?: string;
+        studentPassportNumber?: string;
+        bankAccountName?: string;
+        bankAccountAddress?: string;
+        bankAccountIban?: string;
+        bankAccountSwiftCode?: string;
+        bankAccountNumber?: string;
+        correspondenceBankName?: string;
+        correspondenceBankAddress?: string;
+        correspondenceBankSwiftCode?: string;
     };
     documents: {
         documentType: string;
@@ -27,6 +45,12 @@ export interface CreateTransactionPayload {
         address: string;
         recipientName?: string;
         recipientPhone?: string;
+    };
+    paymentDetails?: {
+        bankName?: string;
+        bankCode?: string;
+        accountNumber?: string;
+        accountName?: string;
     };
 }
 
@@ -79,6 +103,18 @@ export interface TransactionDocument {
 export interface TransactionCashPickup {
     pickupLocation: string;
     status: string;
+    scheduledPickupDate?: string;
+    scheduledPickupTime?: string;
+    pickupCity?: string;
+    pickupState?: string;
+    address?: string;
+    amount?: number;
+    currency?: string;
+    pickupCode?: string;
+    recipientPhone?: string;
+    expiryDate?: string;
+    schedulePickupDate?: string;
+    schedulePickupTime?: string;
 }
 
 export interface TransactionComment {
@@ -109,6 +145,9 @@ export interface Transaction {
         bvn?: string;
         nin?: string;
         admissionType?: string;
+        passportDocumentNumber?: string;
+        passportIssueDate?: string;
+        passportExpiryDate?: string;
     };
     createdAt: string;
     updatedAt: string;
@@ -125,6 +164,16 @@ export interface Transaction {
         bankAddress?: string;
         routingNumber?: string;
         swiftCode?: string;
+        studentName?: string;
+        studentPassportNumber?: string;
+        bankAccountName?: string;
+        bankAccountAddress?: string;
+        bankAccountIban?: string;
+        bankAccountSwiftCode?: string;
+        bankAccountNumber?: string;
+        correspondenceBankName?: string;
+        correspondenceBankAddress?: string;
+        correspondenceBankSwiftCode?: string;
     };
     paymentDetails?: {
         name: string;
@@ -217,6 +266,7 @@ export interface CalculateExchangeRatePayload {
     fromCurrency: string;
     toCurrency: string;
     amount: number;
+    mode?: 'buy' | 'sell';
 }
 
 export interface CalculateExchangeRateResponse {
@@ -266,6 +316,9 @@ export interface GetTransactionByIdResponse {
             bvn?: string;
             nin?: string;
             admissionType?: string;
+            passportDocumentNumber?: string;
+            passportIssueDate?: string;
+            passportExpiryDate?: string;
         };
         rejection?: {
             reason: string;
@@ -293,6 +346,16 @@ export interface GetTransactionByIdResponse {
             bankAddress?: string;
             routingNumber?: string;
             swiftCode?: string;
+            studentName?: string;
+            studentPassportNumber?: string;
+            bankAccountName?: string;
+            bankAccountAddress?: string;
+            bankAccountIban?: string;
+            bankAccountSwiftCode?: string;
+            bankAccountNumber?: string;
+            correspondenceBankName?: string;
+            correspondenceBankAddress?: string;
+            correspondenceBankSwiftCode?: string;
         };
         paymentDetails?: {
             name: string;
@@ -314,6 +377,13 @@ export interface GetPickupStatesResponse {
     success: boolean;
     data: {
         states: string[];
+    };
+}
+
+export interface GetPickupCitiesResponse {
+    success: boolean;
+    data: {
+        cities: string[];
     };
 }
 
@@ -339,5 +409,56 @@ export interface GetTransactionTotalsResponse {
         buy: TransactionGroupTotal;
         sell: TransactionGroupTotal;
         remittance: TransactionGroupTotal;
+    };
+}
+
+export interface AttachBankAccountsPayload {
+    transactionId: string;
+    bankAccountIds: string[];
+}
+
+export interface AttachBankAccountsResponse {
+    success: boolean;
+    message?: string;
+    data?: any;
+}
+
+export interface GetVirtualAccountResponse {
+    success: boolean;
+    message?: string;
+    data: {
+        accountNumber: string;
+        bankName: string;
+        accountName: string;
+        expiryDate?: string;
+        expiresAt?: string;
+    };
+}
+
+export interface DepositInstructionsData {
+    accountNumber: string;
+    accountName: string;
+    bankName: string;
+    amount: number;
+    baseAmount: number;
+    feeAmount: number;
+    currency: string;
+    expiresAt: string;
+    instructions: string[];
+    warningNote: string;
+}
+
+export interface GetDepositInstructionsResponse {
+    success: boolean;
+    data: DepositInstructionsData;
+}
+
+export interface ReuploadTransactionDocumentPayload {
+    transactionId: string;
+    documentType: string;
+    document: {
+        uri: string;
+        name: string;
+        type: string;
     };
 }

@@ -67,7 +67,7 @@ export default function LocationStep({
 
             <View style={styles.inputGroup}>
                 <Text style={styles.label}>State <Text style={styles.required}>*</Text></Text>
-                <TouchableOpacity style={styles.dropdownInput} onPress={() => setStateSheetVisible(true)}>
+                <TouchableOpacity style={[styles.dropdownInput, errors?.state ? styles.dropdownError : undefined]} onPress={() => setStateSheetVisible(true)}>
                     <Text style={[styles.dropdownPlaceholder, selectedState && styles.dropdownSelectedText]}>
                         {selectedState ? selectedState.title : 'Select an Option'}
                     </Text>
@@ -79,7 +79,7 @@ export default function LocationStep({
             <View style={styles.inputGroup}>
                 <Text style={styles.label}>Select a City <Text style={styles.required}>*</Text></Text>
                 <TouchableOpacity
-                    style={[styles.dropdownInput, !selectedState && { backgroundColor: '#F1F5F9' }]}
+                    style={[styles.dropdownInput, !selectedState && { backgroundColor: '#F1F5F9' }, errors?.city ? styles.dropdownError : undefined]}
                     disabled={!selectedState}
                     onPress={() => setCitySheetVisible(true)}
                 >
@@ -116,7 +116,7 @@ export default function LocationStep({
             {!selectedLocation ? (
                 hasSelectedStateAndCity ? (
                     <TouchableOpacity
-                        style={[styles.emptyStateBox, { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: moderateScale(16), alignItems: 'center' }]}
+                        style={[styles.emptyStateBox, { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: moderateScale(16), alignItems: 'center' }, errors?.location ? styles.dropdownError : undefined]}
                         onPress={() => setLocationSheetVisible(true)}
                     >
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: moderateScale(12) }}>
@@ -273,5 +273,8 @@ const styles = ScaledSheet.create({
         color: '#EF4444',
         marginTop: '4@vs',
         marginLeft: '4@s',
+    },
+    dropdownError: {
+        borderColor: '#EF4444',
     },
 });

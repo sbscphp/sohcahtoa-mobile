@@ -76,6 +76,11 @@ export const useAuthStore = create<AuthState>()(
         {
             name: 'auth-storage',
             storage: createJSONStorage(() => AsyncStorage),
+            partialize: (state) => ({
+                isBiometricEnabled: state.isBiometricEnabled,
+                biometricType: state.biometricType,
+                hasSeenNotificationPrompt: state.hasSeenNotificationPrompt,
+            }),
         }
     )
 );

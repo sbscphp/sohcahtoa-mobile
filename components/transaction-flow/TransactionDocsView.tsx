@@ -77,7 +77,7 @@ export default function TransactionDocsView({ status, documents }: TransactionDo
                                 onUpload={doc.onUpload || (() => { })}
                                 fileName={doc.fileName}
                                 title={`Upload ${doc.label}`}
-                                status={((): 'default' | 'approved' | 'pending' | 'error' | 'rejected' => { const s = getDocStatus(doc.docStatus); return s === 'review' ? 'pending' : s; })()}
+                                status={getDocStatus(doc.docStatus) as any}
                             />
                             {doc.fileName && (
                                 <View style={[styles.docStatusRow, { marginTop: 0 }]}>

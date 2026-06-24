@@ -106,7 +106,7 @@ export default function BvnConfirmationScreen() {
                 <View style={styles.content}>
                     <Text style={styles.title}>Final Step Ahead</Text>
                     <Text style={styles.subtitle}>
-                        We'll send an OTP to your email to complete this step.
+                        {"We'll send an OTP to your email to complete this step."}
                     </Text>
 
                     <View style={styles.card}>
@@ -131,7 +131,7 @@ export default function BvnConfirmationScreen() {
 
             <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
                 <PrimaryButton
-                    title="Send OTP"
+                    title="Continue"
                     onPress={handleSendOtp}
                     loading={isSendingTouristOtp || isSendingExpatriateOtp || isSendingNigerianEmailOtp}
                     disabled={isSendingTouristOtp || isSendingExpatriateOtp || isSendingNigerianEmailOtp}

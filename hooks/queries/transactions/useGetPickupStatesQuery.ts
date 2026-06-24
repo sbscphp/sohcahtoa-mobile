@@ -11,6 +11,7 @@ export const useGetPickupStatesQuery = () => {
             if (!response.success || !response.data.states) return [];
             return response.data.states.map((state, index) => ({
                 title: state,
+                id: index.toString(),
             })) as LocationItem[];
         }
     });

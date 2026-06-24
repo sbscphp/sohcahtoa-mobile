@@ -1,10 +1,22 @@
 import SuccessScreen from '@/components/SuccessScreen';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import React from 'react';
+import { useLocalSearchParams, useRouter, useNavigation } from 'expo-router';
+import React, { useEffect } from 'react';
+import { BackHandler } from 'react-native';
 
 export default function PaymentSuccessScreen() {
     const router = useRouter();
+    const navigation = useNavigation();
     const { transactionId } = useLocalSearchParams();
+
+    useEffect(() => {
+        navigation.setOptions({
+            gestureEnabled: false,
+        });
+        const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+            return true;
+        });
+        return () => backHandler.remove();
+    }, [navigation]);
 
 
     const handleViewTransaction = () => {
@@ -12,6 +24,7 @@ export default function PaymentSuccessScreen() {
             pathname: '/(sell-fx)/(resident)/view-resident',
             params: {
                 transactionId: transactionId,
+                fromSuccess: 'true'
             },
         });
     };

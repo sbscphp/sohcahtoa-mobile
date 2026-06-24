@@ -1,19 +1,38 @@
 import TransactionDetailsView from '@/components/transaction-flow/TransactionDetailsView';
 import TransactionStatusView, { TransactionStatus } from '@/components/transaction-flow/TransactionStatusView';
 import TransactionViewLayout from '@/components/transaction-flow/TransactionViewLayout';
-import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import { Text, TouchableOpacity } from 'react-native';
+import { useRouter, useLocalSearchParams, useNavigation } from 'expo-router';
+import React, { useState, useEffect } from 'react';
+import { Text, TouchableOpacity, BackHandler } from 'react-native';
 
 export default function ViewReceiveFxScreen() {
     const router = useRouter();
+    const { fromSuccess } = useLocalSearchParams<{ fromSuccess?: string }>();
     const [activeTab, setActiveTab] = useState('overview');
+
+    const navigation = useNavigation();
+
+    useEffect(() => {
+        if (fromSuccess === 'true') {
+            navigation.setOptions({
+                gestureEnabled: false,
+            });
+            const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+                return true;
+            });
+            return () => backHandler.remove();
+        }
+    }, [navigation, fromSuccess]);
 
     // In a real app, this status would come from a backend or global state
     const [status, setStatus] = useState<TransactionStatus>('pending');
 
     const handleBack = () => {
-        router.back();
+        if (fromSuccess === 'true') {
+            router.replace('/(tabs)');
+        } else {
+            router.back();
+        }
     };
 
     const handleProceed = () => {

@@ -5,10 +5,10 @@ import { useProfileQuery } from '@/hooks/queries/auth/useProfileQuery';
 import { useGetTransactionTotalsMutation } from '@/hooks/queries/transactions/useGetTransactionTotalsMutation';
 import { useGetTransactionsQuery } from '@/hooks/queries/transactions/useGetTransactionsQuery';
 import { useAuthStore } from '@/stores/useAuthStore';
-import { formatCurrency, formatDate, formatTime } from '@/utils/helpers';
-import { useRouter } from 'expo-router';
+import { formatCurrency, formatDate, formatTime, getStatusLabel, getStatusStyle } from '@/utils/helpers';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Add, ArrowDown2, Bank, Buildings, Eye, EyeSlash, Hospital, ImportCircle, Notification, People, Refresh, Teacher, User, WalletAdd1, WalletMinus } from 'iconsax-react-nativejs';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
@@ -33,26 +33,6 @@ const Dot = () => (
     }} />
 );
 
-const getStatusLabel = (status: string): string => {
-    const map: Record<string, string> = {
-        'DRAFT': 'Draft',
-        'AWAITING_VERIFICATION': 'Pending',
-        'VERIFICATION_IN_PROGRESS': 'In Progress',
-        'VERIFICATION_COMPLETED': 'In Progress',
-        'AWAITING_DEPOSIT': 'Pending',
-        'DEPOSIT_PENDING': 'Pending',
-        'DEPOSIT_CONFIRMED': 'In Progress',
-        'COMPLIANCE_REVIEW': 'In Progress',
-        'ADMIN_APPROVAL_PENDING': 'Pending',
-        'APPROVED': 'Approved',
-        'DISBURSEMENT_IN_PROGRESS': 'In Progress',
-        'COMPLETED': 'Settled',
-        'REJECTED': 'Declined',
-        'CANCELLED': 'Declined',
-    };
-    return map[status] || status;
-};
-
 const getTransactionRoute = (type: string): string => {
     const routes: Record<string, string> = {
         'PTA': '/(buy-fx)/(pta)/view-pta',
@@ -68,24 +48,6 @@ const getTransactionRoute = (type: string): string => {
         'CASH_REMITTANCE': '/(receive-fx)/view-receive-fx',
     };
     return routes[type] || '/(buy-fx)/(pta)/view-pta';
-};
-
-const getStatusStyle = (status: string) => {
-    switch (status) {
-        case 'Pending':
-            return { color: 'rgba(181, 71, 8, 1)', backgroundColor: 'rgba(255, 250, 235, 1)' };
-        case 'In Progress':
-            return { color: '#3538CD', backgroundColor: '#EEF4FF' };
-        case 'Declined':
-            return { color: '#B42318', backgroundColor: '#FEF3F2' };
-        case 'Approved':
-        case 'Settled':
-            return { color: '#166534', backgroundColor: '#F0FDF4' };
-        case 'Draft':
-            return { color: '#344054', backgroundColor: '#F2F4F7' };
-        default:
-            return { color: '#344054', backgroundColor: '#F2F4F7' };
-    }
 };
 
 const getGreeting = () => {
@@ -113,6 +75,8 @@ export default function HomeScreen() {
     const { mutate: getTotals, data: totalsData, isPending: isLoadingTotals } = useGetTransactionTotalsMutation();
     const { data: unreadData } = useGetUnreadCountQuery();
     const unreadCount = unreadData?.data?.count || 0;
+
+    // console.log(unreadCount,'unreadCount------')
 
     useEffect(() => {
         getTotals({});
@@ -267,8 +231,14 @@ export default function HomeScreen() {
         return params;
     }, [selectedFilter, selectedTxFilter]);
 
-    const { data: transactionsData, isLoading: isLoadingTransactions } = useGetTransactionsQuery(queryParams);
-    const transactions = transactionsData?.data || [];
+    const { data: transactionsData, isLoading: isLoadingTransactions, refetch } = useGetTransactionsQuery(queryParams);
+
+    useFocusEffect(
+        useCallback(() => {
+            refetch();
+        }, [refetch])
+    );
+    const transactions = transactionsData?.pages?.flatMap(p => p.data) || [];
 
     const FILTERS = ['All', 'FX bought', 'FX sold', 'Received FX'];
 
@@ -350,11 +320,9 @@ export default function HomeScreen() {
                         <View style={styles.currencyBadge}>
                             <Text style={styles.currencySymbol}>
                                 {selectedCurrency.code === 'NGN' ? '₦' :
-                                    selectedCurrency.code === 'GHS' ? '₵' :
-                                        selectedCurrency.code === 'KES' ? 'KSh' :
-                                            selectedCurrency.code === 'USD' ? '$' :
-                                                selectedCurrency.code === 'GBP' ? '£' :
-                                                    selectedCurrency.code === 'SEK' ? 'kr' : '$'}
+                                    selectedCurrency.code === 'USD' ? '$' :
+                                        selectedCurrency.code === 'GBP' ? '£' :
+                                            selectedCurrency.code === 'EUR' ? '€' : '$'}
                             </Text>
                         </View>
                         {showBalance ? (
@@ -445,7 +413,7 @@ export default function HomeScreen() {
                         {transactions.length > 0 ? (
                             transactions.map((tx: Transaction) => {
                                 const statusLabel = getStatusLabel(tx.status);
-                                const statusStyle = getStatusStyle(statusLabel);
+                                const statusStyle = getStatusStyle(tx.status);
                                 return (
                                     <TouchableOpacity 
                                         key={tx.id} 

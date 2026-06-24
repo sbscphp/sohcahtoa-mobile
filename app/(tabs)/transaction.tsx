@@ -1,11 +1,14 @@
 import { useGetTransactionsQuery } from '@/hooks/queries/transactions/useGetTransactionsQuery';
 import { Transaction } from '@/types/api/transactions';
-import { useRouter } from 'expo-router';
+import { useQuery } from '@tanstack/react-query';
+import { getTransactions } from '@/services/transactions';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Notification, Refresh } from 'iconsax-react-nativejs';
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
+import { getStatusLabel, formatListDate, formatListTime, formatAmount } from '@/utils/helpers';
 import SearchEmpty from '../../assets/icons/empty-state.svg';
 import Header from '../../components/Header';
 import { useGetUnreadCountQuery } from '@/hooks/queries/notifications/useGetUnreadCountQuery';
@@ -17,45 +20,6 @@ const FILTER_TO_GROUP: Record<string, string | undefined> = {
     'Receive FX': 'REMITTANCE',
 };
 
-const formatDate = (dateStr: string): string => {
-    const d = new Date(dateStr);
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return `${months[d.getMonth()]} ${d.getDate()} ${d.getFullYear()}`;
-};
-
-const formatTime = (dateStr: string): string => {
-    const d = new Date(dateStr);
-    let hours = d.getHours();
-    const minutes = d.getMinutes();
-    const ampm = hours >= 12 ? 'pm' : 'am';
-    hours = hours % 12 || 12;
-    return `${hours}${minutes > 0 ? ':' + String(minutes).padStart(2, '0') : ''} ${ampm}`;
-};
-
-const formatAmount = (amount: number, currency: string): string => {
-    const symbol = currency === 'USD' ? '$' : currency === 'GBP' ? '£' : currency === 'EUR' ? '€' : currency === 'NGN' ? '₦' : currency;
-    return `${symbol}${amount.toLocaleString()}`;
-};
-
-const getStatusLabel = (status: string): string => {
-    const map: Record<string, string> = {
-        'DRAFT': 'Draft',
-        'AWAITING_VERIFICATION': 'Pending',
-        'VERIFICATION_IN_PROGRESS': 'In Progress',
-        'VERIFICATION_COMPLETED': 'In Progress',
-        'AWAITING_DEPOSIT': 'Pending',
-        'DEPOSIT_PENDING': 'Pending',
-        'DEPOSIT_CONFIRMED': 'In Progress',
-        'COMPLIANCE_REVIEW': 'In Progress',
-        'ADMIN_APPROVAL_PENDING': 'Pending',
-        'APPROVED': 'Approved',
-        'DISBURSEMENT_IN_PROGRESS': 'In Progress',
-        'COMPLETED': 'Settled',
-        'REJECTED': 'Declined',
-        'CANCELLED': 'Declined',
-    };
-    return map[status] || status;
-};
 
 const getTransactionRoute = (type: string): string => {
     const routes: Record<string, string> = {
@@ -82,25 +46,38 @@ export default function TransactionScreen() {
     const filters = ['All', 'Buy FX', 'Sell FX', 'Receive FX'];
 
     const group = FILTER_TO_GROUP[activeFilter];
-    const { data: transactionsData, isLoading } = useGetTransactionsQuery(
+    const { data: transactionsData, isLoading, refetch } = useGetTransactionsQuery(
         group ? { group } : undefined
+    );
+
+    const { data: allTransactionsResponse, refetch: refetchAll } = useQuery({
+        queryKey: ['all-transactions-for-stats', group],
+        queryFn: () => getTransactions(group ? { group, limit: 10000 } : { limit: 10000 }),
+    });
+
+    useFocusEffect(
+        useCallback(() => {
+            refetch();
+            refetchAll();
+        }, [refetch, refetchAll])
     );
     const { data: unreadData } = useGetUnreadCountQuery();
     const unreadCount = unreadData?.data?.count || 0;
 
 
 
-    const transactions: Transaction[] = transactionsData?.data || [];
-    const totalCount = transactions.length;
+    const transactions: Transaction[] = transactionsData?.pages?.flatMap(p => p.data) || [];
+    const totalCount = transactionsData?.pages?.[0]?.pagination?.total ?? 0;
 
     // console.log('transactions', transactions);
 
     const statusCounts = useMemo(() => {
-        const completed = transactions.filter(t => ['COMPLETED', 'APPROVED'].includes(t.status)).length;
-        const declined = transactions.filter(t => ['REJECTED', 'CANCELLED'].includes(t.status)).length;
-        const pending = transactions.filter(t => ['DRAFT', 'AWAITING_VERIFICATION', 'VERIFICATION_IN_PROGRESS', 'VERIFICATION_COMPLETED', 'AWAITING_DEPOSIT', 'DEPOSIT_PENDING', 'DEPOSIT_CONFIRMED', 'COMPLIANCE_REVIEW', 'ADMIN_APPROVAL_PENDING', 'DISBURSEMENT_IN_PROGRESS'].includes(t.status)).length;
+        const allTransactions = allTransactionsResponse?.data || [];
+        const completed = allTransactions.filter(t => ['COMPLETED', 'APPROVED'].includes(t.status)).length;
+        const declined = allTransactions.filter(t => ['REJECTED', 'CANCELLED'].includes(t.status)).length;
+        const pending = allTransactions.filter(t => ['DRAFT', 'AWAITING_VERIFICATION', 'VERIFICATION_IN_PROGRESS', 'VERIFICATION_COMPLETED', 'AWAITING_DEPOSIT', 'DEPOSIT_PENDING', 'DEPOSIT_CONFIRMED', 'COMPLIANCE_REVIEW', 'ADMIN_APPROVAL_PENDING', 'DISBURSEMENT_IN_PROGRESS'].includes(t.status)).length;
         return { completed, declined, pending };
-    }, [transactions]);
+    }, [allTransactionsResponse]);
 
     const renderEmpty = () => (
         <View style={styles.emptyState}>
@@ -201,25 +178,27 @@ export default function TransactionScreen() {
                                     </View>
                                     <View style={styles.itemContent}>
                                         <Text style={styles.itemTitle} numberOfLines={1}>{item.purpose || item.type}</Text>
-                                        <Text style={styles.itemDate}>{formatDate(item.createdAt)} • {formatTime(item.createdAt)}</Text>
+                                        <Text style={styles.itemDate}>{formatListDate(item.createdAt)} • {formatListTime(item.createdAt)}</Text>
                                     </View>
                                     <View style={styles.itemRight}>
                                         <Text style={styles.itemAmount}>{formatAmount(item.foreignAmount, item.currency)}</Text>
                                         <View style={[
                                             styles.statusBadge,
-                                            statusLabel === 'Pending' && styles.badgePending,
+                                            ['Pending', 'Awaiting Verification', 'Awaiting Deposit', 'Deposit Pending', 'Admin Approval Pending', 'Awaiting Disbursement'].includes(statusLabel) && styles.badgePending,
                                             statusLabel === 'More Info' && styles.badgeMoreInfo,
-                                            statusLabel === 'Declined' && styles.badgeDeclined,
+                                            ['Declined', 'Rejected', 'Cancelled'].includes(statusLabel) && styles.badgeDeclined,
                                             statusLabel === 'Approved' && styles.badgeApproved,
-                                            statusLabel === 'Settled' && styles.badgeSettled,
+                                            ['Settled', 'Completed'].includes(statusLabel) && styles.badgeSettled,
+                                            ['In Progress', 'Verification In Progress', 'Verification Completed', 'Deposit Confirmed', 'Compliance Review', 'Disbursement In Progress'].includes(statusLabel) && styles.badgeInProgress,
                                         ]}>
                                             <Text style={[
                                                 styles.statusText,
-                                                statusLabel === 'Pending' && styles.textStatusPending,
+                                                ['Pending', 'Awaiting Verification', 'Awaiting Deposit', 'Deposit Pending', 'Admin Approval Pending', 'Awaiting Disbursement'].includes(statusLabel) && styles.textStatusPending,
                                                 statusLabel === 'More Info' && styles.textStatusMoreInfo,
-                                                statusLabel === 'Declined' && styles.textStatusDeclined,
+                                                ['Declined', 'Rejected', 'Cancelled'].includes(statusLabel) && styles.textStatusDeclined,
                                                 statusLabel === 'Approved' && styles.textStatusApproved,
-                                                statusLabel === 'Settled' && styles.textStatusSettled,
+                                                ['Settled', 'Completed'].includes(statusLabel) && styles.textStatusSettled,
+                                                ['In Progress', 'Verification In Progress', 'Verification Completed', 'Deposit Confirmed', 'Compliance Review', 'Disbursement In Progress'].includes(statusLabel) && styles.textStatusInProgress,
                                             ]}>
                                                 {statusLabel}
                                             </Text>
@@ -414,7 +393,10 @@ const styles = ScaledSheet.create({
         backgroundColor: '#F0FDF4',
     },
     badgeSettled: {
-        backgroundColor: '#ECFCCB',
+        backgroundColor: '#F0FDF4',
+    },
+    badgeInProgress: {
+        backgroundColor: '#EEF4FF',
     },
     statusText: {
         fontSize: '11@ms',
@@ -433,7 +415,10 @@ const styles = ScaledSheet.create({
         color: '#16A34A',
     },
     textStatusSettled: {
-        color: '#4D7C0F',
+        color: '#16A34A',
+    },
+    textStatusInProgress: {
+        color: '#3538CD',
     },
     emptyState: {
         alignItems: 'center',

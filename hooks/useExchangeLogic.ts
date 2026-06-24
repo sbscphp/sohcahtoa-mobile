@@ -27,11 +27,13 @@ export const DEFAULT_SEND_CURRENCY: Currency = {
 interface UseExchangeLogicProps {
     setValue?: UseFormSetValue<any>;
     initialAmount?: string;
+    maxLimit?: number;
+    initialTransactionType?: 'buy' | 'sell';
 }
 
-export const useExchangeLogic = ({ setValue, initialAmount = '1' }: UseExchangeLogicProps = {}) => {
+export const useExchangeLogic = ({ setValue, initialAmount = '1', maxLimit, initialTransactionType = 'buy' }: UseExchangeLogicProps = {}) => {
     const calculateExchangeRate = useCalculateExchangeRateMutation();
-    const [transactionType, setTransactionType] = useState<'buy' | 'sell'>('buy');
+    const [transactionType, setTransactionType] = useState<'buy' | 'sell'>(initialTransactionType);
 
     const [currencyGet, setCurrencyGet] = useState<Currency>(DEFAULT_GET_CURRENCY);
     const [currencySend, setCurrencySend] = useState<Currency>(DEFAULT_SEND_CURRENCY);
@@ -46,29 +48,56 @@ export const useExchangeLogic = ({ setValue, initialAmount = '1' }: UseExchangeL
     });
 
     useEffect(() => {
-        if (exchangeRates?.data?.[0]?.sellRate) {
-            setCurrentRate(exchangeRates.data[0].sellRate);
+        if (exchangeRates?.data?.[0]) {
+            const rate = transactionType === 'buy' ? exchangeRates.data[0].buyRate : exchangeRates.data[0].sellRate;
+            if (rate) {
+                setCurrentRate(rate);
+            }
         }
-    }, [exchangeRates]);
+    }, [exchangeRates, transactionType]);
 
     const handleAmountGetChange = (amount: string) => {
-        const cleanAmount = amount.replace(/,/g, '');
-        setAmountGetStr(amount);
-
-        if (setValue) {
-            setValue('amount', parseFloat(cleanAmount) || 0);
+      
+        let cleanAmount = amount.replace(/[^0-9.]/g, '');
+        
+      
+        const parts = cleanAmount.split('.');
+        if (parts.length > 2) {
+            cleanAmount = parts[0] + '.' + parts.slice(1).join('');
         }
 
-        if (cleanAmount && !isNaN(parseFloat(cleanAmount))) {
+        let formatted = cleanAmount;
+        if (cleanAmount !== '') {
+            const integerPart = parts[0];
+            const decimalPart = parts[1] !== undefined ? '.' + parts[1] : '';
+            const formattedInteger = integerPart ? parseInt(integerPart, 10).toLocaleString('en-US') : (integerPart === '0' ? '0' : '');
+            
+            if (integerPart === '') {
+                formatted = decimalPart;
+            } else {
+                formatted = formattedInteger + decimalPart;
+            }
+        }
+
+        let numAmount = parseFloat(cleanAmount) || 0;
+
+        setAmountGetStr(formatted);
+
+        if (setValue) {
+            setValue('amount', numAmount, { shouldValidate: true });
+        }
+
+        if (cleanAmount && !isNaN(numAmount)) {
             calculateExchangeRate.mutate({
                 fromCurrency: currencyGet.code,
                 toCurrency: currencySend.code,
-                amount: parseFloat(cleanAmount)
+                amount: numAmount,
+                mode: transactionType
             }, {
                 onSuccess: (response: any) => {
                     if (response.success && response.data) {
                         setAmountSendStr(response.data.convertedAmount.toLocaleString());
-                        setCurrentRate(response.data.sellRate);
+                        setCurrentRate(response.data.appliedRate || (transactionType === 'buy' ? response.data.buyRate : response.data.sellRate));
                     }
                 }
             });
@@ -89,12 +118,13 @@ export const useExchangeLogic = ({ setValue, initialAmount = '1' }: UseExchangeL
             calculateExchangeRate.mutate({
                 fromCurrency: type === 'GET' ? currency.code : currencyGet.code,
                 toCurrency: type === 'SEND' ? currency.code : currencySend.code,
-                amount: parseFloat(cleanAmount)
+                amount: parseFloat(cleanAmount),
+                mode: transactionType
             }, {
                 onSuccess: (response: any) => {
                     if (response.success && response.data) {
                         setAmountSendStr(response.data.convertedAmount.toLocaleString());
-                        setCurrentRate(response.data.sellRate);
+                        setCurrentRate(response.data.appliedRate || (transactionType === 'buy' ? response.data.buyRate : response.data.sellRate));
                     }
                 }
             });

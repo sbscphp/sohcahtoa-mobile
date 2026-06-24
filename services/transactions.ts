@@ -1,4 +1,4 @@
-import { CalculateExchangeRatePayload, CalculateExchangeRateResponse, CreateTransactionPayload, CreateTransactionResponse, ExportTransactionsParams, GetExchangeRatesParams, GetExchangeRatesResponse, GetPickupPointsResponse, GetPickupStatesResponse, GetTransactionByIdResponse, GetTransactionsParams, GetTransactionsResponse, GetTransactionTotalsPayload, GetTransactionTotalsResponse, UploadTransactionDocumentPayload, UploadTransactionDocumentResponse } from '@/types/api/transactions';
+import { CalculateExchangeRatePayload, CalculateExchangeRateResponse, CreateTransactionPayload, CreateTransactionResponse, ExportTransactionsParams, GetExchangeRatesParams, GetExchangeRatesResponse, GetPickupPointsResponse, GetPickupStatesResponse, GetPickupCitiesResponse, GetTransactionByIdResponse, GetTransactionsParams, GetTransactionsResponse, GetTransactionTotalsPayload, GetTransactionTotalsResponse, UploadTransactionDocumentPayload, UploadTransactionDocumentResponse, AttachBankAccountsPayload, AttachBankAccountsResponse, GetVirtualAccountResponse, GetDepositInstructionsResponse, ReuploadTransactionDocumentPayload } from '@/types/api/transactions';
 import api from './api';
 
 export const createTransaction = async (payload: CreateTransactionPayload): Promise<CreateTransactionResponse> => {
@@ -39,6 +39,19 @@ export const uploadTransactionDocument = async (payload: UploadTransactionDocume
     return response.data;
 };
 
+export const reuploadTransactionDocument = async (payload: ReuploadTransactionDocumentPayload): Promise<UploadTransactionDocumentResponse> => {
+    const formData = new FormData();
+    formData.append('documentType', payload.documentType);
+    formData.append('documents', payload.document as any);
+
+    const response = await api.post(`/customer/transactions/${payload.transactionId}/documents`, formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        },
+    });
+    return response.data;
+};
+
 export const getExchangeRates = async (params?: GetExchangeRatesParams): Promise<GetExchangeRatesResponse> => {
     const response = await api.get('/customer/transactions/rates', { params });
     return response.data;
@@ -64,7 +77,36 @@ export const getPickupStates = async (): Promise<GetPickupStatesResponse> => {
     return response.data;
 };
 
+export const getPickupCities = async (state: string): Promise<GetPickupCitiesResponse> => {
+    const response = await api.get('/customer/transactions/pickup-locations/cities', {
+        params: { state }
+    });
+    return response.data;
+};
+
 export const getTransactionTotals = async (payload: GetTransactionTotalsPayload): Promise<GetTransactionTotalsResponse> => {
     const response = await api.post('/customer/transactions/totals', payload);
     return response.data;
 };
+
+export const attachBankAccounts = async (payload: AttachBankAccountsPayload): Promise<AttachBankAccountsResponse> => {
+    const { transactionId, bankAccountIds } = payload;
+    const response = await api.post(`/customer/transactions/${transactionId}/bank-accounts`, { bankAccountIds });
+    return response.data;
+};
+
+export const getVirtualAccount = async (transactionId: string): Promise<GetVirtualAccountResponse> => {
+    const response = await api.get(`/customer/transactions/${transactionId}/virtual-account`);
+    return response.data;
+};
+
+export const getDepositInstructions = async (transactionId: string): Promise<GetDepositInstructionsResponse> => {
+    const response = await api.get(`/customer/transactions/${transactionId}/deposit-instructions`);
+    return response.data;
+};
+
+export const getDepositStatus = async (transactionId: string): Promise<any> => {
+    const response = await api.get(`/customer/transactions/${transactionId}/deposit-status`);
+    return response.data;
+};
+

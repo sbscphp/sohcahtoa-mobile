@@ -102,8 +102,7 @@ export default function FAQsScreen() {
                         Everything you need to know about sohcahtoa.
                     </Text>
                     <Text style={styles.introSubtitle}>
-                        Can't find the answers you are looking for?
-
+                        {"Can't find the answers you are looking for?"}
                     </Text>
                     <Text onPress={() => router.push('/(more)/support')} style={styles.linkText}> Chat Support</Text>
                 </View>

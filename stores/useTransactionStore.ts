@@ -14,7 +14,7 @@ interface TransactionStore {
         bvn: string;
         nin: string;
         formAId: string;
-        passportNumber: string;
+        passportDocumentNumber: string;
 
         // Step 1: Documents
         visaFile: any;
@@ -63,7 +63,7 @@ export const useTransactionStore = create<TransactionStore>((set) => ({
         bvn: '',
         nin: '',
         formAId: '',
-        passportNumber: '',
+        passportDocumentNumber: '',
         visaFile: null,
         visaNumber: '',
         ticketFile: null,
@@ -98,7 +98,7 @@ export const useTransactionStore = create<TransactionStore>((set) => ({
             bvn: '',
             nin: '',
             formAId: '',
-            passportNumber: '',
+            passportDocumentNumber: '',
             visaFile: null,
             visaNumber: '',
             ticketFile: null,

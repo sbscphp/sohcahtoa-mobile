@@ -5,8 +5,12 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import 'react-native-reanimated';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { clearStoredCredentials } from '@/utils/biometrics';
+import { useAuthStore } from '@/stores/useAuthStore';
+import InactiveSessionTracker from '@/components/InactiveSessionTracker';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useProtectedRoute } from '@/hooks/useProtectedRoute';
@@ -35,6 +39,7 @@ function InitialLayout() {
       <Stack.Screen name="(more)" options={{ headerShown: false }} />
       <Stack.Screen name="(receive-fx)" options={{ headerShown: false }} />
       <Stack.Screen name="notifications" options={{ headerShown: false }} />
+      <Stack.Screen name="proof-of-fund" options={{ headerShown: false }} />
     </Stack>
   );
 }
@@ -49,26 +54,66 @@ export default function RootLayout() {
     Inter_700Bold,
   });
 
+  const [isReady, setIsReady] = useState(false);
+
   useEffect(() => {
     if (error) throw error;
   }, [error]);
 
   useEffect(() => {
-    if (loaded) {
+    if (loaded && isReady) {
       SplashScreen.hideAsync();
     }
-  }, [loaded]);
+  }, [loaded, isReady]);
 
-  if (!loaded) {
+  useEffect(() => {
+    const initApp = async () => {
+      try {
+       
+        await new Promise<void>((resolve) => {
+          if (useAuthStore.persist.hasHydrated()) {
+            resolve();
+          } else {
+            const unsub = useAuthStore.persist.onFinishHydration(() => {
+              unsub();
+              resolve();
+            });
+          }
+        });
+
+        // Perform first run check
+        const hasRunBefore = await AsyncStorage.getItem('has_run_before');
+        if (!hasRunBefore) {
+          // Clear Zustand store persisted key
+          await AsyncStorage.removeItem('auth-storage');
+          // Clear secure store email/password
+          await clearStoredCredentials();
+          // Reset auth store memory state
+          useAuthStore.getState().logout();
+          // Set run flag
+          await AsyncStorage.setItem('has_run_before', 'true');
+        }
+      } catch (err) {
+        console.error('Error during app initialization:', err);
+      } finally {
+        setIsReady(true);
+      }
+    };
+    initApp();
+  }, []);
+
+  if (!loaded || !isReady) {
     return null;
   }
 
   return (
     <QueryProvider>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <InitialLayout />
-        <GlobalToast />
-        <StatusBar style="auto" />
+        <InactiveSessionTracker>
+          <InitialLayout />
+          <GlobalToast />
+          <StatusBar style="auto" />
+        </InactiveSessionTracker>
       </ThemeProvider>
     </QueryProvider>
   );

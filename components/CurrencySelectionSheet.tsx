@@ -22,13 +22,9 @@ interface CurrencySelectionSheetProps {
 
 const POPULAR_CURRENCIES: Currency[] = [
     { code: 'NGN', country: 'Nigeria', currencyName: 'Naira', flagUrl: 'https://flagcdn.com/w80/ng.png' },
-    { code: 'GHS', country: 'Ghana', currencyName: 'Cedi', flagUrl: 'https://flagcdn.com/w80/gh.png' },
-    { code: 'KES', country: 'Kenya', currencyName: 'Shilling', flagUrl: 'https://flagcdn.com/w80/ke.png' },
-    { code: 'ZAR', country: 'South Africa', currencyName: 'Rand', flagUrl: 'https://flagcdn.com/w80/za.png' },
-    { code: 'TZS', country: 'Tanzania', currencyName: 'Shilling', flagUrl: 'https://flagcdn.com/w80/tz.png' },
-    { code: 'UGX', country: 'Uganda', currencyName: 'Shilling', flagUrl: 'https://flagcdn.com/w80/ug.png' },
     { code: 'USD', country: 'United States', currencyName: 'Dollar', flagUrl: 'https://flagcdn.com/w80/us.png' },
     { code: 'GBP', country: 'United Kingdom', currencyName: 'Pound', flagUrl: 'https://flagcdn.com/w80/gb.png' },
+    { code: 'EUR', country: 'European Union', currencyName: 'Euro', flagUrl: 'https://flagcdn.com/w80/eu.png' },
 ];
 
 const CurrencySelectionSheet: React.FC<CurrencySelectionSheetProps> = ({
@@ -101,7 +97,6 @@ const CurrencySelectionSheet: React.FC<CurrencySelectionSheetProps> = ({
                         value={searchQuery}
                         onChangeText={setSearchQuery}
                         icon={<SearchNormal1 size={moderateScale(20)} color="#94A3B8" />}
-                    // wrapperStyle={{ borderWidth: 1, borderColor: '#94A3B8', borderRadius: '0@ms', }}
                     />
 
 

@@ -4,99 +4,18 @@ import FilterBottomSheet from '@/components/FilterBottomSheet';
 import Header from '@/components/Header';
 import { useGetTransactionsQuery } from '@/hooks/queries/transactions/useGetTransactionsQuery';
 import { Transaction } from '@/types/api/transactions';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Refresh } from 'iconsax-react-nativejs';
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import { ActivityIndicator, SectionList, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
+import { getStatusLabel, getStatusStyle, formatListDate, formatListTime, formatAmount, groupTransactionsByDate } from '@/utils/helpers';
 
-// ── Helpers ──────────────────────────────────────────────────────────
-const formatDate = (dateStr: string): string => {
-    const d = new Date(dateStr);
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return `${months[d.getMonth()]} ${d.getDate()} ${d.getFullYear()}`;
-};
 
-const formatTime = (dateStr: string): string => {
-    const d = new Date(dateStr);
-    let hours = d.getHours();
-    const minutes = d.getMinutes();
-    const ampm = hours >= 12 ? 'pm' : 'am';
-    hours = hours % 12 || 12;
-    return `${hours}${minutes > 0 ? ':' + String(minutes).padStart(2, '0') : ''} ${ampm}`;
-};
 
-const formatAmount = (amount: number, currency: string): string => {
-    const symbol = currency === 'USD' ? '$' : currency === 'GBP' ? '£' : currency === 'EUR' ? '€' : currency === 'NGN' ? '₦' : currency;
-    return `${symbol}${amount.toLocaleString()}`;
-};
 
-const getStatusLabel = (status: string): string => {
-    const map: Record<string, string> = {
-        'DRAFT': 'Draft',
-        'AWAITING_VERIFICATION': 'Pending',
-        'VERIFICATION_IN_PROGRESS': 'In Progress',
-        'VERIFICATION_COMPLETED': 'In Progress',
-        'AWAITING_DEPOSIT': 'Pending',
-        'DEPOSIT_PENDING': 'Pending',
-        'DEPOSIT_CONFIRMED': 'In Progress',
-        'COMPLIANCE_REVIEW': 'In Progress',
-        'ADMIN_APPROVAL_PENDING': 'Pending',
-        'APPROVED': 'Approved',
-        'DISBURSEMENT_IN_PROGRESS': 'In Progress',
-        'COMPLETED': 'Settled',
-        'REJECTED': 'Declined',
-        'CANCELLED': 'Declined',
-    };
-    return map[status] || status;
-};
 
-const getSectionTitle = (dateStr: string): string => {
-    const d = new Date(dateStr);
-    const today = new Date();
-    const yesterday = new Date();
-    yesterday.setDate(today.getDate() - 1);
-
-    if (d.toDateString() === today.toDateString()) return 'Today';
-    if (d.toDateString() === yesterday.toDateString()) return 'Yesterday';
-
-    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-    return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
-};
-
-const groupTransactionsByDate = (transactions: Transaction[]) => {
-    const groups: Record<string, Transaction[]> = {};
-    transactions.forEach((tx) => {
-        const dateKey = new Date(tx.createdAt).toDateString();
-        if (!groups[dateKey]) groups[dateKey] = [];
-        groups[dateKey].push(tx);
-    });
-    return Object.entries(groups).map(([_, data]) => ({
-        title: getSectionTitle(data[0].createdAt),
-        data,
-    }));
-};
-
-const getStatusStyle = (status: string) => {
-    switch (status) {
-        case 'Pending':
-            return { color: '#B54708', bg: '#FFFAEB' };
-        case 'In Progress':
-            return { color: '#3538CD', bg: '#EEF4FF' };
-        case 'Declined':
-            return { color: '#B42318', bg: '#FEF3F2' };
-        case 'Approved':
-        case 'Settled':
-            return { color: '#027A48', bg: '#ECFDF3' };
-        case 'Draft':
-            return { color: '#344054', bg: '#F2F4F7' };
-        default:
-            return { color: '#344054', bg: '#F2F4F7' };
-    }
-};
-
-// ── Route Mapping ────────────────────────────────────────────────────
 const getTransactionRoute = (type: string): string => {
     const routes: Record<string, string> = {
         'PTA': '/(buy-fx)/(pta)/view-pta',
@@ -114,16 +33,33 @@ const getTransactionRoute = (type: string): string => {
     return routes[type] || '/(buy-fx)/(pta)/view-pta';
 };
 
-// ── Component ────────────────────────────────────────────────────────
+
 export default function AllTransactionsScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const [filterVisible, setFilterVisible] = useState(false);
     const [queryParams, setQueryParams] = useState<Record<string, string | undefined>>({});
+    const LIMIT = 40;
 
-    const { data: transactionsData, isLoading } = useGetTransactionsQuery(queryParams);
+    const {
+        data: transactionsData,
+        isLoading,
+        refetch,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage
+    } = useGetTransactionsQuery({
+        ...queryParams,
+        limit: LIMIT,
+    });
 
-    const transactions: Transaction[] = transactionsData?.data || [];
+    useFocusEffect(
+        useCallback(() => {
+            refetch();
+        }, [refetch])
+    );
+
+    const transactions: Transaction[] = transactionsData?.pages?.flatMap(p => p.data) || [];
     const sections = useMemo(() => groupTransactionsByDate(transactions), [transactions]);
 
     const handleFilter = (filters: { startDate: string; endDate: string; status: string; type: string; group: string; currency: string }) => {
@@ -145,7 +81,6 @@ export default function AllTransactionsScreen() {
         if (filters.group) params.group = filters.group;
         if (filters.currency) params.currency = filters.currency;
 
-        console.log('🚀 Query params:', JSON.stringify(params, null, 2));
         setQueryParams(params);
         setFilterVisible(false);
     };
@@ -176,13 +111,30 @@ export default function AllTransactionsScreen() {
                             <Text style={styles.itemAmount}>{formatAmount(item.foreignAmount, item.currency)}</Text>
                         </View>
                         <View style={styles.itemBottomRow}>
-                            <Text style={styles.itemDate}>{formatDate(item.createdAt)} • {formatTime(item.createdAt)}</Text>
+                            <Text style={styles.itemDate}>{formatListDate(item.createdAt)} • {formatListTime(item.createdAt)}</Text>
                             <View style={[styles.statusBadge, { backgroundColor: style.bg }]}>
                                 <Text style={[styles.statusText, { color: style.color }]}>{statusLabel}</Text>
                             </View>
                         </View>
                     </View>
                 </View>
+            </TouchableOpacity>
+        );
+    };
+
+    const renderFooter = () => {
+        if (!hasNextPage) return null;
+        return (
+            <TouchableOpacity
+                style={styles.loadMoreButton}
+                disabled={isFetchingNextPage}
+                onPress={() => fetchNextPage()}
+            >
+                {isFetchingNextPage ? (
+                    <ActivityIndicator size="small" color="#FF6B2C" />
+                ) : (
+                    <Text style={styles.loadMoreButtonText}>Load More</Text>
+                )}
             </TouchableOpacity>
         );
     };
@@ -210,6 +162,7 @@ export default function AllTransactionsScreen() {
                     contentContainerStyle={styles.listContent}
                     stickySectionHeadersEnabled={false}
                     showsVerticalScrollIndicator={false}
+                    ListFooterComponent={renderFooter}
                 />
             ) : (
                 <View style={styles.emptyContainer}>
@@ -376,5 +329,21 @@ const styles = ScaledSheet.create({
         color: '#0F172A',
         fontSize: '16@ms',
         fontWeight: '600',
+    },
+    loadMoreButton: {
+        paddingVertical: '12@vs',
+        borderRadius: '8@ms',
+        backgroundColor: '#F1F5F9',
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: '16@vs',
+        marginBottom: '24@vs',
+    },
+    loadMoreButtonText: {
+        fontSize: '13@ms',
+        fontWeight: '600',
+        color: '#0F172A',
     },
 });

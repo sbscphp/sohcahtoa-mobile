@@ -1,15 +1,9 @@
 import { z } from 'zod';
 
 
-export const bvnField = z
-    .string()
-    .length(11, 'Please enter a valid 11-digit BVN')
-    .regex(/^\d+$/, 'BVN must contain only digits');
+export const bvnField = z.string().min(1, 'BVN is required');
 
-export const ninField = z
-    .string()
-    .length(11, 'Please enter a valid 11-digit NIN')
-    .regex(/^\d+$/, 'NIN must contain only digits');
+export const ninField = z.string().optional().or(z.literal(''));
 
 export const formAIdField = z
     .string()
@@ -21,7 +15,7 @@ export const invoiceNumberField = z
     .min(5, 'Please enter a valid Invoice Number')
     .max(20, 'Invoice Number is too long');
 
-export const passportNumberField = z
+export const passportDocumentNumberField = z
     .string()
     .regex(/^[A-Za-z]\d{8}$/, 'Please enter a valid International Passport Number');
 
@@ -62,7 +56,7 @@ export const baseCredentialSchema = z.object({
     bvn: bvnField,
     nin: ninField,
     formAId: formAIdField,
-    passportNumber: passportNumberField,
+    passportDocumentNumber: passportDocumentNumberField,
 });
 
 /** Step 3: Location (pickup point) — used by BTA, Touring */
@@ -84,14 +78,27 @@ export const bankDetailsStepSchema = z.object({
 
 /** Step 3: Medical bank details */
 export const medicalBankDetailsStepSchema = z.object({
-    beneficiaryName: z.string().min(1, 'Please enter the beneficiary name'),
-    beneficiaryAddress: z.string().min(1, 'Please enter the beneficiary address'),
-    beneficiaryBank: z.string().min(1, 'Please enter the beneficiary bank'),
-    routingNumber: z.string().min(1, 'Please enter the routing number'),
-    accountNumber: z.string().min(1, 'Please enter the account number'),
-    bankAddress: z.string().min(1, 'Please enter the bank address'),
-    swiftCode: z.string().min(1, 'Please enter the SWIFT code'),
-    iban: z.string().min(1, 'Please enter the IBAN'),
+    organizationName: z.string().min(1, 'Please enter the name of organization'),
+    beneficiaryPhone: z.string().min(1, 'Please enter the phone number'),
+    beneficiaryEmail: z.string().email('Please enter a valid email'),
+    beneficiaryAddress: z.string().min(1, 'Please enter the address'),
+    beneficiaryCity: z.string().min(1, 'Please enter the city'),
+    beneficiaryState: z.string().min(1, 'Please enter the state'),
+    beneficiaryCountry: z.string().min(1, 'Please enter the country'),
+    bankAccountName: z.string().min(1, 'Please enter the bank account name'),
+    bankAccountAddress: z.string().min(1, 'Please enter the bank account address'),
+    bankAccountIban: z.string().min(1, 'Please enter the bank account IBAN'),
+    bankAccountSwiftCode: z.string().min(1, 'Please enter the bank account SWIFT code'),
+    bankAccountNumber: z.string().min(1, 'Please enter the bank account number'),
+    correspondenceBankName: z.string().optional(),
+    correspondenceBankAddress: z.string().optional(),
+    correspondenceBankSwiftCode: z.string().optional(),
+    bic: z.string().optional(),
+    paymentReference: z.string().optional(),
+    bsbCode: z.string().optional(),
+    routingNumber: z.string().optional(),
+    ifscCode: z.string().optional(),
+    purposeCode: z.string().optional(),
 });
 
 /** Step 2: Exchange amount — parameterised by max amount */
@@ -100,5 +107,42 @@ export const amountStepSchema = (max: number, label: string) =>
         amount: z
             .number()
             .positive('Please enter a valid amount')
-            .max(max, `Maximum amount for ${label} is $${max.toLocaleString()} per quarter`),
+            .max(max, `Please note that the maximum you can transact is $${max.toLocaleString()} per quarter.`),
     });
+/** Step: Customer Bank Details confirmation */
+export const customerBankDetailsStepSchema = z.object({
+    customerBankName: z.string().min(1, 'Please select your bank'),
+    customerBankCode: z.string().min(1, 'Please select your bank'),
+    customerAccountNumber: z
+        .string()
+        .length(10, 'Account number must be 10 digits')
+        .regex(/^\d+$/, 'Account number must contain only digits'),
+    customerAccountName: z.string().min(1, 'Account name must be resolved'),
+});
+
+/** Step 4: Professional Bank Details — similar to medical but with member details */
+export const professionalBankDetailsStepSchema = z.object({
+    memberName: z.string().min(1, 'Please enter member name'),
+    memberNumber: z.string().min(1, 'Please enter member number'),
+    organizationName: z.string().min(1, 'Please enter organization name'),
+    beneficiaryPhone: z.string().min(1, 'Please enter phone number'),
+    beneficiaryEmail: z.string().email('Please enter a valid email address'),
+    beneficiaryAddress: z.string().min(1, 'Please enter address'),
+    beneficiaryCity: z.string().min(1, 'Please enter city'),
+    beneficiaryState: z.string().min(1, 'Please enter state'),
+    beneficiaryCountry: z.string().min(1, 'Please enter country'),
+    bankAccountName: z.string().min(1, 'Please enter the bank account name'),
+    bankAccountAddress: z.string().min(1, 'Please enter the bank account address'),
+    bankAccountIban: z.string().min(1, 'Please enter the IBAN'),
+    bankAccountSwiftCode: z.string().min(1, 'Please enter the SWIFT code'),
+    bankAccountNumber: z.string().min(1, 'Please enter the bank account number'),
+    correspondenceBankName: z.string().optional(),
+    correspondenceBankAddress: z.string().optional(),
+    correspondenceBankSwiftCode: z.string().optional(),
+});
+
+/** Step 0: Tourist Credentials (Form A + Passport) — no BVN/NIN for tourists */
+export const touristCredentialSchema = z.object({
+    formAId: formAIdField,
+    passportDocumentNumber: passportDocumentNumberField,
+});

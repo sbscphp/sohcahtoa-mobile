@@ -1,12 +1,31 @@
 import SuccessScreen from '@/components/SuccessScreen';
-import { useRouter } from 'expo-router';
-import React from 'react';
+import { useRouter, useLocalSearchParams, useNavigation } from 'expo-router';
+import React, { useEffect } from 'react';
+import { BackHandler } from 'react-native';
 
 export default function PaymentSuccessScreen() {
     const router = useRouter();
+    const navigation = useNavigation();
+    const { transactionId } = useLocalSearchParams<{ transactionId: string }>();
+
+    useEffect(() => {
+        navigation.setOptions({
+            gestureEnabled: false,
+        });
+        const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+            return true;
+        });
+        return () => backHandler.remove();
+    }, [navigation]);
 
     const handleViewTransaction = () => {
-        router.push('/(sell-fx)/(expatriate)/view-expatriate');
+        router.push({
+            pathname: '/(sell-fx)/(expatriate)/view-expatriate',
+            params: {
+                transactionId: transactionId,
+                fromSuccess: 'true'
+            }
+        });
     };
 
     const handleGoHome = () => {

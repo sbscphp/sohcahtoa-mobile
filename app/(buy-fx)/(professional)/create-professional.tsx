@@ -1,26 +1,49 @@
+import ControlledDatePicker from '@/components/ControlledDatePicker';
 import ControlledInput from '@/components/ControlledInput';
+import GenericSelectionSheet, { SelectionItem } from '@/components/GenericSelectionSheet';
 import InitiateTransactionSheet from '@/components/InitiateTransactionSheet';
 import LoadingBackdrop from '@/components/LoadingBackdrop';
-import BankDetailsStep from '@/components/transaction-flow/BankDetailsStep';
 import CredentialStep from '@/components/transaction-flow/CredentialStep';
 import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
+import ProfessionalBankDetailsStep from '@/components/transaction-flow/ProfessionalBankDetailsStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
+import { useProfileQuery } from '@/hooks/queries/auth/useProfileQuery';
+import { useGetBanksQuery } from '@/hooks/queries/banks/useGetBanksQuery';
+import { useGetSavedAccountsQuery } from '@/hooks/queries/banks/useGetSavedAccountsQuery';
+import { useLookupAccountMutation } from '@/hooks/queries/banks/useResolveAccountMutation';
+import { useSaveAccountMutation } from '@/hooks/queries/banks/useSaveAccountMutation';
 import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
+import { useGetTransactionsQuery } from '@/hooks/queries/transactions/useGetTransactionsQuery';
+import { formatDateToPickerFormat } from '@/utils/helpers';
 import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useExchangeLogic } from '@/hooks/useExchangeLogic';
+import { useAuthStore } from '@/stores/useAuthStore';
 import { useToastStore } from '@/stores/useToastStore';
 import { professionalStep0Schema, professionalStep1Schema, professionalStep2Schema, professionalStep3Schema } from '@/utils/validations/professional';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { View } from 'react-native';
 import { z } from 'zod';
 
+const PAYOUT_METHODS: SelectionItem[] = [
+    { id: '1', label: 'Electronic Transfer (100%)', value: 'Electronic Transfer (100%)' },
+    { id: '2', label: 'Card (100%)', value: 'Card (100%)' },
+    { id: '3', label: 'Card (75%) + Cash (25%)', value: 'Card (75%) + Cash (25%)', description: 'Maximum amount to be collected as cash is $500' },
+];
+
 const professionalFormSchema = professionalStep0Schema
     .merge(professionalStep1Schema)
     .merge(professionalStep2Schema)
+    .merge(z.object({
+        payoutMethod: z.string().optional().or(z.literal('')),
+        customerBankName: z.string().optional().or(z.literal('')),
+        customerBankCode: z.string().optional().or(z.literal('')),
+        customerAccountNumber: z.string().optional().or(z.literal('')),
+        customerAccountName: z.string().optional().or(z.literal('')),
+    }))
     .merge(professionalStep3Schema);
 type ProfessionalFormValues = z.infer<typeof professionalFormSchema>;
 
@@ -28,9 +51,14 @@ export default function ProfessionalScreen() {
     const router = useRouter();
     const createTransaction = useCreateTransactionMutation();
     const showToast = useToastStore(s => s.showToast);
+    useProfileQuery();
+    const user = useAuthStore(s => s.user);
 
     const [currentStep, setCurrentStep] = useState(0);
     const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
+    const [payoutSheetVisible, setPayoutSheetVisible] = useState(false);
+    const [selectedSavedAccountId, setSelectedSavedAccountId] = useState<string | null>('');
+    const [isAddingNewAccount, setIsAddingNewAccount] = useState(false);
 
     const {
         control,
@@ -42,17 +70,42 @@ export default function ProfessionalScreen() {
     } = useForm<ProfessionalFormValues>({
         resolver: zodResolver(professionalFormSchema),
         defaultValues: {
-            bvn: '',
-            nin: '',
+            bvn: user?.kyc?.bvn || '',
+            nin: user?.kyc?.nin || '',
             formAId: '',
-            passportNumber: '',
-            evidenceOfMembership: '',
-            invoiceNumber: '',
+            passportDocumentNumber: '',
+            passportIssueDate: '',
+            passportExpiryDate: '',
             amount: 0,
+            memberName: user?.profile ? `${user.profile.firstName || ''} ${user.profile.lastName || ''}`.trim() : '',
+            memberNumber: '',
+            organizationName: '',
+            beneficiaryPhone: '',
+            beneficiaryEmail: '',
+            beneficiaryAddress: '',
+            beneficiaryCity: '',
+            beneficiaryState: '',
+            beneficiaryCountry: '',
+            bankAccountName: '',
+            bankAccountAddress: '',
+            bankAccountIban: '',
+            bankAccountSwiftCode: '',
+            bankAccountNumber: '',
             bankName: '',
-            accountNumber: '',
-            accountName: '',
-            iban: '',
+            paymentReference: '',
+            routingNumber: '',
+            ifscCode: '',
+            purposeCode: '',
+            bsbCode: '',
+            correspondenceBankName: '',
+            correspondenceBankAddress: '',
+            correspondenceBankSwiftCode: '',
+            otherBankDetails: '',
+            payoutMethod: '',
+            customerBankName: '',
+            customerBankCode: '',
+            customerAccountNumber: '',
+            customerAccountName: '',
         },
         mode: 'onChange'
     });
@@ -69,7 +122,50 @@ export default function ProfessionalScreen() {
         amountSendStr,
         setAmountSendStr,
         currentRate,
-    } = useExchangeLogic({ setValue, initialAmount: '0' });
+    } = useExchangeLogic({ setValue, initialAmount: '0', maxLimit: 2000 });
+
+    const { data: transactionsResponse } = useGetTransactionsQuery();
+    const transactions = transactionsResponse?.pages?.flatMap(p => p.data) || [];
+
+    const watchedFields = watch() as any;
+
+    React.useEffect(() => {
+        if (transactions.length > 0) {
+            let foundPassportNumber = '';
+            let foundPassportIssueDate = '';
+            let foundPassportExpiryDate = '';
+
+            for (const tx of transactions) {
+                const passportVal = tx.personalInfo?.passportDocumentNumber || (tx as any).passportDocumentNumber;
+                const issueDateVal = tx.personalInfo?.passportIssueDate;
+                const expiryDateVal = tx.personalInfo?.passportExpiryDate;
+
+                if (!foundPassportNumber && passportVal) foundPassportNumber = String(passportVal);
+                if (!foundPassportIssueDate && issueDateVal) foundPassportIssueDate = String(issueDateVal);
+                if (!foundPassportExpiryDate && expiryDateVal) foundPassportExpiryDate = String(expiryDateVal);
+
+                if (foundPassportNumber && foundPassportIssueDate && foundPassportExpiryDate) break;
+            }
+
+            const profilePassportNumber = user?.kyc?.passportDocumentNumber || '';
+            const finalPassportNumber = foundPassportNumber || profilePassportNumber;
+
+            if (finalPassportNumber && !watchedFields.passportDocumentNumber) {
+                setValue('passportDocumentNumber', finalPassportNumber, { shouldValidate: true, shouldDirty: true });
+            }
+            if (foundPassportIssueDate && !watchedFields.passportIssueDate) {
+                setValue('passportIssueDate', formatDateToPickerFormat(foundPassportIssueDate), { shouldValidate: true, shouldDirty: true });
+            }
+            if (foundPassportExpiryDate && !watchedFields.passportExpiryDate) {
+                setValue('passportExpiryDate', formatDateToPickerFormat(foundPassportExpiryDate), { shouldValidate: true, shouldDirty: true });
+            }
+        } else {
+            const profilePassportNumber = user?.kyc?.passportDocumentNumber || '';
+            if (profilePassportNumber && !watchedFields.passportDocumentNumber) {
+                setValue('passportDocumentNumber', profilePassportNumber, { shouldValidate: true, shouldDirty: true });
+            }
+        }
+    }, [transactions, user, setValue, watchedFields.passportDocumentNumber, watchedFields.passportIssueDate, watchedFields.passportExpiryDate]);
 
     // Document upload state
     const [docs, setDocs] = useState({
@@ -89,26 +185,121 @@ export default function ProfessionalScreen() {
         onError: () => showToast('Failed to upload document. Please try again.', 'error'),
     });
 
+
+    const { data: banksResponse } = useGetBanksQuery();
+    const banks = useMemo(() =>
+        (banksResponse?.data || []).map(b => ({ id: b.code, label: b.name, value: b.code })),
+        [banksResponse]);
+
+    const { data: savedAccountsResponse } = useGetSavedAccountsQuery();
+    const savedAccounts = useMemo(() => {
+        return (savedAccountsResponse?.data || []).map(a => {
+            const clean = (str: string) => {
+                return (str || '')
+                    .toLowerCase()
+                    .replace(/\b(plc|limited|ltd|bank|microfinance|mgb|mfd)\b/g, '')
+                    .replace(/[^a-z0-9]/g, '')
+                    .trim();
+            };
+            const cleanedTarget = clean(a.bankName);
+            const foundBank = (banksResponse?.data || []).find(b => {
+                const cleanedBank = clean(b.name);
+                return cleanedBank === cleanedTarget || cleanedBank.includes(cleanedTarget) || cleanedTarget.includes(cleanedBank);
+            });
+            return {
+                id: a.id,
+                bankName: a.bankName,
+                accountNumber: a.accountNumber,
+                accountName: a.accountName,
+                bankCode: foundBank?.code || ''
+            };
+        });
+    }, [savedAccountsResponse, banksResponse]);
+
+    const saveAccountMutation = useSaveAccountMutation();
+
+    const resolveAccount = useLookupAccountMutation();
+
+    React.useEffect(() => {
+        if (!isAddingNewAccount) return;
+        if (watchedFields.customerAccountNumber?.length === 10 && watchedFields.customerBankCode) {
+            resolveAccount.mutate({
+                accountNumber: watchedFields.customerAccountNumber,
+                bankName: watchedFields.customerBankName
+            }, {
+                onSuccess: (res) => {
+                    if (res.success) {
+                        setValue('customerAccountName', res.data.accountName);
+                    }
+                },
+                onError: () => {
+                    setValue('customerAccountName', '');
+                    showToast('Could not resolve account name', 'error');
+                }
+            });
+        }
+    }, [watchedFields.customerAccountNumber, watchedFields.customerBankCode, isAddingNewAccount]);
+
+    React.useEffect(() => {
+        if (user?.profile) {
+            const fullName = `${user.profile.firstName || ''} ${user.profile.lastName || ''}`.trim();
+            if (fullName) {
+                setValue('memberName', fullName);
+            }
+        }
+    }, [user, setValue]);
+
     const credentialFields = [
-        { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number(BVN)" placeholder="Enter your BVN" required keyboardType="numeric" maxLength={11} filterType="numeric" /> },
-        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number(NIN)" placeholder="Enter your NIN" required keyboardType="numeric" maxLength={11} filterType="numeric" /> },
+        { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number(BVN)" placeholder="Enter your BVN" required keyboardType="numeric" maxLength={11} filterType="numeric" disabled /> },
+        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number(NIN)" placeholder="Enter your NIN" keyboardType="numeric" maxLength={11} filterType="numeric" disabled /> },
         { customComponent: <ControlledInput control={control} name="formAId" label="Form A ID" placeholder="Enter Form A ID" required /> },
-        { customComponent: <ControlledInput control={control} name="passportNumber" label="International Passport Number" placeholder="Enter international passport" required maxLength={9} filterType="alphanumeric" /> },
+        { customComponent: <ControlledInput control={control} name="passportDocumentNumber" label="International Passport Number" placeholder="Enter international passport" required maxLength={9} filterType="alphanumeric" /> },
+        {
+            customComponent: (
+                <View style={{ flexDirection: 'row', gap: 12 }}>
+                    <View style={{ flex: 1 }}>
+                        <ControlledDatePicker
+                            control={control}
+                            name="passportIssueDate"
+                            label="Passport Issue Date"
+                            required
+                            maximumDate={new Date()}
+                        />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                        <ControlledDatePicker
+                            control={control}
+                            name="passportExpiryDate"
+                            label="Passport Expiry Date"
+                            required
+                            minimumDate={new Date()}
+                        />
+                    </View>
+                </View>
+            )
+        },
+        {
+            customComponent: (
+                <ControlledInput
+                    control={control}
+                    name="memberNumber"
+                    label="Evidence of Membership or Registration Number"
+                    placeholder="Enter registration or membership number"
+                    required
+                />
+            )
+        },
     ];
 
     const documentFields = [
         {
-            label: 'Evidence of Membership',
+            label: 'Evidence of Membership or Registration',
             onUpload: () => uploadFile('MEMBERSHIP_CARD'),
             fileName: docs.membership.file?.name,
             fileUri: docs.membership.file?.uri, fileUrl: docs.membership.meta?.fileUrl,
             fileType: docs.membership.file?.type,
             required: true,
-            associatedInputs: (
-                <View>
-                    <ControlledInput control={control} name="evidenceOfMembership" label="Evidence of Membership" placeholder="Enter evidence of membership" required />
-                </View>
-            )
+
         },
         {
             label: 'Invoice from Professional Body',
@@ -117,13 +308,32 @@ export default function ProfessionalScreen() {
             fileUri: docs.invoice.file?.uri, fileUrl: docs.invoice.meta?.fileUrl,
             fileType: docs.invoice.file?.type,
             required: true,
-            associatedInputs: (
-                <View>
-                    <ControlledInput control={control} name="invoiceNumber" label="Invoice from Professional Body" placeholder="Enter invoice number" required maxLength={20} />
-                </View>
-            )
         },
     ];
+
+    const handleSaveNewAccount = async () => {
+        const isValid = await trigger([
+            'customerBankName',
+            'customerBankCode',
+            'customerAccountNumber',
+            'customerAccountName'
+        ]);
+
+        if (isValid) {
+            saveAccountMutation.mutate({
+                bankName: watchedFields.customerBankName || '',
+                accountNumber: watchedFields.customerAccountNumber || '',
+                accountName: watchedFields.customerAccountName || '',
+            }, {
+                onSuccess: (res) => {
+                    if (res.data?.id) {
+                        setSelectedSavedAccountId(res.data.id);
+                    }
+                    setIsAddingNewAccount(false);
+                }
+            });
+        }
+    };
 
     const handleNext = async () => {
         if (isUploading) {
@@ -133,17 +343,33 @@ export default function ProfessionalScreen() {
 
         let isStepValid = false;
         if (currentStep === 0) {
-            isStepValid = await trigger(['bvn', 'nin', 'formAId', 'passportNumber']);
+            isStepValid = await trigger(['bvn', 'nin', 'formAId', 'passportDocumentNumber', 'passportIssueDate', 'passportExpiryDate', 'memberNumber']);
         } else if (currentStep === 1) {
             if (!docs.membership.file || !docs.invoice.file) {
                 showToast('Please upload all required documents', 'error');
                 return;
             }
-            isStepValid = await trigger(['evidenceOfMembership', 'invoiceNumber']);
+            isStepValid = true;
         } else if (currentStep === 2) {
             isStepValid = await trigger(['amount']);
         } else if (currentStep === 3) {
-            isStepValid = await trigger(['bankName', 'accountNumber', 'accountName', 'iban']);
+            const beneficiaryCountry = watchedFields.beneficiaryCountry?.toLowerCase();
+            const isAustralia = beneficiaryCountry?.includes('australia');
+            const isUSA = beneficiaryCountry?.includes('united states') || beneficiaryCountry?.includes('usa');
+            const isCanada = beneficiaryCountry?.includes('canada');
+            const isIndia = beneficiaryCountry?.includes('india');
+            const isUK = beneficiaryCountry?.includes('united kingdom') || beneficiaryCountry === 'uk';
+
+            const fieldsToTrigger = [
+                'beneficiaryCountry', 'bankAccountName', 'beneficiaryAddress', 'bankName', 'bankAccountNumber',
+                'bankAccountAddress', 'bankAccountSwiftCode', 'paymentReference', 'organizationName'
+            ];
+            if (isAustralia) fieldsToTrigger.push('bsbCode');
+            if (isUSA || isCanada) fieldsToTrigger.push('routingNumber');
+            if (isIndia) fieldsToTrigger.push('ifscCode', 'purposeCode');
+            if (isUK) fieldsToTrigger.push('bankAccountIban');
+
+            isStepValid = await trigger(fieldsToTrigger as any);
         }
 
         if (isStepValid) {
@@ -166,6 +392,7 @@ export default function ProfessionalScreen() {
     const onSubmit = (data: ProfessionalFormValues) => {
         const payload = {
             type: 'PROFESSIONAL_BODY',
+            mode: "BUY",
             currency: currencyGet.code,
             amount: data.amount,
             purpose: 'Professional Fees Payment',
@@ -173,20 +400,39 @@ export default function ProfessionalScreen() {
             bvn: data.bvn,
             nin: data.nin,
             formAId: data.formAId,
-            passportNumber: data.passportNumber,
-            evidenceOfMembership: data.evidenceOfMembership,
-            invoiceNumber: data.invoiceNumber,
+            passportDocumentNumber: data.passportDocumentNumber,
+            passportIssueDate: data.passportIssueDate,
+            passportExpiryDate: data.passportExpiryDate,
+            memberName: data.memberName,
+            memberNumber: data.memberNumber,
             documents: [
                 ...(docs.membership.meta ? [docs.membership.meta] : []),
                 ...(docs.invoice.meta ? [docs.invoice.meta] : []),
             ],
-            paymentDetails: {
-                name: data.accountName,
-                accountNumber: data.accountNumber,
-                accountName: data.accountName,
+            beneficiaryDetails: {
+                organizationName: data.organizationName || '',
+                memberName: data.memberName,
+                phone: data.beneficiaryPhone || '',
+                email: data.beneficiaryEmail || '',
+                address: data.beneficiaryAddress,
+                city: data.beneficiaryCity || '',
+                state: data.beneficiaryState || '',
+                country: data.beneficiaryCountry,
+                bankAccountName: data.bankAccountName,
+                bankAccountAddress: data.bankAccountAddress,
+                bankAccountIban: data.bankAccountIban || '',
+                bankAccountSwiftCode: data.bankAccountSwiftCode,
+                bankAccountNumber: data.bankAccountNumber,
                 bankName: data.bankName,
-                iban: data.iban,
-            },
+                paymentReference: data.paymentReference,
+                routingNumber: data.routingNumber || '',
+                ifscCode: data.ifscCode || '',
+                purposeCode: data.purposeCode || '',
+                bsbCode: data.bsbCode || '',
+                correspondenceBankName: data.correspondenceBankName || '',
+                correspondenceBankAddress: data.correspondenceBankAddress || '',
+                correspondenceBankSwiftCode: data.correspondenceBankSwiftCode || '',
+            }
         };
 
         createTransaction.mutate(payload, {
@@ -202,11 +448,31 @@ export default function ProfessionalScreen() {
         });
     };
 
-    const watchedFields = watch();
-    const isStep0Valid = watchedFields.bvn && watchedFields.nin && watchedFields.formAId && watchedFields.passportNumber;
-    const isStep1Valid = docs.membership.meta && docs.invoice.meta && watchedFields.evidenceOfMembership && watchedFields.invoiceNumber;
+    const isStep0Valid = watchedFields.bvn && watchedFields.formAId && watchedFields.passportDocumentNumber && watchedFields.passportIssueDate && watchedFields.passportExpiryDate && watchedFields.memberNumber;
+    const isStep1Valid = docs.membership.meta && docs.invoice.meta;
     const isStep2Valid = watchedFields.amount > 0;
-    const isStep3Valid = watchedFields.bankName && watchedFields.accountNumber && watchedFields.accountName && watchedFields.iban;
+
+    const beneficiaryCountryStep4 = watchedFields.beneficiaryCountry?.toLowerCase() || '';
+    const isAustralia = beneficiaryCountryStep4?.includes('australia');
+    const isUSA = beneficiaryCountryStep4?.includes('united states') || beneficiaryCountryStep4?.includes('usa');
+    const isCanada = beneficiaryCountryStep4?.includes('canada');
+    const isIndia = beneficiaryCountryStep4?.includes('india');
+    const isUK = beneficiaryCountryStep4?.includes('united kingdom') || beneficiaryCountryStep4 === 'uk';
+
+    const isStep3Valid = !!(
+        watchedFields.beneficiaryCountry &&
+        watchedFields.bankAccountName &&
+        watchedFields.beneficiaryAddress &&
+        watchedFields.bankName &&
+        watchedFields.bankAccountNumber &&
+        watchedFields.bankAccountAddress &&
+        watchedFields.bankAccountSwiftCode &&
+        watchedFields.paymentReference &&
+        (isAustralia ? watchedFields.bsbCode : true) &&
+        ((isUSA || isCanada) ? watchedFields.routingNumber : true) &&
+        (isIndia ? (watchedFields.ifscCode && watchedFields.purposeCode) : true) &&
+        (isUK ? watchedFields.bankAccountIban : true)
+    );
 
     const isNextDisabled =
         (currentStep === 0 && !isStep0Valid) ||
@@ -216,7 +482,7 @@ export default function ProfessionalScreen() {
 
     return (
         <View style={{ flex: 1 }}>
-            <LoadingBackdrop visible={isUploading} />
+            <LoadingBackdrop visible={isUploading || createTransaction.isPending} />
             <TransactionLayout
                 title="Professional"
                 currentStep={currentStep}
@@ -224,7 +490,7 @@ export default function ProfessionalScreen() {
                 onBack={handleBack}
                 onNext={handleNext}
                 isNextDisabled={isNextDisabled}
-                nextLabel={currentStep === 3 ? (watchedFields.bankName && watchedFields.accountNumber ? "Initiate Transaction Request" : "Continue") : "Continue"}
+                nextLabel={currentStep === 3 ? (watchedFields.bankAccountName ? "Initiate Transaction Request" : "Continue") : "Continue"}
             >
                 {currentStep === 0 && (
                     <CredentialStep fields={credentialFields} />
@@ -253,7 +519,15 @@ export default function ProfessionalScreen() {
                 )}
 
                 {currentStep === 3 && (
-                    <BankDetailsStep control={control} />
+                    <ProfessionalBankDetailsStep
+                        control={control}
+                        watch={watch}
+                        setValue={setValue}
+                        errors={errors}
+                        invoiceFile={docs.invoice.file}
+                        onUploadInvoice={() => uploadFile('INVOICE')}
+                        isUploadingInvoice={isUploading}
+                    />
                 )}
 
                 <InitiateTransactionSheet
@@ -264,16 +538,30 @@ export default function ProfessionalScreen() {
                     loading={createTransaction.isPending}
                     items={[
                         {
-                            title: "Verification before approval",
-                            description: "Your supporting documents (exam registration, training invoice, or admission letter) must be verified before your request can be processed.",
-                            iconType: 'verify'
+                            title: "Request Summary",
+                            description: `You are requesting ${currencyGet.code === 'USD' ? '$' : currencyGet.code === 'GBP' ? '£' : currencyGet.code === 'EUR' ? '€' : ''}${amountGetStr} ${currencyGet.code.toUpperCase()}. You will pay approximately ₦${amountSendStr}`,
+                            iconType: 'info'
                         },
                         {
-                            title: "Maximum of $2,000 per quarter",
-                            description: "The maximum amount allowed for professional exams or training fees is $2,000 per year, according to CBN guidelines.",
+                            title: "Maximum Limit",
+                            description: "Please note that the maximum you can transact is $2,000 per quarter.",
                             iconType: 'limit'
                         }
                     ]}
+                />
+
+                <GenericSelectionSheet
+                    visible={payoutSheetVisible}
+                    onClose={() => setPayoutSheetVisible(false)}
+                    title="Choose a Payout Method"
+                    subtitle="Select an option below"
+                    items={PAYOUT_METHODS}
+                    selectedItem={watchedFields.payoutMethod}
+                    onSelect={(item) => {
+                        setValue('payoutMethod', item.value);
+                        setPayoutSheetVisible(false);
+                    }}
+                    confirmButtonText="Select a Payout Method"
                 />
             </TransactionLayout>
         </View>

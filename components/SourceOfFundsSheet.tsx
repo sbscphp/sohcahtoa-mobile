@@ -1,9 +1,10 @@
-import FileUpload from '@/components/FileUpload';
-import PrimaryButton from '@/components/PrimaryButton';
 import { InfoCircle } from 'iconsax-react-nativejs';
 import React from 'react';
 import { Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
+import FileUpload from './FileUpload';
+import PrimaryButton from './PrimaryButton';
+import InputField from './InputField';
 
 interface InfoRowProps {
     label: string;
@@ -20,14 +21,14 @@ const InfoRow = ({ label, value }: InfoRowProps) => (
 interface SourceOfFundsSheetProps {
     visible: boolean;
     onClose: () => void;
-    onSubmit: () => void;
+    onSubmit: (method: 'initials' | 'signature') => void;
     customerInfo: {
         fullName: string;
         phoneNumber: string;
         email: string;
         bvn: string;
         address: string;
-        passportNumber: string;
+        passportDocumentNumber: string;
     };
     transactionDetails: {
         type: string;
@@ -38,18 +39,24 @@ interface SourceOfFundsSheetProps {
     signatureFile?: string | null;
     onUploadSignature: () => void;
     isUploadingSignature?: boolean;
+    initials?: string;
+    onChangeInitials?: (text: string) => void;
 }
 
 export default function SourceOfFundsSheet({
     visible,
     onClose,
-    onSubmit,
     customerInfo,
     transactionDetails,
+    onSubmit,
     signatureFile,
     onUploadSignature,
-    isUploadingSignature
+    isUploadingSignature,
+    initials,
+    onChangeInitials,
 }: SourceOfFundsSheetProps) {
+
+    const [declarationMethod, setDeclarationMethod] = React.useState<'initials' | 'signature'>('initials');
 
     return (
         <Modal
@@ -83,7 +90,7 @@ export default function SourceOfFundsSheet({
                             <InfoRow label="Email Address" value={customerInfo.email} />
                             <InfoRow label="BVN" value={customerInfo.bvn} />
                             <InfoRow label="Resident Address" value={customerInfo.address} />
-                            <InfoRow label="Passport Number" value={customerInfo.passportNumber} />
+                            <InfoRow label="Passport Number" value={customerInfo.passportDocumentNumber} />
                         </View>
 
 
@@ -96,25 +103,52 @@ export default function SourceOfFundsSheet({
                             <InfoRow label="Purpose of Transaction" value={transactionDetails.purpose} />
                         </View>
 
-                        <View style={styles.section}>
-                            <Text style={styles.sectionTitle}>Declaration</Text>
-                            <Text style={styles.declarationText}>
-                                I hereby declare that the source of funds used for this foreign exchange transaction is legitimate and derived from lawful means. I understand that false declarations may result in regulatory action.
-                            </Text>
+                        <View style={styles.selectorContainer}>
+                            <Text style={styles.selectorLabel}>Choose Declaration Method <Text style={{ color: '#EF4444' }}>*</Text></Text>
+                            <View style={styles.methodSelector}>
+                                <TouchableOpacity 
+                                    style={[styles.methodTab, declarationMethod === 'initials' && styles.methodTabActive]} 
+                                    onPress={() => setDeclarationMethod('initials')}
+                                >
+                                    <Text style={[styles.methodTabText, declarationMethod === 'initials' && styles.methodTabTextActive]}>
+                                        Use Initials
+                                    </Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity 
+                                    style={[styles.methodTab, declarationMethod === 'signature' && styles.methodTabActive]} 
+                                    onPress={() => setDeclarationMethod('signature')}
+                                >
+                                    <Text style={[styles.methodTabText, declarationMethod === 'signature' && styles.methodTabTextActive]}>
+                                        Upload Signature
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
                         </View>
 
-                        <View style={styles.uploadSection}>
-                            <FileUpload
-                                title="Upload Signature"
-                                fileName={signatureFile}
-                                onUpload={onUploadSignature}
+                        {declarationMethod === 'initials' ? (
+                            <InputField
+                                label="Initials"
+                                placeholder="Enter your initials"
+                                value={initials}
+                                onChangeText={onChangeInitials}
+                                required
                             />
-                        </View>
+                        ) : (
+                            <View style={styles.uploadSection}>
+                                <FileUpload
+                                    title="Upload Signature"
+                                    fileName={signatureFile}
+                                    onUpload={onUploadSignature}
+                                    status={isUploadingSignature ? 'pending' : 'default'}
+                                />
+                            </View>
+                        )}
 
                         <View style={styles.buttonContainer}>
                             <PrimaryButton
                                 title="Submit"
-                                onPress={onSubmit}
+                                onPress={() => onSubmit(declarationMethod)}
+                                disabled={declarationMethod === 'initials' ? !initials?.trim() : !signatureFile}
                             />
                             <TouchableOpacity style={styles.closeButton} onPress={onClose}>
                                 <Text style={styles.closeButtonText}>No, Close</Text>
@@ -236,6 +270,47 @@ const styles = ScaledSheet.create({
     closeButtonText: {
         color: '#0F172A',
         fontSize: '14@ms',
+        fontWeight: '600',
+    },
+    selectorContainer: {
+        marginBottom: '16@vs',
+    },
+    selectorLabel: {
+        fontSize: '12.5@ms',
+        fontWeight: '400',
+        color: '#475569',
+        marginBottom: '8@vs',
+    },
+    methodSelector: {
+        flexDirection: 'row',
+        backgroundColor: '#F1F5F9',
+        borderRadius: '30@ms',
+        padding: '4@ms',
+        height: '46@vs',
+        alignItems: 'center',
+    },
+    methodTab: {
+        flex: 1,
+        height: '100%',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderRadius: '26@ms',
+    },
+    methodTabActive: {
+        backgroundColor: '#FFFFFF',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        elevation: 2,
+    },
+    methodTabText: {
+        fontSize: '13@ms',
+        color: '#64748B',
+        fontWeight: '500',
+    },
+    methodTabTextActive: {
+        color: '#FF6B2C',
         fontWeight: '600',
     },
 });
