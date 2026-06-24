@@ -73,7 +73,7 @@ export default function NotificationsScreen() {
         return transactionsData?.pages?.flatMap(p => p.data) || [];
     }, [transactionsData]);
 
-    console.log(JSON.stringify(notificationsData, null, 2));
+    // console.log(JSON.stringify(notificationsData, null, 2));
 
     const notifications = useMemo(() => {
         if (!notificationsData) return [];
