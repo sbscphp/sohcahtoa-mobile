@@ -392,6 +392,7 @@ export default function ProfessionalScreen() {
     const onSubmit = (data: ProfessionalFormValues) => {
         const payload = {
             type: 'PROFESSIONAL_BODY',
+            mode: "BUY",
             currency: currencyGet.code,
             amount: data.amount,
             purpose: 'Professional Fees Payment',

@@ -28,7 +28,7 @@ const SuccessScreen: React.FC<SuccessScreenProps> = ({
 
     return (
         <View style={[styles.container, { paddingTop: insets.top }]}>
-            <Header title={headerTitle} onBackPress={() => router.back()} />
+            <Header title={headerTitle} showBackButton={false} />
 
             <View style={styles.content}>
                 <View style={styles.iconContainer}>

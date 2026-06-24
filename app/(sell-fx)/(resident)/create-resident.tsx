@@ -16,6 +16,7 @@ import { useExchangeLogic } from '@/hooks/useExchangeLogic';
 import SourceOfFundsSheet from '@/components/SourceOfFundsSheet';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useToastStore } from '@/stores/useToastStore';
+import { useDeclarationStore } from '@/stores/useDeclarationStore';
 import { LocationItem } from '@/utils/locations';
 import {
     residentStep0Schema,
@@ -306,6 +307,11 @@ export default function CreateResidentScreen() {
     const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
     const [showSourceOfFundsSheet, setShowSourceOfFundsSheet] = useState(false);
     const [initials, setInitials] = useState('');
+    const { proofOfFunds, isDeclarationCompleted } = useDeclarationStore();
+
+    useEffect(() => {
+        useDeclarationStore.getState().reset();
+    }, []);
 
     const credentialFields = [
         {
@@ -489,6 +495,7 @@ export default function CreateResidentScreen() {
 
         const payload: any = {
             type: 'RESIDENT_FX',
+             mode: "SELL",
             currency: currencyGet.code,
             amount: data.amount,
             purpose: 'I have FX and want Naira',
@@ -502,7 +509,8 @@ export default function CreateResidentScreen() {
             documents: [
                 ...(docs.passport.meta ? [docs.passport.meta] : []),
                 ...(docs.utility.meta ? [docs.utility.meta] : []),
-                ...(docs.signature.meta ? [docs.signature.meta] : []),
+                ...((docs.signature.meta && useDeclarationStore.getState().declarationMethod === 'signature') ? [docs.signature.meta] : []),
+                ...proofOfFunds.map(p => p.metadata),
             ],
             payoutMethod: data.payoutMethod,
             beneficiaryDetails: {
@@ -510,7 +518,9 @@ export default function CreateResidentScreen() {
                 bankCode: data.customerBankCode,
                 accountNumber: data.customerAccountNumber,
                 accountName: data.customerAccountName,
-            }
+            },
+            declarationMethod: useDeclarationStore.getState().declarationMethod || undefined,
+            declarationInitials: useDeclarationStore.getState().declarationMethod === 'initials' ? initials : undefined,
         };
 
         if (!isElectronicTransfer && data.selectedLocation) {
@@ -544,7 +554,8 @@ export default function CreateResidentScreen() {
         watchedFields.passportIssueDate && watchedFields.passportExpiryDate;
     const foreignAmountStr = currencyGet.code !== 'NGN' ? amountGet : amountSend;
     const foreignAmount = parseFloat(foreignAmountStr.replace(/,/g, '')) || 0;
-    const isStep2Valid = watchedFields.amount > 0 && foreignAmount < 10000;
+    const hasProofOfFunds = proofOfFunds.length > 0;
+    const isStep2Valid = watchedFields.amount > 0 && (foreignAmount < 10000 || (hasProofOfFunds && isDeclarationCompleted));
     const isStep3Valid = watchedFields.payoutMethod && (!isElectronicTransfer || (watchedFields.customerBankName && watchedFields.customerBankCode && watchedFields.customerAccountNumber && watchedFields.customerAccountName));
     const isStep4Valid = watchedFields.selectedState && watchedFields.selectedCity && watchedFields.selectedLocation && watchedFields.pickupDate && watchedFields.pickupTime;
 
@@ -681,7 +692,8 @@ export default function CreateResidentScreen() {
                 <SourceOfFundsSheet
                     visible={showSourceOfFundsSheet}
                     onClose={() => setShowSourceOfFundsSheet(false)}
-                    onSubmit={() => {
+                    onSubmit={(method) => {
+                        useDeclarationStore.getState().setDeclarationCompleted(true, method, initials);
                         setShowSourceOfFundsSheet(false);
                     }}
                     customerInfo={{

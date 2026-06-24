@@ -17,6 +17,7 @@ import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDo
 import { useExchangeLogic } from '@/hooks/useExchangeLogic';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useToastStore } from '@/stores/useToastStore';
+import { useDeclarationStore } from '@/stores/useDeclarationStore';
 import { LocationItem } from '@/utils/locations';
 import {
     touristStep0Schema,
@@ -26,7 +27,7 @@ import {
 } from '@/utils/validations/tourist';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { View } from 'react-native';
 import { ScaledSheet } from 'react-native-size-matters';
@@ -183,6 +184,11 @@ export default function CreateTouristScreen() {
     const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
     const [showSourceOfFundsSheet, setShowSourceOfFundsSheet] = useState(false);
     const [initials, setInitials] = useState('');
+    const { proofOfFunds, isDeclarationCompleted } = useDeclarationStore();
+
+    useEffect(() => {
+        useDeclarationStore.getState().reset();
+    }, []);
 
     // Configuration for Step 0
     const credentialFields = [
@@ -312,20 +318,23 @@ export default function CreateTouristScreen() {
         const payload: any = {
             type: 'TOURIST_FX',
             mode: 'SELL',
-            currency: currencySend.code,
-            amount: data.amount,
+            currency: currencyGet.code,
+            amount: Number(data.amount),
             purpose: 'I am touring Nigeria and want Naira',
-            destinationCountry: currencySend.country,
+            destinationCountry: currencyGet.country,
             documents: [
                 ...(docs.passport.meta ? [docs.passport.meta] : []),
                 ...(docs.visa.meta ? [docs.visa.meta] : []),
                 ...(docs.ticket.meta ? [docs.ticket.meta] : []),
                 ...(docs.receipt.meta ? [docs.receipt.meta] : []),
-                ...(docs.signature.meta ? [docs.signature.meta] : []),
+                ...((docs.signature.meta && useDeclarationStore.getState().declarationMethod === 'signature') ? [docs.signature.meta] : []),
+                ...proofOfFunds.map(p => p.metadata),
             ],
             passportDocumentNumber: data.passportDocumentNumber,
             passportIssueDate: data.passportIssueDate,
             passportExpiryDate: data.passportExpiryDate,
+            declarationMethod: useDeclarationStore.getState().declarationMethod || undefined,
+            declarationInitials: useDeclarationStore.getState().declarationMethod === 'initials' ? initials : undefined,
         };
 
         if (data.selectedLocation) {
@@ -359,7 +368,8 @@ export default function CreateTouristScreen() {
         watchedFields.passportIssueDate && watchedFields.passportExpiryDate);
     const foreignAmountStr = currencyGet.code !== 'NGN' ? amountGet : amountSend;
     const foreignAmount = parseFloat(foreignAmountStr.replace(/,/g, '')) || 0;
-    const isStep2Valid = watchedFields.amount > 0 && foreignAmount < 10000;
+    const hasProofOfFunds = proofOfFunds.length > 0;
+    const isStep2Valid = watchedFields.amount > 0 && (foreignAmount < 10000 || (hasProofOfFunds && isDeclarationCompleted));
 
     const isStep3Valid = !!(watchedFields.selectedState && watchedFields.selectedCity && watchedFields.selectedLocation && watchedFields.pickupDate && watchedFields.pickupTime);
 
@@ -460,10 +470,9 @@ export default function CreateTouristScreen() {
                 <SourceOfFundsSheet
                     visible={showSourceOfFundsSheet}
                     onClose={() => setShowSourceOfFundsSheet(false)}
-                    onSubmit={() => {
+                    onSubmit={(method) => {
+                        useDeclarationStore.getState().setDeclarationCompleted(true, method, initials);
                         setShowSourceOfFundsSheet(false);
-
-                       
                     }}
                     customerInfo={{
                         fullName: `${user?.profile?.firstName || ''} ${user?.profile?.lastName || ''}`,

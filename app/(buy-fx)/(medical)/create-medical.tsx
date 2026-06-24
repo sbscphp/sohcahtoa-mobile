@@ -410,6 +410,7 @@ export default function MedicalPaymentScreen() {
     const onSubmit = (data: MedicalFormValues) => {
         const payload = {
             type: 'MEDICAL',
+             mode: "BUY",
             currency: currencyGet.code,
             amount: data.amount,
             purpose: 'Medical Fee Payment',

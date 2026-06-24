@@ -7,16 +7,30 @@ import { useGetTransactionByIdQuery } from '@/hooks/queries/transactions/useGetT
 import { useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useToastStore } from '@/stores/useToastStore';
 import { commonDocTypeLabels, formatCurrency, formatDate, formatTime, formatTimeWithSeconds, getTransactionDocuments, mapApiStatusToViewStatus } from '@/utils/helpers';
-import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
-import React, { useMemo, useState, useCallback } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { useLocalSearchParams, useRouter, useFocusEffect, useNavigation } from 'expo-router';
+import React, { useMemo, useState, useCallback, useEffect } from 'react';
+import { ActivityIndicator, View, BackHandler } from 'react-native';
 
 
 export default function ViewBtaScreen() {
     const router = useRouter();
-    const { transactionId } = useLocalSearchParams<{ transactionId: string }>();
+    const { transactionId, fromSuccess } = useLocalSearchParams<{ transactionId: string, fromSuccess?: string }>();
     // console.log(transactionId, 'transactionId');
     const [activeTab, setActiveTab] = useState('overview');
+
+    const navigation = useNavigation();
+
+    useEffect(() => {
+        if (fromSuccess === 'true') {
+            navigation.setOptions({
+                gestureEnabled: false,
+            });
+            const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+                return true;
+            });
+            return () => backHandler.remove();
+        }
+    }, [navigation, fromSuccess]);
 
     const { data: txResponse, isLoading, refetch } = useGetTransactionByIdQuery(transactionId || '');
     const tx = txResponse?.data;
@@ -42,7 +56,11 @@ export default function ViewBtaScreen() {
     const status: TransactionStatus = tx ? mapApiStatusToViewStatus(tx.status) : 'pending';
 
     const handleBack = () => {
-        router.back();
+        if (fromSuccess === 'true') {
+            router.replace('/(tabs)');
+        } else {
+            router.back();
+        }
     };
 
     const handleProceed = () => {

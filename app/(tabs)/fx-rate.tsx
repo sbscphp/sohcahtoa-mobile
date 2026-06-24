@@ -30,8 +30,8 @@ export default function FxRateScreen() {
     const [transactionType, setTransactionType] = useState<'buy' | 'sell'>('buy');
     const [currencyGet, setCurrencyGet] = useState<Currency>(currencies[0]); 
     const [currencySend, setCurrencySend] = useState<Currency>(currencies[1]); 
-    const [amountGet, setAmountGet] = useState('1');
-    const [amountSend, setAmountSend] = useState('1500');
+    const [amountGet, setAmountGet] = useState('0');
+    const [amountSend, setAmountSend] = useState('0');
 
     const { data: unreadData } = useGetUnreadCountQuery();
     const unreadCount = unreadData?.data?.count || 0;

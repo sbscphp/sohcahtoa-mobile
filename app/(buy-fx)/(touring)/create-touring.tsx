@@ -19,11 +19,12 @@ import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDo
 import { useExchangeLogic } from '@/hooks/useExchangeLogic';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useToastStore } from '@/stores/useToastStore';
+import { useDeclarationStore } from '@/stores/useDeclarationStore';
 import { LocationItem } from '@/utils/locations';
 import { touringStep0Schema, touringStep1Schema, touringStep2Schema, touringStep3Schema } from '@/utils/validations/touring';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { View } from 'react-native';
 import { z } from 'zod';
@@ -112,6 +113,11 @@ export default function TouringScreen() {
     const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
     const [showSourceOfFundsSheet, setShowSourceOfFundsSheet] = useState(false);
     const [initials, setInitials] = useState('');
+    const { proofOfFunds, isDeclarationCompleted } = useDeclarationStore();
+
+    useEffect(() => {
+        useDeclarationStore.getState().reset();
+    }, []);
 
     const {
         control,
@@ -439,7 +445,8 @@ export default function TouringScreen() {
                 ...(docs.visa.meta ? [docs.visa.meta] : []),
                 ...(docs.ticket.meta ? [docs.ticket.meta] : []),
                 ...(docs.receipt.meta ? [docs.receipt.meta] : []),
-                ...(docs.signature.meta ? [docs.signature.meta] : []),
+                ...((docs.signature.meta && useDeclarationStore.getState().declarationMethod === 'signature') ? [docs.signature.meta] : []),
+                ...proofOfFunds.map(p => p.metadata),
             ],
             pickupLocation: (!(data.payoutMethod?.includes('Electronic') || data.payoutMethod === 'Electronic Transfer') && data.selectedLocation) ? {
                 name: (data.selectedLocation as LocationItem).title,
@@ -457,7 +464,9 @@ export default function TouringScreen() {
                 bankCode: data.customerBankCode,
                 accountNumber: data.customerAccountNumber,
                 accountName: data.customerAccountName,
-            }
+            },
+            declarationMethod: useDeclarationStore.getState().declarationMethod || undefined,
+            declarationInitials: useDeclarationStore.getState().declarationMethod === 'initials' ? initials : undefined,
         };
 
         createTransaction.mutate(payload, {
@@ -485,7 +494,8 @@ export default function TouringScreen() {
         watchedFields.passportIssueDate && watchedFields.passportExpiryDate;
     const foreignAmountStr = currencyGet.code !== 'NGN' ? amountGetStr : amountSendStr;
     const foreignAmount = parseFloat(foreignAmountStr.replace(/,/g, '')) || 0;
-    const isStep2Valid = watchedFields.amount > 0 && foreignAmount < 10000;
+    const hasProofOfFunds = proofOfFunds.length > 0;
+    const isStep2Valid = watchedFields.amount > 0 && (foreignAmount < 10000 || (hasProofOfFunds && isDeclarationCompleted));
     const isStep3Valid = watchedFields.payoutMethod && (!isElectronicTransfer || (watchedFields.customerBankName && watchedFields.customerBankCode && watchedFields.customerAccountNumber && watchedFields.customerAccountName));
     const isStep4Valid = watchedFields.selectedState && watchedFields.selectedCity && watchedFields.selectedLocation && watchedFields.pickupDate && watchedFields.pickupTime;
 
@@ -610,10 +620,9 @@ export default function TouringScreen() {
                 <SourceOfFundsSheet
                     visible={showSourceOfFundsSheet}
                     onClose={() => setShowSourceOfFundsSheet(false)}
-                    onSubmit={() => {
+                    onSubmit={(method) => {
+                        useDeclarationStore.getState().setDeclarationCompleted(true, method, initials);
                         setShowSourceOfFundsSheet(false);
-
-                        // console.log('Source of Funds Declaration Submitted');
                     }}
                     customerInfo={{
                         fullName: `${user?.profile?.firstName || ''} ${user?.profile?.lastName || ''}`,

@@ -1,9 +1,22 @@
 import SuccessScreen from '@/components/SuccessScreen';
-import { useRouter } from 'expo-router';
-import React from 'react';
+import { useRouter, useNavigation } from 'expo-router';
+import React, { useEffect } from 'react';
 import { ScaledSheet } from 'react-native-size-matters';
+import { BackHandler } from 'react-native';
+
 export default function ReceiveSuccessScreen() {
     const router = useRouter();
+    const navigation = useNavigation();
+
+    useEffect(() => {
+        navigation.setOptions({
+            gestureEnabled: false,
+        });
+        const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+            return true;
+        });
+        return () => backHandler.remove();
+    }, [navigation]);
 
     return (
        
@@ -13,7 +26,10 @@ export default function ReceiveSuccessScreen() {
             description="Your payment has been received and your funds will be released soon."
             onViewTransaction={() => {
                 // Navigate to details or history
-                router.push('/(receive-fx)/view-receive-fx');
+                router.push({
+                    pathname: '/(receive-fx)/view-receive-fx',
+                    params: { fromSuccess: 'true' }
+                });
             }}
             onGoHome={() => router.push('/(tabs)')}
             primaryButtonText="View Transaction"

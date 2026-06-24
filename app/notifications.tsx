@@ -2,14 +2,17 @@ import Header from '@/components/Header';
 import { Notification } from '@/types/api/notifications';
 import { ArrowRight2, Calendar1, Clock } from 'iconsax-react-nativejs';
 import React, { useMemo, useState } from 'react';
+import { useRouter } from 'expo-router';
 import { SectionList, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import { useGetNotificationsQuery } from '@/hooks/queries/notifications/useGetNotificationsQuery';
 import { useMarkAsReadMutation } from '@/hooks/queries/notifications/useMarkAsReadMutation';
 import { useMarkAllAsReadMutation } from '@/hooks/queries/notifications/useMarkAllAsReadMutation';
+import { useGetTransactionsQuery } from '@/hooks/queries/transactions/useGetTransactionsQuery';
 import { ActivityIndicator } from 'react-native';
-import { formatDate, formatTime } from '@/utils/helpers';
+import { formatDate, formatTime, getNotificationRoute } from '@/utils/helpers';
+import { getTransactionById } from '@/services/transactions';
 
 type FilterTab = 'all' | 'unread' | 'transactions';
  
@@ -58,13 +61,19 @@ const groupByDate = (notifications: Notification[]): Section[] => {
 
 export default function NotificationsScreen() {
     const insets = useSafeAreaInsets();
+    const router = useRouter();
     const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
 
     const { data: notificationsData, isLoading } = useGetNotificationsQuery();
     const { mutate: markRead } = useMarkAsReadMutation();
     const { mutate: markAllRead } = useMarkAllAsReadMutation();
+    const { data: transactionsData } = useGetTransactionsQuery();
 
-    // console.log(JSON.stringify(notificationsData, null, 2));
+    const transactions = useMemo(() => {
+        return transactionsData?.pages?.flatMap(p => p.data) || [];
+    }, [transactionsData]);
+
+    console.log(JSON.stringify(notificationsData, null, 2));
 
     const notifications = useMemo(() => {
         if (!notificationsData) return [];
@@ -104,7 +113,60 @@ export default function NotificationsScreen() {
         <TouchableOpacity 
             style={styles.card} 
             activeOpacity={0.7}
-            onPress={() => !item.isRead && markRead(item.id)}
+            onPress={async () => {
+                if (!item.isRead) {
+                    markRead(item.id);
+                }
+                
+                let routeInfo = getNotificationRoute(item.actionUrl, item.data, transactions, item.title, item.body);
+                
+                // Fallback: If routeInfo is null but we have a transactionId, fetch from server
+                if (!routeInfo) {
+                    let transactionId = item.data?.transactionId || item.data?.transaction_id || item.data?.id;
+                    if (item.actionUrl) {
+                        const idMatch = item.actionUrl.match(/[?&](transactionId|transaction_id|id)=([^&]+)/);
+                        if (idMatch && idMatch[2]) {
+                            transactionId = decodeURIComponent(idMatch[2]);
+                        }
+                        if (!transactionId) {
+                            const pathPart = item.actionUrl.split('?')[0];
+                            const segments = pathPart.split('/').filter(Boolean);
+                            for (let i = segments.length - 1; i >= 0; i--) {
+                                const seg = segments[i];
+                                if (seg && (seg.length > 5 || /^\d+$/.test(seg))) {
+                                    transactionId = seg;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    
+                    if (transactionId) {
+                        try {
+                            const res = await getTransactionById(transactionId);
+                            if (res && res.success && res.data && res.data.type) {
+                                routeInfo = getNotificationRoute(item.actionUrl, { ...item.data, type: res.data.type, transactionId }, transactions, item.title, item.body);
+                            }
+                        } catch (e) {
+                            console.error('Failed to fetch transaction type:', e);
+                        }
+                    }
+                }
+
+                if (routeInfo) {
+                    router.push({
+                        pathname: routeInfo.pathname as any,
+                        params: routeInfo.params
+                    });
+                } else if (item.actionUrl) {
+                    try {
+                        const cleanUrl = item.actionUrl.startsWith('/') ? item.actionUrl : '/' + item.actionUrl;
+                        router.push(cleanUrl as any);
+                    } catch (e) {
+                        console.error('Failed to route actionUrl:', item.actionUrl, e);
+                    }
+                }
+            }}
         >
             <View style={styles.cardContent}>
                 <Text style={styles.cardTitle}>{item.title}</Text>
@@ -188,7 +250,7 @@ export default function NotificationsScreen() {
     );
 }
 
-// ── Styles ───────────────────────────────────────────────────────────
+
 const styles = ScaledSheet.create({
     container: {
         flex: 1,

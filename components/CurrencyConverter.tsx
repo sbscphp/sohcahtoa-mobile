@@ -170,7 +170,7 @@ export default function CurrencyConverter({
                             </Text>
                         </TouchableOpacity>
                         <TouchableOpacity onPress={onDownloadPress}>
-                            <Text style={{ fontSize: moderateScale(12), color: 'rgba(12, 12, 12, 1)', fontWeight: '400', textDecorationLine: 'underline' }}>View declaration form to upload signature </Text>.
+                            <Text style={{ fontSize: moderateScale(12), color: 'rgba(12, 12, 12, 1)', fontWeight: '400', textDecorationLine: 'underline' }}>View declaration form to upload signature .</Text>
                         </TouchableOpacity>
                         </>
 }

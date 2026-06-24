@@ -475,6 +475,7 @@ export default function BusinessTravelAllowanceScreen() {
     };
 
     const onSubmit = (data: BtaFormValues) => {
+        
         const formatDateForApi = (dateStr: string): string => {
             if (!dateStr) return '';
             const parts = dateStr.split('/');
@@ -486,8 +487,9 @@ export default function BusinessTravelAllowanceScreen() {
 
         const payload = {
             type: 'BTA',
+            mode: "BUY",
             currency: currencyGet.code,
-            amount: data.amount,
+            amount: Number(data.amount),
             purpose: 'Business Travel Allowance',
             destinationCountry: currencyGet.country,
             bvn: data.bvn,
@@ -523,7 +525,7 @@ export default function BusinessTravelAllowanceScreen() {
                 accountName: data.customerAccountName,
             }
         };
-        console.log(payload, "PAYLOAD")
+       
 
         createTransaction.mutate(payload, {
             onSuccess: (response: any) => {

@@ -2,6 +2,7 @@ import Header from '@/components/Header';
 import PrimaryButton from '@/components/PrimaryButton';
 import { useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useToastStore } from '@/stores/useToastStore';
+import { useDeclarationStore } from '@/stores/useDeclarationStore';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Trash } from 'iconsax-react-nativejs';
@@ -22,9 +23,18 @@ export default function ProofOfFundScreen() {
     const router = useRouter();
     const showToast = useToastStore(s => s.showToast);
     
-    const [slots, setSlots] = useState<UploadSlot[]>([
-        { id: '1', label: 'Proof of fund', file: null, metadata: null },
-    ]);
+    const initialProofOfFunds = useDeclarationStore.getState().proofOfFunds;
+    const [slots, setSlots] = useState<UploadSlot[]>(() => {
+        if (initialProofOfFunds.length > 0) {
+            return initialProofOfFunds.map((item, idx) => ({
+                id: idx.toString(),
+                label: 'Proof of fund',
+                file: item.file,
+                metadata: item.metadata,
+            }));
+        }
+        return [{ id: '1', label: 'Proof of fund', file: null, metadata: null }];
+    });
 
     const addSlot = () => {
         const newId = Date.now().toString();
@@ -65,11 +75,13 @@ export default function ProofOfFundScreen() {
     };
 
     const handleAttach = () => {
-        const uploadedCount = slots.filter(s => s.file).length;
-        if (uploadedCount === 0) {
+        const uploadedSlots = slots.filter(s => s.file);
+        if (uploadedSlots.length === 0) {
             showToast('Please upload at least one document', 'warning');
             return;
         }
+        const attached = uploadedSlots.map(s => ({ file: s.file!, metadata: s.metadata! }));
+        useDeclarationStore.getState().setProofOfFunds(attached);
         showToast('Documents attached successfully', 'success');
         router.back();
     };

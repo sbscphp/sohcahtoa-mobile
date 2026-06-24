@@ -21,7 +21,7 @@ const InfoRow = ({ label, value }: InfoRowProps) => (
 interface SourceOfFundsSheetProps {
     visible: boolean;
     onClose: () => void;
-    onSubmit: () => void;
+    onSubmit: (method: 'initials' | 'signature') => void;
     customerInfo: {
         fullName: string;
         phoneNumber: string;
@@ -55,6 +55,8 @@ export default function SourceOfFundsSheet({
     initials,
     onChangeInitials,
 }: SourceOfFundsSheetProps) {
+
+    const [declarationMethod, setDeclarationMethod] = React.useState<'initials' | 'signature'>('initials');
 
     return (
         <Modal
@@ -101,27 +103,52 @@ export default function SourceOfFundsSheet({
                             <InfoRow label="Purpose of Transaction" value={transactionDetails.purpose} />
                         </View>
 
-                        <InputField
-                            label="Initials"
-                            placeholder="Enter your initials"
-                            value={initials}
-                            onChangeText={onChangeInitials}
-                            required
-                        />
-
-                        <View style={styles.uploadSection}>
-                            <FileUpload
-                                title="Upload Signature"
-                                fileName={signatureFile}
-                                onUpload={onUploadSignature}
-                                status={isUploadingSignature ? 'pending' : 'default'}
-                            />
+                        <View style={styles.selectorContainer}>
+                            <Text style={styles.selectorLabel}>Choose Declaration Method <Text style={{ color: '#EF4444' }}>*</Text></Text>
+                            <View style={styles.methodSelector}>
+                                <TouchableOpacity 
+                                    style={[styles.methodTab, declarationMethod === 'initials' && styles.methodTabActive]} 
+                                    onPress={() => setDeclarationMethod('initials')}
+                                >
+                                    <Text style={[styles.methodTabText, declarationMethod === 'initials' && styles.methodTabTextActive]}>
+                                        Use Initials
+                                    </Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity 
+                                    style={[styles.methodTab, declarationMethod === 'signature' && styles.methodTabActive]} 
+                                    onPress={() => setDeclarationMethod('signature')}
+                                >
+                                    <Text style={[styles.methodTabText, declarationMethod === 'signature' && styles.methodTabTextActive]}>
+                                        Upload Signature
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
                         </View>
+
+                        {declarationMethod === 'initials' ? (
+                            <InputField
+                                label="Initials"
+                                placeholder="Enter your initials"
+                                value={initials}
+                                onChangeText={onChangeInitials}
+                                required
+                            />
+                        ) : (
+                            <View style={styles.uploadSection}>
+                                <FileUpload
+                                    title="Upload Signature"
+                                    fileName={signatureFile}
+                                    onUpload={onUploadSignature}
+                                    status={isUploadingSignature ? 'pending' : 'default'}
+                                />
+                            </View>
+                        )}
 
                         <View style={styles.buttonContainer}>
                             <PrimaryButton
                                 title="Submit"
-                                onPress={onSubmit}
+                                onPress={() => onSubmit(declarationMethod)}
+                                disabled={declarationMethod === 'initials' ? !initials?.trim() : !signatureFile}
                             />
                             <TouchableOpacity style={styles.closeButton} onPress={onClose}>
                                 <Text style={styles.closeButtonText}>No, Close</Text>
@@ -243,6 +270,47 @@ const styles = ScaledSheet.create({
     closeButtonText: {
         color: '#0F172A',
         fontSize: '14@ms',
+        fontWeight: '600',
+    },
+    selectorContainer: {
+        marginBottom: '16@vs',
+    },
+    selectorLabel: {
+        fontSize: '12.5@ms',
+        fontWeight: '400',
+        color: '#475569',
+        marginBottom: '8@vs',
+    },
+    methodSelector: {
+        flexDirection: 'row',
+        backgroundColor: '#F1F5F9',
+        borderRadius: '30@ms',
+        padding: '4@ms',
+        height: '46@vs',
+        alignItems: 'center',
+    },
+    methodTab: {
+        flex: 1,
+        height: '100%',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderRadius: '26@ms',
+    },
+    methodTabActive: {
+        backgroundColor: '#FFFFFF',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        elevation: 2,
+    },
+    methodTabText: {
+        fontSize: '13@ms',
+        color: '#64748B',
+        fontWeight: '500',
+    },
+    methodTabTextActive: {
+        color: '#FF6B2C',
         fontWeight: '600',
     },
 });

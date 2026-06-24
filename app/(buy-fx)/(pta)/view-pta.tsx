@@ -7,14 +7,28 @@ import { useGetTransactionByIdQuery } from '@/hooks/queries/transactions/useGetT
 import { useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useToastStore } from '@/stores/useToastStore';
 import { commonDocTypeLabels, formatCurrency, formatDate, formatTime, formatTimeWithSeconds, getTransactionDocuments, mapApiStatusToViewStatus, truncateFileName } from '@/utils/helpers';
-import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
-import React, { useMemo, useState, useCallback } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { useLocalSearchParams, useRouter, useFocusEffect, useNavigation } from 'expo-router';
+import React, { useMemo, useState, useCallback, useEffect } from 'react';
+import { ActivityIndicator, View, BackHandler } from 'react-native';
 
 export default function ViewPtaScreen() {
     const router = useRouter();
-    const { transactionId } = useLocalSearchParams<{ transactionId: string }>();
+    const { transactionId, fromSuccess } = useLocalSearchParams<{ transactionId: string, fromSuccess?: string }>();
     const [activeTab, setActiveTab] = useState('overview');
+
+    const navigation = useNavigation();
+
+    useEffect(() => {
+        if (fromSuccess === 'true') {
+            navigation.setOptions({
+                gestureEnabled: false,
+            });
+            const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+                return true;
+            });
+            return () => backHandler.remove();
+        }
+    }, [navigation, fromSuccess]);
 
     const { data: txResponse, isLoading, refetch } = useGetTransactionByIdQuery(transactionId || '');
     const tx = txResponse?.data;
@@ -39,7 +53,11 @@ export default function ViewPtaScreen() {
     // console.log('STATE:', tx?.status);
 
     const handleBack = () => {
-        router.back();
+        if (fromSuccess === 'true') {
+            router.replace('/(tabs)');
+        } else {
+            router.back();
+        }
     };
 
     const handleProceed = () => {
@@ -66,7 +84,7 @@ export default function ViewPtaScreen() {
         return [
             { label: 'Transaction ID', value: tx.referenceNumber },
             { label: 'Status', value: tx.status.replace(/_/g, ' ') },
-            { label: 'Amount (₦)', value: formatCurrency(tx.nairaEquivalent) },
+            { label: 'Amount (₦)', value: formatCurrency(Number(tx.nairaEquivalent), '₦') },
             { label: 'Equivalent Amount (FX)', value: formatCurrency(tx.foreignAmount, tx.currency === 'USD' ? '$' : tx.currency === 'GBP' ? '£' : tx.currency === 'EUR' ? '€' : tx.currency) },
             { label: 'Date Initiated', value: `${formatDate(tx.createdAt)}\n${formatTimeWithSeconds(tx.createdAt)}` },
             ...(tx.cashPickup ? [

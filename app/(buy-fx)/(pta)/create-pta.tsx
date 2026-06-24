@@ -464,6 +464,7 @@ export default function PersonalTravelAllowanceScreen() {
     const handleInitiate = (data: PtaFormValues) => {
         const payload = {
             type: 'PTA',
+             mode: "BUY",
             currency: currencyGet.code,
             amount: data.amount,
             purpose: 'Personal Travel Allowance',
@@ -498,7 +499,7 @@ export default function PersonalTravelAllowanceScreen() {
                 accountName: data.customerAccountName,
             }
         };
-
+//  console.log(payload, "PAYLOAD")
         createTransaction.mutate(payload, {
             onSuccess: (response: any) => {
                 if (response.success) {

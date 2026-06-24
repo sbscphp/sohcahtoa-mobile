@@ -9,22 +9,27 @@ interface HeaderProps {
     rightIcon?: ReactNode;
     onRightPress?: () => void;
     onBackPress?: () => void;
+    showBackButton?: boolean;
 }
 
-const Header: React.FC<HeaderProps> = ({ title, rightIcon, onRightPress, onBackPress }) => {
+const Header: React.FC<HeaderProps> = ({ title, rightIcon, onRightPress, onBackPress, showBackButton = true }) => {
     const router = useRouter();
 
     return (
         <View style={styles.header}>
-            <TouchableOpacity
-                onPress={onBackPress || (() => router.back())}
-                style={styles.btn}
-                accessible={true}
-                accessibilityLabel="Go back"
-                accessibilityRole="button"
-            >
-                <ArrowCircleLeft2 size={moderateScale(28)} color="#94A3B8" />
-            </TouchableOpacity>
+            {showBackButton ? (
+                <TouchableOpacity
+                    onPress={onBackPress || (() => router.back())}
+                    style={styles.btn}
+                    accessible={true}
+                    accessibilityLabel="Go back"
+                    accessibilityRole="button"
+                >
+                    <ArrowCircleLeft2 size={moderateScale(28)} color="#94A3B8" />
+                </TouchableOpacity>
+            ) : (
+                <View style={{ width: moderateScale(36) }} />
+            )}
 
             <Text style={styles.headerTitle}>{title}</Text>
 

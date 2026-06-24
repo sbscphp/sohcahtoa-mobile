@@ -12,7 +12,7 @@ interface SchoolBankDetailsStepProps {
     watch: any;
     setValue: any;
     errors: any;
-    invoiceFile?: any;
+    verificationFile?: any;
     onUploadInvoice?: () => void;
     isUploadingInvoice?: boolean;
 }
@@ -31,7 +31,7 @@ export default function SchoolBankDetailsStep({
     watch,
     setValue,
     errors,
-    invoiceFile,
+    verificationFile,
     onUploadInvoice,
     isUploadingInvoice
 }: SchoolBankDetailsStepProps) {
@@ -171,9 +171,9 @@ export default function SchoolBankDetailsStep({
                 </Text>
                 <FileUpload
                     onUpload={onUploadInvoice || (() => {})}
-                    fileName={invoiceFile?.name}
-                    fileUri={invoiceFile?.uri}
-                    fileUrl={invoiceFile?.fileUrl || invoiceFile?.url}
+                    fileName={verificationFile?.name}
+                    fileUri={verificationFile?.uri}
+                    fileUrl={verificationFile?.fileUrl || verificationFile?.url}
                     status={isUploadingInvoice ? 'pending' : 'default'}
                 />
             </View>

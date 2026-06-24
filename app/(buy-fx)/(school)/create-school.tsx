@@ -22,11 +22,12 @@ import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDo
 import { useExchangeLogic } from '@/hooks/useExchangeLogic';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useToastStore } from '@/stores/useToastStore';
+import { useDeclarationStore } from '@/stores/useDeclarationStore';
 import { schoolStep0Schema, schoolStep2Schema, schoolStep3Schema } from '@/utils/validations/school';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
 import { ArrowDown2, Teacher } from 'iconsax-react-nativejs';
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { TouchableOpacity, View } from 'react-native';
 import { z } from 'zod';
@@ -87,6 +88,11 @@ export default function SchoolFeesScreen() {
     const [admissionSheetVisible, setAdmissionSheetVisible] = useState(false);
     const [showSourceOfFundsSheet, setShowSourceOfFundsSheet] = useState(false);
     const [initials, setInitials] = useState('');
+    const { proofOfFunds, isDeclarationCompleted } = useDeclarationStore();
+
+    useEffect(() => {
+        useDeclarationStore.getState().reset();
+    }, []);
     const [payoutSheetVisible, setPayoutSheetVisible] = useState(false);
     const [selectedSavedAccountId, setSelectedSavedAccountId] = useState<string | null>('');
     const [isAddingNewAccount, setIsAddingNewAccount] = useState(false);
@@ -179,6 +185,7 @@ export default function SchoolFeesScreen() {
         result: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
         degree: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
         signature: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        bank_verification: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
     });
 
     const updateDoc = (key: keyof typeof docs, file: UploadedFile, metadata: UploadedMetadata) => {
@@ -193,6 +200,7 @@ export default function SchoolFeesScreen() {
             else if (documentType === 'RECEIPT') updateDoc('result', file, metadata);
             else if (documentType === 'MEMBERSHIP_CARD') updateDoc('degree', file, metadata);
             else if (documentType === 'DIGITAL_SIGNATURE') updateDoc('signature', file, metadata);
+            else if (documentType === 'BANK_VERIFICATION') updateDoc('bank_verification', file, metadata);
         },
         onError: () => showToast('Failed to upload document. Please try again.', 'error'),
     });
@@ -558,6 +566,7 @@ export default function SchoolFeesScreen() {
     const onSubmit = (data: any) => {
         const payload = {
             type: 'SCHOOL_FEES',
+             mode: "BUY",
             currency: currencyGet.code,
             amount: data.amount,
             purpose: `Pay School Fees`,
@@ -575,6 +584,9 @@ export default function SchoolFeesScreen() {
                 ...(docs.passport.meta ? [docs.passport.meta] : []),
                 ...(isPostGrad && docs.degree.meta ? [docs.degree.meta] : []),
                 ...(isPostGrad && docs.result.meta ? [docs.result.meta] : []),
+                ...(docs.bank_verification.meta ? [docs.bank_verification.meta] : []),
+                ...((docs.signature.meta && useDeclarationStore.getState().declarationMethod === 'signature') ? [docs.signature.meta] : []),
+                ...proofOfFunds.map(p => p.metadata),
             ],
             beneficiaryDetails: {
                 organizationName: '',
@@ -599,7 +611,9 @@ export default function SchoolFeesScreen() {
                 correspondenceBankName: data.correspondenceBankName,
                 correspondenceBankAddress: data.correspondenceBankAddress,
                 correspondenceBankSwiftCode: data.correspondenceBankSwiftCode,
-            }
+            },
+            declarationMethod: useDeclarationStore.getState().declarationMethod || undefined,
+            declarationInitials: useDeclarationStore.getState().declarationMethod === 'initials' ? initials : undefined,
         };
 
         createTransaction.mutate(payload, {
@@ -632,7 +646,8 @@ export default function SchoolFeesScreen() {
 
     const foreignAmountStr = currencyGet.code !== 'NGN' ? amountGetStr : amountSendStr;
     const foreignAmount = parseFloat(foreignAmountStr.replace(/,/g, '')) || 0;
-    const isStep2Valid = watchedFields.amount > 0 && foreignAmount < 10000;
+    const hasProofOfFunds = proofOfFunds.length > 0;
+    const isStep2Valid = watchedFields.amount > 0 && (foreignAmount < 10000 || (hasProofOfFunds && isDeclarationCompleted));
     const isStep3Valid = !!(
         watchedFields.beneficiaryCountry &&
         watchedFields.studentName &&
@@ -695,8 +710,8 @@ export default function SchoolFeesScreen() {
                         watch={watch}
                         setValue={setValue}
                         errors={errors}
-                        invoiceFile={docs.invoice.file}
-                        onUploadInvoice={() => uploadFile('INVOICE')}
+                        verificationFile={docs.bank_verification.file}
+                        onUploadInvoice={() => uploadFile('BANK_VERIFICATION')}
                         isUploadingInvoice={isUploading}
                     />
                 )}
@@ -755,9 +770,9 @@ export default function SchoolFeesScreen() {
                 <SourceOfFundsSheet
                     visible={showSourceOfFundsSheet}
                     onClose={() => setShowSourceOfFundsSheet(false)}
-                    onSubmit={() => {
+                    onSubmit={(method) => {
+                        useDeclarationStore.getState().setDeclarationCompleted(true, method, initials);
                         setShowSourceOfFundsSheet(false);
-                        // console.log('Source of Funds Declaration Submitted');
                     }}
                     customerInfo={{
                         fullName: `${user?.profile?.firstName || ''} ${user?.profile?.lastName || ''}`,

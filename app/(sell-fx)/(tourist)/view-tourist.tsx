@@ -7,14 +7,28 @@ import { useGetTransactionByIdQuery } from '@/hooks/queries/transactions/useGetT
 import { useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useToastStore } from '@/stores/useToastStore';
 import { commonDocTypeLabels, getTransactionDocuments, formatDate, formatTime, formatTimeWithSeconds, formatCurrency } from '@/utils/helpers';
-import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
-import React, { useMemo, useState, useCallback } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { useLocalSearchParams, useRouter, useFocusEffect, useNavigation } from 'expo-router';
+import React, { useMemo, useState, useCallback, useEffect } from 'react';
+import { ActivityIndicator, View, BackHandler } from 'react-native';
 
 export default function ViewTouristScreen() {
     const router = useRouter();
-    const { transactionId } = useLocalSearchParams<{ transactionId: string }>();
+    const { transactionId, fromSuccess } = useLocalSearchParams<{ transactionId: string, fromSuccess?: string }>();
     const [activeTab, setActiveTab] = useState('overview');
+
+    const navigation = useNavigation();
+
+    useEffect(() => {
+        if (fromSuccess === 'true') {
+            navigation.setOptions({
+                gestureEnabled: false,
+            });
+            const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+                return true;
+            });
+            return () => backHandler.remove();
+        }
+    }, [navigation, fromSuccess]);
 
     const { data: txResponse, isLoading, refetch } = useGetTransactionByIdQuery(transactionId || '');
     const tx = txResponse?.data;
@@ -39,7 +53,13 @@ export default function ViewTouristScreen() {
         return map[s] || 'pending';
     };
     const status: TransactionStatus = tx ? mapStatus(tx.status) : 'pending';
-    const handleBack = () => { router.back(); };
+    const handleBack = () => {
+        if (fromSuccess === 'true') {
+            router.replace('/(tabs)');
+        } else {
+            router.back();
+        }
+    };
     const handleProceed = () => {
         router.push({
             pathname: '/(sell-fx)/(tourist)/payment',
@@ -56,19 +76,45 @@ export default function ViewTouristScreen() {
             { label: 'Date Initiated', value: `${formatDate(tx.createdAt)}\n${formatTimeWithSeconds(tx.createdAt)}` },
             ...(tx.cashPickup ? [
                 {
+                    label: 'Pickup Cash Amount',
+                    value: formatCurrency(tx.cashPickup.amount, (tx.cashPickup.currency || tx.currency) === 'USD' ? '$' : (tx.cashPickup.currency || tx.currency) === 'GBP' ? '£' : (tx.cashPickup.currency || tx.currency) === 'EUR' ? '€' : (tx.cashPickup.currency || tx.currency)) || 'N/A',
+                },
+                {
+                    label: 'Pickup Status',
+                    value: tx.cashPickup.status?.replace(/_/g, ' ') || 'N/A',
+                },
+                {
                     label: 'Pickup Location',
                     value: tx.cashPickup.pickupLocation || 'N/A',
-                    isRightAligned: true
                 },
+                ...(tx.cashPickup.pickupCity ? [{
+                    label: 'Pickup City',
+                    value: tx.cashPickup.pickupCity,
+                    isRightAligned: true,
+                }] : []),
+                ...(tx.cashPickup.pickupState ? [{
+                    label: 'Pickup State',
+                    value: tx.cashPickup.pickupState,
+                    isRightAligned: true,
+                }] : []),
+                ...(tx.cashPickup.pickupCode ? [{
+                    label: 'Pickup Code',
+                    value: tx.cashPickup.pickupCode,
+                }] : []),
+                ...(tx.cashPickup.recipientPhone ? [{
+                    label: 'Recipient Phone',
+                    value: tx.cashPickup.recipientPhone,
+                    isRightAligned: true,
+                }] : []),
                 ...((tx.cashPickup.scheduledPickupDate || tx.cashPickup.schedulePickupDate) ? [{
                     label: 'Pickup Date',
                     value: formatDate(tx.cashPickup.scheduledPickupDate || tx.cashPickup.schedulePickupDate),
-                    isRightAligned: true
+                    isRightAligned: true,
                 }] : []),
                 ...((tx.cashPickup.scheduledPickupTime || tx.cashPickup.schedulePickupTime) ? [{
                     label: 'Pickup Time',
                     value: tx.cashPickup.scheduledPickupTime || tx.cashPickup.schedulePickupTime,
-                    isRightAligned: true
+                    isRightAligned: true,
                 }] : []),
             ] : []),
         ];

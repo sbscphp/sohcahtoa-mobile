@@ -5,7 +5,7 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import 'react-native-reanimated';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { clearStoredCredentials } from '@/utils/biometrics';
@@ -54,19 +54,34 @@ export default function RootLayout() {
     Inter_700Bold,
   });
 
+  const [isReady, setIsReady] = useState(false);
+
   useEffect(() => {
     if (error) throw error;
   }, [error]);
 
   useEffect(() => {
-    if (loaded) {
+    if (loaded && isReady) {
       SplashScreen.hideAsync();
     }
-  }, [loaded]);
+  }, [loaded, isReady]);
 
   useEffect(() => {
-    const handleFirstRun = async () => {
+    const initApp = async () => {
       try {
+       
+        await new Promise<void>((resolve) => {
+          if (useAuthStore.persist.hasHydrated()) {
+            resolve();
+          } else {
+            const unsub = useAuthStore.persist.onFinishHydration(() => {
+              unsub();
+              resolve();
+            });
+          }
+        });
+
+        // Perform first run check
         const hasRunBefore = await AsyncStorage.getItem('has_run_before');
         if (!hasRunBefore) {
           // Clear Zustand store persisted key
@@ -79,13 +94,15 @@ export default function RootLayout() {
           await AsyncStorage.setItem('has_run_before', 'true');
         }
       } catch (err) {
-        console.error('Error in first-run check:', err);
+        console.error('Error during app initialization:', err);
+      } finally {
+        setIsReady(true);
       }
     };
-    handleFirstRun();
+    initApp();
   }, []);
 
-  if (!loaded) {
+  if (!loaded || !isReady) {
     return null;
   }
 
