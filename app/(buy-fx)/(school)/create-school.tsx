@@ -40,9 +40,9 @@ const ADMISSION_TYPES: SelectionItem[] = [
 ];
 
 const PAYOUT_METHODS: SelectionItem[] = [
-    { id: '1', label: 'Electronic Transfer (100%)', value: 'Electronic Transfer (100%)' },
-    { id: '2', label: 'Card (100%)', value: 'Card (100%)' },
-    { id: '3', label: 'Card (75%) + Cash (25%)', value: 'Card (75%) + Cash (25%)', description: 'Maximum amount to be collected as cash is $500' },
+    { id: '1', label: 'Electronic Transfer (100%)', value: 'Electronic_Transfer' },
+    { id: '2', label: 'Card (100%)', value: 'Card' },
+    { id: '3', label: 'Card (75%) + Cash (25%)', value: 'Card_Cash', description: 'Maximum amount to be collected as cash is $500' },
 ];
 
 const formatDateToPickerFormat = (dateStr: string | undefined | null): string => {
@@ -105,7 +105,7 @@ export default function SchoolFeesScreen() {
             .superRefine((data, ctx) => {
                 if (data.passportIssueDate && data.passportExpiryDate && data.passportIssueDate === data.passportExpiryDate) {
                     ctx.addIssue({
-                        code: z.ZodIssueCode.custom,
+                        code: "custom",
                         message: 'Passport Expiry Date cannot be the same as Passport Issue Date',
                         path: ['passportExpiryDate']
                     });
@@ -327,7 +327,7 @@ export default function SchoolFeesScreen() {
     const credentialFields = [
         { customComponent: <ControlledInput control={control} name="studentName" label="Student Name" placeholder="Enter student name" required /> },
         { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number(NIN)" placeholder="Enter your NIN" keyboardType="numeric" maxLength={11} filterType="numeric" disabled /> },
-        { customComponent: <ControlledInput control={control} name="formAId" label="Form A ID" placeholder="Enter Form A ID" required /> },
+        { customComponent: <ControlledInput control={control} name="formAId" label="Form A ID" placeholder="Enter Form A ID" required keyboardType="numeric" maxLength={10} filterType="numeric" /> },
         { customComponent: <ControlledInput control={control} name="passportDocumentNumber" label="International Passport" placeholder="Enter international passport" required maxLength={9} filterType="alphanumeric" /> },
         ...(admissionType !== 'Others' ? [
             {

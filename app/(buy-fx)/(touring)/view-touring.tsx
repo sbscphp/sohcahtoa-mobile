@@ -144,8 +144,8 @@ export default function ViewTouringScreen() {
                 : undefined,
         }));
     }, [tx, uploadFile]);
-    const beneficiaryItems = useMemo(() => {
-        const details = tx?.beneficiaryDetails as any;
+    const domiciliaryItems = useMemo(() => {
+        const details = (tx?.domiciliaryDetails || tx?.beneficiaryDetails) as any;
         if (!tx || !details) return undefined;
         return [
             ...(details.accountName || details.name ? [{ label: 'Account Name', value: details.accountName || details.name }] : []),
@@ -154,7 +154,7 @@ export default function ViewTouringScreen() {
             ...(details.studentName ? [{ label: 'Student Name', value: details.studentName }] : []),
             ...(details.studentPassportNumber ? [{ label: 'Student Passport Number', value: details.studentPassportNumber }] : []),
             ...(details.admissionNumber ? [{ label: 'Admission Number', value: details.admissionNumber }] : []),
-            ...(details.address ? [{ label: 'Address', value: details.address }] : []),
+            ...(details.address || details.bankAddress ? [{ label: 'Bank Address', value: details.address || details.bankAddress }] : []),
             ...(details.country ? [{ label: 'Country', value: details.country }] : []),
             ...(details.swiftCode ? [{ label: 'SWIFT Code', value: details.swiftCode }] : []),
             ...(details.iban ? [{ label: 'IBAN', value: details.iban }] : []),
@@ -162,6 +162,16 @@ export default function ViewTouringScreen() {
             ...(details.ifscCode ? [{ label: 'IFSC Code', value: details.ifscCode }] : []),
             ...(details.purposeCode ? [{ label: 'Purpose Code', value: details.purposeCode }] : []),
             ...(details.bsbCode ? [{ label: 'BSB Code', value: details.bsbCode }] : []),
+        ];
+    }, [tx]);
+
+    const refundBankItems = useMemo(() => {
+        const details = (tx?.refundBankDetails || tx?.paymentDetails) as any;
+        if (!tx || !details || Array.isArray(details)) return undefined;
+        return [
+            ...(details.bankName ? [{ label: 'Bank Name', value: details.bankName }] : []),
+            ...(details.accountNumber ? [{ label: 'Account Number', value: details.accountNumber }] : []),
+            ...(details.accountName ? [{ label: 'Account Name', value: details.accountName }] : []),
         ];
     }, [tx]);
 
@@ -240,7 +250,8 @@ export default function ViewTouringScreen() {
                 <TransactionDetailsView
                     details={detailsItems}
                     documents={detailsDocuments}
-                    beneficiaryDetails={beneficiaryItems}
+                    domiciliaryDetails={domiciliaryItems}
+                    refundBankDetails={refundBankItems}
                     paymentDetails={paymentDetailsItems}
                     settlementDetails={settlementItems}
                     bankAccountsDetails={bankAccountsItems}

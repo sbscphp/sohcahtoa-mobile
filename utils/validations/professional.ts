@@ -50,7 +50,7 @@ export const professionalStep3Schema = z.object({
     if (country.includes('united kingdom') || country === 'uk') {
         if (!data.bankAccountIban) {
             ctx.addIssue({
-                code: z.ZodIssueCode.custom,
+                code: "custom",
                 message: 'Please enter IBAN',
                 path: ['bankAccountIban']
             });
@@ -58,7 +58,7 @@ export const professionalStep3Schema = z.object({
             const cleanIban = data.bankAccountIban.replace(/\s/g, '');
             if (!/^GB\d{2}[A-Z]{4}\d{14}$/i.test(cleanIban)) {
                 ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
+                    code: "custom",
                     message: 'Please enter a valid UK IBAN (exactly 22 characters, starting with GB)',
                     path: ['bankAccountIban']
                 });
@@ -67,13 +67,13 @@ export const professionalStep3Schema = z.object({
     } else if (country.includes('united states') || country === 'usa' || country === 'canada') {
         if (!data.routingNumber) {
             ctx.addIssue({
-                code: z.ZodIssueCode.custom,
+                code: "custom",
                 message: 'Please enter routing number',
                 path: ['routingNumber']
             });
         } else if (!/^\d{9}$/.test(data.routingNumber)) {
             ctx.addIssue({
-                code: z.ZodIssueCode.custom,
+                code: "custom",
                 message: 'Routing number must be exactly 9 digits',
                 path: ['routingNumber']
             });
@@ -81,20 +81,20 @@ export const professionalStep3Schema = z.object({
     } else if (country.includes('india')) {
         if (!data.ifscCode) {
             ctx.addIssue({
-                code: z.ZodIssueCode.custom,
+                code: "custom",
                 message: 'Please enter IFSC number',
                 path: ['ifscCode']
             });
         } else if (!/^[A-Za-z]{4}0[A-Za-z0-9]{6}$/.test(data.ifscCode)) {
             ctx.addIssue({
-                code: z.ZodIssueCode.custom,
+                code: "custom",
                 message: 'Please enter a valid 11-character IFSC code (e.g. SBIN0000001)',
                 path: ['ifscCode']
             });
         }
         if (!data.purposeCode) {
             ctx.addIssue({
-                code: z.ZodIssueCode.custom,
+                code: "custom",
                 message: 'Please enter purpose code',
                 path: ['purposeCode']
             });
@@ -102,13 +102,13 @@ export const professionalStep3Schema = z.object({
     } else if (country.includes('australia')) {
         if (!data.bsbCode) {
             ctx.addIssue({
-                code: z.ZodIssueCode.custom,
+                code: "custom",
                 message: 'Please enter BSB code',
                 path: ['bsbCode']
             });
         } else if (!/^\d{3}-?\d{3}$/.test(data.bsbCode.replace(/\s/g, ''))) {
             ctx.addIssue({
-                code: z.ZodIssueCode.custom,
+                code: "custom",
                 message: 'BSB code must be exactly 6 digits (e.g. 123-456 or 123456)',
                 path: ['bsbCode']
             });

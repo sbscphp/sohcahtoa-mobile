@@ -29,9 +29,9 @@ import { View } from 'react-native';
 import { z } from 'zod';
 
 const PAYOUT_METHODS: SelectionItem[] = [
-    { id: '1', label: 'Electronic Transfer (100%)', value: 'Electronic Transfer (100%)' },
-    { id: '2', label: 'Card (100%)', value: 'Card (100%)' },
-    { id: '3', label: 'Card (75%) + Cash (25%)', value: 'Card (75%) + Cash (25%)', description: 'Maximum amount to be collected as cash is $500' },
+    { id: '1', label: 'Electronic Transfer (100%)', value: 'Electronic_Transfer' },
+    { id: '2', label: 'Card (100%)', value: 'Card' },
+    { id: '3', label: 'Card (75%) + Cash (25%)', value: 'Card_Cash', description: 'Maximum amount to be collected as cash is $500' },
 ];
 
 const medicalFormSchema = medicalStep0Schema
@@ -251,7 +251,7 @@ export default function MedicalPaymentScreen() {
     const credentialFields = [
         { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number (BVN)" placeholder="Enter your BVN" required keyboardType="numeric" maxLength={11} filterType="numeric" disabled /> },
         { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number" placeholder="Enter your NIN" keyboardType="numeric" maxLength={11} filterType="numeric" disabled /> },
-        { customComponent: <ControlledInput control={control} name="formAId" label="Form A ID" placeholder="Enter Form A ID" required /> },
+        { customComponent: <ControlledInput control={control} name="formAId" label="Form A ID" placeholder="Enter Form A ID" required keyboardType="numeric" maxLength={10} filterType="numeric" /> },
         { customComponent: <ControlledInput control={control} name="passportDocumentNumber" label="International Passport Number" placeholder="Enter international passport" required maxLength={9} filterType="alphanumeric" /> },
     ];
 

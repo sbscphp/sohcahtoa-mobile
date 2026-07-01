@@ -36,6 +36,8 @@ export interface CurrencyConverterProps {
     error?: string;
     isLoading?: boolean;
     isSchool?: boolean;
+    labelGet?: string;
+    labelSend?: string;
 }
 
 export default function CurrencyConverter({
@@ -56,7 +58,9 @@ export default function CurrencyConverter({
     onDownloadPress,
     error,
     isLoading = false,
-    isSchool = false
+    isSchool = false,
+    labelGet,
+    labelSend
 }: CurrencyConverterProps) {
     const [currencySheetVisible, setCurrencySheetVisible] = useState(false);
     const [activeCurrencyField, setActiveCurrencyField] = useState<'get' | 'send' | null>(null);
@@ -124,7 +128,7 @@ export default function CurrencyConverter({
 
                 <View style={styles.exchangeCard}>
                     <View style={styles.exchangeRow}>
-                        <Text style={styles.exchangeLabel}>You send</Text>
+                        <Text style={styles.exchangeLabel}>{labelGet || 'You send'}</Text>
                         <Pressable
                             style={({ pressed }) => [
                                 styles.currencyPill,
@@ -193,7 +197,7 @@ export default function CurrencyConverter({
 
             <View style={styles.exchangeCard}>
                 <View style={styles.exchangeRow}>
-                    <Text style={[styles.exchangeLabel, { paddingHorizontal: 10 }]}>What you get</Text>
+                    <Text style={[styles.exchangeLabel, { paddingHorizontal: 10 }]}>{labelSend || 'What you get'}</Text>
                     <Pressable
                         style={({ pressed }) => [
                             styles.currencyPill,

@@ -33,6 +33,8 @@ interface ExchangeStepProps {
     error?: string;
     isLoading?: boolean;
     isSchool?: boolean;
+    labelGet?: string;
+    labelSend?: string;
 }
 
 export default function ExchangeStep({
@@ -53,7 +55,9 @@ export default function ExchangeStep({
     onDownloadPress,
     error,
     isLoading,
-    isSchool
+    isSchool,
+    labelGet,
+    labelSend,
 }: ExchangeStepProps) {
 
 
@@ -80,6 +84,8 @@ export default function ExchangeStep({
                 error={error}
                 isLoading={isLoading}
                 isSchool={isSchool}
+                labelGet={labelGet}
+                labelSend={labelSend}
             />
         </View>
     );

@@ -295,9 +295,6 @@ const styles = ScaledSheet.create({
     loadMoreButton: {
         paddingVertical: '12@vs',
         borderRadius: '8@ms',
-        backgroundColor: '#F1F5F9',
-        borderWidth: 1,
-        borderColor: '#E2E8F0',
         alignItems: 'center',
         justifyContent: 'center',
         marginTop: '16@vs',

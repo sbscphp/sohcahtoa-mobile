@@ -26,7 +26,7 @@ export default function AppIndex() {
     }
 
     if (hasRunBefore === null) {
-        return null; // Keep splash screen or loading state active
+        return null; 
     }
 
     if (hasRunBefore) {

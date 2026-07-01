@@ -66,38 +66,38 @@ const residentFormSchema = z.object({
 
     if (isElectronicTransfer) {
         if (!data.customerBankName) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Please select your bank', path: ['customerBankName'] });
+            ctx.addIssue({ code: "custom", message: 'Please select your bank', path: ['customerBankName'] });
         }
         if (!data.customerBankCode) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Please select your bank', path: ['customerBankCode'] });
+            ctx.addIssue({ code: "custom", message: 'Please select your bank', path: ['customerBankCode'] });
         }
         if (!data.customerAccountNumber || data.customerAccountNumber.length !== 10) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Account number must be 10 digits', path: ['customerAccountNumber'] });
+            ctx.addIssue({ code: "custom", message: 'Account number must be 10 digits', path: ['customerAccountNumber'] });
         }
         if (!data.customerAccountName) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Account name must be resolved', path: ['customerAccountName'] });
+            ctx.addIssue({ code: "custom", message: 'Account name must be resolved', path: ['customerAccountName'] });
         }
     } else {
         if (!data.selectedState) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Please select a state', path: ['selectedState'] });
+            ctx.addIssue({ code: "custom", message: 'Please select a state', path: ['selectedState'] });
         }
         if (!data.selectedCity) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Please select a city', path: ['selectedCity'] });
+            ctx.addIssue({ code: "custom", message: 'Please select a city', path: ['selectedCity'] });
         }
         if (!data.selectedLocation) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Please select a pickup location', path: ['selectedLocation'] });
+            ctx.addIssue({ code: "custom", message: 'Please select a pickup location', path: ['selectedLocation'] });
         }
         if (!data.pickupDate) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Please select a pickup date', path: ['pickupDate'] });
+            ctx.addIssue({ code: "custom", message: 'Please select a pickup date', path: ['pickupDate'] });
         }
         if (!data.pickupTime) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Please select a pickup time', path: ['pickupTime'] });
+            ctx.addIssue({ code: "custom", message: 'Please select a pickup time', path: ['pickupTime'] });
         }
     }
 
     if (data.passportIssueDate && data.passportExpiryDate && data.passportIssueDate === data.passportExpiryDate) {
         ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+            code: "custom",
             message: 'Passport Expiry Date cannot be the same as Passport Issue Date',
             path: ['passportExpiryDate']
         });

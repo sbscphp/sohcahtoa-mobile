@@ -29,7 +29,10 @@ interface TransactionDetailsViewProps {
     documents?: DocumentItem[];
     documentSectionTitle?: string;
     beneficiaryDetails?: DetailItem[];
+    domiciliaryDetails?: DetailItem[];
+    beneficiarySectionTitle?: string;
     paymentDetails?: DetailItem[];
+    refundBankDetails?: DetailItem[];
     disbursementDetails?: DisbursementDetails;
     settlementDetails?: DetailItem[];
     bankAccountsDetails?: DetailItem[];
@@ -64,7 +67,10 @@ export default function TransactionDetailsView({
     documents = [],
     documentSectionTitle = "Required Document",
     beneficiaryDetails,
+    domiciliaryDetails,
+    beneficiarySectionTitle,
     paymentDetails,
+    refundBankDetails,
     disbursementDetails,
     settlementDetails,
     bankAccountsDetails,
@@ -117,6 +123,9 @@ export default function TransactionDetailsView({
         );
     };
 
+    const resolvedDomiciliaryDetails = domiciliaryDetails || beneficiaryDetails;
+    const resolvedBeneficiaryTitle = beneficiarySectionTitle || "Domiciliary Bank Details";
+
     return (
         <View style={styles.container}>
             <Text style={styles.sectionHeader}>Transaction Details</Text>
@@ -129,10 +138,17 @@ export default function TransactionDetailsView({
                 </>
             )}
 
-            {beneficiaryDetails && beneficiaryDetails.length > 0 && !(bankAccountsDetails && bankAccountsDetails.length > 0) && (
+            {resolvedDomiciliaryDetails && resolvedDomiciliaryDetails.length > 0 && !(bankAccountsDetails && bankAccountsDetails.length > 0) && (
                 <>
-                    <Text style={[styles.sectionHeader, { marginTop: moderateScale(62) }]}>Beneficiary Details</Text>
-                    {beneficiaryDetails.map((item, index) => renderDetailRow(item, index, beneficiaryDetails.length))}
+                    <Text style={[styles.sectionHeader, { marginTop: moderateScale(62) }]}>{resolvedBeneficiaryTitle}</Text>
+                    {resolvedDomiciliaryDetails.map((item, index) => renderDetailRow(item, index, resolvedDomiciliaryDetails.length))}
+                </>
+            )}
+
+            {refundBankDetails && refundBankDetails.length > 0 && (
+                <>
+                    <Text style={[styles.sectionHeader, { marginTop: moderateScale(62) }]}>Refund Bank Details</Text>
+                    {refundBankDetails.map((item, index) => renderDetailRow(item, index, refundBankDetails.length))}
                 </>
             )}
 

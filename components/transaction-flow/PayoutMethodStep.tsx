@@ -56,10 +56,18 @@ export default function PayoutMethodStep({
 
     const isElectronic = payoutMethod?.includes('Electronic') || payoutMethod === 'Electronic_Transfer';
 
+    const isDomiciliary = payoutMethod === 'Electronic Transfer (100%)' || 
+                          payoutMethod === 'Cash (25%) + Electronic Transfer (75%)' || 
+                          payoutMethod === 'Electronic_Transfer' ||
+                          payoutMethod === 'Cash_25_Electronic_75';
+
     return (
         <View style={{ gap: moderateScale(14) }}>
             <Text style={{ fontSize: moderateScale(16), fontWeight: '700', color: '#0F172A', marginBottom: moderateScale(4) }}>
                 Choose your payout method
+            </Text>
+            <Text style={{ fontSize: moderateScale(13), color: '#64748B', marginTop: moderateScale(-8), marginBottom: moderateScale(4) }}>
+                Note that 25% cash payout is subject to a maximum amount of $500
             </Text>
             <TouchableOpacity onPress={() => setPayoutSheetVisible(true)} activeOpacity={0.8}>
                 <View pointerEvents="none">
@@ -76,7 +84,7 @@ export default function PayoutMethodStep({
             </TouchableOpacity>
 
             {/* Saved Accounts List */}
-            {isElectronic && (
+            {isElectronic && !isDomiciliary && (
                 <View style={{ marginTop: moderateScale(8), gap: moderateScale(12) }}>
                     {savedAccounts.map((account) => {
                         const isSelected = isMultiSelect
@@ -180,7 +188,7 @@ export default function PayoutMethodStep({
             )}
 
 
-            {isElectronic && (!savedAccounts || savedAccounts.length === 0) && (
+            {isElectronic && !isDomiciliary && (!savedAccounts || savedAccounts.length === 0) && (
                 <View style={{
                     padding: moderateScale(16),
                     backgroundColor: '#F8F9FA',
@@ -204,7 +212,7 @@ export default function PayoutMethodStep({
             )}
 
            
-            {isElectronic && (
+            {isElectronic && !isDomiciliary && (
                 <TouchableOpacity
                     activeOpacity={0.8}
                     onPress={() => {
@@ -233,6 +241,65 @@ export default function PayoutMethodStep({
                         New Account
                     </Text>
                 </TouchableOpacity>
+            )}
+
+            {isDomiciliary && (
+                <View style={{ gap: moderateScale(16), marginTop: moderateScale(8) }}>
+                    <Text style={{ fontSize: moderateScale(16), fontWeight: '700', color: '#0F172A', marginBottom: moderateScale(4) }}>
+                        Domiciliary Account Details
+                    </Text>
+                    <ControlledInput
+                        control={control}
+                        name="domiciliaryAccountNumber"
+                        label="Domiciliary Account Number"
+                        placeholder="Enter domiciliary account number"
+                        required
+                        keyboardType="numeric"
+                        maxLength={10}
+                        filterType="numeric"
+                    />
+                    <ControlledInput
+                        control={control}
+                        name="domiciliaryBankName"
+                        label="Domiciliary Bank Name"
+                        placeholder="Enter domiciliary bank name"
+                        required
+                    />
+                    <ControlledInput
+                        control={control}
+                        name="domiciliaryAccountName"
+                        label="Account Name"
+                        placeholder="Enter account name"
+                        required
+                    />
+                    <ControlledInput
+                        control={control}
+                        name="domiciliarySwiftCode"
+                        label="SWIFT Code"
+                        placeholder="Enter SWIFT code"
+                        required
+                        maxLength={11}
+                        filterType="alphanumeric"
+                        autoCapitalize="characters"
+                    />
+                    <ControlledInput
+                        control={control}
+                        name="domiciliaryRoutingNumber"
+                        label="Routing Number"
+                        placeholder="Enter routing number"
+                        required
+                        keyboardType="numeric"
+                        maxLength={9}
+                        filterType="numeric"
+                    />
+                    <ControlledInput
+                        control={control}
+                        name="domiciliaryBankAddress"
+                        label="Bank Address"
+                        placeholder="Enter bank address"
+                        required
+                    />
+                </View>
             )}
         </View>
     );

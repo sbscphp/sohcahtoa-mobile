@@ -33,6 +33,14 @@ export interface CreateTransactionPayload {
         correspondenceBankAddress?: string;
         correspondenceBankSwiftCode?: string;
     };
+    domiciliaryDetails?: {
+        bankName?: string;
+        accountNumber?: string;
+        accountName?: string;
+        swiftCode?: string;
+        routingNumber?: string;
+        bankAddress?: string;
+    };
     documents: {
         documentType: string;
         fileUrl: string;
@@ -47,6 +55,12 @@ export interface CreateTransactionPayload {
         recipientPhone?: string;
     };
     paymentDetails?: {
+        bankName?: string;
+        bankCode?: string;
+        accountNumber?: string;
+        accountName?: string;
+    };
+    refundBankDetails?: {
         bankName?: string;
         bankCode?: string;
         accountNumber?: string;
@@ -175,12 +189,28 @@ export interface Transaction {
         correspondenceBankAddress?: string;
         correspondenceBankSwiftCode?: string;
     };
+    domiciliaryDetails?: {
+        bankName?: string;
+        accountNumber?: string;
+        accountName?: string;
+        swiftCode?: string;
+        routingNumber?: string;
+        bankAddress?: string;
+    };
     paymentDetails?: {
         name: string;
         accountNumber: string;
         accountName: string;
         bankName: string;
         iban: string;
+    };
+    refundBankDetails?: {
+        name?: string;
+        accountNumber?: string;
+        accountName?: string;
+        bankName?: string;
+        bankCode?: string;
+        iban?: string;
     };
     documents: TransactionDocument[];
     cashPickup: TransactionCashPickup | null;
@@ -357,12 +387,28 @@ export interface GetTransactionByIdResponse {
             correspondenceBankAddress?: string;
             correspondenceBankSwiftCode?: string;
         };
+        domiciliaryDetails?: {
+            bankName?: string;
+            accountNumber?: string;
+            accountName?: string;
+            swiftCode?: string;
+            routingNumber?: string;
+            bankAddress?: string;
+        };
         paymentDetails?: {
             name: string;
             accountName: string;
             accountNumber: string;
             bankName: string;
             iban: string;
+        };
+        refundBankDetails?: {
+            name?: string;
+            accountNumber?: string;
+            accountName?: string;
+            bankName?: string;
+            bankCode?: string;
+            iban?: string;
         };
         cashPickup?: any;
         prepaidCard?: any;

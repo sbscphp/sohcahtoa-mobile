@@ -23,7 +23,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
     fileUrl,
     fileType,
     title = 'Upload or change here.',
-    subtitle = 'PDF, PNG, IMG, JPG Supported. Max. size: 20 MB',
+    subtitle = 'PDF, PNG, IMG, JPG Supported. Max. size: 10 MB',
     status = 'default',
     error,
 }) => {

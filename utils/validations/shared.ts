@@ -7,8 +7,8 @@ export const ninField = z.string().optional().or(z.literal(''));
 
 export const formAIdField = z
     .string()
-    .min(5, 'Please enter a valid Form A ID')
-    .max(20, 'Form A ID is too long');
+    .length(10, 'Form A ID must be exactly 10 digits')
+    .regex(/^\d+$/, 'Form A ID must contain only digits');
 
 export const invoiceNumberField = z
     .string()
@@ -41,8 +41,10 @@ export const workPermitNumberField = z.string().min(1, 'Please enter your Work P
 /** Tax Identification Number validation (TIN) */
 export const tinField = z
     .string()
-    .length(11, 'Please enter a valid 11-digit TIN')
-    .regex(/^\d+$/, 'TIN must contain only digits');
+    .regex(/^\d+$/, 'TIN must contain only digits')
+    .refine((val) => val.length === 11 || val.length === 13, {
+        message: 'TIN must be either 11 or 13 digits',
+    });
 
 /** Tax Clearance Certificate Number validation (TCC) */
 export const tccNumberField = z.string().min(1, 'Please enter your TCC Number');

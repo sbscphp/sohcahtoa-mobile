@@ -16,6 +16,7 @@ import { useGetSavedAccountsQuery } from '@/hooks/queries/banks/useGetSavedAccou
 import { useLookupAccountMutation } from '@/hooks/queries/banks/useResolveAccountMutation';
 import { useSaveAccountMutation } from '@/hooks/queries/banks/useSaveAccountMutation';
 import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
+import { useAttachBankAccountsMutation } from '@/hooks/queries/transactions/useAttachBankAccountsMutation';
 import { useGetPickupCitiesQuery } from '@/hooks/queries/transactions/useGetPickupCitiesQuery';
 import { useGetPickupPointsQuery } from '@/hooks/queries/transactions/useGetPickupPointsQuery';
 import { useGetPickupStatesQuery } from '@/hooks/queries/transactions/useGetPickupStatesQuery';
@@ -31,13 +32,16 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { View } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { z } from 'zod';
+import { Ionicons } from '@expo/vector-icons';
+import { moderateScale } from 'react-native-size-matters';
 
 const PAYOUT_METHODS: SelectionItem[] = [
     { id: '1', label: 'Electronic Transfer (100%)', value: 'Electronic_Transfer' },
     { id: '2', label: 'Card (100%)', value: 'Card' },
     { id: '3', label: 'Card (75%) + Cash (25%)', value: 'Card_Cash', description: 'Maximum amount to be collected as cash is $500' },
+    { id: '4', label: 'Cash (25%) + Electronic Transfer (75%)', value: 'Cash_25_Electronic_75' },
 ];
 
 const btaFormSchema = z.object({
@@ -49,74 +53,203 @@ const btaFormSchema = z.object({
     customerBankCode: z.string().optional().or(z.literal('')),
     customerAccountNumber: z.string().optional().or(z.literal('')),
     customerAccountName: z.string().optional().or(z.literal('')),
+    domiciliaryAccountNumber: z.string().optional().or(z.literal('')),
+    domiciliaryBankName: z.string().optional().or(z.literal('')),
+    domiciliaryAccountName: z.string().optional().or(z.literal('')),
+    domiciliarySwiftCode: z.string().optional().or(z.literal('')),
+    domiciliaryRoutingNumber: z.string().optional().or(z.literal('')),
+    domiciliaryBankAddress: z.string().optional().or(z.literal('')),
     selectedState: z.any().optional(),
     selectedCity: z.any().optional(),
     selectedLocation: z.any().optional(),
     pickupDate: z.string().optional().or(z.literal('')),
     pickupTime: z.string().optional().or(z.literal('')),
 }).superRefine((data, ctx) => {
-    const isElectronicTransfer = data.payoutMethod === 'Electronic Transfer (100%)' || data.payoutMethod === 'Electronic_Transfer';
-    if (isElectronicTransfer) {
+    const user = useAuthStore.getState().user;
+    const profileBvn = user?.kyc?.bvn || '';
+    const profileNin = (user?.kyc as any)?.nin || (user as any)?.nin || '';
+
+    if (!profileBvn) {
+        if (!data.bvn) {
+            ctx.addIssue({
+                code: "custom",
+                message: 'BVN is required',
+                path: ['bvn']
+            });
+        } else if (data.bvn.length !== 11 || !/^\d+$/.test(data.bvn)) {
+            ctx.addIssue({
+                code: "custom",
+                message: 'BVN must be exactly 11 digits',
+                path: ['bvn']
+            });
+        }
+    }
+
+    if (!profileNin) {
+        if (!data.nin) {
+            ctx.addIssue({
+                code: "custom",
+                message: 'NIN is required',
+                path: ['nin']
+            });
+        } else if (data.nin.length !== 11 || !/^\d+$/.test(data.nin)) {
+            ctx.addIssue({
+                code: "custom",
+                message: 'NIN must be exactly 11 digits',
+                path: ['nin']
+            });
+        }
+    }
+
+    const isElectronicTransfer = data.payoutMethod === 'Electronic Transfer (100%)' || data.payoutMethod === 'Electronic_Transfer' || data.payoutMethod === 'Cash (25%) + Electronic Transfer (75%)' || data.payoutMethod === 'Cash_25_Electronic_75';
+    const isDomiciliary = data.payoutMethod === 'Electronic Transfer (100%)' || 
+                          data.payoutMethod === 'Cash (25%) + Electronic Transfer (75%)' || 
+                          data.payoutMethod === 'Electronic_Transfer' ||
+                          data.payoutMethod === 'Cash_25_Electronic_75';
+    const needsLocation = data.payoutMethod !== 'Electronic Transfer (100%)' && data.payoutMethod !== 'Electronic_Transfer';
+
+    if (isDomiciliary) {
+        if (!data.domiciliaryAccountNumber) {
+            ctx.addIssue({
+                code: "custom",
+                message: 'Please enter domiciliary account number',
+                path: ['domiciliaryAccountNumber']
+            });
+        } else if (data.domiciliaryAccountNumber.length !== 10 || !/^\d+$/.test(data.domiciliaryAccountNumber)) {
+            ctx.addIssue({
+                code: "custom",
+                message: 'Domiciliary account number must be exactly 10 digits',
+                path: ['domiciliaryAccountNumber']
+            });
+        }
+        if (!data.domiciliaryBankName) {
+            ctx.addIssue({
+                code: "custom",
+                message: 'Please enter bank name',
+                path: ['domiciliaryBankName']
+            });
+        } else if (data.domiciliaryBankName.trim().length < 2) {
+            ctx.addIssue({
+                code: "custom",
+                message: 'Bank name must be at least 2 characters',
+                path: ['domiciliaryBankName']
+            });
+        }
+        if (!data.domiciliaryAccountName) {
+            ctx.addIssue({
+                code: "custom",
+                message: 'Please enter account name',
+                path: ['domiciliaryAccountName']
+            });
+        } else if (data.domiciliaryAccountName.trim().length < 3 || !/^[A-Za-z\s.\-]+$/.test(data.domiciliaryAccountName)) {
+            ctx.addIssue({
+                code: "custom",
+                message: 'Account name must be at least 3 characters and contain only letters',
+                path: ['domiciliaryAccountName']
+            });
+        }
+        if (!data.domiciliarySwiftCode) {
+            ctx.addIssue({
+                code: "custom",
+                message: 'Please enter SWIFT code',
+                path: ['domiciliarySwiftCode']
+            });
+        } else if (!/^[A-Za-z0-9]{8}$|^[A-Za-z0-9]{11}$/.test(data.domiciliarySwiftCode)) {
+            ctx.addIssue({
+                code: "custom",
+                message: 'SWIFT code must be either 8 or 11 alphanumeric characters',
+                path: ['domiciliarySwiftCode']
+            });
+        }
+        if (!data.domiciliaryRoutingNumber) {
+            ctx.addIssue({
+                code: "custom",
+                message: 'Please enter routing number',
+                path: ['domiciliaryRoutingNumber']
+            });
+        } else if (data.domiciliaryRoutingNumber.length !== 9 || !/^\d+$/.test(data.domiciliaryRoutingNumber)) {
+            ctx.addIssue({
+                code: "custom",
+                message: 'Routing number must be exactly 9 digits',
+                path: ['domiciliaryRoutingNumber']
+            });
+        }
+        if (!data.domiciliaryBankAddress) {
+            ctx.addIssue({
+                code: "custom",
+                message: 'Please enter bank address',
+                path: ['domiciliaryBankAddress']
+            });
+        } else if (data.domiciliaryBankAddress.trim().length < 5) {
+            ctx.addIssue({
+                code: "custom",
+                message: 'Bank address must be at least 5 characters',
+                path: ['domiciliaryBankAddress']
+            });
+        }
+    } else if (isElectronicTransfer) {
         if (!data.customerBankName) {
             ctx.addIssue({
-                code: z.ZodIssueCode.custom,
+                code: "custom",
                 message: 'Please select your bank',
                 path: ['customerBankName']
             });
         }
         if (!data.customerBankCode) {
             ctx.addIssue({
-                code: z.ZodIssueCode.custom,
+                code: "custom",
                 message: 'Please select your bank',
                 path: ['customerBankCode']
             });
         }
         if (!data.customerAccountNumber || data.customerAccountNumber.length !== 10) {
             ctx.addIssue({
-                code: z.ZodIssueCode.custom,
+                code: "custom",
                 message: 'Account number must be 10 digits',
                 path: ['customerAccountNumber']
             });
         }
         if (!data.customerAccountName) {
             ctx.addIssue({
-                code: z.ZodIssueCode.custom,
+                code: "custom",
                 message: 'Account name must be resolved',
                 path: ['customerAccountName']
             });
         }
-    } else {
+    }
+
+    if (needsLocation) {
         if (!data.selectedState) {
             ctx.addIssue({
-                code: z.ZodIssueCode.custom,
+                code: "custom",
                 message: 'Please select a state',
                 path: ['selectedState']
             });
         }
         if (!data.selectedCity) {
             ctx.addIssue({
-                code: z.ZodIssueCode.custom,
+                code: "custom",
                 message: 'Please select a city',
                 path: ['selectedCity']
             });
         }
         if (!data.selectedLocation) {
             ctx.addIssue({
-                code: z.ZodIssueCode.custom,
+                code: "custom",
                 message: 'Please select a pickup location',
                 path: ['selectedLocation']
             });
         }
         if (!data.pickupDate) {
             ctx.addIssue({
-                code: z.ZodIssueCode.custom,
+                code: "custom",
                 message: 'Please select a pickup date',
                 path: ['pickupDate']
             });
         }
         if (!data.pickupTime) {
             ctx.addIssue({
-                code: z.ZodIssueCode.custom,
+                code: "custom",
                 message: 'Please select a pickup time',
                 path: ['pickupTime']
             });
@@ -124,7 +257,7 @@ const btaFormSchema = z.object({
     }
     if (data.passportIssueDate && data.passportExpiryDate && data.passportIssueDate === data.passportExpiryDate) {
         ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+            code: "custom",
             message: 'Passport Expiry Date cannot be the same as Passport Issue Date',
             path: ['passportExpiryDate']
         });
@@ -136,6 +269,7 @@ type BtaFormValues = z.infer<typeof btaFormSchema>;
 export default function BusinessTravelAllowanceScreen() {
     const router = useRouter();
     const createTransaction = useCreateTransactionMutation();
+    const attachBankAccountsMutation = useAttachBankAccountsMutation();
     const showToast = useToastStore(s => s.showToast);
     useProfileQuery();
     const user = useAuthStore(s => s.user);
@@ -175,6 +309,12 @@ export default function BusinessTravelAllowanceScreen() {
             customerBankCode: '',
             customerAccountNumber: '',
             customerAccountName: '',
+            domiciliaryAccountNumber: '',
+            domiciliaryBankName: '',
+            domiciliaryAccountName: '',
+            domiciliarySwiftCode: '',
+            domiciliaryRoutingNumber: '',
+            domiciliaryBankAddress: '',
         },
         mode: 'onChange'
     });
@@ -198,7 +338,8 @@ export default function BusinessTravelAllowanceScreen() {
     const { data: allLocations = [] } = useGetPickupPointsQuery();
 
     const watchedFields = watch() as any;
-    const isElectronicTransfer = watchedFields.payoutMethod === 'Electronic Transfer (100%)' || watchedFields.payoutMethod === 'Electronic_Transfer';
+    const isElectronicTransfer = watchedFields.payoutMethod === 'Electronic Transfer (100%)' || watchedFields.payoutMethod === 'Electronic_Transfer' || watchedFields.payoutMethod === 'Cash (25%) + Electronic Transfer (75%)' || watchedFields.payoutMethod === 'Cash_25_Electronic_75';
+    const needsLocationStep = watchedFields.payoutMethod !== 'Electronic Transfer (100%)' && watchedFields.payoutMethod !== 'Electronic_Transfer';
 
     const { data: filteredCities = [] } = useGetPickupCitiesQuery(watchedFields.selectedState?.title);
 
@@ -331,11 +472,16 @@ export default function BusinessTravelAllowanceScreen() {
         onError: () => showToast('Failed to upload document. Please try again.', 'error'),
     });
 
+    const profileBvn = user?.kyc?.bvn || '';
+    const profileNin = (user?.kyc as any)?.nin || (user as any)?.nin || '';
+    const isBvnDisabled = !!profileBvn;
+    const isNinDisabled = !!profileNin;
+
     const credentialFields = [
-        { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number(BVN)" placeholder="Enter your BVN" required keyboardType="numeric" maxLength={11} filterType="numeric" disabled /> },
-        { customComponent: <ControlledInput control={control} name="tinNumber" label="Tax Identification Number(TIN)" placeholder="Enter your TIN" required keyboardType="numeric" maxLength={11} filterType="numeric" /> },
-        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number(NIN)" placeholder="Enter your NIN" keyboardType="numeric" maxLength={11} filterType="numeric" disabled /> },
-        { customComponent: <ControlledInput control={control} name="formAId" label="Form A ID" placeholder="Enter Form A ID" required /> },
+        { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number(BVN)" placeholder="Enter your BVN" required keyboardType="numeric" maxLength={11} filterType="numeric" disabled={isBvnDisabled} /> },
+        { customComponent: <ControlledInput control={control} name="tinNumber" label="Tax Identification Number(TIN)" placeholder="Enter your TIN" required keyboardType="numeric" maxLength={13} filterType="numeric" /> },
+        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number(NIN)" placeholder="Enter your NIN" required={!isNinDisabled} keyboardType="numeric" maxLength={11} filterType="numeric" disabled={isNinDisabled} /> },
+        { customComponent: <ControlledInput control={control} name="formAId" label="Form A ID" placeholder="Enter Form A ID" required keyboardType="numeric" maxLength={10} filterType="numeric" /> },
         { customComponent: <ControlledInput control={control} name="passportDocumentNumber" label="International Passport Number" placeholder="Enter international passport" required maxLength={9} filterType="alphanumeric" /> }
     ];
 
@@ -383,7 +529,7 @@ export default function BusinessTravelAllowanceScreen() {
             required: true,
         },
         {
-            label: 'Letter of Request from Corporate Body',
+            label: 'Letter of Request from Employer',
             onUpload: () => uploadFile('CORPORATE_BODY_LETTER'),
             fileName: docs.corporateBodyLetter.file?.name,
             fileUri: docs.corporateBodyLetter.file?.uri, fileUrl: docs.corporateBodyLetter.meta?.fileUrl,
@@ -391,7 +537,7 @@ export default function BusinessTravelAllowanceScreen() {
             required: true,
         },
         {
-            label: 'Letter of Invitation from Partner',
+            label: 'Letter of Invitation from Overseas Partner',
             onUpload: () => uploadFile('PARTNER_INVITATION_LETTER'),
             fileName: docs.partnerInvitationLetter.file?.name,
             fileUri: docs.partnerInvitationLetter.file?.uri, fileUrl: docs.partnerInvitationLetter.meta?.fileUrl,
@@ -432,6 +578,10 @@ export default function BusinessTravelAllowanceScreen() {
 
         let isStepValid = false;
 
+        const values = getValues();
+        const needsLocationStepLatest = values.payoutMethod !== 'Electronic Transfer (100%)' && values.payoutMethod !== 'Electronic_Transfer';
+        const refundStepIndex = needsLocationStepLatest ? 5 : 4;
+
         if (currentStep === 0) {
             isStepValid = await trigger(['bvn', 'tinNumber', 'nin', 'formAId', 'passportDocumentNumber']);
         } else if (currentStep === 1) {
@@ -443,18 +593,34 @@ export default function BusinessTravelAllowanceScreen() {
                 return;
             }
             const fieldsToTrigger: any[] = ['payoutMethod'];
-            if (isElectronicTransfer) {
+            const isDomiciliary = watchedFields.payoutMethod === 'Electronic Transfer (100%)' || 
+                                  watchedFields.payoutMethod === 'Cash (25%) + Electronic Transfer (75%)' || 
+                                  watchedFields.payoutMethod === 'Electronic_Transfer' ||
+                                  watchedFields.payoutMethod === 'Cash_25_Electronic_75';
+            if (isDomiciliary) {
+                fieldsToTrigger.push(
+                    'domiciliaryAccountNumber',
+                    'domiciliaryBankName',
+                    'domiciliaryAccountName',
+                    'domiciliarySwiftCode',
+                    'domiciliaryRoutingNumber',
+                    'domiciliaryBankAddress'
+                );
+            } else if (isElectronicTransfer) {
                 fieldsToTrigger.push('customerBankName', 'customerBankCode', 'customerAccountNumber', 'customerAccountName');
             }
             isStepValid = await trigger(fieldsToTrigger);
-        } else if (currentStep === 4) {
+        } else if (currentStep === 4 && needsLocationStepLatest) {
             isStepValid = await trigger(['selectedState', 'selectedCity', 'selectedLocation', 'pickupDate', 'pickupTime']);
+        } else if (currentStep === refundStepIndex) {
+            if (isAddingNewAccount) {
+                return;
+            }
+            isStepValid = !!selectedSavedAccountId;
         }
 
         if (isStepValid) {
-            const values = getValues();
-            const isElectronicTransferLatest = values.payoutMethod === 'Electronic Transfer (100%)' || values.payoutMethod === 'Electronic_Transfer';
-            if (currentStep < (isElectronicTransferLatest ? 3 : 4)) {
+            if (currentStep < refundStepIndex) {
                 setCurrentStep(currentStep + 1);
             } else {
                 setInitiateSheetVisible(true);
@@ -508,7 +674,7 @@ export default function BusinessTravelAllowanceScreen() {
                 ...(docs.corporateBodyLetter.meta ? [docs.corporateBodyLetter.meta] : []),
                 ...(docs.partnerInvitationLetter.meta ? [docs.partnerInvitationLetter.meta] : []),
             ],
-            pickupLocation: (!isElectronicTransfer && data.selectedLocation) ? {
+            pickupLocation: (needsLocationStep && data.selectedLocation) ? {
                 name: (data.selectedLocation as LocationItem).title,
                 address: (data.selectedLocation as LocationItem).subtitle || '',
                 state: (data.selectedState as LocationItem)?.title || '',
@@ -518,7 +684,15 @@ export default function BusinessTravelAllowanceScreen() {
                 amount: Number(data.amount) || 0,
                 currency: currencyGet.code,
             } : undefined,
-            beneficiaryDetails: {
+            domiciliaryDetails: (data.payoutMethod === 'Electronic Transfer (100%)' || data.payoutMethod === 'Electronic_Transfer' || data.payoutMethod === 'Cash (25%) + Electronic Transfer (75%)' || data.payoutMethod === 'Cash_25_Electronic_75') ? {
+                bankName: data.domiciliaryBankName,
+                accountNumber: data.domiciliaryAccountNumber,
+                accountName: data.domiciliaryAccountName,
+                swiftCode: data.domiciliarySwiftCode,
+                routingNumber: data.domiciliaryRoutingNumber,
+                bankAddress: data.domiciliaryBankAddress,
+            } : undefined,
+            refundBankDetails: {
                 bankName: data.customerBankName,
                 bankCode: data.customerBankCode,
                 accountNumber: data.customerAccountNumber,
@@ -530,10 +704,17 @@ export default function BusinessTravelAllowanceScreen() {
         createTransaction.mutate(payload, {
             onSuccess: (response: any) => {
                 if (response.success) {
+                    const transactionId = response.data?.transactionId;
+                    if (selectedSavedAccountId && transactionId) {
+                        attachBankAccountsMutation.mutate({
+                            transactionId,
+                            bankAccountIds: [selectedSavedAccountId],
+                        });
+                    }
                     setInitiateSheetVisible(false);
                     router.push({
                         pathname: '/(buy-fx)/(bta)/request-initiated-success',
-                        params: { transactionId: response.data?.transactionId }
+                        params: { transactionId }
                     });
                 }
             }
@@ -545,27 +726,36 @@ export default function BusinessTravelAllowanceScreen() {
     const isStep1Valid = docs.passport.meta && docs.visa.meta && docs.returnTicket.meta && docs.tcc.meta && docs.corporateBodyLetter.meta && docs.partnerInvitationLetter.meta &&
         watchedFields.passportIssueDate && watchedFields.passportExpiryDate;
     const isStep2Valid = watchedFields.amount > 0;
-    const isStep3Valid = watchedFields.payoutMethod && (!isElectronicTransfer || (watchedFields.customerBankName && watchedFields.customerBankCode && watchedFields.customerAccountNumber && watchedFields.customerAccountName));
+    const isStep3Valid = watchedFields.payoutMethod && (
+        !isElectronicTransfer || (
+            (watchedFields.payoutMethod === 'Electronic Transfer (100%)' || watchedFields.payoutMethod === 'Electronic_Transfer' || watchedFields.payoutMethod === 'Cash (25%) + Electronic Transfer (75%)' || watchedFields.payoutMethod === 'Cash_25_Electronic_75')
+            ? (watchedFields.domiciliaryAccountNumber && watchedFields.domiciliaryBankName && watchedFields.domiciliaryAccountName && watchedFields.domiciliarySwiftCode && watchedFields.domiciliaryRoutingNumber && watchedFields.domiciliaryBankAddress)
+            : (watchedFields.customerBankName && watchedFields.customerBankCode && watchedFields.customerAccountNumber && watchedFields.customerAccountName)
+        )
+    );
     const isStep4Valid = watchedFields.selectedState && watchedFields.selectedCity && watchedFields.selectedLocation && watchedFields.pickupDate && watchedFields.pickupTime;
+
+    const refundStepIndex = needsLocationStep ? 5 : 4;
 
     const isNextDisabled =
         (currentStep === 0 && !isStep0Valid) ||
         (currentStep === 1 && !isStep1Valid) ||
         (currentStep === 2 && !isStep2Valid) ||
         (currentStep === 3 && !isStep3Valid) ||
-        (currentStep === 4 && !isElectronicTransfer && !isStep4Valid);
+        (currentStep === 4 && needsLocationStep && !isStep4Valid) ||
+        (currentStep === refundStepIndex && !selectedSavedAccountId);
 
     return (
         <>
-            <LoadingBackdrop visible={isUploading || createTransaction.isPending || saveAccountMutation.isPending} />
+            <LoadingBackdrop visible={isUploading || createTransaction.isPending || saveAccountMutation.isPending || attachBankAccountsMutation.isPending} />
             <TransactionLayout
                 title="Business Travel Allowance"
                 currentStep={currentStep}
-                totalSteps={isElectronicTransfer ? 4 : 5}
+                totalSteps={needsLocationStep ? 6 : 5}
                 onBack={handleBack}
                 onNext={isAddingNewAccount ? handleSaveNewAccount : handleNext}
                 isNextDisabled={isNextDisabled}
-                nextLabel={isAddingNewAccount ? "Save" : (currentStep === (isElectronicTransfer ? 3 : 4) ? (isElectronicTransfer || (watchedFields.selectedState && watchedFields.selectedCity) ? "Initiate Transaction Request" : "Continue") : "Continue")}
+                nextLabel={isAddingNewAccount ? "Save" : (currentStep === refundStepIndex ? "Initiate Transaction Request" : "Continue")}
             >
                 {currentStep === 0 && (
                     <CredentialStep fields={credentialFields} />
@@ -590,6 +780,8 @@ export default function BusinessTravelAllowanceScreen() {
                         onAmountSendChange={setAmountSendStr}
                         allowedModes={['buy']}
                         error={errors.amount?.message}
+                        labelGet="You get exactly"
+                        labelSend="When you send"
                     />
                 )}
 
@@ -615,7 +807,7 @@ export default function BusinessTravelAllowanceScreen() {
                     />
                 )}
 
-                {currentStep === 4 && !isElectronicTransfer && (
+                {currentStep === 4 && needsLocationStep && (
                     <LocationStep
                         states={states}
                         cities={filteredCities}
@@ -644,6 +836,109 @@ export default function BusinessTravelAllowanceScreen() {
                             pickupDate: errors.pickupDate?.message as string | undefined,
                             pickupTime: errors.pickupTime?.message as string | undefined
                         }}
+                    />
+                )}
+
+                {currentStep === refundStepIndex && !isAddingNewAccount && (
+                    <View style={{ gap: moderateScale(14) }}>
+                        <Text style={{ fontSize: moderateScale(18), fontWeight: '700', color: '#0F172A', marginBottom: moderateScale(4) }}>
+                            Refund Bank Details
+                        </Text>
+                        <Text style={{ fontSize: moderateScale(13), color: '#64748B', fontWeight: '500', marginBottom: moderateScale(8) }}>
+                            Select your local Nigerian bank account for refunds if your transaction cannot be processed.
+                        </Text>
+                        
+                        {/* Saved Accounts List */}
+                        {savedAccounts.map((account) => {
+                            const isSelected = selectedSavedAccountId === account.id;
+                            return (
+                                <TouchableOpacity
+                                    key={account.id}
+                                    activeOpacity={0.9}
+                                    onPress={() => {
+                                        setSelectedSavedAccountId(account.id);
+                                        setValue('customerBankName', account.bankName);
+                                        setValue('customerBankCode', account.bankCode);
+                                        setValue('customerAccountNumber', account.accountNumber);
+                                        setValue('customerAccountName', account.accountName);
+                                    }}
+                                    style={{
+                                        borderWidth: isSelected ? 1.5 : 1,
+                                        borderColor: isSelected ? '#FF6B2C' : '#E2E8F0',
+                                        backgroundColor: isSelected ? '#FFF7ED' : '#FFFFFF',
+                                        borderRadius: moderateScale(12),
+                                        paddingVertical: moderateScale(16),
+                                        paddingHorizontal: moderateScale(16),
+                                    }}
+                                >
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <View style={{ flex: 1 }}>
+                                            <Text style={{ fontSize: moderateScale(14), fontWeight: '700', color: '#0F172A', marginBottom: moderateScale(4) }}>
+                                                {account.bankName}
+                                            </Text>
+                                            <Text style={{ fontSize: moderateScale(13), color: '#64748B', fontWeight: '500' }}>
+                                                {account.accountNumber} <Text style={{ color: '#E2E8F0' }}>|</Text> {account.accountName}
+                                            </Text>
+                                        </View>
+                                        <Ionicons
+                                            name={isSelected ? "checkmark-circle" : "ellipse-outline"}
+                                            size={moderateScale(20)}
+                                            color={isSelected ? "#FF6B2C" : "#64748B"}
+                                        />
+                                    </View>
+                                </TouchableOpacity>
+                            );
+                        })}
+
+                        {(!savedAccounts || savedAccounts.length === 0) && (
+                            <View style={{
+                                padding: moderateScale(16),
+                                backgroundColor: '#F8F9FA',
+                                borderRadius: moderateScale(12),
+                                borderWidth: 1,
+                                borderColor: '#E2E8F0',
+                                borderStyle: 'dashed',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                            }}>
+                                <Text style={{ fontSize: moderateScale(13), color: '#64748B', textAlign: 'center', fontWeight: '500' }}>
+                                    No saved accounts found. Please add one to proceed.
+                                </Text>
+                            </View>
+                        )}
+
+                        <TouchableOpacity
+                            activeOpacity={0.8}
+                            onPress={() => {
+                                setSelectedSavedAccountId(null);
+                                setValue('customerBankName', '');
+                                setValue('customerBankCode', '');
+                                setValue('customerAccountNumber', '');
+                                setValue('customerAccountName', '');
+                                setIsAddingNewAccount(true);
+                            }}
+                            style={{
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                alignSelf: 'flex-end',
+                                paddingVertical: moderateScale(8)
+                            }}
+                        >
+                            <Ionicons name="add" size={moderateScale(18)} color="#FF6B2C" style={{ marginRight: moderateScale(4) }} />
+                            <Text style={{ fontSize: moderateScale(14), fontWeight: '600', color: '#FF6B2C' }}>
+                                New Account
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+                )}
+
+                {currentStep === refundStepIndex && isAddingNewAccount && (
+                    <AddNewAccountStep
+                        control={control}
+                        setValue={setValue}
+                        banks={banks}
+                        isResolving={resolveAccount.isPending}
+                        selectedBankCode={watchedFields.customerBankCode}
                     />
                 )}
 
