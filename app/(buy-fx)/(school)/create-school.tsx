@@ -4,7 +4,8 @@ import GenericSelectionSheet, { SelectionItem } from '@/components/GenericSelect
 import InitiateTransactionSheet from '@/components/InitiateTransactionSheet';
 import LoadingBackdrop from '@/components/LoadingBackdrop';
 import SourceOfFundsSheet from '@/components/SourceOfFundsSheet';
-// import AddNewAccountStep from '@/components/transaction-flow/AddNewAccountStep';
+import AddNewAccountStep from '@/components/transaction-flow/AddNewAccountStep';
+import { Ionicons } from '@expo/vector-icons';
 import CredentialStep from '@/components/transaction-flow/CredentialStep';
 import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
@@ -17,6 +18,7 @@ import { useGetSavedAccountsQuery } from '@/hooks/queries/banks/useGetSavedAccou
 import { useLookupAccountMutation } from '@/hooks/queries/banks/useResolveAccountMutation';
 import { useSaveAccountMutation } from '@/hooks/queries/banks/useSaveAccountMutation';
 import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
+import { useAttachBankAccountsMutation } from '@/hooks/queries/transactions/useAttachBankAccountsMutation';
 import { useGetTransactionsQuery } from '@/hooks/queries/transactions/useGetTransactionsQuery';
 import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useExchangeLogic } from '@/hooks/useExchangeLogic';
@@ -29,7 +31,8 @@ import { useRouter } from 'expo-router';
 import { ArrowDown2, Teacher } from 'iconsax-react-nativejs';
 import React, { useMemo, useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { TouchableOpacity, View } from 'react-native';
+import { TouchableOpacity, View, Text } from 'react-native';
+import { moderateScale } from 'react-native-size-matters';
 import { z } from 'zod';
 
 const ADMISSION_TYPES: SelectionItem[] = [
@@ -77,8 +80,12 @@ const formatDateToPickerFormat = (dateStr: string | undefined | null): string =>
 export default function SchoolFeesScreen() {
     const router = useRouter();
     const createTransaction = useCreateTransactionMutation();
+    const attachBankAccountsMutation = useAttachBankAccountsMutation();
     const showToast = useToastStore(s => s.showToast);
-    useProfileQuery();
+    const { data: profileResponse } = useProfileQuery();
+    const profile = profileResponse?.data;
+    const profileBvn = profile?.bvn;
+    const profileNin = profile?.nin;
     const user = useAuthStore(s => s.user);
     const { data: transactionsResponse } = useGetTransactionsQuery();
     const transactions = transactionsResponse?.pages?.flatMap(p => p.data) || [];
@@ -89,6 +96,7 @@ export default function SchoolFeesScreen() {
     const [showSourceOfFundsSheet, setShowSourceOfFundsSheet] = useState(false);
     const [initials, setInitials] = useState('');
     const { proofOfFunds, isDeclarationCompleted } = useDeclarationStore();
+    const [uploadTarget, setUploadTarget] = useState<'applicant' | 'student' | null>(null);
 
     useEffect(() => {
         useDeclarationStore.getState().reset();
@@ -103,12 +111,100 @@ export default function SchoolFeesScreen() {
             .merge(schoolStep2Schema(isPostGrad))
             .merge(schoolStep3Schema)
             .superRefine((data, ctx) => {
+                if (!profileBvn) {
+                    if (!data.bvn) {
+                        ctx.addIssue({
+                            code: "custom",
+                            message: 'BVN is required',
+                            path: ['bvn']
+                        });
+                    } else if (data.bvn.length !== 11 || !/^\d+$/.test(data.bvn)) {
+                        ctx.addIssue({
+                            code: "custom",
+                            message: 'BVN must be exactly 11 digits',
+                            path: ['bvn']
+                        });
+                    }
+                }
+                if (!profileNin) {
+                    if (!data.nin) {
+                        ctx.addIssue({
+                            code: "custom",
+                            message: 'NIN is required',
+                            path: ['nin']
+                        });
+                    } else if (data.nin.length !== 11 || !/^\d+$/.test(data.nin)) {
+                        ctx.addIssue({
+                            code: "custom",
+                            message: 'NIN must be exactly 11 digits',
+                            path: ['nin']
+                        });
+                    }
+                }
+
                 if (data.passportIssueDate && data.passportExpiryDate && data.passportIssueDate === data.passportExpiryDate) {
                     ctx.addIssue({
                         code: "custom",
                         message: 'Passport Expiry Date cannot be the same as Passport Issue Date',
                         path: ['passportExpiryDate']
                     });
+                }
+
+                if (data.admissionType) {
+                    if (!data.studentName) {
+                        ctx.addIssue({
+                            code: "custom",
+                            message: 'Student Full Name is required',
+                            path: ['studentName']
+                        });
+                    } else if (data.studentName.trim().length < 3) {
+                        ctx.addIssue({
+                            code: "custom",
+                            message: 'Student name must be at least 3 characters',
+                            path: ['studentName']
+                        });
+                    }
+
+                    if (data.studentNIN) {
+                        if (data.studentNIN.length !== 11 || !/^\d+$/.test(data.studentNIN)) {
+                            ctx.addIssue({
+                                code: "custom",
+                                message: 'Student NIN must be exactly 11 digits',
+                                path: ['studentNIN']
+                            });
+                        }
+                    }
+
+                    if (data.studentPassportNumber) {
+                        if (!/^[A-Za-z]\d{8}$/.test(data.studentPassportNumber)) {
+                            ctx.addIssue({
+                                code: "custom",
+                                message: 'Please enter a valid Passport Number (e.g. A12345678)',
+                                path: ['studentPassportNumber']
+                            });
+                        }
+                        if (!data.studentPassportIssueDate) {
+                            ctx.addIssue({
+                                code: "custom",
+                                message: 'Please select student Passport Issue Date',
+                                path: ['studentPassportIssueDate']
+                            });
+                        }
+                        if (!data.studentPassportExpiryDate) {
+                            ctx.addIssue({
+                                code: "custom",
+                                message: 'Please select student Passport Expiry Date',
+                                path: ['studentPassportExpiryDate']
+                            });
+                        }
+                        if (data.studentPassportIssueDate && data.studentPassportExpiryDate && data.studentPassportIssueDate === data.studentPassportExpiryDate) {
+                            ctx.addIssue({
+                                code: "custom",
+                                message: 'Student Passport Expiry Date cannot be the same as Issue Date',
+                                path: ['studentPassportExpiryDate']
+                            });
+                        }
+                    }
                 }
             });
         return zodResolver(dynamicSchema)(data, context, options);
@@ -124,6 +220,7 @@ export default function SchoolFeesScreen() {
     } = useForm({
         resolver,
         defaultValues: {
+            bvn: '',
             nin: '',
             formAId: '',
             passportDocumentNumber: '',
@@ -132,7 +229,11 @@ export default function SchoolFeesScreen() {
             passportExpiryDate: '',
             amount: 0,
             studentName: '',
+            studentNIN: '',
             studentPassportNumber: '',
+            studentPassportIssueDate: '',
+            studentPassportExpiryDate: '',
+            schoolName: '',
             bankAccountName: '',
             bankAccountAddress: '',
             bankAccountIban: '',
@@ -181,7 +282,8 @@ export default function SchoolFeesScreen() {
     const [docs, setDocs] = useState({
         admission: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
         invoice: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
-        passport: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        applicantPassport: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
+        studentPassport: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
         result: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
         degree: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
         signature: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
@@ -196,7 +298,13 @@ export default function SchoolFeesScreen() {
         onSuccess: (documentType, { file, metadata }) => {
             if (documentType === 'SCHOOL_ADMISSION') updateDoc('admission', file, metadata);
             else if (documentType === 'INVOICE') updateDoc('invoice', file, metadata);
-            else if (documentType === 'PASSPORT') updateDoc('passport', file, metadata);
+            else if (documentType === 'PASSPORT') {
+                if (uploadTarget === 'student') {
+                    updateDoc('studentPassport', file, metadata);
+                } else {
+                    updateDoc('applicantPassport', file, metadata);
+                }
+            }
             else if (documentType === 'RECEIPT') updateDoc('result', file, metadata);
             else if (documentType === 'MEMBERSHIP_CARD') updateDoc('degree', file, metadata);
             else if (documentType === 'DIGITAL_SIGNATURE') updateDoc('signature', file, metadata);
@@ -293,12 +401,16 @@ export default function SchoolFeesScreen() {
                 }
             }
 
+            const profileBvn = profile?.bvn || user?.kyc?.bvn || '';
             const profilePassportNumber = user?.kyc?.passportDocumentNumber || '';
-            const profileNin = (user?.kyc as any)?.nin || (user as any)?.nin || '';
+            const profileNin = profile?.nin || (user?.kyc as any)?.nin || (user as any)?.nin || '';
 
             const finalNin = foundNin || profileNin;
             const finalPassportNumber = foundPassportNumber || profilePassportNumber;
 
+            if (profileBvn && !watchedFields.bvn) {
+                setValue('bvn', profileBvn, { shouldValidate: true, shouldDirty: true });
+            }
             if (finalNin && !watchedFields.nin) {
                 setValue('nin', finalNin, { shouldValidate: true, shouldDirty: true });
             }
@@ -312,9 +424,13 @@ export default function SchoolFeesScreen() {
                 setValue('passportExpiryDate', formatDateToPickerFormat(foundPassportExpiryDate), { shouldValidate: true, shouldDirty: true });
             }
         } else {
+            const profileBvn = profile?.bvn || user?.kyc?.bvn || '';
             const profilePassportNumber = user?.kyc?.passportDocumentNumber || '';
-            const profileNin = (user?.kyc as any)?.nin || (user as any)?.nin || '';
+            const profileNin = profile?.nin || (user?.kyc as any)?.nin || (user as any)?.nin || '';
 
+            if (profileBvn && !watchedFields.bvn) {
+                setValue('bvn', profileBvn, { shouldValidate: true, shouldDirty: true });
+            }
             if (profileNin && !watchedFields.nin) {
                 setValue('nin', profileNin, { shouldValidate: true, shouldDirty: true });
             }
@@ -322,13 +438,13 @@ export default function SchoolFeesScreen() {
                 setValue('passportDocumentNumber', profilePassportNumber, { shouldValidate: true, shouldDirty: true });
             }
         }
-    }, [transactions, user, setValue, watchedFields.nin, watchedFields.passportDocumentNumber, watchedFields.passportIssueDate, watchedFields.passportExpiryDate]);
+    }, [transactions, user, profile, setValue, watchedFields.bvn, watchedFields.nin, watchedFields.passportDocumentNumber, watchedFields.passportIssueDate, watchedFields.passportExpiryDate]);
 
     const credentialFields = [
-        { customComponent: <ControlledInput control={control} name="studentName" label="Student Name" placeholder="Enter student name" required /> },
-        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number(NIN)" placeholder="Enter your NIN" keyboardType="numeric" maxLength={11} filterType="numeric" disabled /> },
+        { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number (BVN)" placeholder="Enter BVN" required keyboardType="numeric" maxLength={11} filterType="numeric" disabled={!!profileBvn} /> },
+        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number (NIN)" placeholder="Enter NIN" required keyboardType="numeric" maxLength={11} filterType="numeric" disabled={!!profileNin} /> },
         { customComponent: <ControlledInput control={control} name="formAId" label="Form A ID" placeholder="Enter Form A ID" required keyboardType="numeric" maxLength={10} filterType="numeric" /> },
-        { customComponent: <ControlledInput control={control} name="passportDocumentNumber" label="International Passport" placeholder="Enter international passport" required maxLength={9} filterType="alphanumeric" /> },
+        { customComponent: <ControlledInput control={control} name="passportDocumentNumber" label="International Passport Number" placeholder="Enter international passport number" required maxLength={9} filterType="alphanumeric" /> },
         ...(admissionType !== 'Others' ? [
             {
                 customComponent: (
@@ -352,6 +468,28 @@ export default function SchoolFeesScreen() {
                 </TouchableOpacity>
             )
         },
+        ...(admissionType ? [
+            {
+                customComponent: (
+                    <View style={{ marginTop: moderateScale(16), borderTopWidth: 1, borderTopColor: '#E2E8F0', paddingTop: moderateScale(16), gap: moderateScale(12) }}>
+                        <Text style={{ fontSize: moderateScale(14), fontWeight: '700', color: '#0F172A', marginBottom: moderateScale(4) }}>
+                            Student Details
+                        </Text>
+                        <ControlledInput control={control} name="studentName" label="Student Full Name" placeholder="Enter student's full name" required />
+                        <ControlledInput control={control} name="studentNIN" label="Student NIN (if available)" placeholder="Enter student's NIN" keyboardType="numeric" maxLength={11} filterType="numeric" />
+                        <ControlledInput control={control} name="studentPassportNumber" label="Student International Passport Number" placeholder="Enter student's passport number" maxLength={9} filterType="alphanumeric" />
+                        <View style={{ flexDirection: 'row', gap: 12 }}>
+                            <View style={{ flex: 1 }}>
+                                <ControlledDatePicker control={control} name="studentPassportIssueDate" label="Student Passport Issue Date" maximumDate={new Date()} />
+                            </View>
+                            <View style={{ flex: 1 }}>
+                                <ControlledDatePicker control={control} name="studentPassportExpiryDate" label="Student Passport Expiry Date" minimumDate={new Date()} />
+                            </View>
+                        </View>
+                    </View>
+                )
+            }
+        ] : [])
     ];
 
     const undergraduateDocuments = [
@@ -372,11 +510,25 @@ export default function SchoolFeesScreen() {
             required: true,
         },
         {
-            label: 'International Passport',
-            onUpload: () => uploadFile('PASSPORT'),
-            fileName: docs.passport.file?.name,
-            fileUri: docs.passport.file?.uri, fileUrl: docs.passport.meta?.fileUrl,
-            fileType: docs.passport.file?.type,
+            label: "Applicant's International Passport",
+            onUpload: () => {
+                setUploadTarget('applicant');
+                uploadFile('PASSPORT');
+            },
+            fileName: docs.applicantPassport.file?.name,
+            fileUri: docs.applicantPassport.file?.uri, fileUrl: docs.applicantPassport.meta?.fileUrl,
+            fileType: docs.applicantPassport.file?.type,
+            required: false,
+        },
+        {
+            label: "Student's International Passport",
+            onUpload: () => {
+                setUploadTarget('student');
+                uploadFile('PASSPORT');
+            },
+            fileName: docs.studentPassport.file?.name,
+            fileUri: docs.studentPassport.file?.uri, fileUrl: docs.studentPassport.meta?.fileUrl,
+            fileType: docs.studentPassport.file?.type,
             required: true,
         },
     ];
@@ -415,23 +567,40 @@ export default function SchoolFeesScreen() {
             required: true,
         },
         {
-            label: 'International Passport',
-            onUpload: () => uploadFile('PASSPORT'),
-            fileName: docs.passport.file?.name,
-            fileUri: docs.passport.file?.uri, fileUrl: docs.passport.meta?.fileUrl,
-            fileType: docs.passport.file?.type,
+            label: "Applicant's International Passport",
+            onUpload: () => {
+                setUploadTarget('applicant');
+                uploadFile('PASSPORT');
+            },
+            fileName: docs.applicantPassport.file?.name,
+            fileUri: docs.applicantPassport.file?.uri, fileUrl: docs.applicantPassport.meta?.fileUrl,
+            fileType: docs.applicantPassport.file?.type,
+            required: false,
+        },
+        {
+            label: "Student's International Passport",
+            onUpload: () => {
+                setUploadTarget('student');
+                uploadFile('PASSPORT');
+            },
+            fileName: docs.studentPassport.file?.name,
+            fileUri: docs.studentPassport.file?.uri, fileUrl: docs.studentPassport.meta?.fileUrl,
+            fileType: docs.studentPassport.file?.type,
             required: true,
         },
     ];
 
     const othersDocuments = [
         {
-            label: 'International Passport',
-            onUpload: () => uploadFile('PASSPORT'),
-            fileName: docs.passport.file?.name,
-            fileUri: docs.passport.file?.uri, fileUrl: docs.passport.meta?.fileUrl,
-            fileType: docs.passport.file?.type,
-            required: true,
+            label: "Applicant's International Passport",
+            onUpload: () => {
+                setUploadTarget('applicant');
+                uploadFile('PASSPORT');
+            },
+            fileName: docs.applicantPassport.file?.name,
+            fileUri: docs.applicantPassport.file?.uri, fileUrl: docs.applicantPassport.meta?.fileUrl,
+            fileType: docs.applicantPassport.file?.type,
+            required: false,
             associatedInputs: (
                 <View style={{ flexDirection: 'row', gap: 12, marginTop: 12 }}>
                     <View style={{ flex: 1 }}>
@@ -442,6 +611,17 @@ export default function SchoolFeesScreen() {
                     </View>
                 </View>
             )
+        },
+        {
+            label: "Student's International Passport",
+            onUpload: () => {
+                setUploadTarget('student');
+                uploadFile('PASSPORT');
+            },
+            fileName: docs.studentPassport.file?.name,
+            fileUri: docs.studentPassport.file?.uri, fileUrl: docs.studentPassport.meta?.fileUrl,
+            fileType: docs.studentPassport.file?.type,
+            required: true,
         },
         {
             label: 'Evidence of Enrollment',
@@ -499,22 +679,25 @@ export default function SchoolFeesScreen() {
 
         let isStepValid = false;
         if (currentStep === 0) {
-            const fieldsToTrigger = ['studentName', 'nin', 'formAId', 'passportDocumentNumber', 'admissionType'];
-            if (watchedFields.admissionType !== 'Others') {
-                fieldsToTrigger.push('passportIssueDate', 'passportExpiryDate');
+            const fieldsToTrigger = ['bvn', 'nin', 'formAId', 'passportDocumentNumber', 'passportIssueDate', 'passportExpiryDate', 'admissionType', 'studentName'];
+            if (watchedFields.studentNIN) {
+                fieldsToTrigger.push('studentNIN');
+            }
+            if (watchedFields.studentPassportNumber) {
+                fieldsToTrigger.push('studentPassportNumber', 'studentPassportIssueDate', 'studentPassportExpiryDate');
             }
             isStepValid = await trigger(fieldsToTrigger as any);
         } else if (currentStep === 1) {
-            const hasRequiredUgDocs = docs.admission.file && docs.passport.file && docs.invoice.file;
-            const hasRequiredPgDocs = docs.admission.file && docs.degree.file && docs.result.file && docs.passport.file && docs.invoice.file;
+            const hasRequiredUgDocs = docs.admission.file && docs.studentPassport.file && docs.invoice.file;
+            const hasRequiredPgDocs = docs.admission.file && docs.degree.file && docs.result.file && docs.studentPassport.file && docs.invoice.file;
 
             if (watchedFields.admissionType === 'Others') {
-                const hasRequiredOthersDocs = docs.passport.file && docs.admission.file && docs.invoice.file;
+                const hasRequiredOthersDocs = docs.studentPassport.file && docs.admission.file && docs.invoice.file;
                 if (!hasRequiredOthersDocs) {
                     showToast('Please upload all required documents', 'error');
                     return;
                 }
-                isStepValid = await trigger(['passportIssueDate', 'passportExpiryDate']);
+                isStepValid = true;
             } else if (isPostGrad) {
                 if (!hasRequiredPgDocs) {
                     showToast('Please upload all required documents', 'error');
@@ -535,19 +718,24 @@ export default function SchoolFeesScreen() {
                 'beneficiaryCountry',
                 'studentName',
                 'studentPassportNumber',
+                'schoolName',
+                'bankName',
                 'bankAccountName',
                 'bankAccountAddress',
                 'bankAccountIban',
                 'bankAccountSwiftCode',
                 'bankAccountNumber',
+                'routingNumber',
                 'correspondenceBankName',
                 'correspondenceBankAddress',
                 'correspondenceBankSwiftCode',
             ] as any);
+        } else if (currentStep === 4) {
+            isStepValid = !!selectedSavedAccountId;
         }
 
         if (isStepValid) {
-            if (currentStep < 3) {
+            if (currentStep < 4) {
                 setCurrentStep(currentStep + 1);
             } else {
                 setInitiateSheetVisible(true);
@@ -571,7 +759,7 @@ export default function SchoolFeesScreen() {
             amount: data.amount,
             purpose: `Pay School Fees`,
             destinationCountry: currencyGet.country,
-            bvn: user?.kyc?.bvn,
+            bvn: data.bvn || user?.kyc?.bvn,
             nin: data.nin,
             formAId: data.formAId,
             admissionType: data.admissionType,
@@ -581,7 +769,8 @@ export default function SchoolFeesScreen() {
             documents: [
                 ...(docs.admission.meta ? [docs.admission.meta] : []),
                 ...(docs.invoice.meta ? [docs.invoice.meta] : []),
-                ...(docs.passport.meta ? [docs.passport.meta] : []),
+                ...(docs.applicantPassport.meta ? [docs.applicantPassport.meta] : []),
+                ...(docs.studentPassport.meta ? [docs.studentPassport.meta] : []),
                 ...(isPostGrad && docs.degree.meta ? [docs.degree.meta] : []),
                 ...(isPostGrad && docs.result.meta ? [docs.result.meta] : []),
                 ...(docs.bank_verification.meta ? [docs.bank_verification.meta] : []),
@@ -589,9 +778,12 @@ export default function SchoolFeesScreen() {
                 ...proofOfFunds.map(p => p.metadata),
             ],
             beneficiaryDetails: {
-                organizationName: '',
+                organizationName: data.schoolName || '',
                 studentName: data.studentName,
-                studentPassportNumber: data.studentPassportNumber,
+                studentNIN: data.studentNIN || undefined,
+                studentPassportNumber: data.studentPassportNumber || undefined,
+                studentPassportIssueDate: data.studentPassportIssueDate || undefined,
+                studentPassportExpiryDate: data.studentPassportExpiryDate || undefined,
                 bankAccountName: data.bankAccountName,
                 bankAccountAddress: data.bankAccountAddress,
                 bankAccountIban: data.bankAccountIban,
@@ -612,6 +804,12 @@ export default function SchoolFeesScreen() {
                 correspondenceBankAddress: data.correspondenceBankAddress,
                 correspondenceBankSwiftCode: data.correspondenceBankSwiftCode,
             },
+            refundBankDetails: {
+                bankName: data.customerBankName,
+                bankCode: data.customerBankCode,
+                accountNumber: data.customerAccountNumber,
+                accountName: data.customerAccountName,
+            },
             declarationMethod: useDeclarationStore.getState().declarationMethod || undefined,
             declarationInitials: useDeclarationStore.getState().declarationMethod === 'initials' ? initials : undefined,
         };
@@ -619,11 +817,18 @@ export default function SchoolFeesScreen() {
         createTransaction.mutate(payload, {
             onSuccess: (response: any) => {
                 if (response.success) {
+                    const transactionId = response.data?.transactionId;
+                    if (selectedSavedAccountId && transactionId) {
+                        attachBankAccountsMutation.mutate({
+                            transactionId,
+                            bankAccountIds: [selectedSavedAccountId],
+                        });
+                    }
                     setInitiateSheetVisible(false);
                     router.push({
                         pathname: '/(buy-fx)/(school)/request-initiated-success',
                         params: {
-                            transactionId: response.data.transactionId,
+                            transactionId,
                         },
                     });
 
@@ -633,47 +838,57 @@ export default function SchoolFeesScreen() {
     };
 
 
-    const isStep0Valid = watchedFields.studentName && watchedFields.formAId && watchedFields.passportDocumentNumber && watchedFields.admissionType && (watchedFields.admissionType === 'Others' || (watchedFields.passportIssueDate && watchedFields.passportExpiryDate));
+    const isStep0Valid = !!(
+        (profileBvn || (watchedFields.bvn && watchedFields.bvn.length === 11)) &&
+        (profileNin || (watchedFields.nin && watchedFields.nin.length === 11)) &&
+        watchedFields.formAId && watchedFields.formAId.length === 10 &&
+        watchedFields.passportDocumentNumber && watchedFields.passportDocumentNumber.length === 9 &&
+        watchedFields.passportIssueDate && watchedFields.passportExpiryDate &&
+        watchedFields.admissionType &&
+        watchedFields.studentName && watchedFields.studentName.trim().length >= 3
+    );
 
     let isStep1Valid = false;
     if (watchedFields.admissionType === 'Post-Graduate') {
-        isStep1Valid = !!(docs.admission.meta && docs.degree.meta && docs.result.meta && docs.passport.meta && docs.invoice.meta);
-    } else if (watchedFields.admissionType === 'Others') {
-        isStep1Valid = !!(docs.admission.meta && docs.passport.meta && docs.invoice.meta && watchedFields.passportIssueDate && watchedFields.passportExpiryDate);
+        isStep1Valid = !!(docs.admission.meta && docs.degree.meta && docs.result.meta && docs.studentPassport.meta && docs.invoice.meta);
     } else {
-        isStep1Valid = !!(docs.admission.meta && docs.passport.meta && docs.invoice.meta);
+        isStep1Valid = !!(docs.admission.meta && docs.studentPassport.meta && docs.invoice.meta);
     }
 
     const foreignAmountStr = currencyGet.code !== 'NGN' ? amountGetStr : amountSendStr;
     const foreignAmount = parseFloat(foreignAmountStr.replace(/,/g, '')) || 0;
-    const hasProofOfFunds = proofOfFunds.length > 0;
-    const isStep2Valid = watchedFields.amount > 0 && (foreignAmount < 10000 || (hasProofOfFunds && isDeclarationCompleted));
+    const isStep2Valid = watchedFields.amount > 0;
     const isStep3Valid = !!(
         watchedFields.beneficiaryCountry &&
         watchedFields.studentName &&
+        watchedFields.schoolName &&
+        watchedFields.bankName &&
         watchedFields.bankAccountName &&
         watchedFields.bankAccountAddress &&
         watchedFields.bankAccountSwiftCode &&
         watchedFields.bankAccountNumber
     );
 
+    const isStep4Valid = !!selectedSavedAccountId;
+
     const isNextDisabled =
         (currentStep === 0 && !isStep0Valid) ||
         (currentStep === 1 && !isStep1Valid) ||
         (currentStep === 2 && !isStep2Valid) ||
-        (currentStep === 3 && !isStep3Valid);
+        (currentStep === 3 && !isStep3Valid) ||
+        (currentStep === 4 && !isStep4Valid);
 
     return (
         <View style={{ flex: 1 }}>
-            <LoadingBackdrop visible={isUploading || createTransaction.isPending} />
+            <LoadingBackdrop visible={isUploading || createTransaction.isPending || saveAccountMutation.isPending || attachBankAccountsMutation.isPending} />
             <TransactionLayout
                 title="School Fees"
                 currentStep={currentStep}
-                totalSteps={4}
+                totalSteps={5}
                 onBack={handleBack}
-                onNext={handleNext}
+                onNext={isAddingNewAccount ? handleSaveNewAccount : handleNext}
                 isNextDisabled={isNextDisabled}
-                nextLabel={currentStep === 3 ? (watchedFields.bankAccountName && watchedFields.bankAccountNumber ? "Initiate Transaction Request" : "Continue") : "Continue"}
+                nextLabel={isAddingNewAccount ? "Save" : (currentStep === 4 ? "Initiate Transaction Request" : "Continue")}
             >
                 {currentStep === 0 && (
                     <CredentialStep fields={credentialFields} />
@@ -698,8 +913,7 @@ export default function SchoolFeesScreen() {
                         onAmountSendChange={setAmountSendStr}
                         allowedModes={['buy']}
                         error={errors.amount?.message as string | undefined}
-                        showLimitWarning
-                        onLimitWarningPress={() => router.push('/proof-of-fund')}
+                        showLimitWarning={false}
                         isSchool={true}
                     />
                 )}
@@ -713,6 +927,108 @@ export default function SchoolFeesScreen() {
                         verificationFile={docs.bank_verification.file}
                         onUploadInvoice={() => uploadFile('BANK_VERIFICATION')}
                         isUploadingInvoice={isUploading}
+                    />
+                )}
+
+                {currentStep === 4 && !isAddingNewAccount && (
+                    <View style={{ gap: moderateScale(14) }}>
+                        <Text style={{ fontSize: moderateScale(18), fontWeight: '700', color: '#0F172A', marginBottom: moderateScale(4) }}>
+                            Refund Bank Details
+                        </Text>
+                        <Text style={{ fontSize: moderateScale(13), color: '#64748B', fontWeight: '500', marginBottom: moderateScale(8) }}>
+                            Select your local Nigerian bank account for refunds if your transaction cannot be processed.
+                        </Text>
+                        
+                        {savedAccounts.map((account) => {
+                            const isSelected = selectedSavedAccountId === account.id;
+                            return (
+                                <TouchableOpacity
+                                    key={account.id}
+                                    activeOpacity={0.9}
+                                    onPress={() => {
+                                        setSelectedSavedAccountId(account.id);
+                                        setValue('customerBankName', account.bankName);
+                                        setValue('customerBankCode', account.bankCode);
+                                        setValue('customerAccountNumber', account.accountNumber);
+                                        setValue('customerAccountName', account.accountName);
+                                    }}
+                                    style={{
+                                        borderWidth: isSelected ? 1.5 : 1,
+                                        borderColor: isSelected ? '#FF6B2C' : '#E2E8F0',
+                                        backgroundColor: isSelected ? '#FFF7ED' : '#FFFFFF',
+                                        borderRadius: moderateScale(12),
+                                        paddingVertical: moderateScale(16),
+                                        paddingHorizontal: moderateScale(16),
+                                    }}
+                                >
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <View style={{ flex: 1 }}>
+                                            <Text style={{ fontSize: moderateScale(14), fontWeight: '700', color: '#0F172A', marginBottom: moderateScale(4) }}>
+                                                {account.bankName}
+                                            </Text>
+                                            <Text style={{ fontSize: moderateScale(13), color: '#64748B', fontWeight: '500' }}>
+                                                {account.accountNumber} <Text style={{ color: '#E2E8F0' }}>|</Text> {account.accountName}
+                                            </Text>
+                                        </View>
+                                        <Ionicons
+                                            name={isSelected ? "checkmark-circle" : "ellipse-outline"}
+                                            size={moderateScale(20)}
+                                            color={isSelected ? "#FF6B2C" : "#64748B"}
+                                        />
+                                    </View>
+                                </TouchableOpacity>
+                            );
+                        })}
+
+                        {(!savedAccounts || savedAccounts.length === 0) && (
+                            <View style={{
+                                padding: moderateScale(16),
+                                backgroundColor: '#F8F9FA',
+                                borderRadius: moderateScale(12),
+                                borderWidth: 1,
+                                borderColor: '#E2E8F0',
+                                borderStyle: 'dashed',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                            }}>
+                                <Text style={{ fontSize: moderateScale(13), color: '#64748B', textAlign: 'center', fontWeight: '500' }}>
+                                    No saved accounts found. Please add one to proceed.
+                                </Text>
+                            </View>
+                        )}
+
+                        <TouchableOpacity
+                            activeOpacity={0.8}
+                            onPress={() => {
+                                setSelectedSavedAccountId(null);
+                                setValue('customerBankName', '');
+                                setValue('customerBankCode', '');
+                                setValue('customerAccountNumber', '');
+                                setValue('customerAccountName', '');
+                                setIsAddingNewAccount(true);
+                            }}
+                            style={{
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                alignSelf: 'flex-end',
+                                paddingVertical: moderateScale(8)
+                            }}
+                        >
+                            <Ionicons name="add" size={moderateScale(18)} color="#FF6B2C" style={{ marginRight: moderateScale(4) }} style={{ marginRight: moderateScale(4) }} />
+                            <Text style={{ fontSize: moderateScale(14), fontWeight: '600', color: '#FF6B2C' }}>
+                                New Account
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+                )}
+
+                {currentStep === 4 && isAddingNewAccount && (
+                    <AddNewAccountStep
+                        control={control}
+                        setValue={setValue}
+                        banks={banks}
+                        isResolving={resolveAccount.isPending}
+                        selectedBankCode={watchedFields.customerBankCode}
                     />
                 )}
 

@@ -3,6 +3,9 @@ import ControlledInput from '@/components/ControlledInput';
 import GenericSelectionSheet, { SelectionItem } from '@/components/GenericSelectionSheet';
 import InitiateTransactionSheet from '@/components/InitiateTransactionSheet';
 import LoadingBackdrop from '@/components/LoadingBackdrop';
+import AddNewAccountStep from '@/components/transaction-flow/AddNewAccountStep';
+import { Ionicons } from '@expo/vector-icons';
+import { useAttachBankAccountsMutation } from '@/hooks/queries/transactions/useAttachBankAccountsMutation';
 import CredentialStep from '@/components/transaction-flow/CredentialStep';
 import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
@@ -25,7 +28,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { View } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
+import { moderateScale } from 'react-native-size-matters';
 import { z } from 'zod';
 
 const PAYOUT_METHODS: SelectionItem[] = [
@@ -51,8 +55,12 @@ type MedicalFormValues = z.infer<typeof medicalFormSchema>;
 export default function MedicalPaymentScreen() {
     const router = useRouter();
     const createTransaction = useCreateTransactionMutation();
+    const attachBankAccountsMutation = useAttachBankAccountsMutation();
     const showToast = useToastStore(s => s.showToast);
-    useProfileQuery();
+    const { data: profileResponse } = useProfileQuery();
+    const profile = profileResponse?.data;
+    const profileBvn = profile?.bvn;
+    const profileNin = profile?.nin;
     const user = useAuthStore(s => s.user);
 
     const [currentStep, setCurrentStep] = useState(0);
@@ -362,16 +370,6 @@ export default function MedicalPaymentScreen() {
         } else if (currentStep === 2) {
             isStepValid = await trigger(['amount']);
         } else if (currentStep === 3) {
-            if (isAddingNewAccount) {
-                return;
-            }
-            const isElectronicTransfer = watchedFields.payoutMethod === 'Electronic Transfer (100%)' || watchedFields.payoutMethod === 'Electronic_Transfer';
-            const fieldsToTrigger: any[] = ['payoutMethod'];
-            if (isElectronicTransfer) {
-                fieldsToTrigger.push('customerBankName', 'customerBankCode', 'customerAccountNumber', 'customerAccountName');
-            }
-            isStepValid = await trigger(fieldsToTrigger);
-        } else if (currentStep === 4) {
             const beneficiaryCountry = watchedFields.beneficiaryCountry?.toLowerCase() || '';
             const isAustralia = beneficiaryCountry.includes('australia');
             const isUSA = beneficiaryCountry.includes('united states') || beneficiaryCountry.includes('usa') || beneficiaryCountry === 'canada';
@@ -388,10 +386,12 @@ export default function MedicalPaymentScreen() {
             if (isUK) fieldsToTrigger.push('bankAccountIban');
 
             isStepValid = await trigger(fieldsToTrigger as any);
+        } else if (currentStep === 4) {
+            isStepValid = !!selectedSavedAccountId;
         }
 
         if (isStepValid) {
-            if (currentStep < 3) {
+            if (currentStep < 4) {
                 setCurrentStep(currentStep + 1);
             } else {
                 setInitiateSheetVisible(true);
@@ -451,23 +451,41 @@ export default function MedicalPaymentScreen() {
                 correspondenceBankName: data.correspondenceBankName,
                 correspondenceBankAddress: data.correspondenceBankAddress,
                 correspondenceBankSwiftCode: data.correspondenceBankSwiftCode,
+            },
+            refundBankDetails: {
+                bankName: data.customerBankName,
+                bankCode: data.customerBankCode,
+                accountNumber: data.customerAccountNumber,
+                accountName: data.customerAccountName,
             }
         };
 
         createTransaction.mutate(payload, {
             onSuccess: (response: any) => {
                 if (response.success) {
+                    const transactionId = response.data?.transactionId;
+                    if (selectedSavedAccountId && transactionId) {
+                        attachBankAccountsMutation.mutate({
+                            transactionId,
+                            bankAccountIds: [selectedSavedAccountId],
+                        });
+                    }
                     setInitiateSheetVisible(false);
                     router.push({
                         pathname: '/(buy-fx)/(medical)/request-initiated-success',
-                        params: { transactionId: response.data?.transactionId }
+                        params: { transactionId }
                     });
                 }
             },
         });
     };
 
-    const isStep0Valid = watchedFields.bvn && watchedFields.formAId && watchedFields.passportDocumentNumber;
+    const isStep0Valid = !!(
+        (profileBvn || (watchedFields.bvn && watchedFields.bvn.length === 11)) &&
+        (profileNin || (watchedFields.nin && watchedFields.nin.length === 11)) &&
+        watchedFields.formAId && watchedFields.formAId.length === 10 &&
+        watchedFields.passportDocumentNumber && watchedFields.passportDocumentNumber.length === 9
+    );
     const isStep1Valid = !!(docs.passport.meta && docs.visa.meta && docs.returnTicket.meta && docs.referenceLetter.meta && docs.overseaDoctorLetter.meta && watchedFields.passportIssueDate && watchedFields.passportExpiryDate);
     const isStep2Valid = watchedFields.amount > 0;
     const beneficiaryCountryStep4 = watchedFields.beneficiaryCountry?.toLowerCase() || '';
@@ -485,29 +503,33 @@ export default function MedicalPaymentScreen() {
         watchedFields.bankAccountAddress &&
         watchedFields.bankAccountSwiftCode &&
         watchedFields.paymentReference &&
+        watchedFields.organizationName &&
         (isAustralia ? watchedFields.bsbCode : true) &&
         (isUSA ? watchedFields.routingNumber : true) &&
         (isIndia ? (watchedFields.ifscCode && watchedFields.purposeCode) : true) &&
         (isUK ? watchedFields.bankAccountIban : true)
     );
 
+    const isStep4Valid = !!selectedSavedAccountId;
+
     const isNextDisabled =
         (currentStep === 0 && !isStep0Valid) ||
         (currentStep === 1 && !isStep1Valid) ||
         (currentStep === 2 && !isStep2Valid) ||
-        (currentStep === 3 && !isStep3Valid);
+        (currentStep === 3 && !isStep3Valid) ||
+        (currentStep === 4 && !isStep4Valid);
 
     return (
         <View style={{ flex: 1 }}>
-            <LoadingBackdrop visible={isUploading || createTransaction.isPending} />
+            <LoadingBackdrop visible={isUploading || createTransaction.isPending || saveAccountMutation.isPending || attachBankAccountsMutation.isPending} />
             <TransactionLayout
                 title="Medical Payment"
                 currentStep={currentStep}
-                totalSteps={4}
+                totalSteps={5}
                 onBack={handleBack}
-                onNext={handleNext}
+                onNext={isAddingNewAccount ? handleSaveNewAccount : handleNext}
                 isNextDisabled={isNextDisabled}
-                nextLabel={currentStep === 3 ? (watchedFields.organizationName ? "Initiate Transaction Request" : "Continue") : "Continue"}
+                nextLabel={isAddingNewAccount ? "Save" : (currentStep === 4 ? "Initiate Transaction Request" : "Continue")}
             >
                 {currentStep === 0 && (
                     <CredentialStep fields={credentialFields} />
@@ -546,6 +568,108 @@ export default function MedicalPaymentScreen() {
                         invoiceFile={docs.invoice.file}
                         onUploadInvoice={() => uploadFile('INVOICE')}
                         isUploadingInvoice={isUploading}
+                    />
+                )}
+
+                {currentStep === 4 && !isAddingNewAccount && (
+                    <View style={{ gap: moderateScale(14) }}>
+                        <Text style={{ fontSize: moderateScale(18), fontWeight: '700', color: '#0F172A', marginBottom: moderateScale(4) }}>
+                            Refund Bank Details
+                        </Text>
+                        <Text style={{ fontSize: moderateScale(13), color: '#64748B', fontWeight: '500', marginBottom: moderateScale(8) }}>
+                            Select your local Nigerian bank account for refunds if your transaction cannot be processed.
+                        </Text>
+                        
+                        {savedAccounts.map((account) => {
+                            const isSelected = selectedSavedAccountId === account.id;
+                            return (
+                                <TouchableOpacity
+                                    key={account.id}
+                                    activeOpacity={0.9}
+                                    onPress={() => {
+                                        setSelectedSavedAccountId(account.id);
+                                        setValue('customerBankName', account.bankName);
+                                        setValue('customerBankCode', account.bankCode);
+                                        setValue('customerAccountNumber', account.accountNumber);
+                                        setValue('customerAccountName', account.accountName);
+                                    }}
+                                    style={{
+                                        borderWidth: isSelected ? 1.5 : 1,
+                                        borderColor: isSelected ? '#FF6B2C' : '#E2E8F0',
+                                        backgroundColor: isSelected ? '#FFF7ED' : '#FFFFFF',
+                                        borderRadius: moderateScale(12),
+                                        paddingVertical: moderateScale(16),
+                                        paddingHorizontal: moderateScale(16),
+                                    }}
+                                >
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <View style={{ flex: 1 }}>
+                                            <Text style={{ fontSize: moderateScale(14), fontWeight: '700', color: '#0F172A', marginBottom: moderateScale(4) }}>
+                                                {account.bankName}
+                                            </Text>
+                                            <Text style={{ fontSize: moderateScale(13), color: '#64748B', fontWeight: '500' }}>
+                                                {account.accountNumber} <Text style={{ color: '#E2E8F0' }}>|</Text> {account.accountName}
+                                            </Text>
+                                        </View>
+                                        <Ionicons
+                                            name={isSelected ? "checkmark-circle" : "ellipse-outline"}
+                                            size={moderateScale(20)}
+                                            color={isSelected ? "#FF6B2C" : "#64748B"}
+                                        />
+                                    </View>
+                                </TouchableOpacity>
+                            );
+                        })}
+
+                        {(!savedAccounts || savedAccounts.length === 0) && (
+                            <View style={{
+                                padding: moderateScale(16),
+                                backgroundColor: '#F8F9FA',
+                                borderRadius: moderateScale(12),
+                                borderWidth: 1,
+                                borderColor: '#E2E8F0',
+                                borderStyle: 'dashed',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                            }}>
+                                <Text style={{ fontSize: moderateScale(13), color: '#64748B', textAlign: 'center', fontWeight: '500' }}>
+                                    No saved accounts found. Please add one to proceed.
+                                </Text>
+                            </View>
+                        )}
+
+                        <TouchableOpacity
+                            activeOpacity={0.8}
+                            onPress={() => {
+                                setSelectedSavedAccountId(null);
+                                setValue('customerBankName', '');
+                                setValue('customerBankCode', '');
+                                setValue('customerAccountNumber', '');
+                                setValue('customerAccountName', '');
+                                setIsAddingNewAccount(true);
+                            }}
+                            style={{
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                alignSelf: 'flex-end',
+                                paddingVertical: moderateScale(8)
+                            }}
+                        >
+                            <Ionicons name="add" size={moderateScale(18)} color="#FF6B2C" style={{ marginRight: moderateScale(4) }} />
+                            <Text style={{ fontSize: moderateScale(14), fontWeight: '600', color: '#FF6B2C' }}>
+                                New Account
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+                )}
+
+                {currentStep === 4 && isAddingNewAccount && (
+                    <AddNewAccountStep
+                        control={control}
+                        setValue={setValue}
+                        banks={banks}
+                        isResolving={resolveAccount.isPending}
+                        selectedBankCode={watchedFields.customerBankCode}
                     />
                 )}
 

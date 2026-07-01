@@ -16,4 +16,7 @@ export const medicalStep2Schema = amountStepSchema(5000, 'Medical FX');
 import { professionalStep3Schema } from './professional';
 
 /** Step 3: Medical uses beneficiary bank details */
-export const medicalStep3Schema = professionalStep3Schema;
+export const medicalStep3Schema = professionalStep3Schema.extend({
+    memberName: z.string().optional().or(z.literal('')),
+    memberNumber: z.string().optional().or(z.literal('')),
+});

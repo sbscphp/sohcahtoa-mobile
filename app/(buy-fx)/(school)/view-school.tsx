@@ -110,9 +110,13 @@ export default function ViewSchoolFeesScreen() {
         if (!tx || !details) return undefined;
         return [
             ...(details.studentName ? [{ label: 'Student Name', value: details.studentName }] : []),
+            ...(details.studentNIN ? [{ label: 'Student NIN', value: details.studentNIN }] : []),
             ...(details.studentPassportNumber ? [{ label: 'Student Passport Number', value: details.studentPassportNumber }] : []),
+            ...(details.studentPassportIssueDate ? [{ label: 'Student Passport Issue Date', value: details.studentPassportIssueDate }] : []),
+            ...(details.studentPassportExpiryDate ? [{ label: 'Student Passport Expiry Date', value: details.studentPassportExpiryDate }] : []),
             ...(details.admissionNumber ? [{ label: 'Admission Number', value: details.admissionNumber }] : []),
-            { label: 'Beneficiary Name', value: details.bankAccountName || details.name },
+            { label: 'Beneficiary Name', value: details.organizationName || details.schoolName || details.bankAccountName || details.name },
+            ...(details.organizationName ? [{ label: 'Account Name', value: details.bankAccountName || details.name }] : []),
             ...(details.address ? [{ label: 'Beneficiary Address', value: details.address }] : []),
             ...(details.country ? [{ label: 'Country', value: details.country }] : []),
             ...(details.bankName ? [{ label: 'Bank Name', value: details.bankName }] : []),

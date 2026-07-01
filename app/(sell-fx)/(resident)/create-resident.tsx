@@ -44,7 +44,7 @@ import { useGetPickupStatesQuery } from '@/hooks/queries/transactions/useGetPick
 
 const PAYOUT_METHODS: SelectionItem[] = [
     { id: '1', label: 'Electronic Transfer', value: 'Electronic Transfer' },
-    { id: '2', label: 'Cash Pickup', value: 'Cash Pickup' }
+    { id: '2', label: 'Prepaid NGN Card', value: 'Prepaid NGN Card' }
 ];
 
 const residentFormSchema = z.object({
@@ -62,7 +62,7 @@ const residentFormSchema = z.object({
     pickupDate: z.string().optional().or(z.literal('')),
     pickupTime: z.string().optional().or(z.literal('')),
 }).superRefine((data, ctx) => {
-    const isElectronicTransfer = data.payoutMethod?.includes('Electronic') || data.payoutMethod === 'Electronic Transfer';
+    const isElectronicTransfer = true;
 
     if (isElectronicTransfer) {
         if (!data.customerBankName) {
@@ -150,7 +150,7 @@ export default function CreateResidentScreen() {
     });
 
     const watchedFields = watch() as any;
-    const isElectronicTransfer = watchedFields.payoutMethod?.includes('Electronic') || watchedFields.payoutMethod === 'Electronic Transfer';
+    const isElectronicTransfer = true;
 
     useEffect(() => {
         if (user?.kyc?.nin) {
@@ -344,10 +344,10 @@ export default function CreateResidentScreen() {
                 <ControlledInput
                     control={control}
                     name="tinNumber"
-                    label="Tax Identification Number (TIN)"
+                    label="Tax Identification Number (TIN) (Optional)"
                     placeholder="Enter TIN"
                     keyboardType="numeric"
-                    required maxLength={11} filterType="numeric"
+                    maxLength={11} filterType="numeric"
                 />
             )
         },
@@ -397,7 +397,7 @@ export default function CreateResidentScreen() {
             ),
         },
         {
-            label: 'Utility bill',
+            label: 'Utility bill (must not be more than 3 months old)',
             onUpload: () => uploadFile('UTILITY_BILL'),
             fileName: docs.utility.file?.name,
             fileUri: docs.utility.file?.uri, fileUrl: docs.utility.meta?.fileUrl,
@@ -550,21 +550,19 @@ export default function CreateResidentScreen() {
     };
 
     const isStep0Valid = !!watchedFields.passportDocumentNumber;
-    const isStep1Valid = docs.passport.meta && docs.utility.meta &&
-        watchedFields.passportIssueDate && watchedFields.passportExpiryDate;
+    const isStep1Valid = !!(docs.passport.meta && docs.utility.meta &&
+        watchedFields.passportIssueDate && watchedFields.passportExpiryDate);
     const foreignAmountStr = currencyGet.code !== 'NGN' ? amountGet : amountSend;
     const foreignAmount = parseFloat(foreignAmountStr.replace(/,/g, '')) || 0;
     const hasProofOfFunds = proofOfFunds.length > 0;
     const isStep2Valid = watchedFields.amount > 0 && (foreignAmount < 10000 || (hasProofOfFunds && isDeclarationCompleted));
-    const isStep3Valid = watchedFields.payoutMethod && (!isElectronicTransfer || (watchedFields.customerBankName && watchedFields.customerBankCode && watchedFields.customerAccountNumber && watchedFields.customerAccountName));
-    const isStep4Valid = watchedFields.selectedState && watchedFields.selectedCity && watchedFields.selectedLocation && watchedFields.pickupDate && watchedFields.pickupTime;
+    const isStep3Valid = watchedFields.payoutMethod && (watchedFields.customerBankName && watchedFields.customerBankCode && watchedFields.customerAccountNumber && watchedFields.customerAccountName);
 
     const isNextDisabled =
         (currentStep === 0 && !isStep0Valid) ||
         (currentStep === 1 && !isStep1Valid) ||
         (currentStep === 2 && !isStep2Valid) ||
-        (currentStep === 3 && !isStep3Valid) ||
-        (currentStep === 4 && !isElectronicTransfer && !isStep4Valid);
+        (currentStep === 3 && !isStep3Valid);
 
     return (
         <View style={{ flex: 1 }}>
@@ -572,11 +570,11 @@ export default function CreateResidentScreen() {
             <TransactionLayout
                 title="Resident"
                 currentStep={currentStep}
-                totalSteps={isElectronicTransfer ? 4 : 5}
+                totalSteps={4}
                 onBack={handleBack}
                 onNext={isAddingNewAccount ? handleSaveNewAccount : handleNext}
                 isNextDisabled={isNextDisabled}
-                nextLabel={isAddingNewAccount ? "Save" : (currentStep === (isElectronicTransfer ? 3 : 4) ? (isElectronicTransfer || (watchedFields.selectedState && watchedFields.selectedCity) ? "Initiate Transaction Request" : "Continue") : "Continue")}
+                nextLabel={isAddingNewAccount ? "Save" : (currentStep === 3 ? "Initiate Transaction Request" : "Continue")}
             >
                 {currentStep === 0 && (
                     <CredentialStep fields={credentialFields} title="Enter BVN, NIN & Passport Number" />
@@ -629,38 +627,7 @@ export default function CreateResidentScreen() {
                     />
                 )}
 
-                {currentStep === 4 && !isElectronicTransfer && (
-                    <LocationStep
-                        states={states}
-                        cities={filteredCities}
-                        locations={filteredLocations}
-                        selectedState={watchedFields.selectedState}
-                        onSelectState={(item) => {
-                            setValue('selectedState', item);
-                            setValue('selectedCity', undefined as unknown as LocationItem);
-                            setValue('selectedLocation', undefined as unknown as LocationItem);
-                        }}
-                        selectedCity={watchedFields.selectedCity}
-                        onSelectCity={(item) => {
-                            setValue('selectedCity', item);
-                            setValue('selectedLocation', undefined as unknown as LocationItem);
-                        }}
-                        selectedLocation={watchedFields.selectedLocation}
-                        onSelectLocation={(item) => setValue('selectedLocation', item)}
-                        title="Where would you like to receive your funds"
-                        pickupDate={watchedFields.pickupDate}
-                        onPickupDateChange={(v: string) => setValue('pickupDate', v)}
-                        pickupTime={watchedFields.pickupTime}
-                        onPickupTimeChange={(v: string) => setValue('pickupTime', v)}
-                        errors={{
-                            state: errors.selectedState?.message as string | undefined,
-                            city: errors.selectedCity?.message as string | undefined,
-                            location: errors.selectedLocation?.message as string | undefined,
-                            pickupDate: errors.pickupDate?.message as string | undefined,
-                            pickupTime: errors.pickupTime?.message as string | undefined
-                        }}
-                    />
-                )}
+
 
                 <InitiateTransactionSheet
                     visible={initiateSheetVisible}
@@ -671,7 +638,7 @@ export default function CreateResidentScreen() {
                     items={[
                         {
                             title: "Request Summary",
-                            description: `You are requesting ${currencyGet.code === 'USD' ? '$' : currencyGet.code === 'GBP' ? '£' : currencyGet.code === 'EUR' ? '€' : ''}${amountGet} ${currencyGet.code.toUpperCase()}. You will be sent approximately ₦${amountSend}`,
+                            description: `You are selling ${currencyGet.code === 'USD' ? '$' : currencyGet.code === 'GBP' ? '£' : currencyGet.code === 'EUR' ? '€' : ''}${amountGet}. You will be sent approximately ₦${amountSend}`,
                             iconType: 'info'
                         }
                     ]}

@@ -82,10 +82,36 @@ export default function SchoolBankDetailsStep({
             <Text style={styles.sectionTitle}>For the School (Beneficiary)</Text>
             <ControlledInput
                 control={control}
-                name="bankAccountName"
-                label="Bank Account Name"
-                placeholder="Enter bank account name"
+                name="schoolName"
+                label="School Name"
+                placeholder="Enter school name"
                 required
+            />
+
+            <ControlledInput
+                control={control}
+                name="bankName"
+                label="Bank Name"
+                placeholder="Enter bank name"
+                required
+            />
+
+            <ControlledInput
+                control={control}
+                name="bankAccountName"
+                label="Account Name (For the School)"
+                placeholder="Enter account name"
+                required
+            />
+
+            <ControlledInput
+                control={control}
+                name="routingNumber"
+                label="Routing Number"
+                placeholder="e.g 026009593 (Optional)"
+                keyboardType="numeric"
+                maxLength={9}
+                filterType="numeric"
             />
 
             <ControlledInput

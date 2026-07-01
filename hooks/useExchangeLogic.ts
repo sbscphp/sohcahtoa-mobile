@@ -131,6 +131,38 @@ export const useExchangeLogic = ({ setValue, initialAmount = '1', maxLimit, init
         }
     };
 
+    const handleAmountSendChange = (amount: string) => {
+        let cleanAmount = amount.replace(/[^0-9.]/g, '');
+        const parts = cleanAmount.split('.');
+        if (parts.length > 2) {
+            cleanAmount = parts[0] + '.' + parts.slice(1).join('');
+        }
+
+        let formatted = cleanAmount;
+        if (cleanAmount !== '') {
+            const integerPart = parts[0];
+            const decimalPart = parts[1] !== undefined ? '.' + parts[1] : '';
+            const formattedInteger = integerPart ? parseInt(integerPart, 10).toLocaleString('en-US') : (integerPart === '0' ? '0' : '');
+            if (integerPart === '') {
+                formatted = decimalPart;
+            } else {
+                formatted = formattedInteger + decimalPart;
+            }
+        }
+
+        let numAmount = parseFloat(cleanAmount) || 0;
+        setAmountSendStr(formatted);
+
+        if (currentRate > 0) {
+            const calculatedGet = numAmount / currentRate;
+            const formattedGet = calculatedGet.toFixed(2);
+            setAmountGetStr(parseFloat(formattedGet).toLocaleString());
+            if (setValue) {
+                setValue('amount', parseFloat(formattedGet), { shouldValidate: true });
+            }
+        }
+    };
+
     return {
         transactionType,
         setTransactionType,
@@ -141,7 +173,7 @@ export const useExchangeLogic = ({ setValue, initialAmount = '1', maxLimit, init
         amountGetStr,
         setAmountGetStr: handleAmountGetChange,
         amountSendStr,
-        setAmountSendStr,
+        setAmountSendStr: handleAmountSendChange,
         currentRate,
         calculateExchangeRate,
         exchangeRates

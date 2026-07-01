@@ -1,10 +1,14 @@
 import { z } from 'zod';
 import { amountStepSchema, baseCredentialSchema } from './shared';
 
-export const professionalStep0Schema = baseCredentialSchema.extend({
-    passportIssueDate: z.string().min(1, 'Please select Passport Issue Date'),
-    passportExpiryDate: z.string().min(1, 'Please select Passport Expiry Date'),
-    memberNumber: z.string().min(1, 'Evidence of Membership or Registration number is required'),
+export const professionalStep0Schema = z.object({
+    bvn: z.string().min(1, 'BVN is required'),
+    nin: z.string().optional().or(z.literal('')),
+    formAId: z.string().length(10, 'Form A ID must be exactly 10 digits').regex(/^\d+$/, 'Form A ID must contain only digits'),
+    passportDocumentNumber: z.string().optional().or(z.literal('')),
+    passportIssueDate: z.string().optional().or(z.literal('')),
+    passportExpiryDate: z.string().optional().or(z.literal('')),
+    memberNumber: z.string().min(1, 'Membership/Registration number is required'),
 });
 
 /** Step 1: Professional documents */
@@ -33,10 +37,9 @@ export const professionalStep3Schema = z.object({
     bsbCode: z.string().optional(),
     otherBankDetails: z.string().optional(),
 
-    // Keep old fields as optional to prevent react-hook-form initialization or submission issues
-    memberName: z.string().optional(),
-    memberNumber: z.string().optional(),
-    organizationName: z.string().optional(),
+    memberName: z.string().min(1, 'Please enter member name'),
+    memberNumber: z.string().min(1, 'Please enter membership number'),
+    organizationName: z.string().min(1, 'Please enter organization name'),
     beneficiaryPhone: z.string().optional(),
     beneficiaryEmail: z.string().optional(),
     beneficiaryCity: z.string().optional(),

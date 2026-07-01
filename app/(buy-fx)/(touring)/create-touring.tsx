@@ -107,17 +107,19 @@ const touringFormSchema = z.object({
             ctx.addIssue({ code: "custom", message: 'Bank address must be at least 5 characters', path: ['domiciliaryBankAddress'] });
         }
     } else if (isElectronicTransfer) {
-        if (!data.customerBankName) {
-            ctx.addIssue({ code: "custom", message: 'Please select your bank', path: ['customerBankName'] });
-        }
-        if (!data.customerBankCode) {
-            ctx.addIssue({ code: "custom", message: 'Please select your bank', path: ['customerBankCode'] });
-        }
-        if (!data.customerAccountNumber || data.customerAccountNumber.length !== 10) {
-            ctx.addIssue({ code: "custom", message: 'Account number must be 10 digits', path: ['customerAccountNumber'] });
-        }
-        if (!data.customerAccountName) {
-            ctx.addIssue({ code: "custom", message: 'Account name must be resolved', path: ['customerAccountName'] });
+        if (data.customerBankCode || data.customerBankName || data.customerAccountNumber || data.customerAccountName) {
+            if (!data.customerBankName) {
+                ctx.addIssue({ code: "custom", message: 'Please select your bank', path: ['customerBankName'] });
+            }
+            if (!data.customerBankCode) {
+                ctx.addIssue({ code: "custom", message: 'Please select your bank', path: ['customerBankCode'] });
+            }
+            if (!data.customerAccountNumber || data.customerAccountNumber.length !== 10) {
+                ctx.addIssue({ code: "custom", message: 'Account number must be 10 digits', path: ['customerAccountNumber'] });
+            }
+            if (!data.customerAccountName) {
+                ctx.addIssue({ code: "custom", message: 'Account name must be resolved', path: ['customerAccountName'] });
+            }
         }
     }
 
@@ -215,7 +217,7 @@ export default function TouringScreen() {
         amountSendStr,
         setAmountSendStr,
         currentRate,
-    } = useExchangeLogic({ setValue, initialAmount: '0', maxLimit: 4000 });
+    } = useExchangeLogic({ setValue, initialAmount: '0' });
 
     const { data: transactionsResponse } = useGetTransactionsQuery();
     const transactions = transactionsResponse?.pages?.flatMap(p => p.data) || [];
@@ -581,18 +583,17 @@ export default function TouringScreen() {
         return allLocations.filter((loc: any) => loc.metadata.city === watchedFields.selectedCity.title);
     }, [watchedFields.selectedCity, allLocations]);
 
-    const isStep0Valid = watchedFields.formAId && watchedFields.passportDocumentNumber;
-    const isStep1Valid = docs.passport.meta && docs.visa.meta && docs.ticket.meta && docs.receipt.meta &&
-        watchedFields.passportIssueDate && watchedFields.passportExpiryDate;
+    const isStep0Valid = !!(watchedFields.formAId && watchedFields.formAId.length === 10 && watchedFields.passportDocumentNumber);
+    const isStep1Valid = !!(docs.passport.meta && docs.visa.meta && docs.ticket.meta && docs.receipt.meta &&
+        watchedFields.passportIssueDate && watchedFields.passportExpiryDate);
     const foreignAmountStr = currencyGet.code !== 'NGN' ? amountGetStr : amountSendStr;
     const foreignAmount = parseFloat(foreignAmountStr.replace(/,/g, '')) || 0;
-    const hasProofOfFunds = proofOfFunds.length > 0;
-    const isStep2Valid = watchedFields.amount > 0 && (foreignAmount < 10000 || (hasProofOfFunds && isDeclarationCompleted));
+    const isStep2Valid = watchedFields.amount > 0;
     const isStep3Valid = watchedFields.payoutMethod && (
         !isElectronicTransfer || (
             (watchedFields.payoutMethod?.includes('Electronic') || watchedFields.payoutMethod === 'Electronic_Transfer')
             ? (watchedFields.domiciliaryAccountNumber && watchedFields.domiciliaryBankName && watchedFields.domiciliaryAccountName && watchedFields.domiciliarySwiftCode && watchedFields.domiciliaryRoutingNumber && watchedFields.domiciliaryBankAddress)
-            : (watchedFields.customerBankName && watchedFields.customerBankCode && watchedFields.customerAccountNumber && watchedFields.customerAccountName)
+            : true
         )
     );
     const isStep4Valid = watchedFields.selectedState && watchedFields.selectedCity && watchedFields.selectedLocation && watchedFields.pickupDate && watchedFields.pickupTime;
@@ -604,8 +605,7 @@ export default function TouringScreen() {
         (currentStep === 1 && !isStep1Valid) ||
         (currentStep === 2 && !isStep2Valid) ||
         (currentStep === 3 && !isStep3Valid) ||
-        (currentStep === 4 && needsLocationStep && !isStep4Valid) ||
-        (currentStep === refundStepIndex && !selectedSavedAccountId);
+        (currentStep === 4 && needsLocationStep && !isStep4Valid);
 
     return (
         <View style={{ flex: 1 }}>
@@ -640,9 +640,7 @@ export default function TouringScreen() {
                         onAmountSendChange={setAmountSendStr}
                         allowedModes={['buy']}
                         error={errors.amount?.message}
-                        showLimitWarning
-                        onLimitWarningPress={() => router.push('/proof-of-fund')}
-                        onDownloadPress={() => setShowSourceOfFundsSheet(true)}
+                        showLimitWarning={false}
                     />
                 )}
                 {currentStep === 3 && !isAddingNewAccount && (

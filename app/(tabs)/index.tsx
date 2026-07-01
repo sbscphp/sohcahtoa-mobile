@@ -142,7 +142,7 @@ export default function HomeScreen() {
                         { id: '1', title: 'I am going on a Vacation (PTA)', subtitle: 'Buy FX to cover your travel and accommodation', icon: <User size={moderateScale(20)} color="#FF6B2C" variant="Bulk" />, onPress: () => handleActionPress('vacation') },
                         { id: '2', title: 'I am travelling for business (BTA)', subtitle: 'Buy FX to cover your business trip abroad', icon: <Bank size={moderateScale(20)} color="#FF6B2C" variant="Bulk" />, onPress: () => handleActionPress('business') },
                         { id: '3', title: 'Pay School Fees', subtitle: 'Pay tuition for undergraduate & postgraduate studies.', icon: <Teacher size={moderateScale(20)} color="#FF6B2C" variant="Bulk" />, onPress: () => handleActionPress('school') },
-                        { id: '4', title: 'Seek Medical Treatment', subtitle: 'Pay for medical treatment or hospital bills abroad', icon: <Hospital size={moderateScale(20)} color="#FF6B2C" variant="Bulk" />, onPress: () => handleActionPress('medical') },
+                        { id: '4', title: 'Pay Medical Fees', subtitle: 'Pay for medical treatment or hospital bills abroad', icon: <Hospital size={moderateScale(20)} color="#FF6B2C" variant="Bulk" />, onPress: () => handleActionPress('medical') },
                         { id: '5', title: 'Pay a Professional Body', subtitle: 'E.g International membership fee', icon: <People size={moderateScale(24)} color="#FF6B2C" variant="Bulk" />, onPress: () => handleActionPress('professional') },
                         { id: '6', title: 'I am Touring Nigeria', subtitle: 'Buy FX to cover your travel, accommodation', icon: <Passport width={moderateScale(20)} height={moderateScale(20)} color="#FF6B2C" />, onPress: () => handleActionPress('touring') },
                     ]
@@ -153,8 +153,8 @@ export default function HomeScreen() {
                     headerIcon: <WalletAdd1 size={moderateScale(24)} color="#FF6B2C" />,
                     actions: [
                         { id: '1', title: 'Resident', subtitle: 'I have FX and want Naira', icon: <StandingUser width={moderateScale(20)} height={moderateScale(20)} color="#FF6B2C" />, onPress: () => handleActionPress('resident') },
-                        { id: '2', title: 'I am Touring Nigeria', subtitle: 'I am touring Nigeria and want Naira', icon: <Passport width={moderateScale(20)} height={moderateScale(20)} color="#FF6B2C" />, onPress: () => handleActionPress('touring_inbound') },
-                        { id: '3', title: 'Expatriate; I am a foreigner who works in Nigeria', subtitle: 'I am a foreigner living or working in Nigeria', icon: <Buildings size={moderateScale(20)} color="#FF6B2C" variant="Bulk" />, onPress: () => handleActionPress('expatriate') },
+                        { id: '2', title: 'Tourist', subtitle: 'I am touring Nigeria and want Naira', icon: <Passport width={moderateScale(20)} height={moderateScale(20)} color="#FF6B2C" />, onPress: () => handleActionPress('touring_inbound') },
+                        { id: '3', title: 'Expatriate', subtitle: 'I am a foreigner living/working in Nigeria and want Naira', icon: <Buildings size={moderateScale(20)} color="#FF6B2C" variant="Bulk" />, onPress: () => handleActionPress('expatriate') },
                     ]
                 };
             case 'receive':

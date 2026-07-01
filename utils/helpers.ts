@@ -38,10 +38,12 @@ export const formatTime = (dateStr: string): string => {
 
 export const formatTimeWithSeconds = (dateStr: string): string => {
     const d = new Date(dateStr);
-    const hours = String(d.getHours()).padStart(2, '0');
+    let hours = d.getHours();
     const minutes = String(d.getMinutes()).padStart(2, '0');
     const seconds = String(d.getSeconds()).padStart(2, '0');
-    return `${hours}:${minutes}:${seconds}`;
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12 || 12;
+    return `${hours}:${minutes}:${seconds} ${ampm}`;
 };
 
 export const formatCurrency = (amount: number | null | undefined, prefix: string = '₦'): string => {
