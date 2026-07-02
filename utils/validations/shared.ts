@@ -41,9 +41,13 @@ export const workPermitNumberField = z.string().min(1, 'Please enter your Work P
 /** Tax Identification Number validation (TIN) */
 export const tinField = z
     .string()
-    .regex(/^\d+$/, 'TIN must contain only digits')
-    .refine((val) => val.length === 11 || val.length === 13, {
-        message: 'TIN must be either 11 or 13 digits',
+    .refine((val) => {
+        if (!val) return true;
+        const clean = val.replace(/[^a-zA-Z0-9]/g, '');
+        if (clean.length < 10) return true;
+        return /^\d+$/.test(clean) && (clean.length >= 10 && clean.length <= 13);
+    }, {
+        message: 'TIN must be between 10 and 13 digits',
     });
 
 /** Tax Clearance Certificate Number validation (TCC) */

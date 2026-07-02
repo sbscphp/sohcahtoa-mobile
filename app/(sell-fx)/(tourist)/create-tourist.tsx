@@ -12,6 +12,7 @@ import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
 import { useProfileQuery } from '@/hooks/queries/auth/useProfileQuery';
 import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
 import { useGetTransactionsQuery } from '@/hooks/queries/transactions/useGetTransactionsQuery';
+import { useAttachBankAccountsMutation } from '@/hooks/queries/transactions/useAttachBankAccountsMutation';
 import { formatDateToPickerFormat } from '@/utils/helpers';
 import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useExchangeLogic } from '@/hooks/useExchangeLogic';
@@ -36,13 +37,46 @@ import { z } from 'zod';
 import { useGetPickupCitiesQuery } from '@/hooks/queries/transactions/useGetPickupCitiesQuery';
 import { useGetPickupPointsQuery } from '@/hooks/queries/transactions/useGetPickupPointsQuery';
 import { useGetPickupStatesQuery } from '@/hooks/queries/transactions/useGetPickupStatesQuery';
+import AddNewAccountStep from '@/components/transaction-flow/AddNewAccountStep';
+import PayoutMethodStep from '@/components/transaction-flow/PayoutMethodStep';
+import { useGetBanksQuery } from '@/hooks/queries/banks/useGetBanksQuery';
+import { useGetSavedAccountsQuery } from '@/hooks/queries/banks/useGetSavedAccountsQuery';
+import { useLookupAccountMutation } from '@/hooks/queries/banks/useResolveAccountMutation';
+import { useSaveAccountMutation } from '@/hooks/queries/banks/useSaveAccountMutation';
+import GenericSelectionSheet, { SelectionItem } from '@/components/GenericSelectionSheet';
+
+const PAYOUT_METHODS: SelectionItem[] = [
+    { id: '1', label: 'Electronic Transfer (to a naira acct)', value: 'Electronic Transfer' },
+    { id: '2', label: 'Prepaid NGN Card', value: 'Prepaid NGN Card' }
+];
 
 const touristFormSchema = z.object({
     ...touristStep0Schema.shape,
     ...touristStep1Schema.shape,
     ...touristStep2Schema.shape,
-    ...touristStep3LocationSchema.shape,
+    payoutMethod: z.string().min(1, 'Please select a payout method'),
+    customerBankName: z.string().optional().or(z.literal('')),
+    customerBankCode: z.string().optional().or(z.literal('')),
+    customerAccountNumber: z.string().optional().or(z.literal('')),
+    customerAccountName: z.string().optional().or(z.literal('')),
 }).superRefine((data, ctx) => {
+    const isElectronicTransfer = data.payoutMethod?.includes('Electronic') || data.payoutMethod === 'Electronic Transfer';
+
+    if (isElectronicTransfer) {
+        if (!data.customerBankName) {
+            ctx.addIssue({ code: "custom", message: 'Please select your bank', path: ['customerBankName'] });
+        }
+        if (!data.customerBankCode) {
+            ctx.addIssue({ code: "custom", message: 'Please select your bank', path: ['customerBankCode'] });
+        }
+        if (!data.customerAccountNumber || data.customerAccountNumber.length !== 10) {
+            ctx.addIssue({ code: "custom", message: 'Account number must be 10 digits', path: ['customerAccountNumber'] });
+        }
+        if (!data.customerAccountName) {
+            ctx.addIssue({ code: "custom", message: 'Account name must be resolved', path: ['customerAccountName'] });
+        }
+    }
+
     if (data.passportIssueDate && data.passportExpiryDate && data.passportIssueDate === data.passportExpiryDate) {
         ctx.addIssue({
             code: "custom",
@@ -58,6 +92,7 @@ type TouristFormValues = z.infer<typeof touristFormSchema>;
 export default function CreateTouristScreen() {
     const router = useRouter();
     const createTransaction = useCreateTransactionMutation();
+    const attachBankAccountsMutation = useAttachBankAccountsMutation();
     useProfileQuery();
     const user = useAuthStore(s => s.user);
     const [currentStep, setCurrentStep] = useState(0);
@@ -73,9 +108,15 @@ export default function CreateTouristScreen() {
         resolver: zodResolver(touristFormSchema),
         defaultValues: {
             passportDocumentNumber: '',
+            nigerianAddress: '',
             passportIssueDate: '',
             passportExpiryDate: '',
             amount: 0,
+            payoutMethod: '',
+            customerBankName: '',
+            customerBankCode: '',
+            customerAccountNumber: '',
+            customerAccountName: '',
             selectedState: undefined as unknown as LocationItem,
             selectedCity: undefined as unknown as LocationItem,
             selectedLocation: undefined as unknown as LocationItem,
@@ -90,7 +131,6 @@ export default function CreateTouristScreen() {
         passport: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
         visa: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
         ticket: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
-        receipt: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
         signature: { file: null as UploadedFile | null, meta: null as UploadedMetadata | null },
     });
 
@@ -105,7 +145,6 @@ export default function CreateTouristScreen() {
             if (documentType === 'PASSPORT') updateDoc('passport', file, metadata);
             else if (documentType === 'VISA') updateDoc('visa', file, metadata);
             else if (documentType === 'RETURN_TICKET') updateDoc('ticket', file, metadata);
-            else if (documentType === 'RECEIPT') updateDoc('receipt', file, metadata);
             else if (documentType === 'DIGITAL_SIGNATURE') updateDoc('signature', file, metadata);
         },
         onError: () => showToast('Failed to upload document. Please try again.', 'error'),
@@ -169,17 +208,57 @@ export default function CreateTouristScreen() {
         }
     }, [transactions, user, setValue, watchedFields.passportDocumentNumber, watchedFields.passportIssueDate, watchedFields.passportExpiryDate]);
 
-    // Dynamic Locations
-    const { data: states = [] } = useGetPickupStatesQuery();
-    const { data: allLocations = [] } = useGetPickupPointsQuery();
+    const { data: banksResponse } = useGetBanksQuery();
+    const banks = useMemo(
+        () => (banksResponse?.data || []).map(b => ({ id: b.code, label: b.name, value: b.code })),
+        [banksResponse]
+    );
 
+    const { data: savedAccountsResponse } = useGetSavedAccountsQuery();
+    const savedAccounts = useMemo(() => {
+        return (savedAccountsResponse?.data || []).map((a: any) => {
+            const clean = (str: string) => {
+                if (!str) return '';
+                return str.replace(/\s+/g, ' ').trim();
+            };
+            return {
+                id: a.id,
+                bankName: clean(a.bankName),
+                accountNumber: clean(a.accountNumber),
+                accountName: clean(a.accountName),
+                bankCode: a.bankCode || '',
+            };
+        });
+    }, [savedAccountsResponse]);
 
-    const { data: filteredCities = [] } = useGetPickupCitiesQuery(watchedFields.selectedState?.title);
+    const saveAccountMutation = useSaveAccountMutation();
+    const resolveAccount = useLookupAccountMutation();
 
-    const filteredLocations = useMemo(() => {
-        if (!watchedFields.selectedCity) return [];
-        return allLocations.filter((loc: any) => loc.metadata.city === watchedFields.selectedCity.title);
-    }, [watchedFields.selectedCity, allLocations]);
+    const [selectedSavedAccountId, setSelectedSavedAccountId] = useState<string | null>('');
+    const [isAddingNewAccount, setIsAddingNewAccount] = useState(false);
+    const [payoutSheetVisible, setPayoutSheetVisible] = useState(false);
+
+    useEffect(() => {
+        if (!isAddingNewAccount) return;
+        if (watchedFields.customerAccountNumber?.length === 10 && watchedFields.customerBankCode) {
+            resolveAccount.mutate({
+                accountNumber: watchedFields.customerAccountNumber,
+                bankName: watchedFields.customerBankName
+            }, {
+                onSuccess: (res) => {
+                    if (res.success) {
+                        setValue('customerAccountName', res.data.accountName);
+                    }
+                },
+                onError: () => {
+                    setValue('customerAccountName', '');
+                    showToast('Could not resolve account name', 'error');
+                }
+            });
+        }
+    }, [watchedFields.customerAccountNumber, watchedFields.customerBankCode, isAddingNewAccount]);
+
+    const isElectronicTransfer = watchedFields.payoutMethod?.includes('Electronic') || watchedFields.payoutMethod === 'Electronic Transfer';
 
     const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
     const [showSourceOfFundsSheet, setShowSourceOfFundsSheet] = useState(false);
@@ -200,8 +279,18 @@ export default function CreateTouristScreen() {
                     label="International Passport Number"
                     placeholder="Enter international passport number"
                     required
-                    maxLength={9}
                     filterType="alphanumeric"
+                />
+            )
+        },
+        {
+            customComponent: (
+                <ControlledInput
+                    control={control}
+                    name="nigerianAddress"
+                    label="Nigerian Address (temporary stay address e.g., hotel)"
+                    placeholder="Enter temporary stay address"
+                    required
                 />
             )
         }
@@ -255,14 +344,6 @@ export default function CreateTouristScreen() {
             fileType: docs.ticket.file?.type,
             required: true,
         },
-        {
-            label: 'Receipt for Initial Naira Purchase',
-            onUpload: () => uploadFile('RECEIPT'),
-            fileName: docs.receipt.file?.name,
-            fileUri: docs.receipt.file?.uri, fileUrl: docs.receipt.meta?.fileUrl,
-            fileType: docs.receipt.file?.type,
-            required: true,
-        },
     ];
 
     const handleNext = async () => {
@@ -274,9 +355,9 @@ export default function CreateTouristScreen() {
         let isStepValid = false;
 
         if (currentStep === 0) {
-            isStepValid = await trigger(['passportDocumentNumber']);
+            isStepValid = await trigger(['passportDocumentNumber', 'nigerianAddress']);
         } else if (currentStep === 1) {
-            if (!docs.passport.file || !docs.visa.file || !docs.ticket.file || !docs.receipt.file) {
+            if (!docs.passport.file || !docs.visa.file || !docs.ticket.file) {
                 showToast('Please upload all required documents', 'error');
                 return;
             }
@@ -285,7 +366,14 @@ export default function CreateTouristScreen() {
             setValue('amount', parseFloat(amountSend.replace(/,/g, '')) || 0);
             isStepValid = await trigger(['amount']);
         } else if (currentStep === 3) {
-            isStepValid = await trigger(['selectedState', 'selectedCity', 'selectedLocation', 'pickupDate', 'pickupTime']);
+            if (isAddingNewAccount) {
+                return;
+            }
+            const fieldsToTrigger: any[] = ['payoutMethod'];
+            if (isElectronicTransfer) {
+                fieldsToTrigger.push('customerBankName', 'customerBankCode', 'customerAccountNumber', 'customerAccountName');
+            }
+            isStepValid = await trigger(fieldsToTrigger);
         }
 
         if (isStepValid) {
@@ -326,31 +414,34 @@ export default function CreateTouristScreen() {
                 ...(docs.passport.meta ? [docs.passport.meta] : []),
                 ...(docs.visa.meta ? [docs.visa.meta] : []),
                 ...(docs.ticket.meta ? [docs.ticket.meta] : []),
-                ...(docs.receipt.meta ? [docs.receipt.meta] : []),
                 ...((docs.signature.meta && useDeclarationStore.getState().declarationMethod === 'signature') ? [docs.signature.meta] : []),
                 ...proofOfFunds.map(p => p.metadata),
             ],
             passportDocumentNumber: data.passportDocumentNumber,
             passportIssueDate: data.passportIssueDate,
             passportExpiryDate: data.passportExpiryDate,
+            nigerianAddress: data.nigerianAddress,
+            payoutMethod: data.payoutMethod,
+            beneficiaryDetails: {
+                bankName: data.customerBankName,
+                bankCode: data.customerBankCode,
+                accountNumber: data.customerAccountNumber,
+                accountName: data.customerAccountName,
+            },
             declarationMethod: useDeclarationStore.getState().declarationMethod || undefined,
             declarationInitials: useDeclarationStore.getState().declarationMethod === 'initials' ? initials : undefined,
         };
 
-        if (data.selectedLocation) {
-            payload.pickupLocation = {
-                name: data.selectedLocation.title,
-                address: data.selectedLocation.subtitle || '',
-                state: data.selectedState?.title || '',
-                city: data.selectedCity?.title || '',
-                scheduledPickupDate: formatDateForApi(data.pickupDate),
-                scheduledPickupTime: data.pickupTime,
-            };
-        }
-
         createTransaction.mutate(payload, {
             onSuccess: (response: any) => {
                 if (response.success) {
+                    const transactionId = response.data?.transactionId;
+                    if (selectedSavedAccountId && transactionId) {
+                        attachBankAccountsMutation.mutate({
+                            transactionId,
+                            bankAccountIds: [selectedSavedAccountId],
+                        });
+                    }
                     setInitiateSheetVisible(false);
                     router.push({
                         pathname: '/(sell-fx)/(tourist)/success',
@@ -363,15 +454,15 @@ export default function CreateTouristScreen() {
         });
     };
 
-    const isStep0Valid = !!watchedFields.passportDocumentNumber;
-    const isStep1Valid = !!(docs.passport.meta && docs.visa.meta && docs.ticket.meta && docs.receipt.meta &&
+    const isStep0Valid = !!(watchedFields.passportDocumentNumber && watchedFields.nigerianAddress);
+    const isStep1Valid = !!(docs.passport.meta && docs.visa.meta && docs.ticket.meta &&
         watchedFields.passportIssueDate && watchedFields.passportExpiryDate);
     const foreignAmountStr = currencyGet.code !== 'NGN' ? amountGet : amountSend;
     const foreignAmount = parseFloat(foreignAmountStr.replace(/,/g, '')) || 0;
     const hasProofOfFunds = proofOfFunds.length > 0;
     const isStep2Valid = watchedFields.amount > 0 && (foreignAmount < 10000 || (hasProofOfFunds && isDeclarationCompleted));
 
-    const isStep3Valid = !!(watchedFields.selectedState && watchedFields.selectedCity && watchedFields.selectedLocation && watchedFields.pickupDate && watchedFields.pickupTime);
+    const isStep3Valid = watchedFields.payoutMethod && (!isElectronicTransfer || (watchedFields.customerBankName && watchedFields.customerBankCode && watchedFields.customerAccountNumber && watchedFields.customerAccountName));
 
     const isNextDisabled =
         (currentStep === 0 && !isStep0Valid) ||
@@ -379,17 +470,41 @@ export default function CreateTouristScreen() {
         (currentStep === 2 && !isStep2Valid) ||
         (currentStep === 3 && !isStep3Valid);
 
+    const handleSaveNewAccount = async () => {
+        const isValid = await trigger([
+            'customerBankName',
+            'customerBankCode',
+            'customerAccountNumber',
+            'customerAccountName'
+        ]);
+
+        if (isValid) {
+            saveAccountMutation.mutate({
+                bankName: watchedFields.customerBankName || '',
+                accountNumber: watchedFields.customerAccountNumber || '',
+                accountName: watchedFields.customerAccountName || '',
+            }, {
+                onSuccess: (res) => {
+                    if (res.data?.id) {
+                        setSelectedSavedAccountId(res.data.id);
+                    }
+                    setIsAddingNewAccount(false);
+                }
+            });
+        }
+    };
+
     return (
         <View style={{ flex: 1 }}>
-            <LoadingBackdrop visible={isUploading || createTransaction.isPending} />
+            <LoadingBackdrop visible={isUploading || createTransaction.isPending || saveAccountMutation.isPending} />
             <TransactionLayout
                 title={"Tourist"}
                 currentStep={currentStep}
                 totalSteps={4}
                 onBack={handleBack}
-                onNext={handleNext}
+                onNext={isAddingNewAccount ? handleSaveNewAccount : handleNext}
                 isNextDisabled={isNextDisabled}
-                nextLabel={currentStep === 3 ? (watchedFields.selectedState && watchedFields.selectedCity ? "Initiate Transaction Request" : "Continue") : "Continue"}
+                nextLabel={isAddingNewAccount ? "Save" : (currentStep === 3 ? "Initiate Transaction Request" : "Continue")}
             >
                 {currentStep === 0 && (
                     <CredentialStep fields={credentialFields} />
@@ -420,35 +535,25 @@ export default function CreateTouristScreen() {
                     />
                 )}
 
-                {currentStep === 3 && (
-                    <LocationStep
-                        states={states}
-                        cities={filteredCities}
-                        locations={filteredLocations}
-                        selectedState={watchedFields.selectedState}
-                        onSelectState={(item) => {
-                            setValue('selectedState', item);
-                            setValue('selectedCity', undefined as unknown as LocationItem);
-                            setValue('selectedLocation', undefined as unknown as LocationItem);
-                        }}
-                        selectedCity={watchedFields.selectedCity}
-                        onSelectCity={(item) => {
-                            setValue('selectedCity', item);
-                            setValue('selectedLocation', undefined as unknown as LocationItem);
-                        }}
-                        selectedLocation={watchedFields.selectedLocation}
-                        onSelectLocation={(item) => setValue('selectedLocation', item)}
-                        pickupDate={watchedFields.pickupDate}
-                        onPickupDateChange={(v: string) => setValue('pickupDate', v)}
-                        pickupTime={watchedFields.pickupTime}
-                        onPickupTimeChange={(v: string) => setValue('pickupTime', v)}
-                        errors={{
-                            state: errors.selectedState?.message as string | undefined,
-                            city: errors.selectedCity?.message as string | undefined,
-                            location: errors.selectedLocation?.message as string | undefined,
-                            pickupDate: errors.pickupDate?.message as string | undefined,
-                            pickupTime: errors.pickupTime?.message as string | undefined
-                        }}
+                {currentStep === 3 && !isAddingNewAccount && (
+                    <PayoutMethodStep
+                        control={control}
+                        setValue={setValue}
+                        setPayoutSheetVisible={setPayoutSheetVisible}
+                        savedAccounts={savedAccounts}
+                        selectedSavedAccountId={selectedSavedAccountId}
+                        setSelectedSavedAccountId={setSelectedSavedAccountId}
+                        setIsAddingNewAccount={setIsAddingNewAccount}
+                    />
+                )}
+
+                {currentStep === 3 && isAddingNewAccount && (
+                    <AddNewAccountStep
+                        control={control}
+                        setValue={setValue}
+                        banks={banks}
+                        isResolving={resolveAccount.isPending}
+                        selectedBankCode={watchedFields.customerBankCode}
                     />
                 )}
 
@@ -461,10 +566,24 @@ export default function CreateTouristScreen() {
                     items={[
                         {
                             title: "Request Summary",
-                            description: `You are requesting ${currencyGet.code === 'USD' ? '$' : currencyGet.code === 'GBP' ? '£' : currencyGet.code === 'EUR' ? '€' : ''}${amountGet} ${currencyGet.code.toUpperCase()}. You will be sent approximately ₦${amountSend}`,
+                            description: `You are selling ${currencySend.code === 'USD' ? '$' : currencySend.code === 'GBP' ? '£' : currencySend.code === 'EUR' ? '€' : ''}${amountSend}. You will be sent approximately N${amountGet}`,
                             iconType: 'info'
                         }
                     ]}
+                />
+
+                <GenericSelectionSheet
+                    visible={payoutSheetVisible}
+                    onClose={() => setPayoutSheetVisible(false)}
+                    title="Choose a Payout Method"
+                    subtitle="Select an option below"
+                    items={PAYOUT_METHODS}
+                    selectedItem={watchedFields.payoutMethod}
+                    onSelect={(item) => {
+                        setValue('payoutMethod', item.value);
+                        setPayoutSheetVisible(false);
+                    }}
+                    confirmButtonText="Select a Payout Method"
                 />
 
                 <SourceOfFundsSheet
@@ -479,13 +598,13 @@ export default function CreateTouristScreen() {
                         phoneNumber: user?.phoneNumber || '',
                         email: user?.email || '',
                         bvn: user?.kyc?.bvn || '',
-                        address: user?.profile?.address || '',
+                        address: watchedFields.nigerianAddress || user?.profile?.address || '',
                         passportDocumentNumber: watchedFields.passportDocumentNumber || user?.kyc?.passportDocumentNumber || ''
                     }}
                     transactionDetails={{
-                        type: 'Tourist',
-                        currency: currencySend.currencyName,
-                        amount: `${currencySend.code} ${amountSend}`,
+                        type: 'Sell FX (Tourist)',
+                        currency: currencyGet.currencyName,
+                        amount: `${currencyGet.code} ${amountGet}`,
                         purpose: 'Travel'
                     }}
                     onUploadSignature={() => uploadFile('DIGITAL_SIGNATURE')}

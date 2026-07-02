@@ -18,7 +18,7 @@ export const professionalStep1Schema = z.object({});
 export const professionalStep2Schema = amountStepSchema(2000, 'Professional');
 
 /** Step 3: Professional uses specific bank details schema */
-export const professionalStep3Schema = z.object({
+export const professionalStep3BaseSchema = z.object({
     beneficiaryCountry: z.string().min(1, 'Please select country/region'),
     bankAccountName: z.string().min(1, 'Please enter beneficiary name'),
     beneficiaryAddress: z.string().min(1, 'Please enter beneficiary address'),
@@ -37,8 +37,6 @@ export const professionalStep3Schema = z.object({
     bsbCode: z.string().optional(),
     otherBankDetails: z.string().optional(),
 
-    memberName: z.string().min(1, 'Please enter member name'),
-    memberNumber: z.string().min(1, 'Please enter membership number'),
     organizationName: z.string().min(1, 'Please enter organization name'),
     beneficiaryPhone: z.string().optional(),
     beneficiaryEmail: z.string().optional(),
@@ -47,7 +45,16 @@ export const professionalStep3Schema = z.object({
     correspondenceBankName: z.string().optional(),
     correspondenceBankAddress: z.string().optional(),
     correspondenceBankSwiftCode: z.string().optional(),
-}).superRefine((data, ctx) => {
+});
+
+export const bankDetailsRefinement = (data: {
+    beneficiaryCountry?: string;
+    bankAccountIban?: string;
+    routingNumber?: string;
+    ifscCode?: string;
+    purposeCode?: string;
+    bsbCode?: string;
+}, ctx: z.RefinementCtx) => {
     const country = data.beneficiaryCountry?.toLowerCase() || '';
 
     if (country.includes('united kingdom') || country === 'uk') {
@@ -117,4 +124,9 @@ export const professionalStep3Schema = z.object({
             });
         }
     }
-});
+};
+
+export const professionalStep3Schema = professionalStep3BaseSchema.extend({
+    memberName: z.string().min(1, 'Please enter member name'),
+    memberNumber: z.string().min(1, 'Please enter membership number'),
+}).superRefine(bankDetailsRefinement);

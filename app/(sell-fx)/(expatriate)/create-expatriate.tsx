@@ -16,6 +16,7 @@ import { useLookupAccountMutation } from '@/hooks/queries/banks/useResolveAccoun
 import { useSaveAccountMutation } from '@/hooks/queries/banks/useSaveAccountMutation';
 import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
 import { useGetTransactionsQuery } from '@/hooks/queries/transactions/useGetTransactionsQuery';
+import { useAttachBankAccountsMutation } from '@/hooks/queries/transactions/useAttachBankAccountsMutation';
 import { formatDateToPickerFormat } from '@/utils/helpers';
 import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useExchangeLogic } from '@/hooks/useExchangeLogic';
@@ -42,8 +43,8 @@ import { useGetPickupPointsQuery } from '@/hooks/queries/transactions/useGetPick
 import { useGetPickupStatesQuery } from '@/hooks/queries/transactions/useGetPickupStatesQuery';
 
 const PAYOUT_METHODS: SelectionItem[] = [
-    { id: '1', label: 'Electronic Transfer', value: 'Electronic Transfer' },
-    { id: '2', label: 'Cash Pickup', value: 'Cash Pickup' }
+    { id: '1', label: 'Electronic Transfer (to a naira acct)', value: 'Electronic Transfer' },
+    { id: '2', label: 'Prepaid NGN Card', value: 'Prepaid NGN Card' }
 ];
 
 const expatriateFormSchema = z.object({
@@ -55,13 +56,14 @@ const expatriateFormSchema = z.object({
     customerBankCode: z.string().optional().or(z.literal('')),
     customerAccountNumber: z.string().optional().or(z.literal('')),
     customerAccountName: z.string().optional().or(z.literal('')),
-    selectedState: z.any().optional(),
-    selectedCity: z.any().optional(),
-    selectedLocation: z.any().optional(),
-    pickupDate: z.string().optional().or(z.literal('')),
-    pickupTime: z.string().optional().or(z.literal('')),
+    domiciliaryAccountNumber: z.string().optional().or(z.literal('')),
+    domiciliaryBankName: z.string().optional().or(z.literal('')),
+    domiciliaryAccountName: z.string().optional().or(z.literal('')),
+    domiciliarySwiftCode: z.string().optional().or(z.literal('')),
+    domiciliaryRoutingNumber: z.string().optional().or(z.literal('')),
+    domiciliaryBankAddress: z.string().optional().or(z.literal('')),
 }).superRefine((data, ctx) => {
-    const isElectronicTransfer = data.payoutMethod?.includes('Electronic') || data.payoutMethod === 'Electronic_Transfer';
+    const isElectronicTransfer = data.payoutMethod?.includes('Electronic') || data.payoutMethod === 'Electronic Transfer';
 
     if (isElectronicTransfer) {
         if (!data.customerBankName) {
@@ -76,22 +78,43 @@ const expatriateFormSchema = z.object({
         if (!data.customerAccountName) {
             ctx.addIssue({ code: "custom", message: 'Account name must be resolved', path: ['customerAccountName'] });
         }
-    } else {
-        if (!data.selectedState) {
-            ctx.addIssue({ code: "custom", message: 'Please select a state', path: ['selectedState'] });
-        }
-        if (!data.selectedCity) {
-            ctx.addIssue({ code: "custom", message: 'Please select a city', path: ['selectedCity'] });
-        }
-        if (!data.selectedLocation) {
-            ctx.addIssue({ code: "custom", message: 'Please select a pickup location', path: ['selectedLocation'] });
-        }
-        if (!data.pickupDate) {
-            ctx.addIssue({ code: "custom", message: 'Please select a pickup date', path: ['pickupDate'] });
-        }
-        if (!data.pickupTime) {
-            ctx.addIssue({ code: "custom", message: 'Please select a pickup time', path: ['pickupTime'] });
-        }
+    }
+
+    // Expatriates must provide domiciliary details for refunds
+    if (!data.domiciliaryAccountNumber) {
+        ctx.addIssue({ code: "custom", message: 'Please enter domiciliary account number', path: ['domiciliaryAccountNumber'] });
+    } else if (data.domiciliaryAccountNumber.length !== 10 || !/^\d+$/.test(data.domiciliaryAccountNumber)) {
+        ctx.addIssue({ code: "custom", message: 'Domiciliary account number must be exactly 10 digits', path: ['domiciliaryAccountNumber'] });
+    }
+
+    if (!data.domiciliaryBankName) {
+        ctx.addIssue({ code: "custom", message: 'Please enter domiciliary bank name', path: ['domiciliaryBankName'] });
+    } else if (data.domiciliaryBankName.trim().length < 2) {
+        ctx.addIssue({ code: "custom", message: 'Please enter a valid bank name', path: ['domiciliaryBankName'] });
+    }
+
+    if (!data.domiciliaryAccountName) {
+        ctx.addIssue({ code: "custom", message: 'Please enter account name', path: ['domiciliaryAccountName'] });
+    } else if (data.domiciliaryAccountName.trim().length < 3 || !/^[A-Za-z\s.\-]+$/.test(data.domiciliaryAccountName)) {
+        ctx.addIssue({ code: "custom", message: 'Please enter a valid account name (letters only)', path: ['domiciliaryAccountName'] });
+    }
+
+    if (!data.domiciliarySwiftCode) {
+        ctx.addIssue({ code: "custom", message: 'Please enter SWIFT code', path: ['domiciliarySwiftCode'] });
+    } else if (!/^[A-Za-z0-9]{8}$|^[A-Za-z0-9]{11}$/.test(data.domiciliarySwiftCode)) {
+        ctx.addIssue({ code: "custom", message: 'SWIFT code must be exactly 8 or 11 alphanumeric characters', path: ['domiciliarySwiftCode'] });
+    }
+
+    if (!data.domiciliaryRoutingNumber) {
+        ctx.addIssue({ code: "custom", message: 'Please enter routing number', path: ['domiciliaryRoutingNumber'] });
+    } else if (data.domiciliaryRoutingNumber.length !== 9 || !/^\d+$/.test(data.domiciliaryRoutingNumber)) {
+        ctx.addIssue({ code: "custom", message: 'Routing number must be exactly 9 digits', path: ['domiciliaryRoutingNumber'] });
+    }
+
+    if (!data.domiciliaryBankAddress) {
+        ctx.addIssue({ code: "custom", message: 'Please enter bank address', path: ['domiciliaryBankAddress'] });
+    } else if (data.domiciliaryBankAddress.trim().length < 5) {
+        ctx.addIssue({ code: "custom", message: 'Please enter a valid bank address (min 5 characters)', path: ['domiciliaryBankAddress'] });
     }
 
     if (data.passportIssueDate && data.passportExpiryDate && data.passportIssueDate === data.passportExpiryDate) {
@@ -108,12 +131,9 @@ type ExpatriateFormValues = z.infer<typeof expatriateFormSchema>;
 export default function CreateExpatriateScreen() {
     const router = useRouter();
     const createTransaction = useCreateTransactionMutation();
+    const attachBankAccountsMutation = useAttachBankAccountsMutation();
     useProfileQuery();
     const user = useAuthStore(s => s.user);
-
-    // Dynamic Locations
-    const { data: states = [] } = useGetPickupStatesQuery();
-    const { data: allLocations = [] } = useGetPickupPointsQuery();
 
     const [currentStep, setCurrentStep] = useState(0);
 
@@ -138,11 +158,12 @@ export default function CreateExpatriateScreen() {
             customerBankCode: '',
             customerAccountNumber: '',
             customerAccountName: '',
-            selectedState: undefined as unknown as LocationItem,
-            selectedCity: undefined as unknown as LocationItem,
-            selectedLocation: undefined as unknown as LocationItem,
-            pickupDate: '',
-            pickupTime: '',
+            domiciliaryAccountNumber: '',
+            domiciliaryBankName: '',
+            domiciliaryAccountName: '',
+            domiciliarySwiftCode: '',
+            domiciliaryRoutingNumber: '',
+            domiciliaryBankAddress: '',
         },
         mode: 'onChange'
     });
@@ -156,12 +177,7 @@ export default function CreateExpatriateScreen() {
         }
     }, [user?.kyc?.nin, setValue]);
 
-    const { data: filteredCities = [] } = useGetPickupCitiesQuery(watchedFields.selectedState?.title);
 
-    const filteredLocations = useMemo(() => {
-        if (!watchedFields.selectedCity) return [];
-        return allLocations.filter((loc: any) => loc.metadata.city === watchedFields.selectedCity.title);
-    }, [watchedFields.selectedCity, allLocations]);
 
     const { data: banksResponse } = useGetBanksQuery();
     const banks = useMemo(
@@ -357,7 +373,15 @@ export default function CreateExpatriateScreen() {
                 return;
             }
 
-            const fieldsToTrigger: any[] = ['payoutMethod'];
+            const fieldsToTrigger: any[] = [
+                'payoutMethod',
+                'domiciliaryAccountNumber',
+                'domiciliaryBankName',
+                'domiciliaryAccountName',
+                'domiciliarySwiftCode',
+                'domiciliaryRoutingNumber',
+                'domiciliaryBankAddress'
+            ];
             if (isElectronicTransfer) {
                 fieldsToTrigger.push('customerBankName', 'customerBankCode', 'customerAccountNumber', 'customerAccountName');
             }
@@ -367,7 +391,7 @@ export default function CreateExpatriateScreen() {
         }
 
         if (isStepValid) {
-            if (currentStep < (isElectronicTransfer ? 3 : 4)) {
+            if (currentStep < 3) {
                 setCurrentStep(currentStep + 1);
             } else {
                 setInitiateSheetVisible(true);
@@ -419,6 +443,14 @@ export default function CreateExpatriateScreen() {
                 accountNumber: data.customerAccountNumber,
                 accountName: data.customerAccountName,
             },
+            domiciliaryDetails: {
+                accountNumber: data.domiciliaryAccountNumber,
+                bankName: data.domiciliaryBankName,
+                accountName: data.domiciliaryAccountName,
+                swiftCode: data.domiciliarySwiftCode,
+                routingNumber: data.domiciliaryRoutingNumber,
+                bankAddress: data.domiciliaryBankAddress,
+            },
             declarationMethod: useDeclarationStore.getState().declarationMethod || undefined,
             declarationInitials: useDeclarationStore.getState().declarationMethod === 'initials' ? initials : undefined,
         };
@@ -439,6 +471,13 @@ export default function CreateExpatriateScreen() {
         createTransaction.mutate(payload, {
             onSuccess: (response: any) => {
                 if (response.success) {
+                    const transactionId = response.data?.transactionId;
+                    if (selectedSavedAccountId && transactionId) {
+                        attachBankAccountsMutation.mutate({
+                            transactionId,
+                            bankAccountIds: [selectedSavedAccountId],
+                        });
+                    }
                     setInitiateSheetVisible(false);
                     router.push({
                         pathname: '/(sell-fx)/(expatriate)/success',
@@ -458,15 +497,21 @@ export default function CreateExpatriateScreen() {
     const foreignAmount = parseFloat(foreignAmountStr.replace(/,/g, '')) || 0;
     const hasProofOfFunds = proofOfFunds.length > 0;
     const isStep2Valid = watchedFields.amount > 0 && (foreignAmount < 10000 || (hasProofOfFunds && isDeclarationCompleted));
-    const isStep3Valid = watchedFields.payoutMethod && (!isElectronicTransfer || (watchedFields.customerBankName && watchedFields.customerBankCode && watchedFields.customerAccountNumber && watchedFields.customerAccountName));
-    const isStep4Valid = watchedFields.selectedState && watchedFields.selectedCity && watchedFields.selectedLocation && watchedFields.pickupDate && watchedFields.pickupTime;
+    
+    const isStep3Valid = watchedFields.payoutMethod &&
+        (!isElectronicTransfer || (watchedFields.customerBankName && watchedFields.customerBankCode && watchedFields.customerAccountNumber && watchedFields.customerAccountName)) &&
+        (watchedFields.domiciliaryAccountNumber &&
+         watchedFields.domiciliaryBankName &&
+         watchedFields.domiciliaryAccountName &&
+         watchedFields.domiciliarySwiftCode &&
+         watchedFields.domiciliaryRoutingNumber &&
+         watchedFields.domiciliaryBankAddress);
 
     const isNextDisabled =
         (currentStep === 0 && !isStep0Valid) ||
         (currentStep === 1 && !isStep1Valid) ||
         (currentStep === 2 && !isStep2Valid) ||
-        (currentStep === 3 && !isStep3Valid) ||
-        (currentStep === 4 && !isElectronicTransfer && !isStep4Valid);
+        (currentStep === 3 && !isStep3Valid);
 
     return (
         <View style={{ flex: 1 }}>
@@ -474,11 +519,11 @@ export default function CreateExpatriateScreen() {
             <TransactionLayout
                 title="Expatriate"
                 currentStep={currentStep}
-                totalSteps={isElectronicTransfer ? 4 : 5}
+                totalSteps={4}
                 onBack={handleBack}
                 onNext={isAddingNewAccount ? handleSaveNewAccount : handleNext}
                 isNextDisabled={isNextDisabled}
-                nextLabel={isAddingNewAccount ? "Save" : (currentStep === (isElectronicTransfer ? 3 : 4) ? (isElectronicTransfer || (watchedFields.selectedState && watchedFields.selectedCity) ? "Initiate Transaction Request" : "Continue") : "Continue")}
+                nextLabel={isAddingNewAccount ? "Save" : (currentStep === 3 ? "Initiate Transaction Request" : "Continue")}
             >
                 {currentStep === 0 && (
                     <View style={styles.container}>
@@ -513,7 +558,6 @@ export default function CreateExpatriateScreen() {
                             label="International Passport Number"
                             placeholder="Enter international passport number"
                             required
-                            maxLength={9}
                             filterType="alphanumeric"
                         />
                     </View>
@@ -526,7 +570,7 @@ export default function CreateExpatriateScreen() {
 
                         <View style={styles.documentSection}>
                             <Text style={styles.documentLabel}>
-                                Work Permit <Text style={styles.required}>*</Text>
+                                Work/Residence Permit <Text style={styles.required}>*</Text>
                             </Text>
                             <FileUpload
                                 onUpload={() => uploadFile('WORK_PERMIT')}
@@ -572,7 +616,7 @@ export default function CreateExpatriateScreen() {
                         {/* Utility Bill */}
                         <View style={styles.documentSection}>
                             <Text style={styles.documentLabel}>
-                                Utility Bill <Text style={styles.required}>*</Text>
+                                Utility Bill (must not be more than 3 months old) <Text style={styles.required}>*</Text>
                             </Text>
                             <FileUpload
                                 onUpload={() => uploadFile('UTILITY_BILL')}
@@ -614,6 +658,7 @@ export default function CreateExpatriateScreen() {
                         selectedSavedAccountId={selectedSavedAccountId}
                         setSelectedSavedAccountId={setSelectedSavedAccountId}
                         setIsAddingNewAccount={setIsAddingNewAccount}
+                        isExpatriate={true}
                     />
                 )}
 
@@ -627,39 +672,6 @@ export default function CreateExpatriateScreen() {
                     />
                 )}
 
-                {currentStep === 4 && !isElectronicTransfer && (
-                    <LocationStep
-                        title="Where would you like to receive your funds"
-                        states={states}
-                        cities={filteredCities}
-                        locations={filteredLocations}
-                        selectedState={watchedFields.selectedState}
-                        onSelectState={(item) => {
-                            setValue('selectedState', item);
-                            setValue('selectedCity', undefined as unknown as LocationItem);
-                            setValue('selectedLocation', undefined as unknown as LocationItem);
-                        }}
-                        selectedCity={watchedFields.selectedCity}
-                        onSelectCity={(item) => {
-                            setValue('selectedCity', item);
-                            setValue('selectedLocation', undefined as unknown as LocationItem);
-                        }}
-                        selectedLocation={watchedFields.selectedLocation}
-                        onSelectLocation={(item) => setValue('selectedLocation', item)}
-                        pickupDate={watchedFields.pickupDate}
-                        onPickupDateChange={(v: string) => setValue('pickupDate', v)}
-                        pickupTime={watchedFields.pickupTime}
-                        onPickupTimeChange={(v: string) => setValue('pickupTime', v)}
-                        errors={{
-                            state: errors.selectedState?.message as string | undefined,
-                            city: errors.selectedCity?.message as string | undefined,
-                            location: errors.selectedLocation?.message as string | undefined,
-                            pickupDate: errors.pickupDate?.message as string | undefined,
-                            pickupTime: errors.pickupTime?.message as string | undefined
-                        }}
-                    />
-                )}
-
                 <InitiateTransactionSheet
                     visible={initiateSheetVisible}
                     onClose={() => setInitiateSheetVisible(false)}
@@ -669,7 +681,7 @@ export default function CreateExpatriateScreen() {
                     items={[
                         {
                             title: "Request Summary",
-                            description: `You are requesting ${currencyGet.code === 'USD' ? '$' : currencyGet.code === 'GBP' ? '£' : currencyGet.code === 'EUR' ? '€' : ''}${amountGet} ${currencyGet.code.toUpperCase()}. You will be sent approximately ₦${amountSend}`,
+                            description: `You are selling ${currencySend.code === 'USD' ? '$' : currencySend.code === 'GBP' ? '£' : currencySend.code === 'EUR' ? '€' : ''}${amountSend}. You will be sent approximately N${amountGet}`,
                             iconType: 'info'
                         }
                     ]}
@@ -704,9 +716,9 @@ export default function CreateExpatriateScreen() {
                         passportDocumentNumber: watchedFields.passportDocumentNumber || user?.kyc?.passportDocumentNumber || ''
                     }}
                     transactionDetails={{
-                        type: 'Expatriate',
-                        currency: currencySend.currencyName,
-                        amount: `${currencySend.code} ${amountSend}`,
+                        type: 'Sell FX (Expatriate)',
+                        currency: currencyGet.currencyName,
+                        amount: `${currencyGet.code} ${amountGet}`,
                         purpose: 'Exchange'
                     }}
                     onUploadSignature={() => uploadFile('DIGITAL_SIGNATURE')}

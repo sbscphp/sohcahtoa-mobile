@@ -43,7 +43,7 @@ import { useGetPickupPointsQuery } from '@/hooks/queries/transactions/useGetPick
 import { useGetPickupStatesQuery } from '@/hooks/queries/transactions/useGetPickupStatesQuery';
 
 const PAYOUT_METHODS: SelectionItem[] = [
-    { id: '1', label: 'Electronic Transfer', value: 'Electronic Transfer' },
+    { id: '1', label: 'Electronic Transfer (to a naira acct)', value: 'Electronic Transfer' },
     { id: '2', label: 'Prepaid NGN Card', value: 'Prepaid NGN Card' }
 ];
 
@@ -62,7 +62,35 @@ const residentFormSchema = z.object({
     pickupDate: z.string().optional().or(z.literal('')),
     pickupTime: z.string().optional().or(z.literal('')),
 }).superRefine((data, ctx) => {
-    const isElectronicTransfer = true;
+    // Check BVN or TIN
+    if (!data.bvn && !data.tinNumber) {
+        ctx.addIssue({
+            code: "custom",
+            message: 'Either BVN or TIN is required',
+            path: ['tinNumber']
+        });
+    }
+
+    if (data.tinNumber) {
+        const cleanTin = data.tinNumber.replace(/[^a-zA-Z0-9]/g, '');
+        if (cleanTin.length >= 10) {
+            if (!/^\d+$/.test(cleanTin)) {
+                ctx.addIssue({
+                    code: "custom",
+                    message: 'TIN must contain only digits',
+                    path: ['tinNumber']
+                });
+            } else if (cleanTin.length < 10 || cleanTin.length > 13) {
+                ctx.addIssue({
+                    code: "custom",
+                    message: 'TIN must be between 10 and 13 digits',
+                    path: ['tinNumber']
+                });
+            }
+        }
+    }
+
+    const isElectronicTransfer = data.payoutMethod?.includes('Electronic') || data.payoutMethod === 'Electronic Transfer';
 
     if (isElectronicTransfer) {
         if (!data.customerBankName) {
@@ -76,22 +104,6 @@ const residentFormSchema = z.object({
         }
         if (!data.customerAccountName) {
             ctx.addIssue({ code: "custom", message: 'Account name must be resolved', path: ['customerAccountName'] });
-        }
-    } else {
-        if (!data.selectedState) {
-            ctx.addIssue({ code: "custom", message: 'Please select a state', path: ['selectedState'] });
-        }
-        if (!data.selectedCity) {
-            ctx.addIssue({ code: "custom", message: 'Please select a city', path: ['selectedCity'] });
-        }
-        if (!data.selectedLocation) {
-            ctx.addIssue({ code: "custom", message: 'Please select a pickup location', path: ['selectedLocation'] });
-        }
-        if (!data.pickupDate) {
-            ctx.addIssue({ code: "custom", message: 'Please select a pickup date', path: ['pickupDate'] });
-        }
-        if (!data.pickupTime) {
-            ctx.addIssue({ code: "custom", message: 'Please select a pickup time', path: ['pickupTime'] });
         }
     }
 
@@ -150,7 +162,7 @@ export default function CreateResidentScreen() {
     });
 
     const watchedFields = watch() as any;
-    const isElectronicTransfer = true;
+    const isElectronicTransfer = watchedFields.payoutMethod?.includes('Electronic') || watchedFields.payoutMethod === 'Electronic Transfer';
 
     useEffect(() => {
         if (user?.kyc?.nin) {
@@ -319,9 +331,9 @@ export default function CreateResidentScreen() {
                 <ControlledInput
                     control={control}
                     name="bvn"
-                    label="Bank Verification Number (BVN)"
+                    label={watchedFields.tinNumber ? "Bank Verification Number (BVN) (Optional)" : "Bank Verification Number (BVN)"}
                     placeholder="Enter BVN"
-                    required
+                    required={!watchedFields.tinNumber}
                     keyboardType="numeric"
                     disabled
                 />
@@ -344,10 +356,11 @@ export default function CreateResidentScreen() {
                 <ControlledInput
                     control={control}
                     name="tinNumber"
-                    label="Tax Identification Number (TIN) (Optional)"
+                    label={watchedFields.bvn ? "Tax Identification Number (TIN) (Optional)" : "Tax Identification Number (TIN)"}
                     placeholder="Enter TIN"
-                    keyboardType="numeric"
-                    maxLength={11} filterType="numeric"
+                    required={!watchedFields.bvn}
+                    keyboardType="default"
+                    maxLength={13}
                 />
             )
         },
@@ -556,7 +569,7 @@ export default function CreateResidentScreen() {
     const foreignAmount = parseFloat(foreignAmountStr.replace(/,/g, '')) || 0;
     const hasProofOfFunds = proofOfFunds.length > 0;
     const isStep2Valid = watchedFields.amount > 0 && (foreignAmount < 10000 || (hasProofOfFunds && isDeclarationCompleted));
-    const isStep3Valid = watchedFields.payoutMethod && (watchedFields.customerBankName && watchedFields.customerBankCode && watchedFields.customerAccountNumber && watchedFields.customerAccountName);
+    const isStep3Valid = watchedFields.payoutMethod && (!isElectronicTransfer || (watchedFields.customerBankName && watchedFields.customerBankCode && watchedFields.customerAccountNumber && watchedFields.customerAccountName));
 
     const isNextDisabled =
         (currentStep === 0 && !isStep0Valid) ||
@@ -638,7 +651,7 @@ export default function CreateResidentScreen() {
                     items={[
                         {
                             title: "Request Summary",
-                            description: `You are selling ${currencyGet.code === 'USD' ? '$' : currencyGet.code === 'GBP' ? '£' : currencyGet.code === 'EUR' ? '€' : ''}${amountGet}. You will be sent approximately ₦${amountSend}`,
+                            description: `You are selling ${currencySend.code === 'USD' ? '$' : currencySend.code === 'GBP' ? '£' : currencySend.code === 'EUR' ? '€' : ''}${amountSend}. You will be sent approximately N${amountGet}`,
                             iconType: 'info'
                         }
                     ]}
@@ -672,9 +685,9 @@ export default function CreateResidentScreen() {
                         passportDocumentNumber: watchedFields.passportDocumentNumber || user?.kyc?.passportDocumentNumber || ''
                     }}
                     transactionDetails={{
-                        type: 'Resident',
-                        currency: currencySend.currencyName,
-                        amount: `${currencySend.code} ${amountSend}`,
+                        type: 'Sell FX (Resident)',
+                        currency: currencyGet.currencyName,
+                        amount: `${currencyGet.code} ${amountGet}`,
                         purpose: 'Exchange'
                     }}
                     onUploadSignature={() => uploadFile('DIGITAL_SIGNATURE')}

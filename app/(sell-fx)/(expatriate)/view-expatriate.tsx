@@ -73,6 +73,56 @@ export default function ViewExpatriateScreen() {
             { label: 'Amount (₦)', value: formatCurrency(tx.nairaEquivalent) },
             { label: 'Equivalent Amount (FX)', value: formatCurrency(tx.foreignAmount, tx.currency === 'USD' ? '$' : tx.currency === 'GBP' ? '£' : tx.currency === 'EUR' ? '€' : tx.currency) },
             { label: 'Date Initiated', value: `${formatDate(tx.createdAt)}\n${formatTimeWithSeconds(tx.createdAt)}` },
+            ...(tx.personalInfo?.bvn || (tx as any).bvn ? [{
+                label: 'BVN',
+                value: tx.personalInfo?.bvn || (tx as any).bvn
+            }] : []),
+            ...(tx.personalInfo?.nin || (tx as any).nin ? [{
+                label: 'NIN',
+                value: tx.personalInfo?.nin || (tx as any).nin
+            }] : []),
+            ...(tx.personalInfo?.passportDocumentNumber || (tx as any).passportDocumentNumber ? [{
+                label: 'Passport Number',
+                value: tx.personalInfo?.passportDocumentNumber || (tx as any).passportDocumentNumber
+            }] : []),
+            ...(tx.personalInfo?.passportIssueDate || (tx as any).passportIssueDate ? [{
+                label: 'Passport Issue Date',
+                value: formatDate(tx.personalInfo?.passportIssueDate || (tx as any).passportIssueDate)
+            }] : []),
+            ...(tx.personalInfo?.passportExpiryDate || (tx as any).passportExpiryDate ? [{
+                label: 'Passport Expiry Date',
+                value: formatDate(tx.personalInfo?.passportExpiryDate || (tx as any).passportExpiryDate)
+            }] : []),
+            ...(tx.payoutMethod ? [{
+                label: 'Payout Method',
+                value: tx.payoutMethod
+            }] : []),
+            ...(tx.domiciliaryDetails || (tx as any).domiciliaryDetails ? [
+                {
+                    label: 'Domiciliary Bank Name',
+                    value: tx.domiciliaryDetails?.bankName || (tx as any).domiciliaryDetails?.bankName || 'N/A'
+                },
+                {
+                    label: 'Domiciliary Account Number',
+                    value: tx.domiciliaryDetails?.accountNumber || (tx as any).domiciliaryDetails?.accountNumber || 'N/A'
+                },
+                {
+                    label: 'Domiciliary Account Name',
+                    value: tx.domiciliaryDetails?.accountName || (tx as any).domiciliaryDetails?.accountName || 'N/A'
+                },
+                {
+                    label: 'SWIFT Code',
+                    value: tx.domiciliaryDetails?.swiftCode || (tx as any).domiciliaryDetails?.swiftCode || 'N/A'
+                },
+                {
+                    label: 'Routing Number',
+                    value: tx.domiciliaryDetails?.routingNumber || (tx as any).domiciliaryDetails?.routingNumber || 'N/A'
+                },
+                {
+                    label: 'Domiciliary Bank Address',
+                    value: tx.domiciliaryDetails?.bankAddress || (tx as any).domiciliaryDetails?.bankAddress || 'N/A'
+                }
+            ] : []),
             ...(tx.cashPickup ? [
                 {
                     label: 'Pickup Cash Amount',

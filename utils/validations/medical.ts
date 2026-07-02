@@ -13,10 +13,10 @@ export const medicalStep1Schema = z.object({
 /** Step 2: Medical amount — max $5,000 */
 export const medicalStep2Schema = amountStepSchema(5000, 'Medical FX');
 
-import { professionalStep3Schema } from './professional';
+import { professionalStep3BaseSchema, bankDetailsRefinement } from './professional';
 
 /** Step 3: Medical uses beneficiary bank details */
-export const medicalStep3Schema = professionalStep3Schema.extend({
+export const medicalStep3Schema = professionalStep3BaseSchema.extend({
     memberName: z.string().optional().or(z.literal('')),
     memberNumber: z.string().optional().or(z.literal('')),
-});
+}).superRefine(bankDetailsRefinement);

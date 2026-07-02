@@ -84,11 +84,22 @@ export default function SchoolFeesScreen() {
     const showToast = useToastStore(s => s.showToast);
     const { data: profileResponse } = useProfileQuery();
     const profile = profileResponse?.data;
-    const profileBvn = profile?.bvn;
-    const profileNin = profile?.nin;
     const user = useAuthStore(s => s.user);
     const { data: transactionsResponse } = useGetTransactionsQuery();
     const transactions = transactionsResponse?.pages?.flatMap(p => p.data) || [];
+
+    const profileBvn = useMemo(() => profile?.bvn || user?.kyc?.bvn || '', [profile, user]);
+    const profileNin = useMemo(() => {
+        let foundNin = '';
+        for (const tx of transactions) {
+            const ninVal = tx.personalInfo?.nin || (tx as any).nin;
+            if (ninVal) {
+                foundNin = String(ninVal);
+                break;
+            }
+        }
+        return foundNin || profile?.nin || (user?.kyc as any)?.nin || (user as any)?.nin || '';
+    }, [transactions, profile, user]);
 
     const [currentStep, setCurrentStep] = useState(0);
     const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
@@ -1014,7 +1025,7 @@ export default function SchoolFeesScreen() {
                                 paddingVertical: moderateScale(8)
                             }}
                         >
-                            <Ionicons name="add" size={moderateScale(18)} color="#FF6B2C" style={{ marginRight: moderateScale(4) }} style={{ marginRight: moderateScale(4) }} />
+                            <Ionicons name="add" size={moderateScale(18)} color="#FF6B2C" style={{ marginRight: moderateScale(4) }} />
                             <Text style={{ fontSize: moderateScale(14), fontWeight: '600', color: '#FF6B2C' }}>
                                 New Account
                             </Text>

@@ -74,6 +74,26 @@ export default function ViewTouristScreen() {
             { label: 'Amount (₦)', value: formatCurrency(tx.nairaEquivalent) },
             { label: 'Equivalent Amount (FX)', value: formatCurrency(tx.foreignAmount, tx.currency === 'USD' ? '$' : tx.currency === 'GBP' ? '£' : tx.currency === 'EUR' ? '€' : tx.currency) },
             { label: 'Date Initiated', value: `${formatDate(tx.createdAt)}\n${formatTimeWithSeconds(tx.createdAt)}` },
+            ...(tx.personalInfo?.passportDocumentNumber || (tx as any).passportDocumentNumber ? [{
+                label: 'Passport Number',
+                value: tx.personalInfo?.passportDocumentNumber || (tx as any).passportDocumentNumber
+            }] : []),
+            ...(tx.personalInfo?.passportIssueDate || (tx as any).passportIssueDate ? [{
+                label: 'Passport Issue Date',
+                value: formatDate(tx.personalInfo?.passportIssueDate || (tx as any).passportIssueDate)
+            }] : []),
+            ...(tx.personalInfo?.passportExpiryDate || (tx as any).passportExpiryDate ? [{
+                label: 'Passport Expiry Date',
+                value: formatDate(tx.personalInfo?.passportExpiryDate || (tx as any).passportExpiryDate)
+            }] : []),
+            ...(tx.personalInfo?.nigerianAddress || (tx as any).nigerianAddress ? [{
+                label: 'Temporary Nigerian Address',
+                value: tx.personalInfo?.nigerianAddress || (tx as any).nigerianAddress
+            }] : []),
+            ...(tx.payoutMethod ? [{
+                label: 'Payout Method',
+                value: tx.payoutMethod
+            }] : []),
             ...(tx.cashPickup ? [
                 {
                     label: 'Pickup Cash Amount',

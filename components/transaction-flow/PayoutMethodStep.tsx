@@ -27,6 +27,7 @@ interface PayoutMethodStepProps {
     isMultiSelect?: boolean;
     selectedSavedAccountIds?: string[];
     setSelectedSavedAccountIds?: (ids: string[]) => void;
+    isExpatriate?: boolean;
 }
 
 export default function PayoutMethodStep({
@@ -41,6 +42,7 @@ export default function PayoutMethodStep({
     isMultiSelect = false,
     selectedSavedAccountIds,
     setSelectedSavedAccountIds,
+    isExpatriate = false,
 }: PayoutMethodStepProps) {
     const attachBankAccountsMutation = useAttachBankAccountsMutation();
 
@@ -60,6 +62,8 @@ export default function PayoutMethodStep({
                           payoutMethod === 'Cash (25%) + Electronic Transfer (75%)' || 
                           payoutMethod === 'Electronic_Transfer' ||
                           payoutMethod === 'Cash_25_Electronic_75';
+
+    const isDomiciliaryFieldShown = isDomiciliary || isExpatriate;
 
     return (
         <View style={{ gap: moderateScale(14) }}>
@@ -243,7 +247,7 @@ export default function PayoutMethodStep({
                 </TouchableOpacity>
             )}
 
-            {isDomiciliary && (
+            {isDomiciliaryFieldShown && (
                 <View style={{ gap: moderateScale(16), marginTop: moderateScale(8) }}>
                     <Text style={{ fontSize: moderateScale(16), fontWeight: '700', color: '#0F172A', marginBottom: moderateScale(4) }}>
                         Domiciliary Account Details
