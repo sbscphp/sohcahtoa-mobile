@@ -427,7 +427,7 @@ export default function HomeScreen() {
                                             <Refresh size={moderateScale(16)} color="#64748B" />
                                         </View>
                                         <View style={styles.transactionInfo}>
-                                            <Text style={styles.transactionTitle} numberOfLines={1}>{tx.purpose || tx.type}</Text>
+                                            <Text style={styles.transactionTitle} numberOfLines={3}>{tx.purpose || tx.type}</Text>
                                             <Text style={styles.transactionDate}>{formatDate(tx.createdAt)} • {formatTime(tx.createdAt)}</Text>
                                         </View>
                                         <View style={styles.transactionAmountContainer}>
@@ -472,7 +472,7 @@ const styles = ScaledSheet.create({
         backgroundColor: '#FFFFFF',
     },
     scrollContent: {
-        paddingBottom: '100@vs',
+        paddingBottom: '10@vs',
     },
     header: {
         flexDirection: 'row',
@@ -809,20 +809,20 @@ const styles = ScaledSheet.create({
         flex: 1,
     },
     transactionTitle: {
-        fontSize: '14@ms',
+        fontSize: '13@ms',
         fontWeight: '500',
         color: '#0F172A',
         marginBottom: '2@vs',
     },
     transactionDate: {
-        fontSize: '12@ms',
+        fontSize: '11@ms',
         color: '#64748B',
     },
     transactionAmountContainer: {
         alignItems: 'flex-end',
     },
     transactionAmount: {
-        fontSize: '14@ms',
+        fontSize: '13@ms',
         fontWeight: '600',
         color: '#0F172A',
         marginBottom: '4@vs',
@@ -834,7 +834,7 @@ const styles = ScaledSheet.create({
         overflow: 'hidden',
     },
     transactionStatusText: {
-        fontSize: '12@ms',
+        fontSize: '11@ms',
         fontWeight: '600',
     },
 });

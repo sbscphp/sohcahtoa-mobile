@@ -8,6 +8,7 @@ import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import LocationStep from '@/components/transaction-flow/LocationStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
 import RefundBankDetailsStep from '@/components/transaction-flow/RefundBankDetailsStep';
+import AddDomiciliaryAccountStep from '@/components/transaction-flow/AddDomiciliaryAccountStep';
 import { useProfileQuery } from '@/hooks/queries/auth/useProfileQuery';
 import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
 import { useGetTransactionsQuery } from '@/hooks/queries/transactions/useGetTransactionsQuery';
@@ -58,8 +59,8 @@ const residentFormSchema = z.object({
     customerBankCode: z.string().optional().or(z.literal('')),
     customerAccountNumber: z.string().optional().or(z.literal('')),
     customerAccountName: z.string().optional().or(z.literal('')),
-    domiciliaryAccountNumber: z.string().optional().or(z.literal('')),
     domiciliaryBankName: z.string().optional().or(z.literal('')),
+    domiciliaryAccountNumber: z.string().optional().or(z.literal('')),
     domiciliaryAccountName: z.string().optional().or(z.literal('')),
     domiciliarySwiftCode: z.string().optional().or(z.literal('')),
     domiciliaryRoutingNumber: z.string().optional().or(z.literal('')),
@@ -101,14 +102,17 @@ const residentFormSchema = z.object({
     const isElectronicTransfer = data.payoutMethod?.includes('Electronic') || data.payoutMethod === 'Electronic Transfer';
 
     if (isElectronicTransfer) {
-        if (!data.domiciliaryAccountNumber || data.domiciliaryAccountNumber.length !== 10) {
-            ctx.addIssue({ code: "custom", message: 'Domiciliary account number must be 10 digits', path: ['domiciliaryAccountNumber'] });
+        if (!data.customerBankName) {
+            ctx.addIssue({ code: "custom", message: 'Please select your bank', path: ['customerBankName'] });
         }
-        if (!data.domiciliaryBankName) {
-            ctx.addIssue({ code: "custom", message: 'Please enter domiciliary bank name', path: ['domiciliaryBankName'] });
+        if (!data.customerBankCode) {
+            ctx.addIssue({ code: "custom", message: 'Please select your bank', path: ['customerBankCode'] });
         }
-        if (!data.domiciliaryAccountName) {
-            ctx.addIssue({ code: "custom", message: 'Please enter domiciliary account name', path: ['domiciliaryAccountName'] });
+        if (!data.customerAccountNumber || data.customerAccountNumber.length !== 10) {
+            ctx.addIssue({ code: "custom", message: 'Account number must be 10 digits', path: ['customerAccountNumber'] });
+        }
+        if (!data.customerAccountName) {
+            ctx.addIssue({ code: "custom", message: 'Account name must be resolved', path: ['customerAccountName'] });
         }
     }
 
@@ -187,8 +191,8 @@ export default function CreateResidentScreen() {
             customerBankCode: '',
             customerAccountNumber: '',
             customerAccountName: '',
-            domiciliaryAccountNumber: '',
             domiciliaryBankName: '',
+            domiciliaryAccountNumber: '',
             domiciliaryAccountName: '',
             domiciliarySwiftCode: '',
             domiciliaryRoutingNumber: '',
@@ -488,6 +492,21 @@ export default function CreateResidentScreen() {
         }
     };
 
+    const handleSaveDomiciliaryAccount = async () => {
+        const isValid = await trigger([
+            'domiciliaryBankName',
+            'domiciliaryAccountNumber',
+            'domiciliaryAccountName',
+            'domiciliarySwiftCode',
+            'domiciliaryRoutingNumber',
+            'domiciliaryBankAddress',
+        ]);
+
+        if (isValid) {
+            setIsAddingNewAccount(false);
+        }
+    };
+
     const handleNext = async () => {
         if (isUploading) {
             showToast('Please wait for files to finish uploading', 'warning');
@@ -513,15 +532,15 @@ export default function CreateResidentScreen() {
 
             const fieldsToTrigger: any[] = ['payoutMethod'];
             if (isElectronicTransfer) {
-                fieldsToTrigger.push('domiciliaryAccountNumber', 'domiciliaryBankName', 'domiciliaryAccountName', 'domiciliarySwiftCode', 'domiciliaryRoutingNumber', 'domiciliaryBankAddress');
+                fieldsToTrigger.push('customerBankName', 'customerBankCode', 'customerAccountNumber', 'customerAccountName');
             }
             isStepValid = await trigger(fieldsToTrigger);
         } else if (currentStep === 4 && needsLocationStep) {
             isStepValid = await trigger(['selectedState', 'selectedCity', 'selectedLocation', 'pickupDate', 'pickupTime']);
         } else if (currentStep === refundStepIndex) {
-            isStepValid = !!selectedSavedAccountId;
+            isStepValid = !!(watchedFields.domiciliaryBankName && watchedFields.domiciliaryAccountNumber);
             if (!isStepValid) {
-                showToast('Please select or add a bank account for refunds', 'error');
+                showToast('Please enter your domiciliary account details for refunds', 'error');
             }
         }
 
@@ -576,19 +595,13 @@ export default function CreateResidentScreen() {
                 ...proofOfFunds.map(p => p.metadata),
             ],
             payoutMethod: data.payoutMethod,
-            domiciliaryDetails: isElectronicTransfer ? {
+            refundBankDetails: {
                 bankName: data.domiciliaryBankName,
                 accountNumber: data.domiciliaryAccountNumber,
                 accountName: data.domiciliaryAccountName,
                 swiftCode: data.domiciliarySwiftCode,
                 routingNumber: data.domiciliaryRoutingNumber,
                 bankAddress: data.domiciliaryBankAddress,
-            } : undefined,
-            refundBankDetails: {
-                bankName: data.customerBankName,
-                bankCode: data.customerBankCode,
-                accountNumber: data.customerAccountNumber,
-                accountName: data.customerAccountName,
             },
             declarationMethod: useDeclarationStore.getState().declarationMethod || undefined,
             declarationInitials: useDeclarationStore.getState().declarationMethod === 'initials' ? initials : undefined,
@@ -625,15 +638,24 @@ export default function CreateResidentScreen() {
         });
     };
 
+    const domiciliaryAccount = {
+        bankName: watchedFields.domiciliaryBankName,
+        accountNumber: watchedFields.domiciliaryAccountNumber,
+        accountName: watchedFields.domiciliaryAccountName,
+        swiftCode: watchedFields.domiciliarySwiftCode,
+        routingNumber: watchedFields.domiciliaryRoutingNumber,
+        bankAddress: watchedFields.domiciliaryBankAddress,
+    };
+
     const isStep0Valid = !!watchedFields.passportDocumentNumber;
     const isStep1Valid = !!(docs.passport.meta && docs.utility.meta);
     const foreignAmountStr = currencyGet.code !== 'NGN' ? amountGet : amountSend;
     const foreignAmount = parseFloat(foreignAmountStr.replace(/,/g, '')) || 0;
     const hasProofOfFunds = proofOfFunds.length > 0;
     const isStep2Valid = watchedFields.amount > 0 && (foreignAmount <= 10000 || (hasProofOfFunds && isDeclarationCompleted));
-    const isStep3Valid = watchedFields.payoutMethod && (!isElectronicTransfer || (watchedFields.domiciliaryAccountNumber && watchedFields.domiciliaryBankName && watchedFields.domiciliaryAccountName));
+    const isStep3Valid = watchedFields.payoutMethod && (!isElectronicTransfer || (watchedFields.customerBankName && watchedFields.customerBankCode && watchedFields.customerAccountNumber && watchedFields.customerAccountName));
     const isStep4Valid = !needsLocationStep || !!(watchedFields.selectedState && watchedFields.selectedCity && watchedFields.selectedLocation && watchedFields.pickupDate && watchedFields.pickupTime);
-    const isRefundStepValid = !!selectedSavedAccountId;
+    const isRefundStepValid = !!(watchedFields.domiciliaryBankName && watchedFields.domiciliaryAccountNumber);
  
     const isNextDisabled =
         (currentStep === 0 && !isStep0Valid) ||
@@ -651,7 +673,7 @@ export default function CreateResidentScreen() {
                 currentStep={currentStep}
                 totalSteps={totalSteps}
                 onBack={handleBack}
-                onNext={isAddingNewAccount ? handleSaveNewAccount : handleNext}
+                onNext={isAddingNewAccount ? (currentStep === refundStepIndex ? handleSaveDomiciliaryAccount : handleSaveNewAccount) : handleNext}
                 isNextDisabled={isNextDisabled}
                 nextLabel={isAddingNewAccount ? "Save" : (currentStep === refundStepIndex ? "Initiate Transaction Request" : "Continue")}
             >
@@ -697,13 +719,20 @@ export default function CreateResidentScreen() {
                     />
                 )}
 
-                {((currentStep === 3 || currentStep === refundStepIndex) && isAddingNewAccount) && (
+                {(currentStep === 3 && isAddingNewAccount) && (
                     <AddNewAccountStep
                         control={control}
                         setValue={setValue}
                         banks={banks}
                         isResolving={resolveAccount.isPending}
                         selectedBankCode={watchedFields.customerBankCode}
+                    />
+                )}
+
+                {(currentStep === refundStepIndex && isAddingNewAccount) && (
+                    <AddDomiciliaryAccountStep
+                        control={control}
+                        setValue={setValue}
                     />
                 )}
 
@@ -746,6 +775,8 @@ export default function CreateResidentScreen() {
                         setSelectedSavedAccountId={setSelectedSavedAccountId}
                         setValue={setValue}
                         setIsAddingNewAccount={setIsAddingNewAccount}
+                        isDomiciliary={true}
+                        domiciliaryAccount={domiciliaryAccount}
                     />
                 )}
 

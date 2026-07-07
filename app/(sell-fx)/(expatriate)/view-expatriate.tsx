@@ -154,19 +154,9 @@ export default function ViewExpatriateScreen() {
         if (details.bankName) items.push({ label: 'Bank Name', value: details.bankName });
         if (details.accountName) items.push({ label: 'Account Name', value: details.accountName });
         if (details.accountNumber) items.push({ label: 'Account Number', value: details.accountNumber });
-        return items.length > 0 ? items : undefined;
-    }, [tx]);
-
-    const domiciliaryItems = useMemo(() => {
-        const details = tx?.domiciliaryDetails;
-        if (!tx || !details) return undefined;
-        const items: any[] = [];
-        if (details.bankName) items.push({ label: 'Bank Name', value: details.bankName });
-        if (details.accountName) items.push({ label: 'Account Name', value: details.accountName });
-        if (details.accountNumber) items.push({ label: 'Account Number', value: details.accountNumber });
-        if (details.swiftCode) items.push({ label: 'Swift Code', value: details.swiftCode });
-        if (details.routingNumber) items.push({ label: 'Routing Number', value: details.routingNumber });
-        if (details.bankAddress) items.push({ label: 'Bank Address', value: details.bankAddress });
+        if ('swiftCode' in details && details.swiftCode) items.push({ label: 'SWIFT Code', value: details.swiftCode });
+        if ('routingNumber' in details && details.routingNumber) items.push({ label: 'Routing Number', value: details.routingNumber });
+        if ('bankAddress' in details && details.bankAddress) items.push({ label: 'Bank Address', value: details.bankAddress });
         return items.length > 0 ? items : undefined;
     }, [tx]);
 
@@ -197,7 +187,6 @@ export default function ViewExpatriateScreen() {
                     details={detailsItems}
                     documents={detailsDocuments}
                     bankAccountsDetails={bankAccountsItems}
-                    domiciliaryDetails={domiciliaryItems}
                     currentStep={tx?.currentStep}
                 />
             )}

@@ -9,6 +9,7 @@ import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import LocationStep from '@/components/transaction-flow/LocationStep';
 import RefundBankDetailsStep from '@/components/transaction-flow/RefundBankDetailsStep';
+import AddDomiciliaryAccountStep from '@/components/transaction-flow/AddDomiciliaryAccountStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
 import { useProfileQuery } from '@/hooks/queries/auth/useProfileQuery';
 import { useAttachBankAccountsMutation } from '@/hooks/queries/transactions/useAttachBankAccountsMutation';
@@ -53,6 +54,12 @@ const touristFormSchema = z.object({
     customerBankCode: z.string().optional().or(z.literal('')),
     customerAccountNumber: z.string().optional().or(z.literal('')),
     customerAccountName: z.string().optional().or(z.literal('')),
+    domiciliaryBankName: z.string().optional().or(z.literal('')),
+    domiciliaryAccountNumber: z.string().optional().or(z.literal('')),
+    domiciliaryAccountName: z.string().optional().or(z.literal('')),
+    domiciliarySwiftCode: z.string().optional().or(z.literal('')),
+    domiciliaryRoutingNumber: z.string().optional().or(z.literal('')),
+    domiciliaryBankAddress: z.string().optional().or(z.literal('')),
     selectedState: z.any().optional(),
     selectedCity: z.any().optional(),
     selectedLocation: z.any().optional(),
@@ -120,6 +127,12 @@ export default function CreateTouristScreen() {
             customerBankCode: '',
             customerAccountNumber: '',
             customerAccountName: '',
+            domiciliaryBankName: '',
+            domiciliaryAccountNumber: '',
+            domiciliaryAccountName: '',
+            domiciliarySwiftCode: '',
+            domiciliaryRoutingNumber: '',
+            domiciliaryBankAddress: '',
             selectedState: undefined as unknown as LocationItem,
             selectedCity: undefined as unknown as LocationItem,
             selectedLocation: undefined as unknown as LocationItem,
@@ -384,9 +397,9 @@ export default function CreateTouristScreen() {
             if (isAddingNewAccount) {
                 return;
             }
-            isStepValid = !!selectedSavedAccountId;
+            isStepValid = !!(watchedFields.domiciliaryBankName && watchedFields.domiciliaryAccountNumber);
             if (!isStepValid) {
-                showToast('Please select or add a bank account for payouts', 'error');
+                showToast('Please enter your domiciliary account details for refunds', 'error');
             }
         }
 
@@ -437,10 +450,12 @@ export default function CreateTouristScreen() {
             nigerianAddress: data.nigerianAddress,
             payoutMethod: 'Electronic Transfer',
             refundBankDetails: {
-                bankName: data.customerBankName,
-                bankCode: data.customerBankCode,
-                accountNumber: data.customerAccountNumber,
-                accountName: data.customerAccountName,
+                bankName: data.domiciliaryBankName,
+                accountNumber: data.domiciliaryAccountNumber,
+                accountName: data.domiciliaryAccountName,
+                swiftCode: data.domiciliarySwiftCode,
+                routingNumber: data.domiciliaryRoutingNumber,
+                bankAddress: data.domiciliaryBankAddress,
             },
             declarationMethod: useDeclarationStore.getState().declarationMethod || undefined,
             declarationInitials: useDeclarationStore.getState().declarationMethod === 'initials' ? initials : undefined,
@@ -479,6 +494,15 @@ export default function CreateTouristScreen() {
         });
     };
 
+    const domiciliaryAccount = {
+        bankName: watchedFields.domiciliaryBankName,
+        accountNumber: watchedFields.domiciliaryAccountNumber,
+        accountName: watchedFields.domiciliaryAccountName,
+        swiftCode: watchedFields.domiciliarySwiftCode,
+        routingNumber: watchedFields.domiciliaryRoutingNumber,
+        bankAddress: watchedFields.domiciliaryBankAddress,
+    };
+
     const isStep0Valid = !!(watchedFields.passportDocumentNumber && watchedFields.nigerianAddress);
     const isStep1Valid = !!(docs.passport.meta && docs.visa.meta && docs.ticket.meta);
     const foreignAmountStr = currencyGet.code !== 'NGN' ? amountGet : amountSend;
@@ -487,7 +511,7 @@ export default function CreateTouristScreen() {
     const isStep2Valid = watchedFields.amount > 0 && (foreignAmount <= 10000 || (hasProofOfFunds && isDeclarationCompleted));
 
     const isStep3Valid = !!(watchedFields.selectedState && watchedFields.selectedCity && watchedFields.selectedLocation && watchedFields.pickupDate && watchedFields.pickupTime);
-    const isStep4Valid = !!selectedSavedAccountId;
+    const isStep4Valid = !!(watchedFields.domiciliaryBankName && watchedFields.domiciliaryAccountNumber);
 
     const isNextDisabled =
         (currentStep === 0 && !isStep0Valid) ||
@@ -520,6 +544,21 @@ export default function CreateTouristScreen() {
         }
     };
 
+    const handleSaveDomiciliaryAccount = async () => {
+        const isValid = await trigger([
+            'domiciliaryBankName',
+            'domiciliaryAccountNumber',
+            'domiciliaryAccountName',
+            'domiciliarySwiftCode',
+            'domiciliaryRoutingNumber',
+            'domiciliaryBankAddress',
+        ]);
+
+        if (isValid) {
+            setIsAddingNewAccount(false);
+        }
+    };
+
     return (
         <View style={{ flex: 1 }}>
             <LoadingBackdrop visible={isUploading || createTransaction.isPending || saveAccountMutation.isPending} />
@@ -528,7 +567,7 @@ export default function CreateTouristScreen() {
                 currentStep={currentStep}
                 totalSteps={5}
                 onBack={handleBack}
-                onNext={isAddingNewAccount ? handleSaveNewAccount : handleNext}
+                onNext={isAddingNewAccount ? (currentStep === 4 ? handleSaveDomiciliaryAccount : handleSaveNewAccount) : handleNext}
                 isNextDisabled={isNextDisabled}
                 nextLabel={isAddingNewAccount ? "Save" : (currentStep === 4 ? "Initiate Transaction Request" : "Continue")}
             >
@@ -595,12 +634,9 @@ export default function CreateTouristScreen() {
                 )}
 
                 {currentStep === 4 && isAddingNewAccount && (
-                    <AddNewAccountStep
+                    <AddDomiciliaryAccountStep
                         control={control}
                         setValue={setValue}
-                        banks={banks}
-                        isResolving={resolveAccount.isPending}
-                        selectedBankCode={watchedFields.customerBankCode}
                     />
                 )}
 
@@ -611,6 +647,8 @@ export default function CreateTouristScreen() {
                         setSelectedSavedAccountId={setSelectedSavedAccountId}
                         setValue={setValue}
                         setIsAddingNewAccount={setIsAddingNewAccount}
+                        isDomiciliary={true}
+                        domiciliaryAccount={domiciliaryAccount}
                     />
                 )}
 

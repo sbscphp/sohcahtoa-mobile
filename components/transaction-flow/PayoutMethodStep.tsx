@@ -61,8 +61,7 @@ export default function PayoutMethodStep({
     const isElectronic = payoutMethod?.includes('Electronic');
 
     const isDomiciliary = payoutMethod === 'Electronic Transfer (100%)' || 
-                           payoutMethod === 'Cash (25%) + Electronic Transfer (75%)' ||
-                           (isSellFx && payoutMethod === 'Electronic Transfer');
+                           payoutMethod === 'Cash (25%) + Electronic Transfer (75%)';
 
     const isDomiciliaryFieldShown = isDomiciliary || isExpatriate;
 

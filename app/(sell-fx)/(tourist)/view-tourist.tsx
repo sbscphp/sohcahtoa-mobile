@@ -158,6 +158,9 @@ export default function ViewTouristScreen() {
         if (details.bankName) items.push({ label: 'Bank Name', value: details.bankName });
         if (details.accountName) items.push({ label: 'Account Name', value: details.accountName });
         if (details.accountNumber) items.push({ label: 'Account Number', value: details.accountNumber });
+        if ('swiftCode' in details && details.swiftCode) items.push({ label: 'SWIFT Code', value: details.swiftCode });
+        if ('routingNumber' in details && details.routingNumber) items.push({ label: 'Routing Number', value: details.routingNumber });
+        if ('bankAddress' in details && details.bankAddress) items.push({ label: 'Bank Address', value: details.bankAddress });
         return items.length > 0 ? items : undefined;
     }, [tx]);
 

@@ -65,6 +65,9 @@ export interface CreateTransactionPayload {
         bankCode?: string;
         accountNumber?: string;
         accountName?: string;
+        swiftCode?: string;
+        routingNumber?: string;
+        bankAddress?: string;
     };
 }
 
@@ -211,6 +214,9 @@ export interface Transaction {
         bankName?: string;
         bankCode?: string;
         iban?: string;
+        swiftCode?: string;
+        routingNumber?: string;
+        bankAddress?: string;
     };
     documents: TransactionDocument[];
     cashPickup: TransactionCashPickup | null;
@@ -409,6 +415,9 @@ export interface GetTransactionByIdResponse {
             bankName?: string;
             bankCode?: string;
             iban?: string;
+            swiftCode?: string;
+            routingNumber?: string;
+            bankAddress?: string;
         };
         cashPickup?: any;
         prepaidCard?: any;

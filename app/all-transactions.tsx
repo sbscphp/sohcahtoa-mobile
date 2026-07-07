@@ -107,7 +107,7 @@ export default function AllTransactionsScreen() {
                     </View>
                     <View style={styles.itemContent}>
                         <View style={styles.itemTopRow}>
-                            <Text style={styles.itemTitle} numberOfLines={1}>{item.purpose || item.type}</Text>
+                            <Text style={styles.itemTitle} numberOfLines={2}>{item.purpose || item.type}</Text>
                             <Text style={styles.itemAmount}>{formatAmount(item.foreignAmount, item.currency)}</Text>
                         </View>
                         <View style={styles.itemBottomRow}>
@@ -254,14 +254,14 @@ const styles = ScaledSheet.create({
         alignItems: 'center',
     },
     itemTitle: {
-        fontSize: '14@ms',
+        fontSize: '13@ms',
         fontWeight: '500',
         color: '#1E293B',
         flex: 1,
         marginRight: '8@s',
     },
     itemAmount: {
-        fontSize: '14@ms',
+        fontSize: '13@ms',
         fontWeight: '600',
         color: '#0F172A',
     },
@@ -275,7 +275,7 @@ const styles = ScaledSheet.create({
         borderRadius: '12@ms',
     },
     statusText: {
-        fontSize: '11@ms',
+        fontSize: '10.5@ms',
         fontWeight: '500',
     },
     emptyContainer: {
