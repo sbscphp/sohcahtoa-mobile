@@ -7,9 +7,11 @@ import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import LocationStep from '@/components/transaction-flow/LocationStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
+import RefundBankDetailsStep from '@/components/transaction-flow/RefundBankDetailsStep';
 import { useProfileQuery } from '@/hooks/queries/auth/useProfileQuery';
 import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
 import { useGetTransactionsQuery } from '@/hooks/queries/transactions/useGetTransactionsQuery';
+import { useAttachBankAccountsMutation } from '@/hooks/queries/transactions/useAttachBankAccountsMutation';
 import { formatDateToPickerFormat } from '@/utils/helpers';
 import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useExchangeLogic } from '@/hooks/useExchangeLogic';
@@ -56,6 +58,12 @@ const residentFormSchema = z.object({
     customerBankCode: z.string().optional().or(z.literal('')),
     customerAccountNumber: z.string().optional().or(z.literal('')),
     customerAccountName: z.string().optional().or(z.literal('')),
+    domiciliaryAccountNumber: z.string().optional().or(z.literal('')),
+    domiciliaryBankName: z.string().optional().or(z.literal('')),
+    domiciliaryAccountName: z.string().optional().or(z.literal('')),
+    domiciliarySwiftCode: z.string().optional().or(z.literal('')),
+    domiciliaryRoutingNumber: z.string().optional().or(z.literal('')),
+    domiciliaryBankAddress: z.string().optional().or(z.literal('')),
     selectedState: z.any().optional(),
     selectedCity: z.any().optional(),
     selectedLocation: z.any().optional(),
@@ -93,17 +101,14 @@ const residentFormSchema = z.object({
     const isElectronicTransfer = data.payoutMethod?.includes('Electronic') || data.payoutMethod === 'Electronic Transfer';
 
     if (isElectronicTransfer) {
-        if (!data.customerBankName) {
-            ctx.addIssue({ code: "custom", message: 'Please select your bank', path: ['customerBankName'] });
+        if (!data.domiciliaryAccountNumber || data.domiciliaryAccountNumber.length !== 10) {
+            ctx.addIssue({ code: "custom", message: 'Domiciliary account number must be 10 digits', path: ['domiciliaryAccountNumber'] });
         }
-        if (!data.customerBankCode) {
-            ctx.addIssue({ code: "custom", message: 'Please select your bank', path: ['customerBankCode'] });
+        if (!data.domiciliaryBankName) {
+            ctx.addIssue({ code: "custom", message: 'Please enter domiciliary bank name', path: ['domiciliaryBankName'] });
         }
-        if (!data.customerAccountNumber || data.customerAccountNumber.length !== 10) {
-            ctx.addIssue({ code: "custom", message: 'Account number must be 10 digits', path: ['customerAccountNumber'] });
-        }
-        if (!data.customerAccountName) {
-            ctx.addIssue({ code: "custom", message: 'Account name must be resolved', path: ['customerAccountName'] });
+        if (!data.domiciliaryAccountName) {
+            ctx.addIssue({ code: "custom", message: 'Please enter domiciliary account name', path: ['domiciliaryAccountName'] });
         }
     }
 
@@ -121,14 +126,44 @@ type ResidentFormValues = z.infer<typeof residentFormSchema>;
 export default function CreateResidentScreen() {
     const router = useRouter();
     const createTransaction = useCreateTransactionMutation();
+    const attachBankAccountsMutation = useAttachBankAccountsMutation();
     useProfileQuery();
     const user = useAuthStore(s => s.user);
+    const isBvnDisabled = !!user?.kyc?.bvn;
+    const isNinDisabled = !!user?.kyc?.nin;
 
     // Dynamic Locations
     const { data: states = [] } = useGetPickupStatesQuery();
     const { data: allLocations = [] } = useGetPickupPointsQuery();
 
     const [currentStep, setCurrentStep] = useState(0);
+    const dynamicResolver = React.useCallback((data: any, context: any, options: any) => {
+        const dynamicSchema = residentFormSchema.superRefine((data, ctx) => {
+            const hasPrefilledNin = !!user?.kyc?.nin;
+            if (!hasPrefilledNin) {
+                if (!data.nin || data.nin.trim() === '') {
+                    ctx.addIssue({
+                        code: "custom",
+                        message: 'NIN is required',
+                        path: ['nin']
+                    });
+                } else if (data.nin.length !== 11) {
+                    ctx.addIssue({
+                        code: "custom",
+                        message: 'NIN must be exactly 11 digits',
+                        path: ['nin']
+                    });
+                } else if (!/^\d+$/.test(data.nin)) {
+                    ctx.addIssue({
+                        code: "custom",
+                        message: 'NIN must contain only digits',
+                        path: ['nin']
+                    });
+                }
+            }
+        });
+        return zodResolver(dynamicSchema)(data, context, options);
+    }, [user?.kyc?.nin]);
 
     const {
         control,
@@ -138,7 +173,7 @@ export default function CreateResidentScreen() {
         setValue,
         formState: { errors }
     } = useForm<ResidentFormValues>({
-        resolver: zodResolver(residentFormSchema),
+        resolver: dynamicResolver,
         defaultValues: {
             bvn: user?.kyc?.bvn || '',
             nin: user?.kyc?.nin || '',
@@ -152,6 +187,12 @@ export default function CreateResidentScreen() {
             customerBankCode: '',
             customerAccountNumber: '',
             customerAccountName: '',
+            domiciliaryAccountNumber: '',
+            domiciliaryBankName: '',
+            domiciliaryAccountName: '',
+            domiciliarySwiftCode: '',
+            domiciliaryRoutingNumber: '',
+            domiciliaryBankAddress: '',
             selectedState: undefined as unknown as LocationItem,
             selectedCity: undefined as unknown as LocationItem,
             selectedLocation: undefined as unknown as LocationItem,
@@ -163,6 +204,9 @@ export default function CreateResidentScreen() {
 
     const watchedFields = watch() as any;
     const isElectronicTransfer = watchedFields.payoutMethod?.includes('Electronic') || watchedFields.payoutMethod === 'Electronic Transfer';
+    const needsLocationStep = !isElectronicTransfer;
+    const refundStepIndex = needsLocationStep ? 5 : 4;
+    const totalSteps = needsLocationStep ? 6 : 5;
 
     useEffect(() => {
         if (user?.kyc?.nin) {
@@ -333,9 +377,9 @@ export default function CreateResidentScreen() {
                     name="bvn"
                     label={watchedFields.tinNumber ? "Bank Verification Number (BVN) (Optional)" : "Bank Verification Number (BVN)"}
                     placeholder="Enter BVN"
-                    required={!watchedFields.tinNumber}
+                    required={!watchedFields.tinNumber && !isBvnDisabled}
                     keyboardType="numeric"
-                    disabled
+                    disabled={isBvnDisabled}
                 />
             )
         },
@@ -346,8 +390,9 @@ export default function CreateResidentScreen() {
                     name="nin"
                     label="National Identification Number (NIN)"
                     placeholder="Enter NIN"
+                    required={!isNinDisabled}
                     keyboardType="numeric"
-                    disabled
+                    disabled={isNinDisabled}
                 />
             )
         },
@@ -468,15 +513,20 @@ export default function CreateResidentScreen() {
 
             const fieldsToTrigger: any[] = ['payoutMethod'];
             if (isElectronicTransfer) {
-                fieldsToTrigger.push('customerBankName', 'customerBankCode', 'customerAccountNumber', 'customerAccountName');
+                fieldsToTrigger.push('domiciliaryAccountNumber', 'domiciliaryBankName', 'domiciliaryAccountName', 'domiciliarySwiftCode', 'domiciliaryRoutingNumber', 'domiciliaryBankAddress');
             }
             isStepValid = await trigger(fieldsToTrigger);
-        } else if (currentStep === 4) {
+        } else if (currentStep === 4 && needsLocationStep) {
             isStepValid = await trigger(['selectedState', 'selectedCity', 'selectedLocation', 'pickupDate', 'pickupTime']);
+        } else if (currentStep === refundStepIndex) {
+            isStepValid = !!selectedSavedAccountId;
+            if (!isStepValid) {
+                showToast('Please select or add a bank account for refunds', 'error');
+            }
         }
 
         if (isStepValid) {
-            if (currentStep < (isElectronicTransfer ? 3 : 4)) {
+            if (currentStep < refundStepIndex) {
                 setCurrentStep(currentStep + 1);
             } else {
                 setInitiateSheetVisible(true);
@@ -526,7 +576,15 @@ export default function CreateResidentScreen() {
                 ...proofOfFunds.map(p => p.metadata),
             ],
             payoutMethod: data.payoutMethod,
-            beneficiaryDetails: {
+            domiciliaryDetails: isElectronicTransfer ? {
+                bankName: data.domiciliaryBankName,
+                accountNumber: data.domiciliaryAccountNumber,
+                accountName: data.domiciliaryAccountName,
+                swiftCode: data.domiciliarySwiftCode,
+                routingNumber: data.domiciliaryRoutingNumber,
+                bankAddress: data.domiciliaryBankAddress,
+            } : undefined,
+            refundBankDetails: {
                 bankName: data.customerBankName,
                 bankCode: data.customerBankCode,
                 accountNumber: data.customerAccountNumber,
@@ -550,12 +608,17 @@ export default function CreateResidentScreen() {
         createTransaction.mutate(payload, {
             onSuccess: (response: any) => {
                 if (response.success) {
+                    const transactionId = response.data?.transactionId;
+                    if (selectedSavedAccountId && transactionId) {
+                        attachBankAccountsMutation.mutate({
+                            transactionId,
+                            bankAccountIds: [selectedSavedAccountId],
+                        });
+                    }
                     setInitiateSheetVisible(false);
                     router.push({
                         pathname: '/(sell-fx)/(resident)/success',
-                        params: {
-                            transactionId: response.data.transactionId,
-                        },
+                        params: { transactionId }
                     });
                 }
             },
@@ -563,31 +626,34 @@ export default function CreateResidentScreen() {
     };
 
     const isStep0Valid = !!watchedFields.passportDocumentNumber;
-    const isStep1Valid = !!(docs.passport.meta && docs.utility.meta &&
-        watchedFields.passportIssueDate && watchedFields.passportExpiryDate);
+    const isStep1Valid = !!(docs.passport.meta && docs.utility.meta);
     const foreignAmountStr = currencyGet.code !== 'NGN' ? amountGet : amountSend;
     const foreignAmount = parseFloat(foreignAmountStr.replace(/,/g, '')) || 0;
     const hasProofOfFunds = proofOfFunds.length > 0;
-    const isStep2Valid = watchedFields.amount > 0 && (foreignAmount < 10000 || (hasProofOfFunds && isDeclarationCompleted));
-    const isStep3Valid = watchedFields.payoutMethod && (!isElectronicTransfer || (watchedFields.customerBankName && watchedFields.customerBankCode && watchedFields.customerAccountNumber && watchedFields.customerAccountName));
-
+    const isStep2Valid = watchedFields.amount > 0 && (foreignAmount <= 10000 || (hasProofOfFunds && isDeclarationCompleted));
+    const isStep3Valid = watchedFields.payoutMethod && (!isElectronicTransfer || (watchedFields.domiciliaryAccountNumber && watchedFields.domiciliaryBankName && watchedFields.domiciliaryAccountName));
+    const isStep4Valid = !needsLocationStep || !!(watchedFields.selectedState && watchedFields.selectedCity && watchedFields.selectedLocation && watchedFields.pickupDate && watchedFields.pickupTime);
+    const isRefundStepValid = !!selectedSavedAccountId;
+ 
     const isNextDisabled =
         (currentStep === 0 && !isStep0Valid) ||
         (currentStep === 1 && !isStep1Valid) ||
         (currentStep === 2 && !isStep2Valid) ||
-        (currentStep === 3 && !isStep3Valid);
+        (currentStep === 3 && !isStep3Valid) ||
+        (currentStep === 4 && needsLocationStep && !isStep4Valid) ||
+        (currentStep === refundStepIndex && !isRefundStepValid);
 
     return (
         <View style={{ flex: 1 }}>
-            <LoadingBackdrop visible={isUploading || createTransaction.isPending || saveAccountMutation.isPending} />
+            <LoadingBackdrop visible={isUploading || createTransaction.isPending || saveAccountMutation.isPending || attachBankAccountsMutation.isPending} />
             <TransactionLayout
                 title="Resident"
                 currentStep={currentStep}
-                totalSteps={4}
+                totalSteps={totalSteps}
                 onBack={handleBack}
                 onNext={isAddingNewAccount ? handleSaveNewAccount : handleNext}
                 isNextDisabled={isNextDisabled}
-                nextLabel={isAddingNewAccount ? "Save" : (currentStep === 3 ? "Initiate Transaction Request" : "Continue")}
+                nextLabel={isAddingNewAccount ? "Save" : (currentStep === refundStepIndex ? "Initiate Transaction Request" : "Continue")}
             >
                 {currentStep === 0 && (
                     <CredentialStep fields={credentialFields} title="Enter BVN, NIN & Passport Number" />
@@ -607,7 +673,7 @@ export default function CreateResidentScreen() {
                         onCurrencySendChange={setCurrencySend}
                         amountGet={amountGet}
                         amountSend={amountSend}
-                        rate={`1 ${currencySend.code} = ${currentRate.toLocaleString()} ${currencyGet.code}`}
+                        rate={`1 ${currencyGet.code} = ${currentRate.toLocaleString()} ${currencySend.code}`}
                         onAmountGetChange={setAmountGet}
                         onAmountSendChange={setAmountSend}
                         allowedModes={['sell']}
@@ -627,10 +693,11 @@ export default function CreateResidentScreen() {
                         selectedSavedAccountId={selectedSavedAccountId}
                         setSelectedSavedAccountId={setSelectedSavedAccountId}
                         setIsAddingNewAccount={setIsAddingNewAccount}
+                        isSellFx={true}
                     />
                 )}
 
-                {currentStep === 3 && isAddingNewAccount && (
+                {((currentStep === 3 || currentStep === refundStepIndex) && isAddingNewAccount) && (
                     <AddNewAccountStep
                         control={control}
                         setValue={setValue}
@@ -640,7 +707,47 @@ export default function CreateResidentScreen() {
                     />
                 )}
 
+                {currentStep === 4 && needsLocationStep && (
+                    <LocationStep
+                        states={states}
+                        cities={filteredCities}
+                        locations={filteredLocations}
+                        selectedState={watchedFields.selectedState}
+                        onSelectState={(item) => {
+                            setValue('selectedState', item);
+                            setValue('selectedCity', undefined as unknown as LocationItem);
+                            setValue('selectedLocation', undefined as unknown as LocationItem);
+                        }}
+                        selectedCity={watchedFields.selectedCity}
+                        onSelectCity={(item) => {
+                            setValue('selectedCity', item);
+                            setValue('selectedLocation', undefined as unknown as LocationItem);
+                        }}
+                        selectedLocation={watchedFields.selectedLocation}
+                        onSelectLocation={(item) => setValue('selectedLocation', item)}
+                        pickupDate={watchedFields.pickupDate}
+                        onPickupDateChange={(v: string) => setValue('pickupDate', v)}
+                        pickupTime={watchedFields.pickupTime}
+                        onPickupTimeChange={(v: string) => setValue('pickupTime', v)}
+                        errors={{
+                            state: errors.selectedState?.message as string | undefined,
+                            city: errors.selectedCity?.message as string | undefined,
+                            location: errors.selectedLocation?.message as string | undefined,
+                            pickupDate: errors.pickupDate?.message as string | undefined,
+                            pickupTime: errors.pickupTime?.message as string | undefined
+                        }}
+                    />
+                )}
 
+                {currentStep === refundStepIndex && !isAddingNewAccount && (
+                    <RefundBankDetailsStep
+                        savedAccounts={savedAccounts}
+                        selectedSavedAccountId={selectedSavedAccountId}
+                        setSelectedSavedAccountId={setSelectedSavedAccountId}
+                        setValue={setValue}
+                        setIsAddingNewAccount={setIsAddingNewAccount}
+                    />
+                )}
 
                 <InitiateTransactionSheet
                     visible={initiateSheetVisible}
@@ -651,7 +758,7 @@ export default function CreateResidentScreen() {
                     items={[
                         {
                             title: "Request Summary",
-                            description: `You are selling ${currencySend.code === 'USD' ? '$' : currencySend.code === 'GBP' ? '£' : currencySend.code === 'EUR' ? '€' : ''}${amountSend}. You will be sent approximately N${amountGet}`,
+                            description: `You are selling ${currencyGet.code === 'USD' ? '$' : currencyGet.code === 'GBP' ? '£' : currencyGet.code === 'EUR' ? '€' : ''}${amountGet}. You will be sent approximately ₦${amountSend}`,
                             iconType: 'info'
                         }
                     ]}

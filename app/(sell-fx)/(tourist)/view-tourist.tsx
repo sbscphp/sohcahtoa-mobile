@@ -6,10 +6,10 @@ import TransactionViewLayout from '@/components/transaction-flow/TransactionView
 import { useGetTransactionByIdQuery } from '@/hooks/queries/transactions/useGetTransactionByIdQuery';
 import { useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useToastStore } from '@/stores/useToastStore';
-import { commonDocTypeLabels, getTransactionDocuments, formatDate, formatTime, formatTimeWithSeconds, formatCurrency } from '@/utils/helpers';
-import { useLocalSearchParams, useRouter, useFocusEffect, useNavigation } from 'expo-router';
-import React, { useMemo, useState, useCallback, useEffect } from 'react';
-import { ActivityIndicator, View, BackHandler } from 'react-native';
+import { commonDocTypeLabels, formatCurrency, formatDate, formatTime, formatTimeWithSeconds, getTransactionDocuments } from '@/utils/helpers';
+import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, BackHandler, View } from 'react-native';
 
 export default function ViewTouristScreen() {
     const router = useRouter();
@@ -42,7 +42,7 @@ export default function ViewTouristScreen() {
 
     const { upload: uploadFile, isPending: isUploading } = useDocumentUpload({
         transactionId: transactionId || undefined,
-        onSuccess: () => {},
+        onSuccess: () => { },
         onError: () => showToast('Failed to upload document. Please try again.', 'error'),
     });
 
@@ -74,30 +74,18 @@ export default function ViewTouristScreen() {
             { label: 'Amount (₦)', value: formatCurrency(tx.nairaEquivalent) },
             { label: 'Equivalent Amount (FX)', value: formatCurrency(tx.foreignAmount, tx.currency === 'USD' ? '$' : tx.currency === 'GBP' ? '£' : tx.currency === 'EUR' ? '€' : tx.currency) },
             { label: 'Date Initiated', value: `${formatDate(tx.createdAt)}\n${formatTimeWithSeconds(tx.createdAt)}` },
-            ...(tx.personalInfo?.passportDocumentNumber || (tx as any).passportDocumentNumber ? [{
-                label: 'Passport Number',
-                value: tx.personalInfo?.passportDocumentNumber || (tx as any).passportDocumentNumber
-            }] : []),
-            ...(tx.personalInfo?.passportIssueDate || (tx as any).passportIssueDate ? [{
-                label: 'Passport Issue Date',
-                value: formatDate(tx.personalInfo?.passportIssueDate || (tx as any).passportIssueDate)
-            }] : []),
-            ...(tx.personalInfo?.passportExpiryDate || (tx as any).passportExpiryDate ? [{
-                label: 'Passport Expiry Date',
-                value: formatDate(tx.personalInfo?.passportExpiryDate || (tx as any).passportExpiryDate)
-            }] : []),
-            ...(tx.personalInfo?.nigerianAddress || (tx as any).nigerianAddress ? [{
+            ...((tx.personalInfo as any)?.nigerianAddress || (tx as any).nigerianAddress ? [{
                 label: 'Temporary Nigerian Address',
-                value: tx.personalInfo?.nigerianAddress || (tx as any).nigerianAddress
+                value: (tx.personalInfo as any)?.nigerianAddress || (tx as any).nigerianAddress
             }] : []),
-            ...(tx.payoutMethod ? [{
+            ...((tx as any).payoutMethod ? [{
                 label: 'Payout Method',
-                value: tx.payoutMethod
+                value: (tx as any).payoutMethod
             }] : []),
             ...(tx.cashPickup ? [
                 {
-                    label: 'Pickup Cash Amount',
-                    value: formatCurrency(tx.cashPickup.amount, (tx.cashPickup.currency || tx.currency) === 'USD' ? '$' : (tx.cashPickup.currency || tx.currency) === 'GBP' ? '£' : (tx.cashPickup.currency || tx.currency) === 'EUR' ? '€' : (tx.cashPickup.currency || tx.currency)) || 'N/A',
+                    label: 'Pickup Cash Amount (25%)',
+                    value: formatCurrency(tx.cashPickup.amount * 0.25, (tx.cashPickup.currency || tx.currency) === 'USD' ? '$' : (tx.cashPickup.currency || tx.currency) === 'GBP' ? '£' : (tx.cashPickup.currency || tx.currency) === 'EUR' ? '€' : (tx.cashPickup.currency || tx.currency)) || 'N/A',
                 },
                 {
                     label: 'Pickup Status',
@@ -163,6 +151,16 @@ export default function ViewTouristScreen() {
                 : undefined,
         }));
     }, [tx, uploadFile]);
+    const bankAccountsItems = useMemo(() => {
+        const details = tx?.refundBankDetails || tx?.beneficiaryDetails;
+        if (!tx || !details) return undefined;
+        const items: any[] = [];
+        if (details.bankName) items.push({ label: 'Bank Name', value: details.bankName });
+        if (details.accountName) items.push({ label: 'Account Name', value: details.accountName });
+        if (details.accountNumber) items.push({ label: 'Account Number', value: details.accountNumber });
+        return items.length > 0 ? items : undefined;
+    }, [tx]);
+
     const getMessage = () => {
         if (!tx) return '';
         if (status === 'approved' || status === 'awaiting_disbursement' || status === 'settled') return "Congratulations! Your application has been approved. Kindly proceed to make payment.";
@@ -173,27 +171,28 @@ export default function ViewTouristScreen() {
 
     return (
         <>
-        <LoadingBackdrop visible={isUploading} />
-        <TransactionViewLayout
-            title="Transaction"
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-            tabs={[{ key: 'overview', label: 'Overview' }, { key: 'details', label: 'Transaction Details' }, { key: 'docs', label: 'Documentation' }]}
-            onBack={handleBack}
-            showActionButton={status !== 'pending' && status !== 'rejected' && status !== 'settled'}
-            actionButtonTitle={status === 'approved' || status === 'awaiting_disbursement' ? "Proceed to Payment" : "Resubmit Transaction Request"}
-            onActionPress={handleProceed}
-        >
-            {activeTab === 'overview' && (<TransactionStatusView status={status} id={tx?.referenceNumber?.slice(-6) || ''} date={tx ? formatDate(tx.createdAt) : ''} time={tx ? formatTime(tx.createdAt) : ''} message={getMessage()} comments={tx?.comments} />)}
-            {activeTab === 'details' && (
-                <TransactionDetailsView
-                    details={detailsItems}
-                    documents={detailsDocuments}
-                    currentStep={tx?.currentStep}
-                />
-            )}
-            {activeTab === 'docs' && (<TransactionDocsView status={status} documents={docsItems} />)}
-        </TransactionViewLayout>
+            <LoadingBackdrop visible={isUploading} />
+            <TransactionViewLayout
+                title="Transaction"
+                activeTab={activeTab}
+                onTabChange={setActiveTab}
+                tabs={[{ key: 'overview', label: 'Overview' }, { key: 'details', label: 'Transaction Details' }, { key: 'docs', label: 'Documentation' }]}
+                onBack={handleBack}
+                showActionButton={status !== 'pending' && status !== 'rejected' && status !== 'settled'}
+                actionButtonTitle={status === 'approved' || status === 'awaiting_disbursement' ? "Proceed to Payment" : "Resubmit Transaction Request"}
+                onActionPress={handleProceed}
+            >
+                {activeTab === 'overview' && (<TransactionStatusView status={status} id={tx?.referenceNumber?.slice(-6) || ''} date={tx ? formatDate(tx.createdAt) : ''} time={tx ? formatTime(tx.createdAt) : ''} message={getMessage()} comments={tx?.comments} />)}
+                {activeTab === 'details' && (
+                    <TransactionDetailsView
+                        details={detailsItems}
+                        documents={detailsDocuments}
+                        bankAccountsDetails={bankAccountsItems}
+                        currentStep={tx?.currentStep}
+                    />
+                )}
+                {activeTab === 'docs' && (<TransactionDocsView status={status} documents={docsItems} />)}
+            </TransactionViewLayout>
         </>
     );
 }

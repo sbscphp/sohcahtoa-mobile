@@ -1,11 +1,11 @@
 import { z } from 'zod';
-import { locationStepSchema } from './shared';
+import { locationStepSchema, passportDocumentNumberField } from './shared';
 
 /** Step 0: Expatriate credentials */
 export const expatriateStep0Schema = z.object({
     bvn: z.string().optional(),
     nin: z.string().optional().or(z.literal('')),
-    passportDocumentNumber: z.string().min(1, 'Please enter a valid International Passport Number'),
+    passportDocumentNumber: passportDocumentNumberField,
 });
 
 /** Step 1: Expatriate documents */

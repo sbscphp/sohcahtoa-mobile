@@ -6,10 +6,10 @@ import TransactionViewLayout from '@/components/transaction-flow/TransactionView
 import { useGetTransactionByIdQuery } from '@/hooks/queries/transactions/useGetTransactionByIdQuery';
 import { useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useToastStore } from '@/stores/useToastStore';
-import { commonDocTypeLabels, getTransactionDocuments, formatDate, formatTime, formatTimeWithSeconds, formatCurrency } from '@/utils/helpers';
-import { useLocalSearchParams, useRouter, useFocusEffect, useNavigation } from 'expo-router';
-import React, { useMemo, useState, useCallback, useEffect } from 'react';
-import { ActivityIndicator, View, BackHandler } from 'react-native';
+import { commonDocTypeLabels, formatCurrency, formatDate, formatTime, formatTimeWithSeconds, getTransactionDocuments } from '@/utils/helpers';
+import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, BackHandler, View } from 'react-native';
 
 export default function ViewMedicalPaymentScreen() {
     const router = useRouter();
@@ -34,6 +34,8 @@ export default function ViewMedicalPaymentScreen() {
     const tx = txResponse?.data;
     const showToast = useToastStore(s => s.showToast);
 
+    // console.log("Transaction", JSON.stringify(tx, null, 2))
+
     useFocusEffect(
         useCallback(() => {
             refetch();
@@ -42,7 +44,7 @@ export default function ViewMedicalPaymentScreen() {
 
     const { upload: uploadFile, isPending: isUploading } = useDocumentUpload({
         transactionId: transactionId || undefined,
-        onSuccess: () => {},
+        onSuccess: () => { },
         onError: () => showToast('Failed to upload document. Please try again.', 'error'),
     });
 
@@ -114,29 +116,74 @@ export default function ViewMedicalPaymentScreen() {
         }));
         return [...docs, ...uploadedDocs];
     }, [tx]);
-    
+
+    const getVal = (primaryVal: any, ...keys: string[]): any => {
+        if (primaryVal !== undefined && primaryVal !== null && primaryVal !== '') {
+            return primaryVal;
+        }
+        if (tx?.steps && Array.isArray(tx.steps)) {
+            for (const step of tx.steps) {
+                if (step.data && typeof step.data === 'object') {
+                    for (const key of keys) {
+                        const keyParts = key.split('.');
+                        let current = step.data;
+                        for (const k of keyParts) {
+                            if (current && typeof current === 'object') {
+                                current = current[k];
+                            } else {
+                                current = undefined;
+                                break;
+                            }
+                        }
+                        if (current !== undefined && current !== null && current !== '') {
+                            return current;
+                        }
+                    }
+                }
+            }
+        }
+        return undefined;
+    };
+
     const beneficiaryItems = useMemo(() => {
-        const details = (tx?.beneficiaryDetails || tx?.paymentDetails) as any;
-        if (!tx || !details) return undefined;
+        if (!tx) return undefined;
+
+        const bankAccountName = getVal((tx.beneficiaryDetails as any)?.bankAccountName, 'bankAccountName', 'beneficiaryDetails.bankAccountName');
+        const beneficiaryAddress = getVal((tx.beneficiaryDetails as any)?.address || (tx.beneficiaryDetails as any)?.beneficiaryAddress, 'address', 'beneficiaryDetails.address', 'beneficiaryAddress', 'beneficiaryDetails.beneficiaryAddress');
+        const country = getVal((tx.beneficiaryDetails as any)?.country || (tx.beneficiaryDetails as any)?.beneficiaryCountry, 'country', 'beneficiaryDetails.country', 'beneficiaryCountry', 'beneficiaryDetails.beneficiaryCountry');
+        const bankName = getVal((tx.beneficiaryDetails as any)?.bankName, 'bankName', 'beneficiaryDetails.bankName');
+        const bankAccountNumber = getVal((tx.beneficiaryDetails as any)?.bankAccountNumber || (tx.beneficiaryDetails as any)?.accountNumber, 'bankAccountNumber', 'beneficiaryDetails.bankAccountNumber', 'accountNumber', 'beneficiaryDetails.accountNumber');
+        const bankAccountAddress = getVal((tx.beneficiaryDetails as any)?.bankAccountAddress || (tx.beneficiaryDetails as any)?.bankAddress, 'bankAccountAddress', 'beneficiaryDetails.bankAccountAddress', 'bankAddress', 'beneficiaryDetails.bankAddress');
+        const bankAccountSwiftCode = getVal((tx.beneficiaryDetails as any)?.bankAccountSwiftCode || (tx.beneficiaryDetails as any)?.swiftCode, 'bankAccountSwiftCode', 'beneficiaryDetails.bankAccountSwiftCode', 'swiftCode', 'beneficiaryDetails.swiftCode');
+        const paymentReference = getVal((tx.beneficiaryDetails as any)?.paymentReference, 'paymentReference', 'beneficiaryDetails.paymentReference');
+        const bankAccountIban = getVal((tx.beneficiaryDetails as any)?.bankAccountIban || (tx.beneficiaryDetails as any)?.iban, 'bankAccountIban', 'beneficiaryDetails.bankAccountIban', 'iban', 'beneficiaryDetails.iban');
+        const routingNumber = getVal((tx.beneficiaryDetails as any)?.routingNumber, 'routingNumber', 'beneficiaryDetails.routingNumber');
+        const ifscCode = getVal((tx.beneficiaryDetails as any)?.ifscCode, 'ifscCode', 'beneficiaryDetails.ifscCode');
+        const purposeCode = getVal((tx.beneficiaryDetails as any)?.purposeCode, 'purposeCode', 'beneficiaryDetails.purposeCode');
+        const bsbCode = getVal((tx.beneficiaryDetails as any)?.bsbCode, 'bsbCode', 'beneficiaryDetails.bsbCode');
+
+        const correspondenceBankName = getVal((tx.beneficiaryDetails as any)?.correspondenceBankName, 'correspondenceBankName', 'beneficiaryDetails.correspondenceBankName');
+        const correspondenceBankAddress = getVal((tx.beneficiaryDetails as any)?.correspondenceBankAddress, 'correspondenceBankAddress', 'beneficiaryDetails.correspondenceBankAddress');
+        const correspondenceBankSwiftCode = getVal((tx.beneficiaryDetails as any)?.correspondenceBankSwiftCode, 'correspondenceBankSwiftCode', 'beneficiaryDetails.correspondenceBankSwiftCode');
+
         return [
-            { label: 'Beneficiary Name', value: details.bankAccountName || details.name },
-            ...(details.address ? [{ label: 'Beneficiary Address', value: details.address }] : []),
-            ...(details.country ? [{ label: 'Country', value: details.country }] : []),
-            ...(details.bankName ? [{ label: 'Bank Name', value: details.bankName }] : []),
-            { label: 'Account Number', value: details.bankAccountNumber || details.accountNumber },
-            ...(details.bankAccountAddress || details.bankAddress ? [{ label: 'Bank Address', value: details.bankAccountAddress || details.bankAddress }] : []),
-            ...(details.bankAccountSwiftCode || details.swiftCode ? [{ label: 'SWIFT Code', value: details.bankAccountSwiftCode || details.swiftCode }] : []),
-            ...(details.paymentReference ? [{ label: 'Payment Reference', value: details.paymentReference }] : []),
-            ...(details.bankAccountIban || details.iban ? [{ label: 'IBAN', value: details.bankAccountIban || details.iban }] : []),
-            ...(details.routingNumber ? [{ label: 'Routing Number', value: details.routingNumber }] : []),
-            ...(details.ifscCode ? [{ label: 'IFSC Code', value: details.ifscCode }] : []),
-            ...(details.purposeCode ? [{ label: 'Purpose Code', value: details.purposeCode }] : []),
-            ...(details.bsbCode ? [{ label: 'BSB Code', value: details.bsbCode }] : []),
-            ...(details.correspondenceBankName ? [
-                { label: 'Correspondence Bank Name', value: details.correspondenceBankName },
-                { label: 'Correspondence Bank Address', value: details.correspondenceBankAddress },
-                { label: 'Correspondence Bank Swift Code', value: details.correspondenceBankSwiftCode },
-            ] : []),
+            ...(bankAccountName ? [{ label: 'Beneficiary Name', value: bankAccountName }] : []),
+            ...(beneficiaryAddress ? [{ label: 'Beneficiary Address', value: beneficiaryAddress }] : []),
+            ...(country ? [{ label: 'Country', value: country }] : []),
+            ...(bankName ? [{ label: 'Bank Name', value: bankName }] : []),
+            ...(bankAccountNumber ? [{ label: 'Account Number', value: bankAccountNumber }] : []),
+            ...(bankAccountAddress ? [{ label: 'Bank Address', value: bankAccountAddress }] : []),
+            ...(bankAccountSwiftCode ? [{ label: 'SWIFT Code', value: bankAccountSwiftCode }] : []),
+            ...(paymentReference ? [{ label: 'Payment Reference / ID', value: paymentReference }] : []),
+            ...(bankAccountIban ? [{ label: 'IBAN', value: bankAccountIban }] : []),
+            ...(routingNumber ? [{ label: 'Routing Number', value: routingNumber }] : []),
+            ...(ifscCode ? [{ label: 'IFSC Code', value: ifscCode }] : []),
+            ...(purposeCode ? [{ label: 'Purpose Code', value: purposeCode }] : []),
+            ...(bsbCode ? [{ label: 'BSB Code', value: bsbCode }] : []),
+
+            ...(correspondenceBankName ? [{ label: 'Correspondence Bank Name', value: correspondenceBankName }] : []),
+            ...(correspondenceBankAddress ? [{ label: 'Correspondence Bank Address', value: correspondenceBankAddress }] : []),
+            ...(correspondenceBankSwiftCode ? [{ label: 'Correspondence Bank SWIFT', value: correspondenceBankSwiftCode }] : []),
         ];
     }, [tx]);
 
@@ -151,7 +198,7 @@ export default function ViewMedicalPaymentScreen() {
                 ? () => uploadFile(doc.type, doc.uploaded?.status === 'REQUIRES_MANUAL_REVIEW')
                 : undefined,
         }));
-    }, [tx, uploadFile]);    const paymentDetailsItems = useMemo(() => {
+    }, [tx, uploadFile]); const paymentDetailsItems = useMemo(() => {
         const pdList = tx?.paymentDetails as any;
         if (!tx || !pdList || !Array.isArray(pdList)) return undefined;
         const items: any[] = [];
@@ -194,8 +241,6 @@ export default function ViewMedicalPaymentScreen() {
             if (ba.bankName) items.push({ label: `${prefix}Bank Name`, value: ba.bankName });
             if (ba.accountName) items.push({ label: `${prefix}Account Name`, value: ba.accountName });
             if (ba.accountNumber) items.push({ label: `${prefix}Account Number`, value: ba.accountNumber });
-            items.push({ label: `${prefix}Default`, value: ba.isDefault ? 'Yes' : 'No' });
-            items.push({ label: `${prefix}Verified`, value: ba.isVerified ? 'Yes' : 'No' });
         });
         return items;
     }, [tx]);
@@ -220,51 +265,51 @@ export default function ViewMedicalPaymentScreen() {
 
     return (
         <>
-        <LoadingBackdrop visible={isUploading} />
-        <TransactionViewLayout
-            title="Transaction"
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-            tabs={[
-                { key: 'overview', label: 'Overview' },
-                { key: 'details', label: 'Transaction Details' },
-                { key: 'docs', label: 'Documentation' },
-            ]}
-            onBack={handleBack}
-            showActionButton={status !== 'pending' && status !== 'rejected' && status !== 'settled'}
-            actionButtonTitle={status === 'approved' || status === 'awaiting_disbursement' ? "Proceed to Payment" : "Resubmit Request"}
-            onActionPress={handleProceed}
-        >
-            {activeTab === 'overview' && (
-                <TransactionStatusView
-                    status={status}
-                    id={tx?.referenceNumber?.slice(-6) || ''}
-                    date={tx ? formatDate(tx.createdAt) : ''}
-                    time={tx ? formatTime(tx.createdAt) : ''}
-                    message={getMessage()}
-                    comments={tx?.comments}
-                />
-            )}
+            <LoadingBackdrop visible={isUploading} />
+            <TransactionViewLayout
+                title="Transaction"
+                activeTab={activeTab}
+                onTabChange={setActiveTab}
+                tabs={[
+                    { key: 'overview', label: 'Overview' },
+                    { key: 'details', label: 'Transaction Details' },
+                    { key: 'docs', label: 'Documentation' },
+                ]}
+                onBack={handleBack}
+                showActionButton={status !== 'pending' && status !== 'rejected' && status !== 'settled'}
+                actionButtonTitle={status === 'approved' || status === 'awaiting_disbursement' ? "Proceed to Payment" : "Resubmit Request"}
+                onActionPress={handleProceed}
+            >
+                {activeTab === 'overview' && (
+                    <TransactionStatusView
+                        status={status}
+                        id={tx?.referenceNumber?.slice(-6) || ''}
+                        date={tx ? formatDate(tx.createdAt) : ''}
+                        time={tx ? formatTime(tx.createdAt) : ''}
+                        message={getMessage()}
+                        comments={tx?.comments}
+                    />
+                )}
 
-            {activeTab === 'details' && (
-                <TransactionDetailsView
-                    details={detailsItems}
-                    documents={detailsDocuments}
-                    beneficiaryDetails={beneficiaryItems}
-                    paymentDetails={paymentDetailsItems}
-                    settlementDetails={settlementItems}
-                    bankAccountsDetails={bankAccountsItems}
-                    currentStep={tx?.currentStep}
-                />
-            )}
+                {activeTab === 'details' && (
+                    <TransactionDetailsView
+                        details={detailsItems}
+                        documents={detailsDocuments}
+                        beneficiaryDetails={beneficiaryItems}
+                        paymentDetails={paymentDetailsItems}
+                        settlementDetails={settlementItems}
+                        bankAccountsDetails={bankAccountsItems}
+                        currentStep={tx?.currentStep}
+                    />
+                )}
 
-            {activeTab === 'docs' && (
-                <TransactionDocsView
-                    status={status}
-                    documents={docsItems}
-                />
-            )}
-        </TransactionViewLayout>
+                {activeTab === 'docs' && (
+                    <TransactionDocsView
+                        status={status}
+                        documents={docsItems}
+                    />
+                )}
+            </TransactionViewLayout>
         </>
     );
 }

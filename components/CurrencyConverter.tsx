@@ -66,6 +66,8 @@ export default function CurrencyConverter({
     const [activeCurrencyField, setActiveCurrencyField] = useState<'get' | 'send' | null>(null);
 
     const isBuy = transactionType === 'buy';
+    const defaultLabelGet = isBuy ? 'You get exactly' : 'You send';
+    const defaultLabelSend = isBuy ? 'When you send' : 'What you get';
 
     const handleGetCurrencyPress = () => {
         setActiveCurrencyField('get');
@@ -128,7 +130,7 @@ export default function CurrencyConverter({
 
                 <View style={styles.exchangeCard}>
                     <View style={styles.exchangeRow}>
-                        <Text style={styles.exchangeLabel}>{labelGet || 'You send'}</Text>
+                        <Text style={styles.exchangeLabel}>{labelGet || defaultLabelGet}</Text>
                         <Pressable
                             style={({ pressed }) => [
                                 styles.currencyPill,
@@ -158,7 +160,7 @@ export default function CurrencyConverter({
                             error={error}
                         />
                     </View>
-                    {(showLimitWarning && foreignAmount >= 10000) && (
+                    {(showLimitWarning && foreignAmount > 10000) && (
                         <>
                         <TouchableOpacity
                             style={{ backgroundColor: '#F1F1F1', padding: 1, borderRadius: 10, marginTop: moderateScale(4) }}
@@ -168,16 +170,14 @@ export default function CurrencyConverter({
                                 Amount is higher than $ 10,000. Please <Text style={{ fontSize: moderateScale(12), color: 'rgba(217, 45, 32, 1)', fontWeight: '400', textDecorationLine: 'underline' }}>Upload a proof of fund</Text>
                             </Text>
                         </TouchableOpacity>
-                      {isSchool ? null : <>  <TouchableOpacity>
-                            <Text style={{ fontSize: moderateScale(12), color: 'rgba(217, 45, 32, 1)', fontWeight: '400'}}>
-                                Need help? You can <Text style={{ fontSize: moderateScale(12), color: 'rgba(12, 12, 12, 1)', fontWeight: '400', textDecorationLine: 'underline' }}>Download our Proof of Funds Template </Text> to ensure your documentation meets the necessary requirements.
-                            </Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={onDownloadPress}>
-                            <Text style={{ fontSize: moderateScale(12), color: 'rgba(12, 12, 12, 1)', fontWeight: '400', textDecorationLine: 'underline' }}>View declaration form to upload signature .</Text>
-                        </TouchableOpacity>
-                        </>
-}
+                            <TouchableOpacity>
+                                <Text style={{ fontSize: moderateScale(12), color: 'rgba(217, 45, 32, 1)', fontWeight: '400'}}>
+                                    Need help? You can <Text style={{ fontSize: moderateScale(12), color: 'rgba(12, 12, 12, 1)', fontWeight: '400', textDecorationLine: 'underline' }}>Download our Proof of Funds Template </Text> to ensure your documentation meets the necessary requirements.
+                                </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={onDownloadPress}>
+                                <Text style={{ fontSize: moderateScale(12), color: 'rgba(12, 12, 12, 1)', fontWeight: '400', textDecorationLine: 'underline' }}>View declaration form to upload signature .</Text>
+                            </TouchableOpacity>
                         </>
                     )}
                 </View>
@@ -197,7 +197,7 @@ export default function CurrencyConverter({
 
             <View style={styles.exchangeCard}>
                 <View style={styles.exchangeRow}>
-                    <Text style={[styles.exchangeLabel, { paddingHorizontal: 10 }]}>{labelSend || 'What you get'}</Text>
+                    <Text style={[styles.exchangeLabel, { paddingHorizontal: 10 }]}>{labelSend || defaultLabelSend}</Text>
                     <Pressable
                         style={({ pressed }) => [
                             styles.currencyPill,

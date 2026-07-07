@@ -28,6 +28,7 @@ interface PayoutMethodStepProps {
     selectedSavedAccountIds?: string[];
     setSelectedSavedAccountIds?: (ids: string[]) => void;
     isExpatriate?: boolean;
+    isSellFx?: boolean;
 }
 
 export default function PayoutMethodStep({
@@ -43,6 +44,7 @@ export default function PayoutMethodStep({
     selectedSavedAccountIds,
     setSelectedSavedAccountIds,
     isExpatriate = false,
+    isSellFx = false,
 }: PayoutMethodStepProps) {
     const attachBankAccountsMutation = useAttachBankAccountsMutation();
 
@@ -56,12 +58,11 @@ export default function PayoutMethodStep({
         defaultValue: ''
     });
 
-    const isElectronic = payoutMethod?.includes('Electronic') || payoutMethod === 'Electronic_Transfer';
+    const isElectronic = payoutMethod?.includes('Electronic');
 
     const isDomiciliary = payoutMethod === 'Electronic Transfer (100%)' || 
-                          payoutMethod === 'Cash (25%) + Electronic Transfer (75%)' || 
-                          payoutMethod === 'Electronic_Transfer' ||
-                          payoutMethod === 'Cash_25_Electronic_75';
+                           payoutMethod === 'Cash (25%) + Electronic Transfer (75%)' ||
+                           (isSellFx && payoutMethod === 'Electronic Transfer');
 
     const isDomiciliaryFieldShown = isDomiciliary || isExpatriate;
 
@@ -73,6 +74,11 @@ export default function PayoutMethodStep({
             <Text style={{ fontSize: moderateScale(13), color: '#64748B', marginTop: moderateScale(-8), marginBottom: moderateScale(4) }}>
                 Note that 25% cash payout is subject to a maximum amount of $500
             </Text>
+            {isSellFx && (
+                <Text style={{ fontSize: moderateScale(13), color: '#040404ff', fontWeight: '400', marginBottom: moderateScale(-4) }}>
+                  Note: No cash pickup is allowed
+                </Text>
+            )}
             <TouchableOpacity onPress={() => setPayoutSheetVisible(true)} activeOpacity={0.8}>
                 <View pointerEvents="none">
                     <ControlledInput

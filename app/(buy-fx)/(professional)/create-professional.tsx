@@ -11,6 +11,7 @@ import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import ProfessionalBankDetailsStep from '@/components/transaction-flow/ProfessionalBankDetailsStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
+import RefundBankDetailsStep from '@/components/transaction-flow/RefundBankDetailsStep';
 import { useProfileQuery } from '@/hooks/queries/auth/useProfileQuery';
 import { useGetBanksQuery } from '@/hooks/queries/banks/useGetBanksQuery';
 import { useGetSavedAccountsQuery } from '@/hooks/queries/banks/useGetSavedAccountsQuery';
@@ -33,9 +34,9 @@ import { moderateScale } from 'react-native-size-matters';
 import { z } from 'zod';
 
 const PAYOUT_METHODS: SelectionItem[] = [
-    { id: '1', label: 'Electronic Transfer (100%)', value: 'Electronic_Transfer' },
-    { id: '2', label: 'Card (100%)', value: 'Card' },
-    { id: '3', label: 'Card (75%) + Cash (25%)', value: 'Card_Cash', description: 'Maximum amount to be collected as cash is $500' },
+    { id: '1', label: 'Electronic Transfer (100%)', value: 'Electronic Transfer (100%)' },
+    { id: '2', label: 'Card (100%)', value: 'Card (100%)' },
+    { id: '3', label: 'Card (75%) + Cash (25%)', value: 'Card (75%) + Cash (25%)' },
 ];
 
 const professionalFormSchema = professionalStep0Schema
@@ -61,6 +62,8 @@ export default function ProfessionalScreen() {
     const profileBvn = profile?.bvn;
     const profileNin = profile?.nin;
     const user = useAuthStore(s => s.user);
+    const isBvnDisabled = !!(profileBvn || user?.kyc?.bvn);
+    const isNinDisabled = !!(profileNin || user?.kyc?.nin);
 
     const [currentStep, setCurrentStep] = useState(0);
     const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
@@ -260,8 +263,8 @@ export default function ProfessionalScreen() {
     }, [user, setValue]);
 
     const credentialFields = [
-        { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number(BVN)" placeholder="Enter your BVN" required keyboardType="numeric" maxLength={11} filterType="numeric" disabled /> },
-        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number(NIN)" placeholder="Enter your NIN" keyboardType="numeric" maxLength={11} filterType="numeric" disabled /> },
+        { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number(BVN)" placeholder="Enter your BVN" required={!isBvnDisabled} keyboardType="numeric" maxLength={11} filterType="numeric" disabled={isBvnDisabled} /> },
+        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number(NIN)" placeholder="Enter your NIN" required={!isNinDisabled} keyboardType="numeric" maxLength={11} filterType="numeric" disabled={isNinDisabled} /> },
         { customComponent: <ControlledInput control={control} name="formAId" label="Form A ID" placeholder="Enter Form A ID" required keyboardType="numeric" maxLength={10} filterType="numeric" /> },
         { customComponent: <ControlledInput control={control} name="passportDocumentNumber" label="International Passport Number" placeholder="Enter international passport (Optional)" maxLength={9} filterType="alphanumeric" /> },
         {
@@ -578,95 +581,13 @@ export default function ProfessionalScreen() {
                 )}
 
                 {currentStep === 4 && !isAddingNewAccount && (
-                    <View style={{ gap: moderateScale(14) }}>
-                        <Text style={{ fontSize: moderateScale(18), fontWeight: '700', color: '#0F172A', marginBottom: moderateScale(4) }}>
-                            Refund Bank Details
-                        </Text>
-                        <Text style={{ fontSize: moderateScale(13), color: '#64748B', fontWeight: '500', marginBottom: moderateScale(8) }}>
-                            Select your local Nigerian bank account for refunds if your transaction cannot be processed.
-                        </Text>
-                        
-                        {savedAccounts.map((account) => {
-                            const isSelected = selectedSavedAccountId === account.id;
-                            return (
-                                <TouchableOpacity
-                                    key={account.id}
-                                    activeOpacity={0.9}
-                                    onPress={() => {
-                                        setSelectedSavedAccountId(account.id);
-                                        setValue('customerBankName', account.bankName);
-                                        setValue('customerBankCode', account.bankCode);
-                                        setValue('customerAccountNumber', account.accountNumber);
-                                        setValue('customerAccountName', account.accountName);
-                                    }}
-                                    style={{
-                                        borderWidth: isSelected ? 1.5 : 1,
-                                        borderColor: isSelected ? '#FF6B2C' : '#E2E8F0',
-                                        backgroundColor: isSelected ? '#FFF7ED' : '#FFFFFF',
-                                        borderRadius: moderateScale(12),
-                                        paddingVertical: moderateScale(16),
-                                        paddingHorizontal: moderateScale(16),
-                                    }}
-                                >
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                                        <View style={{ flex: 1 }}>
-                                            <Text style={{ fontSize: moderateScale(14), fontWeight: '700', color: '#0F172A', marginBottom: moderateScale(4) }}>
-                                                {account.bankName}
-                                            </Text>
-                                            <Text style={{ fontSize: moderateScale(13), color: '#64748B', fontWeight: '500' }}>
-                                                {account.accountNumber} <Text style={{ color: '#E2E8F0' }}>|</Text> {account.accountName}
-                                            </Text>
-                                        </View>
-                                        <Ionicons
-                                            name={isSelected ? "checkmark-circle" : "ellipse-outline"}
-                                            size={moderateScale(20)}
-                                            color={isSelected ? "#FF6B2C" : "#64748B"}
-                                        />
-                                    </View>
-                                </TouchableOpacity>
-                            );
-                        })}
-
-                        {(!savedAccounts || savedAccounts.length === 0) && (
-                            <View style={{
-                                padding: moderateScale(16),
-                                backgroundColor: '#F8F9FA',
-                                borderRadius: moderateScale(12),
-                                borderWidth: 1,
-                                borderColor: '#E2E8F0',
-                                borderStyle: 'dashed',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                            }}>
-                                <Text style={{ fontSize: moderateScale(13), color: '#64748B', textAlign: 'center', fontWeight: '500' }}>
-                                    No saved accounts found. Please add one to proceed.
-                                </Text>
-                            </View>
-                        )}
-
-                        <TouchableOpacity
-                            activeOpacity={0.8}
-                            onPress={() => {
-                                setSelectedSavedAccountId(null);
-                                setValue('customerBankName', '');
-                                setValue('customerBankCode', '');
-                                setValue('customerAccountNumber', '');
-                                setValue('customerAccountName', '');
-                                setIsAddingNewAccount(true);
-                            }}
-                            style={{
-                                flexDirection: 'row',
-                                alignItems: 'center',
-                                alignSelf: 'flex-end',
-                                paddingVertical: moderateScale(8)
-                            }}
-                        >
-                            <Ionicons name="add" size={moderateScale(18)} color="#FF6B2C" style={{ marginRight: moderateScale(4) }} />
-                            <Text style={{ fontSize: moderateScale(14), fontWeight: '600', color: '#FF6B2C' }}>
-                                New Account
-                            </Text>
-                        </TouchableOpacity>
-                    </View>
+                    <RefundBankDetailsStep
+                        savedAccounts={savedAccounts}
+                        selectedSavedAccountId={selectedSavedAccountId}
+                        setSelectedSavedAccountId={setSelectedSavedAccountId}
+                        setValue={setValue}
+                        setIsAddingNewAccount={setIsAddingNewAccount}
+                    />
                 )}
 
                 {currentStep === 4 && isAddingNewAccount && (

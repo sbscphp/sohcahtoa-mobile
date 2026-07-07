@@ -3,7 +3,7 @@ import { amountStepSchema, baseCredentialSchema } from './shared';
 
 export const professionalStep0Schema = z.object({
     bvn: z.string().min(1, 'BVN is required'),
-    nin: z.string().optional().or(z.literal('')),
+    nin: z.string().min(1, 'NIN is required').length(11, 'NIN must be exactly 11 digits').regex(/^\d+$/, 'NIN must contain only digits'),
     formAId: z.string().length(10, 'Form A ID must be exactly 10 digits').regex(/^\d+$/, 'Form A ID must contain only digits'),
     passportDocumentNumber: z.string().optional().or(z.literal('')),
     passportIssueDate: z.string().optional().or(z.literal('')),

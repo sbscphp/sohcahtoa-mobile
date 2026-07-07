@@ -257,7 +257,7 @@ const styles = ScaledSheet.create({
     },
     itemDescription: {
         fontSize: '12.5@ms',
-        color: '#EF4444',
+        color: '#64748B',
         marginTop: '4@vs',
         fontWeight: '500',
     },

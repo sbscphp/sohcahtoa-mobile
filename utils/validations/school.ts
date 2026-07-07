@@ -19,13 +19,20 @@ export const schoolStep0Schema = baseCredentialSchema.extend({
 });
 
 export const schoolStep2Schema = (isPostGrad: boolean) =>
-    amountStepSchema(10000, 'School Fees');
+    z.object({
+        amount: z.number().positive('Please enter a valid amount'),
+    });
 
 export const schoolStep3Schema = z.object({
     beneficiaryCountry: z.string().min(1, 'Please select country/region'),
     studentName: z.string().min(1, 'Student name is required'),
     studentPassportNumber: z.string().optional().or(z.literal('')),
     schoolName: z.string().min(1, 'Please enter school name'),
+    beneficiaryEmail: z.string().min(1, 'Please enter school email address').email('Please enter a valid email address'),
+    beneficiaryPhone: z.string().min(1, 'Please enter school phone number'),
+    beneficiaryAddress: z.string().min(1, 'Please enter school address'),
+    beneficiaryCity: z.string().min(1, 'Please enter school city'),
+    beneficiaryState: z.string().min(1, 'Please enter school state/province'),
     bankName: z.string().min(1, 'Please enter bank name'),
     bankAccountName: z.string().min(1, 'Please enter account name'),
     bankAccountAddress: z.string().min(1, 'Please enter bank account address'),
@@ -37,6 +44,7 @@ export const schoolStep3Schema = z.object({
     routingNumber: z.string().optional().or(z.literal('')).refine((val) => !val || /^\d{9}$/.test(val), {
         message: 'Routing number must be exactly 9 digits',
     }),
+    paymentReference: z.string().min(1, 'Please enter payment reference / ID'),
     correspondenceBankName: z.string().optional().or(z.literal('')),
     correspondenceBankAddress: z.string().optional().or(z.literal('')),
     correspondenceBankSwiftCode: z.string().optional().or(z.literal('')),

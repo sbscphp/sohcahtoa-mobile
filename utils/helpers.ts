@@ -22,7 +22,42 @@ export const mapApiStatusToViewStatus = (status: string): TransactionStatus => {
 };
 
 export const formatDate = (dateStr: string): string => {
-    const d = new Date(dateStr);
+    if (!dateStr) return '';
+    let d = new Date(dateStr);
+    if (isNaN(d.getTime())) {
+        const slashParts = dateStr.split('/');
+        if (slashParts.length === 3) {
+            if (slashParts[0].length === 4) {
+                const year = parseInt(slashParts[0], 10);
+                const month = parseInt(slashParts[1], 10) - 1;
+                const day = parseInt(slashParts[2], 10);
+                d = new Date(year, month, day);
+            } else {
+                const day = parseInt(slashParts[0], 10);
+                const month = parseInt(slashParts[1], 10) - 1;
+                const year = parseInt(slashParts[2], 10);
+                d = new Date(year, month, day);
+            }
+        } else {
+            const dashParts = dateStr.split('-');
+            if (dashParts.length === 3) {
+                if (dashParts[0].length === 4) {
+                    const year = parseInt(dashParts[0], 10);
+                    const month = parseInt(dashParts[1], 10) - 1;
+                    const day = parseInt(dashParts[2], 10);
+                    d = new Date(year, month, day);
+                } else if (dashParts[2].length === 4) {
+                    const day = parseInt(dashParts[0], 10);
+                    const month = parseInt(dashParts[1], 10) - 1;
+                    const year = parseInt(dashParts[2], 10);
+                    d = new Date(year, month, day);
+                }
+            }
+        }
+    }
+    if (isNaN(d.getTime())) {
+        return dateStr;
+    }
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
 };

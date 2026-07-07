@@ -8,6 +8,7 @@ import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
 import LocationStep from '@/components/transaction-flow/LocationStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
+import RefundBankDetailsStep from '@/components/transaction-flow/RefundBankDetailsStep';
 import { useProfileQuery } from '@/hooks/queries/auth/useProfileQuery';
 import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
 import { useGetPickupCitiesQuery } from '@/hooks/queries/transactions/useGetPickupCitiesQuery';
@@ -26,10 +27,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
 import React, { useMemo, useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View } from 'react-native';
 import { z } from 'zod';
-import { Ionicons } from '@expo/vector-icons';
-import { moderateScale } from 'react-native-size-matters';
 import { useAttachBankAccountsMutation } from '@/hooks/queries/transactions/useAttachBankAccountsMutation';
 
 import GenericSelectionSheet, { SelectionItem } from '@/components/GenericSelectionSheet';
@@ -41,10 +40,10 @@ import { useLookupAccountMutation } from '@/hooks/queries/banks/useResolveAccoun
 import { useSaveAccountMutation } from '@/hooks/queries/banks/useSaveAccountMutation';
 
 const PAYOUT_METHODS: SelectionItem[] = [
-    { id: '1', label: 'Electronic Transfer (100%)', value: 'Electronic_Transfer' },
-    { id: '2', label: 'Card (100%)', value: 'Card' },
-    { id: '3', label: 'Card (75%) + Cash (25%)', value: 'Card_Cash', description: 'Maximum amount to be collected as cash is $500' },
-    { id: '4', label: 'Cash (25%) + Electronic Transfer (75%)', value: 'Cash_25_Electronic_75' },
+    { id: '1', label: 'Electronic Transfer (100%)', value: 'Electronic Transfer (100%)' },
+    { id: '2', label: 'Card (100%)', value: 'Card (100%)' },
+    { id: '3', label: 'Card (75%) + Cash (25%)', value: 'Card (75%) + Cash (25%)' },
+    { id: '4', label: 'Cash (25%) + Electronic Transfer (75%)', value: 'Cash (25%) + Electronic Transfer (75%)' },
 ];
 
 const touringFormSchema = z.object({
@@ -68,12 +67,10 @@ const touringFormSchema = z.object({
     pickupDate: z.string().optional().or(z.literal('')),
     pickupTime: z.string().optional().or(z.literal('')),
 }).superRefine((data, ctx) => {
-    const isElectronicTransfer = data.payoutMethod?.includes('Electronic') || data.payoutMethod === 'Electronic_Transfer';
+    const isElectronicTransfer = data.payoutMethod?.includes('Electronic');
     const isDomiciliary = data.payoutMethod === 'Electronic Transfer (100%)' || 
-                          data.payoutMethod === 'Cash (25%) + Electronic Transfer (75%)' || 
-                          data.payoutMethod === 'Electronic_Transfer' ||
-                          data.payoutMethod === 'Cash_25_Electronic_75';
-    const needsLocation = data.payoutMethod !== 'Electronic Transfer (100%)' && data.payoutMethod !== 'Electronic_Transfer';
+                          data.payoutMethod === 'Cash (25%) + Electronic Transfer (75%)';
+    const needsLocation = data.payoutMethod !== 'Electronic Transfer (100%)';
 
     if (isDomiciliary) {
         if (!data.domiciliaryAccountNumber) {
@@ -266,8 +263,8 @@ export default function TouringScreen() {
     const { data: states = [] } = useGetPickupStatesQuery();
     const { data: allLocations = [] } = useGetPickupPointsQuery();
 
-    const isElectronicTransfer = watchedFields.payoutMethod?.includes('Electronic') || watchedFields.payoutMethod === 'Electronic_Transfer';
-    const needsLocationStep = watchedFields.payoutMethod !== 'Electronic Transfer (100%)' && watchedFields.payoutMethod !== 'Electronic_Transfer';
+    const isElectronicTransfer = watchedFields.payoutMethod?.includes('Electronic');
+    const needsLocationStep = watchedFields.payoutMethod !== 'Electronic Transfer (100%)';
 
     const { data: banksResponse } = useGetBanksQuery();
     const banks = useMemo(
@@ -433,7 +430,7 @@ export default function TouringScreen() {
 
         let isStepValid = false;
 
-        const needsLocationStepLatest = watchedFields.payoutMethod !== 'Electronic Transfer (100%)' && watchedFields.payoutMethod !== 'Electronic_Transfer';
+        const needsLocationStepLatest = watchedFields.payoutMethod !== 'Electronic Transfer (100%)';
         const refundStepIndex = needsLocationStepLatest ? 5 : 4;
 
         if (currentStep === 0) {
@@ -452,9 +449,7 @@ export default function TouringScreen() {
             }
             const fieldsToTrigger: any[] = ['payoutMethod'];
             const isDomiciliary = watchedFields.payoutMethod === 'Electronic Transfer (100%)' || 
-                                  watchedFields.payoutMethod === 'Cash (25%) + Electronic Transfer (75%)' || 
-                                  watchedFields.payoutMethod === 'Electronic_Transfer' ||
-                                  watchedFields.payoutMethod === 'Cash_25_Electronic_75';
+                                  watchedFields.payoutMethod === 'Cash (25%) + Electronic Transfer (75%)';
             if (isDomiciliary) {
                 fieldsToTrigger.push(
                     'domiciliaryAccountNumber',
@@ -534,11 +529,11 @@ export default function TouringScreen() {
                 city: (data.selectedCity as LocationItem)?.title || '',
                 scheduledPickupDate: formatDateForApi(data.pickupDate),
                 scheduledPickupTime: data.pickupTime,
-                amount: Number(data.amount) || 0,
+                amount: (data.payoutMethod === 'Card (75%) + Cash (25%)' || data.payoutMethod === 'Cash (25%) + Electronic Transfer (75%)') ? (Number(data.amount) * 0.25) : (Number(data.amount) || 0),
                 currency: currencyGet.code,
             } : undefined,
             payoutMethod: data.payoutMethod,
-            domiciliaryDetails: (data.payoutMethod?.includes('Electronic') || data.payoutMethod === 'Electronic_Transfer') ? {
+            domiciliaryDetails: (data.payoutMethod?.includes('Electronic')) ? {
                 bankName: data.domiciliaryBankName,
                 accountNumber: data.domiciliaryAccountNumber,
                 accountName: data.domiciliaryAccountName,
@@ -591,7 +586,7 @@ export default function TouringScreen() {
     const isStep2Valid = watchedFields.amount > 0;
     const isStep3Valid = watchedFields.payoutMethod && (
         !isElectronicTransfer || (
-            (watchedFields.payoutMethod?.includes('Electronic') || watchedFields.payoutMethod === 'Electronic_Transfer')
+            (watchedFields.payoutMethod?.includes('Electronic'))
             ? (watchedFields.domiciliaryAccountNumber && watchedFields.domiciliaryBankName && watchedFields.domiciliaryAccountName && watchedFields.domiciliarySwiftCode && watchedFields.domiciliaryRoutingNumber && watchedFields.domiciliaryBankAddress)
             : true
         )
@@ -643,7 +638,7 @@ export default function TouringScreen() {
                         showLimitWarning={false}
                     />
                 )}
-                {currentStep === 3 && !isAddingNewAccount && (
+                {currentStep === 3 && (
                     <PayoutMethodStep
                         control={control}
                         setValue={setValue}
@@ -652,16 +647,6 @@ export default function TouringScreen() {
                         selectedSavedAccountId={selectedSavedAccountId}
                         setSelectedSavedAccountId={setSelectedSavedAccountId}
                         setIsAddingNewAccount={setIsAddingNewAccount}
-                    />
-                )}
-
-                {currentStep === 3 && isAddingNewAccount && (
-                    <AddNewAccountStep
-                        control={control}
-                        setValue={setValue}
-                        banks={banks}
-                        isResolving={resolveAccount.isPending}
-                        selectedBankCode={watchedFields.customerBankCode}
                     />
                 )}
 
@@ -698,96 +683,13 @@ export default function TouringScreen() {
                 )}
 
                 {currentStep === refundStepIndex && !isAddingNewAccount && (
-                    <View style={{ gap: moderateScale(14) }}>
-                        <Text style={{ fontSize: moderateScale(18), fontWeight: '700', color: '#0F172A', marginBottom: moderateScale(4) }}>
-                            Refund Bank Details
-                        </Text>
-                        <Text style={{ fontSize: moderateScale(13), color: '#64748B', fontWeight: '500', marginBottom: moderateScale(8) }}>
-                            Select your local Nigerian bank account for refunds if your transaction cannot be processed.
-                        </Text>
-                        
-                        {/* Saved Accounts List */}
-                        {savedAccounts.map((account) => {
-                            const isSelected = selectedSavedAccountId === account.id;
-                            return (
-                                <TouchableOpacity
-                                    key={account.id}
-                                    activeOpacity={0.9}
-                                    onPress={() => {
-                                        setSelectedSavedAccountId(account.id);
-                                        setValue('customerBankName', account.bankName);
-                                        setValue('customerBankCode', account.bankCode);
-                                        setValue('customerAccountNumber', account.accountNumber);
-                                        setValue('customerAccountName', account.accountName);
-                                    }}
-                                    style={{
-                                        borderWidth: isSelected ? 1.5 : 1,
-                                        borderColor: isSelected ? '#FF6B2C' : '#E2E8F0',
-                                        backgroundColor: isSelected ? '#FFF7ED' : '#FFFFFF',
-                                        borderRadius: moderateScale(12),
-                                        paddingVertical: moderateScale(16),
-                                        paddingHorizontal: moderateScale(16),
-                                    }}
-                                >
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                                        <View style={{ flex: 1 }}>
-                                            <Text style={{ fontSize: moderateScale(14), fontWeight: '700', color: '#0F172A', marginBottom: moderateScale(4) }}>
-                                                {account.bankName}
-                                            </Text>
-                                            <Text style={{ fontSize: moderateScale(13), color: '#64748B', fontWeight: '500' }}>
-                                                {account.accountNumber} <Text style={{ color: '#E2E8F0' }}>|</Text> {account.accountName}
-                                            </Text>
-                                        </View>
-                                        <Ionicons
-                                            name={isSelected ? "checkmark-circle" : "ellipse-outline"}
-                                            size={moderateScale(20)}
-                                            color={isSelected ? "#FF6B2C" : "#64748B"}
-                                        />
-                                    </View>
-                                </TouchableOpacity>
-                            );
-                        })}
-
-                        {(!savedAccounts || savedAccounts.length === 0) && (
-                            <View style={{
-                                padding: moderateScale(16),
-                                backgroundColor: '#F8F9FA',
-                                borderRadius: moderateScale(12),
-                                borderWidth: 1,
-                                borderColor: '#E2E8F0',
-                                borderStyle: 'dashed',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                            }}>
-                                <Text style={{ fontSize: moderateScale(13), color: '#64748B', textAlign: 'center', fontWeight: '500' }}>
-                                    No saved accounts found. Please add one to proceed.
-                                </Text>
-                            </View>
-                        )}
-
-                        <TouchableOpacity
-                            activeOpacity={0.8}
-                            onPress={() => {
-                                setSelectedSavedAccountId(null);
-                                setValue('customerBankName', '');
-                                setValue('customerBankCode', '');
-                                setValue('customerAccountNumber', '');
-                                setValue('customerAccountName', '');
-                                setIsAddingNewAccount(true);
-                            }}
-                            style={{
-                                flexDirection: 'row',
-                                alignItems: 'center',
-                                alignSelf: 'flex-end',
-                                paddingVertical: moderateScale(8)
-                            }}
-                        >
-                            <Ionicons name="add" size={moderateScale(18)} color="#FF6B2C" style={{ marginRight: moderateScale(4) }} />
-                            <Text style={{ fontSize: moderateScale(14), fontWeight: '600', color: '#FF6B2C' }}>
-                                New Account
-                            </Text>
-                        </TouchableOpacity>
-                    </View>
+                    <RefundBankDetailsStep
+                        savedAccounts={savedAccounts}
+                        selectedSavedAccountId={selectedSavedAccountId}
+                        setSelectedSavedAccountId={setSelectedSavedAccountId}
+                        setValue={setValue}
+                        setIsAddingNewAccount={setIsAddingNewAccount}
+                    />
                 )}
 
                 {currentStep === refundStepIndex && isAddingNewAccount && (

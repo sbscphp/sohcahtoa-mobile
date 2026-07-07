@@ -123,8 +123,7 @@ export default function TransactionDetailsView({
         );
     };
 
-    const resolvedDomiciliaryDetails = domiciliaryDetails || beneficiaryDetails;
-    const resolvedBeneficiaryTitle = beneficiarySectionTitle || "Domiciliary Bank Details";
+    const resolvedBeneficiaryTitle = beneficiarySectionTitle || "Beneficiary Details";
 
     return (
         <View style={styles.container}>
@@ -138,14 +137,21 @@ export default function TransactionDetailsView({
                 </>
             )}
 
-            {resolvedDomiciliaryDetails && resolvedDomiciliaryDetails.length > 0 && !(bankAccountsDetails && bankAccountsDetails.length > 0) && (
+            {beneficiaryDetails && beneficiaryDetails.length > 0 && (
                 <>
                     <Text style={[styles.sectionHeader, { marginTop: moderateScale(62) }]}>{resolvedBeneficiaryTitle}</Text>
-                    {resolvedDomiciliaryDetails.map((item, index) => renderDetailRow(item, index, resolvedDomiciliaryDetails.length))}
+                    {beneficiaryDetails.map((item, index) => renderDetailRow(item, index, beneficiaryDetails.length))}
                 </>
             )}
 
-            {refundBankDetails && refundBankDetails.length > 0 && (
+            {domiciliaryDetails && domiciliaryDetails.length > 0 && (
+                <>
+                    <Text style={[styles.sectionHeader, { marginTop: moderateScale(62) }]}>Domiciliary Bank Details</Text>
+                    {domiciliaryDetails.map((item, index) => renderDetailRow(item, index, domiciliaryDetails.length))}
+                </>
+            )}
+
+            {refundBankDetails && refundBankDetails.length > 0 && !(bankAccountsDetails && bankAccountsDetails.length > 0) && (
                 <>
                     <Text style={[styles.sectionHeader, { marginTop: moderateScale(62) }]}>Refund Bank Details</Text>
                     {refundBankDetails.map((item, index) => renderDetailRow(item, index, refundBankDetails.length))}
@@ -161,7 +167,7 @@ export default function TransactionDetailsView({
 
             {bankAccountsDetails && bankAccountsDetails.length > 0 && (
                 <>
-                    <Text style={[styles.sectionHeader, { marginTop: moderateScale(62) }]}>Bank Details</Text>
+                    <Text style={[styles.sectionHeader, { marginTop: moderateScale(62) }]}>Refund Bank Details</Text>
                     {bankAccountsDetails.map((item, index) => renderDetailRow(item, index, bankAccountsDetails.length))}
                 </>
             )}

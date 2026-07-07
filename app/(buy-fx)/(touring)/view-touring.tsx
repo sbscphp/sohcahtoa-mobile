@@ -34,6 +34,8 @@ export default function ViewTouringScreen() {
     const tx = txResponse?.data;
     const showToast = useToastStore(s => s.showToast);
 
+    // console.log("Transaction", JSON.stringify(tx, null, 2))
+
     useFocusEffect(
         useCallback(() => {
             refetch();
@@ -218,8 +220,6 @@ export default function ViewTouringScreen() {
             if (ba.bankName) items.push({ label: `${prefix}Bank Name`, value: ba.bankName });
             if (ba.accountName) items.push({ label: `${prefix}Account Name`, value: ba.accountName });
             if (ba.accountNumber) items.push({ label: `${prefix}Account Number`, value: ba.accountNumber });
-            items.push({ label: `${prefix}Default`, value: ba.isDefault ? 'Yes' : 'No' });
-            items.push({ label: `${prefix}Verified`, value: ba.isVerified ? 'Yes' : 'No' });
         });
         return items;
     }, [tx]);

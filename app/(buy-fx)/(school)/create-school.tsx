@@ -5,13 +5,12 @@ import InitiateTransactionSheet from '@/components/InitiateTransactionSheet';
 import LoadingBackdrop from '@/components/LoadingBackdrop';
 import SourceOfFundsSheet from '@/components/SourceOfFundsSheet';
 import AddNewAccountStep from '@/components/transaction-flow/AddNewAccountStep';
-import { Ionicons } from '@expo/vector-icons';
 import CredentialStep from '@/components/transaction-flow/CredentialStep';
 import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
-// import PayoutMethodStep from '@/components/transaction-flow/PayoutMethodStep';
 import SchoolBankDetailsStep from '@/components/transaction-flow/SchoolBankDetailsStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
+import RefundBankDetailsStep from '@/components/transaction-flow/RefundBankDetailsStep';
 import { useProfileQuery } from '@/hooks/queries/auth/useProfileQuery';
 import { useGetBanksQuery } from '@/hooks/queries/banks/useGetBanksQuery';
 import { useGetSavedAccountsQuery } from '@/hooks/queries/banks/useGetSavedAccountsQuery';
@@ -33,7 +32,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { TouchableOpacity, View, Text } from 'react-native';
 import { moderateScale } from 'react-native-size-matters';
-import { z } from 'zod';
+
 
 const ADMISSION_TYPES: SelectionItem[] = [
     { id: '1', label: 'Undergraduate', value: 'Undergraduate', icon: Teacher },
@@ -43,9 +42,9 @@ const ADMISSION_TYPES: SelectionItem[] = [
 ];
 
 const PAYOUT_METHODS: SelectionItem[] = [
-    { id: '1', label: 'Electronic Transfer (100%)', value: 'Electronic_Transfer' },
-    { id: '2', label: 'Card (100%)', value: 'Card' },
-    { id: '3', label: 'Card (75%) + Cash (25%)', value: 'Card_Cash', description: 'Maximum amount to be collected as cash is $500' },
+    { id: '1', label: 'Electronic Transfer (100%)', value: 'Electronic Transfer (100%)' },
+    { id: '2', label: 'Card (100%)', value: 'Card (100%)' },
+    { id: '3', label: 'Card (75%) + Cash (25%)', value: 'Card (75%) + Cash (25%)' },
 ];
 
 const formatDateToPickerFormat = (dateStr: string | undefined | null): string => {
@@ -186,35 +185,56 @@ export default function SchoolFeesScreen() {
                         }
                     }
 
-                    if (data.studentPassportNumber) {
-                        if (!/^[A-Za-z]\d{8}$/.test(data.studentPassportNumber)) {
-                            ctx.addIssue({
-                                code: "custom",
-                                message: 'Please enter a valid Passport Number (e.g. A12345678)',
-                                path: ['studentPassportNumber']
-                            });
-                        }
-                        if (!data.studentPassportIssueDate) {
-                            ctx.addIssue({
-                                code: "custom",
-                                message: 'Please select student Passport Issue Date',
-                                path: ['studentPassportIssueDate']
-                            });
-                        }
-                        if (!data.studentPassportExpiryDate) {
-                            ctx.addIssue({
-                                code: "custom",
-                                message: 'Please select student Passport Expiry Date',
-                                path: ['studentPassportExpiryDate']
-                            });
-                        }
-                        if (data.studentPassportIssueDate && data.studentPassportExpiryDate && data.studentPassportIssueDate === data.studentPassportExpiryDate) {
-                            ctx.addIssue({
-                                code: "custom",
-                                message: 'Student Passport Expiry Date cannot be the same as Issue Date',
-                                path: ['studentPassportExpiryDate']
-                            });
-                        }
+                    if (!data.studentPassportNumber) {
+                        ctx.addIssue({
+                            code: "custom",
+                            message: 'Student Passport Number is required',
+                            path: ['studentPassportNumber']
+                        });
+                    } else if (!/^[A-Za-z]\d{8}$/.test(data.studentPassportNumber)) {
+                        ctx.addIssue({
+                            code: "custom",
+                            message: 'Please enter a valid Passport Number (e.g. A12345678)',
+                            path: ['studentPassportNumber']
+                        });
+                    }
+                    if (!data.studentPassportIssueDate) {
+                        ctx.addIssue({
+                            code: "custom",
+                            message: 'Please select student Passport Issue Date',
+                            path: ['studentPassportIssueDate']
+                        });
+                    }
+                    if (!data.studentPassportExpiryDate) {
+                        ctx.addIssue({
+                            code: "custom",
+                            message: 'Please select student Passport Expiry Date',
+                            path: ['studentPassportExpiryDate']
+                        });
+                    }
+                    if (data.studentPassportIssueDate && data.studentPassportExpiryDate && data.studentPassportIssueDate === data.studentPassportExpiryDate) {
+                        ctx.addIssue({
+                            code: "custom",
+                            message: 'Student Passport Expiry Date cannot be the same as Issue Date',
+                            path: ['studentPassportExpiryDate']
+                        });
+                    }
+                }
+
+                if (data.amount && data.amount > 10000) {
+                    if (proofOfFunds.length === 0) {
+                        ctx.addIssue({
+                            code: "custom",
+                            message: 'Proof of Funds is required for transactions above $10,000',
+                            path: ['amount']
+                        });
+                    }
+                    if (!isDeclarationCompleted) {
+                        ctx.addIssue({
+                            code: "custom",
+                            message: 'Please complete the source of funds declaration',
+                            path: ['amount']
+                        });
                     }
                 }
             });
@@ -256,6 +276,7 @@ export default function SchoolFeesScreen() {
             beneficiaryCity: '',
             beneficiaryState: '',
             beneficiaryEmail: '',
+            beneficiaryPhone: '',
             paymentReference: '',
             routingNumber: '',
             ifscCode: '',
@@ -488,13 +509,13 @@ export default function SchoolFeesScreen() {
                         </Text>
                         <ControlledInput control={control} name="studentName" label="Student Full Name" placeholder="Enter student's full name" required />
                         <ControlledInput control={control} name="studentNIN" label="Student NIN (if available)" placeholder="Enter student's NIN" keyboardType="numeric" maxLength={11} filterType="numeric" />
-                        <ControlledInput control={control} name="studentPassportNumber" label="Student International Passport Number" placeholder="Enter student's passport number" maxLength={9} filterType="alphanumeric" />
+                        <ControlledInput control={control} name="studentPassportNumber" label="Student International Passport Number" placeholder="Enter student's passport number" required maxLength={9} filterType="alphanumeric" />
                         <View style={{ flexDirection: 'row', gap: 12 }}>
                             <View style={{ flex: 1 }}>
-                                <ControlledDatePicker control={control} name="studentPassportIssueDate" label="Student Passport Issue Date" maximumDate={new Date()} />
+                                <ControlledDatePicker control={control} name="studentPassportIssueDate" label="Student Passport Issue Date" required maximumDate={new Date()} />
                             </View>
                             <View style={{ flex: 1 }}>
-                                <ControlledDatePicker control={control} name="studentPassportExpiryDate" label="Student Passport Expiry Date" minimumDate={new Date()} />
+                                <ControlledDatePicker control={control} name="studentPassportExpiryDate" label="Student Passport Expiry Date" required minimumDate={new Date()} />
                             </View>
                         </View>
                     </View>
@@ -690,12 +711,14 @@ export default function SchoolFeesScreen() {
 
         let isStepValid = false;
         if (currentStep === 0) {
-            const fieldsToTrigger = ['bvn', 'nin', 'formAId', 'passportDocumentNumber', 'passportIssueDate', 'passportExpiryDate', 'admissionType', 'studentName'];
+            const fieldsToTrigger = [
+                'bvn', 'nin', 'formAId',
+                'passportDocumentNumber', 'passportIssueDate', 'passportExpiryDate',
+                'admissionType', 'studentName',
+                'studentPassportNumber', 'studentPassportIssueDate', 'studentPassportExpiryDate'
+            ];
             if (watchedFields.studentNIN) {
                 fieldsToTrigger.push('studentNIN');
-            }
-            if (watchedFields.studentPassportNumber) {
-                fieldsToTrigger.push('studentPassportNumber', 'studentPassportIssueDate', 'studentPassportExpiryDate');
             }
             isStepValid = await trigger(fieldsToTrigger as any);
         } else if (currentStep === 1) {
@@ -730,6 +753,11 @@ export default function SchoolFeesScreen() {
                 'studentName',
                 'studentPassportNumber',
                 'schoolName',
+                'beneficiaryEmail',
+                'beneficiaryPhone',
+                'beneficiaryAddress',
+                'beneficiaryCity',
+                'beneficiaryState',
                 'bankName',
                 'bankAccountName',
                 'bankAccountAddress',
@@ -792,7 +820,7 @@ export default function SchoolFeesScreen() {
                 organizationName: data.schoolName || '',
                 studentName: data.studentName,
                 studentNIN: data.studentNIN || undefined,
-                studentPassportNumber: data.studentPassportNumber || undefined,
+                studentPassportDocumentNumber: data.studentPassportNumber || undefined,
                 studentPassportIssueDate: data.studentPassportIssueDate || undefined,
                 studentPassportExpiryDate: data.studentPassportExpiryDate || undefined,
                 bankAccountName: data.bankAccountName,
@@ -804,6 +832,7 @@ export default function SchoolFeesScreen() {
                 country: data.beneficiaryCountry,
                 address: data.beneficiaryAddress,
                 email: data.beneficiaryEmail || '',
+                phoneNumber: data.beneficiaryPhone || '',
                 city: data.beneficiaryCity || '',
                 state: data.beneficiaryState || '',
                 paymentReference: data.paymentReference,
@@ -868,16 +897,23 @@ export default function SchoolFeesScreen() {
 
     const foreignAmountStr = currencyGet.code !== 'NGN' ? amountGetStr : amountSendStr;
     const foreignAmount = parseFloat(foreignAmountStr.replace(/,/g, '')) || 0;
-    const isStep2Valid = watchedFields.amount > 0;
+    const hasProofOfFunds = proofOfFunds.length > 0;
+    const isStep2Valid = watchedFields.amount > 0 && (foreignAmount <= 10000 || (hasProofOfFunds && isDeclarationCompleted));
     const isStep3Valid = !!(
         watchedFields.beneficiaryCountry &&
         watchedFields.studentName &&
         watchedFields.schoolName &&
+        watchedFields.beneficiaryEmail &&
+        watchedFields.beneficiaryPhone &&
+        watchedFields.beneficiaryAddress &&
+        watchedFields.beneficiaryCity &&
+        watchedFields.beneficiaryState &&
         watchedFields.bankName &&
         watchedFields.bankAccountName &&
         watchedFields.bankAccountAddress &&
         watchedFields.bankAccountSwiftCode &&
-        watchedFields.bankAccountNumber
+        watchedFields.bankAccountNumber &&
+        watchedFields.paymentReference
     );
 
     const isStep4Valid = !!selectedSavedAccountId;
@@ -924,7 +960,9 @@ export default function SchoolFeesScreen() {
                         onAmountSendChange={setAmountSendStr}
                         allowedModes={['buy']}
                         error={errors.amount?.message as string | undefined}
-                        showLimitWarning={false}
+                        showLimitWarning={true}
+                        onLimitWarningPress={() => router.push('/proof-of-fund')}
+                        onDownloadPress={() => setShowSourceOfFundsSheet(true)}
                         isSchool={true}
                     />
                 )}
@@ -942,95 +980,13 @@ export default function SchoolFeesScreen() {
                 )}
 
                 {currentStep === 4 && !isAddingNewAccount && (
-                    <View style={{ gap: moderateScale(14) }}>
-                        <Text style={{ fontSize: moderateScale(18), fontWeight: '700', color: '#0F172A', marginBottom: moderateScale(4) }}>
-                            Refund Bank Details
-                        </Text>
-                        <Text style={{ fontSize: moderateScale(13), color: '#64748B', fontWeight: '500', marginBottom: moderateScale(8) }}>
-                            Select your local Nigerian bank account for refunds if your transaction cannot be processed.
-                        </Text>
-                        
-                        {savedAccounts.map((account) => {
-                            const isSelected = selectedSavedAccountId === account.id;
-                            return (
-                                <TouchableOpacity
-                                    key={account.id}
-                                    activeOpacity={0.9}
-                                    onPress={() => {
-                                        setSelectedSavedAccountId(account.id);
-                                        setValue('customerBankName', account.bankName);
-                                        setValue('customerBankCode', account.bankCode);
-                                        setValue('customerAccountNumber', account.accountNumber);
-                                        setValue('customerAccountName', account.accountName);
-                                    }}
-                                    style={{
-                                        borderWidth: isSelected ? 1.5 : 1,
-                                        borderColor: isSelected ? '#FF6B2C' : '#E2E8F0',
-                                        backgroundColor: isSelected ? '#FFF7ED' : '#FFFFFF',
-                                        borderRadius: moderateScale(12),
-                                        paddingVertical: moderateScale(16),
-                                        paddingHorizontal: moderateScale(16),
-                                    }}
-                                >
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                                        <View style={{ flex: 1 }}>
-                                            <Text style={{ fontSize: moderateScale(14), fontWeight: '700', color: '#0F172A', marginBottom: moderateScale(4) }}>
-                                                {account.bankName}
-                                            </Text>
-                                            <Text style={{ fontSize: moderateScale(13), color: '#64748B', fontWeight: '500' }}>
-                                                {account.accountNumber} <Text style={{ color: '#E2E8F0' }}>|</Text> {account.accountName}
-                                            </Text>
-                                        </View>
-                                        <Ionicons
-                                            name={isSelected ? "checkmark-circle" : "ellipse-outline"}
-                                            size={moderateScale(20)}
-                                            color={isSelected ? "#FF6B2C" : "#64748B"}
-                                        />
-                                    </View>
-                                </TouchableOpacity>
-                            );
-                        })}
-
-                        {(!savedAccounts || savedAccounts.length === 0) && (
-                            <View style={{
-                                padding: moderateScale(16),
-                                backgroundColor: '#F8F9FA',
-                                borderRadius: moderateScale(12),
-                                borderWidth: 1,
-                                borderColor: '#E2E8F0',
-                                borderStyle: 'dashed',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                            }}>
-                                <Text style={{ fontSize: moderateScale(13), color: '#64748B', textAlign: 'center', fontWeight: '500' }}>
-                                    No saved accounts found. Please add one to proceed.
-                                </Text>
-                            </View>
-                        )}
-
-                        <TouchableOpacity
-                            activeOpacity={0.8}
-                            onPress={() => {
-                                setSelectedSavedAccountId(null);
-                                setValue('customerBankName', '');
-                                setValue('customerBankCode', '');
-                                setValue('customerAccountNumber', '');
-                                setValue('customerAccountName', '');
-                                setIsAddingNewAccount(true);
-                            }}
-                            style={{
-                                flexDirection: 'row',
-                                alignItems: 'center',
-                                alignSelf: 'flex-end',
-                                paddingVertical: moderateScale(8)
-                            }}
-                        >
-                            <Ionicons name="add" size={moderateScale(18)} color="#FF6B2C" style={{ marginRight: moderateScale(4) }} />
-                            <Text style={{ fontSize: moderateScale(14), fontWeight: '600', color: '#FF6B2C' }}>
-                                New Account
-                            </Text>
-                        </TouchableOpacity>
-                    </View>
+                    <RefundBankDetailsStep
+                        savedAccounts={savedAccounts}
+                        selectedSavedAccountId={selectedSavedAccountId}
+                        setSelectedSavedAccountId={setSelectedSavedAccountId}
+                        setValue={setValue}
+                        setIsAddingNewAccount={setIsAddingNewAccount}
+                    />
                 )}
 
                 {currentStep === 4 && isAddingNewAccount && (

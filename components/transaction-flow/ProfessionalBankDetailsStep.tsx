@@ -200,14 +200,6 @@ export default function ProfessionalBankDetailsStep({
                     autoCapitalize="characters"
                 />
 
-                <ControlledInput
-                    control={control}
-                    name="paymentReference"
-                    label="Payment Reference ID"
-                    placeholder="Enter payment reference id"
-                    required
-                />
-
                 {(isUK || isOthers) && (
                     <ControlledInput
                         control={control}
@@ -279,6 +271,14 @@ export default function ProfessionalBankDetailsStep({
                         wrapperStyle={{ height: moderateScale(90), borderRadius: moderateScale(12), alignItems: 'flex-start', paddingTop: moderateScale(8) }}
                     />
                 )}
+
+                <ControlledInput
+                    control={control}
+                    name="paymentReference"
+                    label="Payment Reference / ID"
+                    placeholder="Enter payment reference / ID"
+                    required
+                />
 
                 {showInvoiceUpload && (
                     <View style={{ marginTop: moderateScale(12), gap: moderateScale(6) }}>

@@ -87,7 +87,47 @@ export default function SchoolBankDetailsStep({
                 placeholder="Enter school name"
                 required
             />
+            <ControlledInput
+                control={control}
+                name="beneficiaryEmail"
+                label="School Email Address"
+                placeholder="Enter school email address"
+                required
+                keyboardType="email-address"
+            />
 
+            <ControlledInput
+                control={control}
+                name="beneficiaryPhone"
+                label="School Phone Number"
+                placeholder="Enter school phone number"
+                required
+                keyboardType="phone-pad"
+            />
+
+            <ControlledInput
+                control={control}
+                name="beneficiaryAddress"
+                label="School Address"
+                placeholder="Enter school address"
+                required
+            />
+
+            <ControlledInput
+                control={control}
+                name="beneficiaryCity"
+                label="School City"
+                placeholder="Enter school city"
+                required
+            />
+
+            <ControlledInput
+                control={control}
+                name="beneficiaryState"
+                label="School State/Province"
+                placeholder="Enter school state/province"
+                required
+            />
             <ControlledInput
                 control={control}
                 name="bankName"
@@ -95,7 +135,6 @@ export default function SchoolBankDetailsStep({
                 placeholder="Enter bank name"
                 required
             />
-
             <ControlledInput
                 control={control}
                 name="bankAccountName"
@@ -152,6 +191,14 @@ export default function SchoolBankDetailsStep({
                 keyboardType="numeric"
                 maxLength={34}
                 filterType="numeric"
+            />
+
+            <ControlledInput
+                control={control}
+                name="paymentReference"
+                label="Payment Reference / ID"
+                placeholder="Enter payment reference / ID"
+                required
             />
 
             <ControlledInput

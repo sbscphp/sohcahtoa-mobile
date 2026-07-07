@@ -72,38 +72,14 @@ export default function ViewResidentScreen() {
             { label: 'Amount (₦)', value: formatCurrency(tx.nairaEquivalent) },
             { label: 'Equivalent Amount (FX)', value: formatCurrency(tx.foreignAmount, tx.currency === 'USD' ? '$' : tx.currency === 'GBP' ? '£' : tx.currency === 'EUR' ? '€' : tx.currency) },
             { label: 'Date Initiated', value: `${formatDate(tx.createdAt)}\n${formatTimeWithSeconds(tx.createdAt)}` },
-            ...(tx.personalInfo?.bvn || (tx as any).bvn ? [{
-                label: 'BVN',
-                value: tx.personalInfo?.bvn || (tx as any).bvn
-            }] : []),
-            ...(tx.personalInfo?.nin || (tx as any).nin ? [{
-                label: 'NIN',
-                value: tx.personalInfo?.nin || (tx as any).nin
-            }] : []),
-            ...(tx.personalInfo?.tinNumber || (tx as any).tinNumber ? [{
-                label: 'TIN',
-                value: tx.personalInfo?.tinNumber || (tx as any).tinNumber
-            }] : []),
-            ...(tx.personalInfo?.passportDocumentNumber || (tx as any).passportDocumentNumber ? [{
-                label: 'Passport Number',
-                value: tx.personalInfo?.passportDocumentNumber || (tx as any).passportDocumentNumber
-            }] : []),
-            ...(tx.personalInfo?.passportIssueDate || (tx as any).passportIssueDate ? [{
-                label: 'Passport Issue Date',
-                value: formatDate(tx.personalInfo?.passportIssueDate || (tx as any).passportIssueDate)
-            }] : []),
-            ...(tx.personalInfo?.passportExpiryDate || (tx as any).passportExpiryDate ? [{
-                label: 'Passport Expiry Date',
-                value: formatDate(tx.personalInfo?.passportExpiryDate || (tx as any).passportExpiryDate)
-            }] : []),
-            ...(tx.payoutMethod ? [{
+            ...((tx as any).payoutMethod ? [{
                 label: 'Payout Method',
-                value: tx.payoutMethod
+                value: (tx as any).payoutMethod
             }] : []),
             ...(tx.cashPickup ? [
                 {
-                    label: 'Pickup Cash Amount',
-                    value: formatCurrency(tx.cashPickup.amount, (tx.cashPickup.currency || tx.currency) === 'USD' ? '$' : (tx.cashPickup.currency || tx.currency) === 'GBP' ? '£' : (tx.cashPickup.currency || tx.currency) === 'EUR' ? '€' : (tx.cashPickup.currency || tx.currency)) || 'N/A',
+                    label: 'Pickup Cash Amount (25%)',
+                    value: formatCurrency(tx.cashPickup.amount * 0.25, (tx.cashPickup.currency || tx.currency) === 'USD' ? '$' : (tx.cashPickup.currency || tx.currency) === 'GBP' ? '£' : (tx.cashPickup.currency || tx.currency) === 'EUR' ? '€' : (tx.cashPickup.currency || tx.currency)) || 'N/A',
                 },
                 {
                     label: 'Pickup Status',
@@ -172,12 +148,25 @@ export default function ViewResidentScreen() {
     }, [tx, uploadFile]);
 
     const bankAccountsItems = useMemo(() => {
-        const details = tx?.beneficiaryDetails;
+        const details = tx?.refundBankDetails || tx?.beneficiaryDetails;
         if (!tx || !details) return undefined;
         const items: any[] = [];
         if (details.bankName) items.push({ label: 'Bank Name', value: details.bankName });
         if (details.accountName) items.push({ label: 'Account Name', value: details.accountName });
         if (details.accountNumber) items.push({ label: 'Account Number', value: details.accountNumber });
+        return items.length > 0 ? items : undefined;
+    }, [tx]);
+
+    const domiciliaryItems = useMemo(() => {
+        const details = tx?.domiciliaryDetails;
+        if (!tx || !details) return undefined;
+        const items: any[] = [];
+        if (details.bankName) items.push({ label: 'Bank Name', value: details.bankName });
+        if (details.accountName) items.push({ label: 'Account Name', value: details.accountName });
+        if (details.accountNumber) items.push({ label: 'Account Number', value: details.accountNumber });
+        if (details.swiftCode) items.push({ label: 'Swift Code', value: details.swiftCode });
+        if (details.routingNumber) items.push({ label: 'Routing Number', value: details.routingNumber });
+        if (details.bankAddress) items.push({ label: 'Bank Address', value: details.bankAddress });
         return items.length > 0 ? items : undefined;
     }, [tx]);
 
@@ -208,6 +197,7 @@ export default function ViewResidentScreen() {
                     details={detailsItems}
                     documents={detailsDocuments}
                     bankAccountsDetails={bankAccountsItems}
+                    domiciliaryDetails={domiciliaryItems}
                     currentStep={tx?.currentStep}
                 />
             )}

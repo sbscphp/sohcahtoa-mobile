@@ -118,13 +118,6 @@ export default function MedicalBankDetailsStep({ control, watch }: MedicalBankDe
                 required={!isAustralia && !isUSA && !isIndia}
             />
 
-            <ControlledInput
-                control={control}
-                name="paymentReference"
-                label="Payment Reference/ID"
-                placeholder="Enter payment reference"
-            />
-
             {isAustralia && (
                 <ControlledInput
                     control={control}
@@ -160,6 +153,14 @@ export default function MedicalBankDetailsStep({ control, watch }: MedicalBankDe
                 name="purposeCode"
                 label="Purpose Code"
                 placeholder="Enter purpose code"
+            />
+
+            <ControlledInput
+                control={control}
+                name="paymentReference"
+                label="Payment Reference / ID"
+                placeholder="Enter payment reference / ID"
+                required
             />
 
             <Text style={[styles.sectionTitle, { marginTop: 16 }]}>Correspondence Bank details (Optional)</Text>
