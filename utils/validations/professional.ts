@@ -1,12 +1,12 @@
 import { z } from 'zod';
-import { amountStepSchema, baseCredentialSchema } from './shared';
+import { amountStepSchema, baseCredentialSchema, passportIssueDateField } from './shared';
 
 export const professionalStep0Schema = z.object({
-    bvn: z.string().min(1, 'BVN is required'),
-    nin: z.string().min(1, 'NIN is required').length(11, 'NIN must be exactly 11 digits').regex(/^\d+$/, 'NIN must contain only digits'),
+    bvn: z.string().optional().or(z.literal('')),
+    nin: z.string().optional().or(z.literal('')),
     formAId: z.string().length(10, 'Form A ID must be exactly 10 digits').regex(/^\d+$/, 'Form A ID must contain only digits'),
     passportDocumentNumber: z.string().optional().or(z.literal('')),
-    passportIssueDate: z.string().optional().or(z.literal('')),
+    passportIssueDate: passportIssueDateField.optional().or(z.literal('')),
     passportExpiryDate: z.string().optional().or(z.literal('')),
     memberNumber: z.string().min(1, 'Membership/Registration number is required'),
 });
@@ -66,7 +66,7 @@ export const bankDetailsRefinement = (data: {
             });
         } else {
             const cleanIban = data.bankAccountIban.replace(/\s/g, '');
-            if (!/^GB\d{2}[A-Z]{4}\d{14}$/i.test(cleanIban)) {
+            if (cleanIban.length < 22) {
                 ctx.addIssue({
                     code: "custom",
                     message: 'Please enter a valid UK IBAN (exactly 22 characters, starting with GB)',

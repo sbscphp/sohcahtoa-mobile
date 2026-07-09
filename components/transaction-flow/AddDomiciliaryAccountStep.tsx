@@ -23,9 +23,7 @@ export default function AddDomiciliaryAccountStep({
                 label="Domiciliary Account Number"
                 placeholder="Enter domiciliary account number"
                 required
-                keyboardType="numeric"
-                maxLength={10}
-                filterType="numeric"
+                filterType="alphanumeric"
             />
             <ControlledInput
                 control={control}

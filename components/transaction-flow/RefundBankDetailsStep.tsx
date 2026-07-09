@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { moderateScale } from 'react-native-size-matters';
+import { useGetSavedAccountsQuery } from '@/hooks/queries/banks/useGetSavedAccountsQuery';
 
 export interface SavedAccount {
     id: string;
@@ -43,9 +44,22 @@ export default function RefundBankDetailsStep({
     isDomiciliary = false,
     domiciliaryAccount,
 }: RefundBankDetailsStepProps) {
-    const hasDomiciliaryData = isDomiciliary && domiciliaryAccount?.bankName;
+    const { data: savedAccountsResponse, isLoading } = useGetSavedAccountsQuery();
+
+    const domiciliaryAccounts = React.useMemo(() => {
+        if (!isDomiciliary) return [];
+        return (savedAccountsResponse?.data || []).filter((a: any) => a.currency === 'FOREIGN');
+    }, [savedAccountsResponse, isDomiciliary]);
 
     if (isDomiciliary) {
+        if (isLoading) {
+            return (
+                <View style={{ gap: moderateScale(14), paddingVertical: moderateScale(20), alignItems: 'center', justifyContent: 'center' }}>
+                    <ActivityIndicator size="small" color="#FF6B2C" />
+                </View>
+            );
+        }
+
         return (
             <View style={{ gap: moderateScale(14) }}>
                 <Text style={{ fontSize: moderateScale(15), fontWeight: '700', color: '#0F172A', marginBottom: moderateScale(4) }}>
@@ -55,30 +69,53 @@ export default function RefundBankDetailsStep({
                     Enter your domiciliary account details for refunds if your transaction cannot be processed.
                 </Text>
 
-                {hasDomiciliaryData && (
-                    <View style={{
-                        borderWidth: 1.5,
-                        borderColor: '#402f28ff',
-                        backgroundColor: '#FFF7ED',
-                        borderRadius: moderateScale(12),
-                        paddingVertical: moderateScale(16),
-                        paddingHorizontal: moderateScale(16),
-                    }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <View style={{ flex: 1 }}>
-                                <Text style={{ fontSize: moderateScale(14), fontWeight: '700', color: '#0F172A', marginBottom: moderateScale(4) }}>
-                                    {domiciliaryAccount.bankName}
-                                </Text>
-                                <Text style={{ fontSize: moderateScale(13), color: '#64748B', fontWeight: '500' }}>
-                                    {domiciliaryAccount.accountNumber} <Text style={{ color: '#E2E8F0' }}>|</Text> {domiciliaryAccount.accountName}
-                                </Text>
-                            </View>
-                            <Ionicons name="checkmark-circle" size={moderateScale(20)} color="#FF6B2C" />
-                        </View>
-                    </View>
-                )}
+                {domiciliaryAccounts.map((account: any) => {
+                    const isSelected = selectedSavedAccountId === account.id || 
+                        (domiciliaryAccount?.accountNumber === account.accountNumber && 
+                         domiciliaryAccount?.bankName === account.bankName);
 
-                {!hasDomiciliaryData && (
+                    return (
+                        <TouchableOpacity
+                            key={account.id}
+                            activeOpacity={0.9}
+                            onPress={() => {
+                                setSelectedSavedAccountId(account.id);
+                                setValue('domiciliaryBankName', account.bankName);
+                                setValue('domiciliaryAccountNumber', account.accountNumber);
+                                setValue('domiciliaryAccountName', account.accountName);
+                                setValue('domiciliarySwiftCode', account.swiftCode || '');
+                                setValue('domiciliaryRoutingNumber', account.routingNumber || '');
+                                setValue('domiciliaryBankAddress', account.bankAddress || '');
+                            }}
+                            style={{
+                                borderWidth: isSelected ? 1.5 : 1,
+                                borderColor: isSelected ? '#FF6B2C' : '#E2E8F0',
+                                backgroundColor: isSelected ? '#FFF7ED' : '#FFFFFF',
+                                borderRadius: moderateScale(12),
+                                paddingVertical: moderateScale(16),
+                                paddingHorizontal: moderateScale(16),
+                            }}
+                        >
+                            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={{ fontSize: moderateScale(14), fontWeight: '700', color: '#0F172A', marginBottom: moderateScale(4) }}>
+                                        {account.bankName}
+                                    </Text>
+                                    <Text style={{ fontSize: moderateScale(13), color: '#64748B', fontWeight: '500' }}>
+                                        {account.accountNumber} <Text style={{ color: '#E2E8F0' }}>|</Text> {account.accountName}
+                                    </Text>
+                                </View>
+                                <Ionicons
+                                    name={isSelected ? "checkmark-circle" : "ellipse-outline"}
+                                    size={moderateScale(20)}
+                                    color={isSelected ? "#FF6B2C" : "#64748B"}
+                                />
+                            </View>
+                        </TouchableOpacity>
+                    );
+                })}
+
+                {domiciliaryAccounts.length === 0 && (
                     <View style={{
                         padding: moderateScale(16),
                         backgroundColor: '#F8F9FA',
@@ -98,6 +135,7 @@ export default function RefundBankDetailsStep({
                 <TouchableOpacity
                     activeOpacity={0.8}
                     onPress={() => {
+                        setSelectedSavedAccountId(null);
                         setValue('domiciliaryBankName', '');
                         setValue('domiciliaryAccountNumber', '');
                         setValue('domiciliaryAccountName', '');

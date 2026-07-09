@@ -3,7 +3,6 @@ import ControlledInput from '@/components/ControlledInput';
 import GenericSelectionSheet, { SelectionItem } from '@/components/GenericSelectionSheet';
 import InitiateTransactionSheet from '@/components/InitiateTransactionSheet';
 import LoadingBackdrop from '@/components/LoadingBackdrop';
-import SourceOfFundsSheet from '@/components/SourceOfFundsSheet';
 import AddNewAccountStep from '@/components/transaction-flow/AddNewAccountStep';
 import CredentialStep from '@/components/transaction-flow/CredentialStep';
 import DocumentStep from '@/components/transaction-flow/DocumentStep';
@@ -23,7 +22,6 @@ import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDo
 import { useExchangeLogic } from '@/hooks/useExchangeLogic';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useToastStore } from '@/stores/useToastStore';
-import { useDeclarationStore } from '@/stores/useDeclarationStore';
 import { schoolStep0Schema, schoolStep2Schema, schoolStep3Schema } from '@/utils/validations/school';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
@@ -103,14 +101,8 @@ export default function SchoolFeesScreen() {
     const [currentStep, setCurrentStep] = useState(0);
     const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
     const [admissionSheetVisible, setAdmissionSheetVisible] = useState(false);
-    const [showSourceOfFundsSheet, setShowSourceOfFundsSheet] = useState(false);
-    const [initials, setInitials] = useState('');
-    const { proofOfFunds, isDeclarationCompleted } = useDeclarationStore();
     const [uploadTarget, setUploadTarget] = useState<'applicant' | 'student' | null>(null);
 
-    useEffect(() => {
-        useDeclarationStore.getState().reset();
-    }, []);
     const [payoutSheetVisible, setPayoutSheetVisible] = useState(false);
     const [selectedSavedAccountId, setSelectedSavedAccountId] = useState<string | null>('');
     const [isAddingNewAccount, setIsAddingNewAccount] = useState(false);
@@ -221,22 +213,7 @@ export default function SchoolFeesScreen() {
                     }
                 }
 
-                if (data.amount && data.amount > 10000) {
-                    if (proofOfFunds.length === 0) {
-                        ctx.addIssue({
-                            code: "custom",
-                            message: 'Proof of Funds is required for transactions above $10,000',
-                            path: ['amount']
-                        });
-                    }
-                    if (!isDeclarationCompleted) {
-                        ctx.addIssue({
-                            code: "custom",
-                            message: 'Please complete the source of funds declaration',
-                            path: ['amount']
-                        });
-                    }
-                }
+                
             });
         return zodResolver(dynamicSchema)(data, context, options);
     };
@@ -330,13 +307,10 @@ export default function SchoolFeesScreen() {
         onSuccess: (documentType, { file, metadata }) => {
             if (documentType === 'SCHOOL_ADMISSION') updateDoc('admission', file, metadata);
             else if (documentType === 'INVOICE') updateDoc('invoice', file, metadata);
-            else if (documentType === 'PASSPORT') {
-                if (uploadTarget === 'student') {
-                    updateDoc('studentPassport', file, metadata);
-                } else {
-                    updateDoc('applicantPassport', file, metadata);
-                }
-            }
+            else if (documentType === 'STUDENT_PASSPORT')
+                updateDoc('studentPassport', file, metadata);
+            else if (documentType === 'PASSPORT')
+                updateDoc('applicantPassport', file, metadata);
             else if (documentType === 'RECEIPT') updateDoc('result', file, metadata);
             else if (documentType === 'MEMBERSHIP_CARD') updateDoc('degree', file, metadata);
             else if (documentType === 'DIGITAL_SIGNATURE') updateDoc('signature', file, metadata);
@@ -813,8 +787,7 @@ export default function SchoolFeesScreen() {
                 ...(isPostGrad && docs.degree.meta ? [docs.degree.meta] : []),
                 ...(isPostGrad && docs.result.meta ? [docs.result.meta] : []),
                 ...(docs.bank_verification.meta ? [docs.bank_verification.meta] : []),
-                ...((docs.signature.meta && useDeclarationStore.getState().declarationMethod === 'signature') ? [docs.signature.meta] : []),
-                ...proofOfFunds.map(p => p.metadata),
+                
             ],
             beneficiaryDetails: {
                 organizationName: data.schoolName || '',
@@ -850,8 +823,7 @@ export default function SchoolFeesScreen() {
                 accountNumber: data.customerAccountNumber,
                 accountName: data.customerAccountName,
             },
-            declarationMethod: useDeclarationStore.getState().declarationMethod || undefined,
-            declarationInitials: useDeclarationStore.getState().declarationMethod === 'initials' ? initials : undefined,
+            
         };
 
         createTransaction.mutate(payload, {
@@ -895,10 +867,7 @@ export default function SchoolFeesScreen() {
         isStep1Valid = !!(docs.admission.meta && docs.studentPassport.meta && docs.invoice.meta);
     }
 
-    const foreignAmountStr = currencyGet.code !== 'NGN' ? amountGetStr : amountSendStr;
-    const foreignAmount = parseFloat(foreignAmountStr.replace(/,/g, '')) || 0;
-    const hasProofOfFunds = proofOfFunds.length > 0;
-    const isStep2Valid = watchedFields.amount > 0 && (foreignAmount <= 10000 || (hasProofOfFunds && isDeclarationCompleted));
+    const isStep2Valid = watchedFields.amount > 0;
     const isStep3Valid = !!(
         watchedFields.beneficiaryCountry &&
         watchedFields.studentName &&
@@ -960,9 +929,6 @@ export default function SchoolFeesScreen() {
                         onAmountSendChange={setAmountSendStr}
                         allowedModes={['buy']}
                         error={errors.amount?.message as string | undefined}
-                        showLimitWarning={true}
-                        onLimitWarningPress={() => router.push('/proof-of-fund')}
-                        onDownloadPress={() => setShowSourceOfFundsSheet(true)}
                         isSchool={true}
                     />
                 )}
@@ -1050,34 +1016,7 @@ export default function SchoolFeesScreen() {
                     confirmButtonText="Select Admission Type"
                 />
 
-                <SourceOfFundsSheet
-                    visible={showSourceOfFundsSheet}
-                    onClose={() => setShowSourceOfFundsSheet(false)}
-                    onSubmit={(method) => {
-                        useDeclarationStore.getState().setDeclarationCompleted(true, method, initials);
-                        setShowSourceOfFundsSheet(false);
-                    }}
-                    customerInfo={{
-                        fullName: `${user?.profile?.firstName || ''} ${user?.profile?.lastName || ''}`,
-                        phoneNumber: user?.phoneNumber || '',
-                        email: user?.email || '',
-                        bvn: user?.kyc?.bvn || '',
-                        address: user?.profile?.address || '',
-                        passportDocumentNumber: watchedFields.passportDocumentNumber || user?.kyc?.passportDocumentNumber || ''
-                    }}
-                    transactionDetails={{
-                        type: 'School Fees',
-                        currency: currencyGet.currencyName,
-                        amount: `${currencyGet.code} ${amountGetStr}`,
-                        purpose: 'Pay School Fees'
-                    }}
-                    onUploadSignature={() => uploadFile('DIGITAL_SIGNATURE')}
-                    signatureFile={docs.signature.file?.name}
-                    isUploadingSignature={isUploading}
-                    initials={initials}
-                    onChangeInitials={setInitials}
-                />
-            </TransactionLayout>
+                </TransactionLayout>
         </View>
     );
 }

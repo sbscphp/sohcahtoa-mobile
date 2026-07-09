@@ -1,13 +1,13 @@
 import ControlledInput from '@/components/ControlledInput';
-import GenericSelectionSheet, { SelectionItem } from '@/components/GenericSelectionSheet';
 import FileUpload from '@/components/FileUpload';
+import GenericSelectionSheet, { SelectionItem } from '@/components/GenericSelectionSheet';
 import { ArrowDown2 } from 'iconsax-react-nativejs';
 import React from 'react';
 import { Controller } from 'react-hook-form';
 import { Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 
-interface SchoolBankDetailsStepProps {
+interface HospitalBankDetailsStepProps {
     control: any;
     watch: any;
     setValue: any;
@@ -26,7 +26,7 @@ const COUNTRIES: SelectionItem[] = [
     { id: '6', label: 'Others', value: 'Others' },
 ];
 
-export default function SchoolBankDetailsStep({
+export default function HospitalBankDetailsStep({
     control,
     watch,
     setValue,
@@ -34,16 +34,14 @@ export default function SchoolBankDetailsStep({
     verificationFile,
     onUploadInvoice,
     isUploadingInvoice
-}: SchoolBankDetailsStepProps) {
+}: HospitalBankDetailsStepProps) {
     const beneficiaryCountry = watch('beneficiaryCountry');
     const [countrySheetVisible, setCountrySheetVisible] = React.useState(false);
 
     return (
         <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
             <Text style={styles.title}>Where would you like to send the fund to?</Text>
-            <Text style={styles.description}>Enter the school and bank details for this payment.
-Please upload an invoice that contains the beneficiary details so we can verify them more easily.
-You may also upload an invoice below to use as confirmation during internet banking.</Text>
+            <Text style={styles.description}>Enter the medical provider and bank details for this payment.</Text>
 
             <Controller
                 control={control}
@@ -67,35 +65,20 @@ You may also upload an invoice below to use as confirmation during internet bank
                 )}
             />
 
-            <ControlledInput
-                control={control}
-                name="studentName"
-                label="Student Name"
-                placeholder="Enter student name"
-                required
-            />
-
-            <ControlledInput
-                control={control}
-                name="studentPassportNumber"
-                label="Student Passport Number"
-                placeholder="Enter student passport number"
-            />
-
-            <Text style={styles.sectionTitle}>For the School (Beneficiary)</Text>
+            <Text style={styles.sectionTitle}>Hospital details</Text>
             <View style={styles.sectionContainer}>
                 <ControlledInput
                     control={control}
-                    name="schoolName"
-                    label="School Name"
-                    placeholder="Enter school name"
+                    name="organizationName"
+                    label="Hospital Name"
+                    placeholder="Enter hospital name"
                     required
                 />
                 <ControlledInput
                     control={control}
                     name="beneficiaryEmail"
-                    label="School Email Address"
-                    placeholder="Enter school email address"
+                    label="Hospital Email Address"
+                    placeholder="Enter hospital email address"
                     required
                     keyboardType="email-address"
                     autoCapitalize="none"
@@ -104,8 +87,8 @@ You may also upload an invoice below to use as confirmation during internet bank
                 <ControlledInput
                     control={control}
                     name="beneficiaryPhone"
-                    label="School Phone Number"
-                    placeholder="Enter school phone number"
+                    label="Hospital Phone Number"
+                    placeholder="Enter hospital phone number"
                     required
                     keyboardType="phone-pad"
                 />
@@ -113,24 +96,24 @@ You may also upload an invoice below to use as confirmation during internet bank
                 <ControlledInput
                     control={control}
                     name="beneficiaryAddress"
-                    label="School Address"
-                    placeholder="Enter school address"
+                    label="Hospital Address"
+                    placeholder="Enter hospital address"
                     required
                 />
 
                 <ControlledInput
                     control={control}
                     name="beneficiaryCity"
-                    label="School City"
-                    placeholder="Enter school city"
+                    label="Hospital City"
+                    placeholder="Enter hospital city"
                     required
                 />
 
                 <ControlledInput
                     control={control}
                     name="beneficiaryState"
-                    label="School State/Province"
-                    placeholder="Enter school state/province"
+                    label="Hospital State/Province"
+                    placeholder="Enter hospital state/province"
                     required
                 />
             </View>
@@ -147,7 +130,7 @@ You may also upload an invoice below to use as confirmation during internet bank
                 <ControlledInput
                     control={control}
                     name="bankAccountName"
-                    label="Account Name (For the School)"
+                    label="Account Name (For the Hospital)"
                     placeholder="Enter account name"
                     required
                 />

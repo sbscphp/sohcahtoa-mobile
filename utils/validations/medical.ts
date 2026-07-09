@@ -1,12 +1,12 @@
 import { z } from 'zod';
-import { amountStepSchema, baseCredentialSchema, medicalBankDetailsStepSchema, ticketNumberField, visaNumberField } from './shared';
+import { amountStepSchema, baseCredentialSchema, medicalBankDetailsStepSchema, passportIssueDateField, ticketNumberField, visaNumberField } from './shared';
 
 /** Step 0: Medical credentials — standard BVN, NIN, Form A, Passport */
 export const medicalStep0Schema = baseCredentialSchema;
 
 /** Step 1: Document details */
 export const medicalStep1Schema = z.object({
-    passportIssueDate: z.string().min(1, 'Please select Passport Issue Date'),
+    passportIssueDate: passportIssueDateField,
     passportExpiryDate: z.string().min(1, 'Please select Passport Expiry Date'),
 });
 

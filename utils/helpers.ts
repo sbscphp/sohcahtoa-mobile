@@ -125,6 +125,7 @@ export const commonDocTypeLabels: Record<string, string> = {
     'MEMBERSHIP_CARD': 'Membership Card',
     'INVOICE': 'Invoice',
     'RECEIPT': 'Receipt',
+    'STUDENT_PASSPORT': 'Student International Passport',
     'PROOF_OF_FUNDS': 'Proof of Funds',
     'DIGITAL_SIGNATURE': 'Declaration Document (Signature)',
 };

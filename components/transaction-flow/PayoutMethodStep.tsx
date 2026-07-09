@@ -6,6 +6,7 @@ import { Text, TouchableOpacity, View } from 'react-native';
 import { moderateScale } from 'react-native-size-matters';
 import { useWatch } from 'react-hook-form';
 import { useAttachBankAccountsMutation } from '@/hooks/queries/transactions/useAttachBankAccountsMutation';
+import { useGetSavedAccountsQuery } from '@/hooks/queries/banks/useGetSavedAccountsQuery';
 
 export interface SavedAccount {
     id: string;
@@ -47,6 +48,17 @@ export default function PayoutMethodStep({
     isSellFx = false,
 }: PayoutMethodStepProps) {
     const attachBankAccountsMutation = useAttachBankAccountsMutation();
+    const { data: savedAccountsResponse } = useGetSavedAccountsQuery();
+
+    const localSavedAccounts = React.useMemo(() => {
+        if (!savedAccountsResponse?.data) return savedAccounts;
+        // Find raw account IDs that are local (not FOREIGN)
+        const localAccountIds = savedAccountsResponse.data
+            .filter((a: any) => a.currency !== 'FOREIGN')
+            .map((a: any) => a.id);
+            
+        return savedAccounts.filter(account => localAccountIds.includes(account.id));
+    }, [savedAccounts, savedAccountsResponse]);
 
     const [localSelectedIds, setLocalSelectedIds] = React.useState<string[]>([]);
     const activeSelectedIds = selectedSavedAccountIds !== undefined ? selectedSavedAccountIds : localSelectedIds;
@@ -95,7 +107,7 @@ export default function PayoutMethodStep({
             {/* Saved Accounts List */}
             {isElectronic && !isDomiciliary && (
                 <View style={{ marginTop: moderateScale(8), gap: moderateScale(12) }}>
-                    {savedAccounts.map((account) => {
+                    {localSavedAccounts.map((account) => {
                         const isSelected = isMultiSelect
                             ? activeSelectedIds.includes(account.id)
                             : selectedSavedAccountId === account.id;
@@ -114,7 +126,7 @@ export default function PayoutMethodStep({
                                         setActiveSelectedIds(nextIds);
 
                                         if (nextIds.length > 0) {
-                                            const lastAccount = savedAccounts.find(a => a.id === nextIds[nextIds.length - 1]);
+                                            const lastAccount = localSavedAccounts.find(a => a.id === nextIds[nextIds.length - 1]);
                                             if (lastAccount) {
                                                 setValue('customerBankName', lastAccount.bankName);
                                                 setValue('customerBankCode', lastAccount.bankCode);
@@ -197,7 +209,7 @@ export default function PayoutMethodStep({
             )}
 
 
-            {isElectronic && !isDomiciliary && (!savedAccounts || savedAccounts.length === 0) && (
+            {isElectronic && !isDomiciliary && (!localSavedAccounts || localSavedAccounts.length === 0) && (
                 <View style={{
                     padding: moderateScale(16),
                     backgroundColor: '#F8F9FA',
@@ -263,9 +275,7 @@ export default function PayoutMethodStep({
                         label="Domiciliary Account Number"
                         placeholder="Enter domiciliary account number"
                         required
-                        keyboardType="numeric"
-                        maxLength={10}
-                        filterType="numeric"
+                        filterType="alphanumeric"
                     />
                     <ControlledInput
                         control={control}

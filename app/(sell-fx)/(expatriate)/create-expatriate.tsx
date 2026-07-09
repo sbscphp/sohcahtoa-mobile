@@ -372,7 +372,22 @@ export default function CreateExpatriateScreen() {
         ]);
 
         if (isValid) {
-            setIsAddingNewAccount(false);
+            saveAccountMutation.mutate({
+                bankName: watchedFields.domiciliaryBankName || '',
+                accountNumber: watchedFields.domiciliaryAccountNumber || '',
+                accountName: watchedFields.domiciliaryAccountName || '',
+                swiftCode: watchedFields.domiciliarySwiftCode || '',
+                routingNumber: watchedFields.domiciliaryRoutingNumber || '',
+                bankAddress: watchedFields.domiciliaryBankAddress || '',
+                currency: 'FOREIGN',
+            }, {
+                onSuccess: (res) => {
+                    if (res.data?.id) {
+                        setSelectedSavedAccountId(res.data.id);
+                    }
+                    setIsAddingNewAccount(false);
+                }
+            });
         }
     };
 
@@ -447,7 +462,7 @@ export default function CreateExpatriateScreen() {
             mode: "SELL",
             currency: currencyGet.code,
             amount: Number(data.amount),
-            purpose: 'I am a foreigner living or working in Nigeria',
+            purpose: 'Expatriate Selling FX',
             destinationCountry: currencyGet.country,
             bvn: data.bvn,
             nin: data.nin,
@@ -462,6 +477,14 @@ export default function CreateExpatriateScreen() {
                 ...proofOfFunds.map(p => p.metadata),
             ],
             payoutMethod: data.payoutMethod,
+            ...(isElectronicTransfer ? {
+                beneficiaryDetails: {
+                    bankName: data.customerBankName,
+                    bankCode: data.customerBankCode,
+                    accountNumber: data.customerAccountNumber,
+                    accountName: data.customerAccountName,
+                }
+            } : {}),
             refundBankDetails: {
                 bankName: data.domiciliaryBankName,
                 accountNumber: data.domiciliaryAccountNumber,
@@ -584,7 +607,7 @@ export default function CreateExpatriateScreen() {
                             label="International Passport Number"
                             placeholder="Enter international passport number"
                             required
-                            maxLength={9} filterType="alphanumeric"
+                            filterType="alphanumeric"
                         />
                     </View>
                 )}

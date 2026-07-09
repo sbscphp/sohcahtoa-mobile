@@ -4,7 +4,7 @@ import GenericSelectionSheet, { SelectionItem } from '@/components/GenericSelect
 import InitiateTransactionSheet from '@/components/InitiateTransactionSheet';
 import LoadingBackdrop from '@/components/LoadingBackdrop';
 import AddNewAccountStep from '@/components/transaction-flow/AddNewAccountStep';
-import { Ionicons } from '@expo/vector-icons';
+
 import { useAttachBankAccountsMutation } from '@/hooks/queries/transactions/useAttachBankAccountsMutation';
 import CredentialStep from '@/components/transaction-flow/CredentialStep';
 import DocumentStep from '@/components/transaction-flow/DocumentStep';
@@ -29,8 +29,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { View, Text, TouchableOpacity } from 'react-native';
-import { moderateScale } from 'react-native-size-matters';
+import { View } from 'react-native';
 import { z } from 'zod';
 
 const PAYOUT_METHODS: SelectionItem[] = [
@@ -71,6 +70,55 @@ export default function ProfessionalScreen() {
     const [selectedSavedAccountId, setSelectedSavedAccountId] = useState<string | null>('');
     const [isAddingNewAccount, setIsAddingNewAccount] = useState(false);
 
+    const resolver = React.useMemo(() => {
+        const dynamicSchema = professionalStep0Schema
+            .merge(professionalStep1Schema)
+            .merge(professionalStep2Schema)
+            .merge(z.object({
+                payoutMethod: z.string().optional().or(z.literal('')),
+                customerBankName: z.string().optional().or(z.literal('')),
+                customerBankCode: z.string().optional().or(z.literal('')),
+                customerAccountNumber: z.string().optional().or(z.literal('')),
+                customerAccountName: z.string().optional().or(z.literal('')),
+            }))
+            .merge(professionalStep3Schema)
+            .superRefine((data, ctx) => {
+                const targetBvn = profileBvn || user?.kyc?.bvn;
+                if (!targetBvn) {
+                    if (!data.bvn) {
+                        ctx.addIssue({
+                            code: "custom",
+                            message: 'BVN is required',
+                            path: ['bvn']
+                        });
+                    } else if (data.bvn.length !== 11 || !/^\d+$/.test(data.bvn)) {
+                        ctx.addIssue({
+                            code: "custom",
+                            message: 'BVN must be exactly 11 digits',
+                            path: ['bvn']
+                        });
+                    }
+                }
+                const targetNin = profileNin || user?.kyc?.nin;
+                if (!targetNin) {
+                    if (!data.nin) {
+                        ctx.addIssue({
+                            code: "custom",
+                            message: 'NIN is required',
+                            path: ['nin']
+                        });
+                    } else if (data.nin.length !== 11 || !/^\d+$/.test(data.nin)) {
+                        ctx.addIssue({
+                            code: "custom",
+                            message: 'NIN must be exactly 11 digits',
+                            path: ['nin']
+                        });
+                    }
+                }
+            });
+        return zodResolver(dynamicSchema);
+    }, [profileBvn, profileNin, user]);
+
     const {
         control,
         handleSubmit,
@@ -79,7 +127,7 @@ export default function ProfessionalScreen() {
         setValue,
         formState: { errors }
     } = useForm<ProfessionalFormValues>({
-        resolver: zodResolver(professionalFormSchema),
+        resolver,
         defaultValues: {
             bvn: user?.kyc?.bvn || '',
             nin: user?.kyc?.nin || '',
@@ -262,11 +310,23 @@ export default function ProfessionalScreen() {
         }
     }, [user, setValue]);
 
+    React.useEffect(() => {
+        const activeBvn = profileBvn || user?.kyc?.bvn || '';
+        const activeNin = profileNin || user?.kyc?.nin || '';
+
+        if (activeBvn && !watchedFields.bvn) {
+            setValue('bvn', activeBvn, { shouldValidate: true, shouldDirty: true });
+        }
+        if (activeNin && !watchedFields.nin) {
+            setValue('nin', activeNin, { shouldValidate: true, shouldDirty: true });
+        }
+    }, [profileBvn, profileNin, user, setValue, watchedFields.bvn, watchedFields.nin]);
+
     const credentialFields = [
         { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number(BVN)" placeholder="Enter your BVN" required={!isBvnDisabled} keyboardType="numeric" maxLength={11} filterType="numeric" disabled={isBvnDisabled} /> },
         { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number(NIN)" placeholder="Enter your NIN" required={!isNinDisabled} keyboardType="numeric" maxLength={11} filterType="numeric" disabled={isNinDisabled} /> },
         { customComponent: <ControlledInput control={control} name="formAId" label="Form A ID" placeholder="Enter Form A ID" required keyboardType="numeric" maxLength={10} filterType="numeric" /> },
-        { customComponent: <ControlledInput control={control} name="passportDocumentNumber" label="International Passport Number" placeholder="Enter international passport (Optional)" maxLength={9} filterType="alphanumeric" /> },
+        { customComponent: <ControlledInput control={control} name="passportDocumentNumber" label="International Passport Number (Optional)" placeholder="Enter international passport number" maxLength={9} filterType="alphanumeric" /> },
         {
             customComponent: (
                 <View style={{ flexDirection: 'row', gap: 12 }}>
@@ -274,7 +334,7 @@ export default function ProfessionalScreen() {
                         <ControlledDatePicker
                             control={control}
                             name="passportIssueDate"
-                            label="Passport Issue Date"
+                            label="Passport Issue Date (Optional)"
                             maximumDate={new Date()}
                         />
                     </View>
@@ -282,7 +342,7 @@ export default function ProfessionalScreen() {
                         <ControlledDatePicker
                             control={control}
                             name="passportExpiryDate"
-                            label="Passport Expiry Date"
+                            label="Passport Expiry Date (Optional)"
                             minimumDate={new Date()}
                         />
                     </View>
@@ -320,7 +380,7 @@ export default function ProfessionalScreen() {
             required: true,
         },
         {
-            label: 'International Passport',
+            label: 'International Passport (optional)',
             onUpload: () => uploadFile('PASSPORT'),
             fileName: docs.passport.file?.name,
             fileUri: docs.passport.file?.uri, fileUrl: docs.passport.meta?.fileUrl,

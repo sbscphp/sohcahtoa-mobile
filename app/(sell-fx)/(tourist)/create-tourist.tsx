@@ -435,7 +435,7 @@ export default function CreateTouristScreen() {
             mode: 'SELL',
             currency: currencyGet.code,
             amount: Number(data.amount),
-            purpose: 'I am touring Nigeria and want Naira',
+            purpose: 'Tourist Selling FX',
             destinationCountry: currencyGet.country,
             documents: [
                 ...(docs.passport.meta ? [docs.passport.meta] : []),
@@ -555,7 +555,22 @@ export default function CreateTouristScreen() {
         ]);
 
         if (isValid) {
-            setIsAddingNewAccount(false);
+            saveAccountMutation.mutate({
+                bankName: watchedFields.domiciliaryBankName || '',
+                accountNumber: watchedFields.domiciliaryAccountNumber || '',
+                accountName: watchedFields.domiciliaryAccountName || '',
+                swiftCode: watchedFields.domiciliarySwiftCode || '',
+                routingNumber: watchedFields.domiciliaryRoutingNumber || '',
+                bankAddress: watchedFields.domiciliaryBankAddress || '',
+                currency: 'FOREIGN',
+            }, {
+                onSuccess: (res) => {
+                    if (res.data?.id) {
+                        setSelectedSavedAccountId(res.data.id);
+                    }
+                    setIsAddingNewAccount(false);
+                }
+            });
         }
     };
 

@@ -34,6 +34,8 @@ export default function ViewResidentScreen() {
     const tx = txResponse?.data;
     const showToast = useToastStore(s => s.showToast);
 
+    console.log(JSON.stringify(tx, null, 2), "TX");
+
     useFocusEffect(
         useCallback(() => {
             refetch();
@@ -79,7 +81,7 @@ export default function ViewResidentScreen() {
             ...(tx.cashPickup ? [
                 {
                     label: 'Pickup Cash Amount (25%)',
-                    value: formatCurrency(tx.cashPickup.amount * 0.25, (tx.cashPickup.currency || tx.currency) === 'USD' ? '$' : (tx.cashPickup.currency || tx.currency) === 'GBP' ? '£' : (tx.cashPickup.currency || tx.currency) === 'EUR' ? '€' : (tx.cashPickup.currency || tx.currency)) || 'N/A',
+                    value: formatCurrency((tx?.pickupLocation?.amount ?? 0) * 0.25, (tx.cashPickup.currency || tx.currency) === 'USD' ? '$' : (tx.cashPickup.currency || tx.currency) === 'GBP' ? '£' : (tx.cashPickup.currency || tx.currency) === 'EUR' ? '€' : (tx.cashPickup.currency || tx.currency)) || 'N/A',
                 },
                 {
                     label: 'Pickup Status',
@@ -147,8 +149,18 @@ export default function ViewResidentScreen() {
         }));
     }, [tx, uploadFile]);
 
+    const beneficiaryDetailsItems = useMemo(() => {
+        const details = tx?.beneficiaryDetails;
+        if (!tx || !details) return undefined;
+        const items: any[] = [];
+        if (details.bankName) items.push({ label: 'Bank Name', value: details.bankName });
+        if (details.accountName) items.push({ label: 'Account Name', value: details.accountName });
+        if (details.accountNumber) items.push({ label: 'Account Number', value: details.accountNumber });
+        return items.length > 0 ? items : undefined;
+    }, [tx]);
+
     const bankAccountsItems = useMemo(() => {
-        const details = tx?.refundBankDetails || tx?.beneficiaryDetails;
+        const details = tx?.refundBankDetails;
         if (!tx || !details) return undefined;
         const items: any[] = [];
         if (details.bankName) items.push({ label: 'Bank Name', value: details.bankName });
@@ -186,6 +198,7 @@ export default function ViewResidentScreen() {
                 <TransactionDetailsView
                     details={detailsItems}
                     documents={detailsDocuments}
+                    beneficiaryDetails={beneficiaryDetailsItems}
                     bankAccountsDetails={bankAccountsItems}
                     currentStep={tx?.currentStep}
                 />

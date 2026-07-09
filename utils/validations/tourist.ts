@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { locationStepSchema, passportDocumentNumberField } from './shared';
+import { locationStepSchema, passportDocumentNumberField, passportIssueDateField } from './shared';
 
 /** Step 0: Tourist credentials */
 export const touristStep0Schema = z.object({
@@ -9,7 +9,7 @@ export const touristStep0Schema = z.object({
 
 /** Step 1: Tourist documents */
 export const touristStep1Schema = z.object({
-    passportIssueDate: z.string().min(1, 'Please select Passport Issue Date'),
+    passportIssueDate: passportIssueDateField,
     passportExpiryDate: z.string().min(1, 'Please select Passport Expiry Date'),
 });
 

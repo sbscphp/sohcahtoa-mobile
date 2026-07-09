@@ -503,7 +503,22 @@ export default function CreateResidentScreen() {
         ]);
 
         if (isValid) {
-            setIsAddingNewAccount(false);
+            saveAccountMutation.mutate({
+                bankName: watchedFields.domiciliaryBankName || '',
+                accountNumber: watchedFields.domiciliaryAccountNumber || '',
+                accountName: watchedFields.domiciliaryAccountName || '',
+                swiftCode: watchedFields.domiciliarySwiftCode || '',
+                routingNumber: watchedFields.domiciliaryRoutingNumber || '',
+                bankAddress: watchedFields.domiciliaryBankAddress || '',
+                currency: 'FOREIGN',
+            }, {
+                onSuccess: (res) => {
+                    if (res.data?.id) {
+                        setSelectedSavedAccountId(res.data.id);
+                    }
+                    setIsAddingNewAccount(false);
+                }
+            });
         }
     };
 
@@ -580,7 +595,7 @@ export default function CreateResidentScreen() {
              mode: "SELL",
             currency: currencyGet.code,
             amount: data.amount,
-            purpose: 'I have FX and want Naira',
+            purpose: 'Resident Selling FX',
             destinationCountry: currencyGet.country,
             bvn: data.bvn,
             nin: data.nin,
@@ -595,6 +610,14 @@ export default function CreateResidentScreen() {
                 ...proofOfFunds.map(p => p.metadata),
             ],
             payoutMethod: data.payoutMethod,
+            ...(isElectronicTransfer ? {
+                beneficiaryDetails: {
+                    bankName: data.customerBankName,
+                    bankCode: data.customerBankCode,
+                    accountNumber: data.customerAccountNumber,
+                    accountName: data.customerAccountName,
+                }
+            } : {}),
             refundBankDetails: {
                 bankName: data.domiciliaryBankName,
                 accountNumber: data.domiciliaryAccountNumber,

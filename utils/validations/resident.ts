@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { locationStepSchema } from './shared';
+import { locationStepSchema, passportIssueDateField } from './shared';
 
 /** Step 0: Resident credentials */
 export const residentStep0Schema = z.object({
@@ -11,7 +11,7 @@ export const residentStep0Schema = z.object({
 
 /** Step 1: Resident documents */
 export const residentStep1Schema = z.object({
-    passportIssueDate: z.string().min(1, 'Please select Passport Issue Date'),
+    passportIssueDate: passportIssueDateField,
     passportExpiryDate: z.string().min(1, 'Please select Passport Expiry Date'),
 });
 

@@ -138,11 +138,26 @@ export default function ViewSchoolFeesScreen() {
     const beneficiaryItems = useMemo(() => {
         if (!tx) return [];
         // console.log(tx.personalInfo)
-        const studentName = getVal((tx as any).studentName || (tx.personalInfo as any)?.studentName, 'studentName');
-        const studentNIN = getVal((tx as any).studentNIN || (tx.personalInfo as any)?.studentNIN, 'studentNIN');
-        const studentPassportNumber = getVal((tx as any).studentPassportNumber || (tx.personalInfo as any)?.studentPassportNumber, 'studentPassportNumber');
-        const studentPassportIssueDate = getVal((tx as any).studentPassportIssueDate || (tx.personalInfo as any)?.studentPassportIssueDate, 'studentPassportIssueDate');
-        const studentPassportExpiryDate = getVal((tx as any).studentPassportExpiryDate || (tx.personalInfo as any)?.studentPassportExpiryDate, 'studentPassportExpiryDate');
+        const studentName = getVal(
+            (tx as any).studentName || (tx.personalInfo as any)?.studentName || (tx.beneficiaryDetails as any)?.studentName,
+            'studentName', 'beneficiaryDetails.studentName'
+        );
+        const studentNIN = getVal(
+            (tx as any).studentNIN || (tx.personalInfo as any)?.studentNIN || (tx.beneficiaryDetails as any)?.studentNIN,
+            'studentNIN', 'beneficiaryDetails.studentNIN'
+        );
+        const studentPassportNumber = getVal(
+            (tx as any).studentPassportNumber || (tx.personalInfo as any)?.studentPassportNumber || (tx.beneficiaryDetails as any)?.studentPassportDocumentNumber,
+            'studentPassportNumber', 'studentPassportDocumentNumber', 'beneficiaryDetails.studentPassportDocumentNumber'
+        );
+        const studentPassportIssueDate = getVal(
+            (tx as any).studentPassportIssueDate || (tx.personalInfo as any)?.studentPassportIssueDate || (tx.beneficiaryDetails as any)?.studentPassportIssueDate,
+            'studentPassportIssueDate', 'beneficiaryDetails.studentPassportIssueDate'
+        );
+        const studentPassportExpiryDate = getVal(
+            (tx as any).studentPassportExpiryDate || (tx.personalInfo as any)?.studentPassportExpiryDate || (tx.beneficiaryDetails as any)?.studentPassportExpiryDate,
+            'studentPassportExpiryDate', 'beneficiaryDetails.studentPassportExpiryDate'
+        );
         const admissionType = getVal((tx as any).admissionType || (tx.personalInfo as any)?.admissionType, 'admissionType');
 
         const schoolName = getVal((tx.beneficiaryDetails as any)?.schoolName || (tx.beneficiaryDetails as any)?.organizationName, 'schoolName', 'beneficiaryDetails.schoolName', 'beneficiaryDetails.organizationName');

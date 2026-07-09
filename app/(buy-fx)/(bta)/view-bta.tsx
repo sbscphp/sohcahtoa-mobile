@@ -36,7 +36,7 @@ export default function ViewBtaScreen() {
     const tx = txResponse?.data;
     const showToast = useToastStore(s => s.showToast);
 
-    // console.log("Transaction", JSON.stringify(tx, null, 2))
+    console.log("Transaction", JSON.stringify(tx, null, 2))
 
     useFocusEffect(
         useCallback(() => {
@@ -95,7 +95,7 @@ export default function ViewBtaScreen() {
             ...(tx.cashPickup ? [
                 {
                     label: 'Pickup Cash Amount',
-                    value: formatCurrency(tx.cashPickup.amount, tx.currency === 'USD' ? '$' : tx.currency === 'GBP' ? '£' : tx.currency === 'EUR' ? '€' : tx.currency) || 'N/A',
+                    value: formatCurrency(tx?.pickupLocation?.amount, tx.currency === 'USD' ? '$' : tx.currency === 'GBP' ? '£' : tx.currency === 'EUR' ? '€' : tx.currency) || 'N/A',
                 },
                 {
                     label: 'Pickup Cash Status',

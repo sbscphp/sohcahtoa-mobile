@@ -2,7 +2,6 @@ import ControlledDatePicker from '@/components/ControlledDatePicker';
 import ControlledInput from '@/components/ControlledInput';
 import InitiateTransactionSheet from '@/components/InitiateTransactionSheet';
 import LoadingBackdrop from '@/components/LoadingBackdrop';
-import SourceOfFundsSheet from '@/components/SourceOfFundsSheet';
 import CredentialStep from '@/components/transaction-flow/CredentialStep';
 import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
@@ -20,7 +19,6 @@ import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDo
 import { useExchangeLogic } from '@/hooks/useExchangeLogic';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useToastStore } from '@/stores/useToastStore';
-import { useDeclarationStore } from '@/stores/useDeclarationStore';
 import { LocationItem } from '@/utils/locations';
 import { touringStep0Schema, touringStep1Schema, touringStep2Schema, touringStep3Schema } from '@/utils/validations/touring';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -75,8 +73,6 @@ const touringFormSchema = z.object({
     if (isDomiciliary) {
         if (!data.domiciliaryAccountNumber) {
             ctx.addIssue({ code: "custom", message: 'Please enter domiciliary account number', path: ['domiciliaryAccountNumber'] });
-        } else if (data.domiciliaryAccountNumber.length !== 10 || !/^\d+$/.test(data.domiciliaryAccountNumber)) {
-            ctx.addIssue({ code: "custom", message: 'Domiciliary account number must be exactly 10 digits', path: ['domiciliaryAccountNumber'] });
         }
         if (!data.domiciliaryBankName) {
             ctx.addIssue({ code: "custom", message: 'Please enter bank name', path: ['domiciliaryBankName'] });
@@ -159,14 +155,6 @@ export default function TouringScreen() {
 
     const [currentStep, setCurrentStep] = useState(0);
     const [initiateSheetVisible, setInitiateSheetVisible] = useState(false);
-    const [showSourceOfFundsSheet, setShowSourceOfFundsSheet] = useState(false);
-    const [initials, setInitials] = useState('');
-    const { proofOfFunds, isDeclarationCompleted } = useDeclarationStore();
-
-    useEffect(() => {
-        useDeclarationStore.getState().reset();
-    }, []);
-
     const {
         control,
         handleSubmit,
@@ -519,8 +507,7 @@ export default function TouringScreen() {
                 ...(docs.visa.meta ? [docs.visa.meta] : []),
                 ...(docs.ticket.meta ? [docs.ticket.meta] : []),
                 ...(docs.receipt.meta ? [docs.receipt.meta] : []),
-                ...((docs.signature.meta && useDeclarationStore.getState().declarationMethod === 'signature') ? [docs.signature.meta] : []),
-                ...proofOfFunds.map(p => p.metadata),
+                
             ],
             pickupLocation: (needsLocationStep && data.selectedLocation) ? {
                 name: (data.selectedLocation as LocationItem).title,
@@ -541,8 +528,7 @@ export default function TouringScreen() {
                 routingNumber: data.domiciliaryRoutingNumber,
                 bankAddress: data.domiciliaryBankAddress,
             } : undefined,
-            declarationMethod: useDeclarationStore.getState().declarationMethod || undefined,
-            declarationInitials: useDeclarationStore.getState().declarationMethod === 'initials' ? initials : undefined,
+            
             refundBankDetails: {
                 bankName: data.customerBankName,
                 bankCode: data.customerBankCode,
@@ -635,7 +621,6 @@ export default function TouringScreen() {
                         onAmountSendChange={setAmountSendStr}
                         allowedModes={['buy']}
                         error={errors.amount?.message}
-                        showLimitWarning={false}
                     />
                 )}
                 {currentStep === 3 && (
@@ -720,33 +705,6 @@ export default function TouringScreen() {
                             iconType: 'limit'
                         }
                     ]}
-                />
-                <SourceOfFundsSheet
-                    visible={showSourceOfFundsSheet}
-                    onClose={() => setShowSourceOfFundsSheet(false)}
-                    onSubmit={(method) => {
-                        useDeclarationStore.getState().setDeclarationCompleted(true, method, initials);
-                        setShowSourceOfFundsSheet(false);
-                    }}
-                    customerInfo={{
-                        fullName: `${user?.profile?.firstName || ''} ${user?.profile?.lastName || ''}`,
-                        phoneNumber: user?.phoneNumber || '',
-                        email: user?.email || '',
-                        bvn: user?.kyc?.bvn || '',
-                        address: user?.profile?.address || '',
-                        passportDocumentNumber: watchedFields.passportDocumentNumber || user?.kyc?.passportDocumentNumber || ''
-                    }}
-                    transactionDetails={{
-                        type: 'Tourist',
-                        currency: currencySend.currencyName,
-                        amount: `${currencySend.code} ${amountSendStr}`,
-                        purpose: 'Travel'
-                    }}
-                    onUploadSignature={() => uploadFile('DIGITAL_SIGNATURE')}
-                    signatureFile={docs.signature.file?.name}
-                    isUploadingSignature={isUploading}
-                    initials={initials}
-                    onChangeInitials={setInitials}
                 />
                 <GenericSelectionSheet
                     visible={payoutSheetVisible}

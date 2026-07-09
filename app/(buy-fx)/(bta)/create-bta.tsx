@@ -114,12 +114,6 @@ const btaFormSchema = z.object({
                 message: 'Please enter domiciliary account number',
                 path: ['domiciliaryAccountNumber']
             });
-        } else if (data.domiciliaryAccountNumber.length !== 10 || !/^\d+$/.test(data.domiciliaryAccountNumber)) {
-            ctx.addIssue({
-                code: "custom",
-                message: 'Domiciliary account number must be exactly 10 digits',
-                path: ['domiciliaryAccountNumber']
-            });
         }
         if (!data.domiciliaryBankName) {
             ctx.addIssue({

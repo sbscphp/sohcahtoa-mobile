@@ -48,10 +48,12 @@ export default function ProfessionalBankDetailsStep({
     const isIndia = beneficiaryCountry?.toLowerCase() === 'india';
     const isAustralia = beneficiaryCountry?.toLowerCase() === 'australia';
     const isOthers = beneficiaryCountry?.toLowerCase() === 'others';
-    const showInvoiceUpload = isOthers || isMedical || isSchool;
+    // const showInvoiceUpload = isOthers || isMedical || isSchool;
    
     return (
         <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+            <Text style={styles.title}>Where would you like to send the fund to?</Text>
+            <Text style={styles.description}>Enter the professional body and bank details for this payment.  Please upload an invoice that contains the beneficiary details so we can verify them more easily.{"\n\n"}You may also upload an invoice below to use as confirmation during internet banking.</Text>
 
                 <Controller
                     control={control}
@@ -119,6 +121,7 @@ export default function ProfessionalBankDetailsStep({
                     label="Beneficiary Email"
                     placeholder="Enter email address"
                     keyboardType="email-address"
+                    autoCapitalize="none"
                 />
 
                 <ControlledInput
@@ -207,7 +210,7 @@ export default function ProfessionalBankDetailsStep({
                         label="IBAN"
                         placeholder="e.g GB29 NWBK 6016 13331 9268 19"
                         required
-                        maxLength={34}
+                        // maxLength={34}
                         filterType="alphanumeric"
                         autoCapitalize="characters"
                     />
@@ -280,7 +283,7 @@ export default function ProfessionalBankDetailsStep({
                     required
                 />
 
-                {showInvoiceUpload && (
+                {/* {showInvoiceUpload && ( */}
                     <View style={{ marginTop: moderateScale(12), gap: moderateScale(6) }}>
                         <Text style={{ fontSize: moderateScale(12.5), color: '#475569' }}>
                             Upload invoice (optional – with beneficiary details for verification)
@@ -293,7 +296,7 @@ export default function ProfessionalBankDetailsStep({
                             status={isUploadingInvoice ? 'pending' : 'default'}
                         />
                     </View>
-                )}
+                {/* )} */}
             </View>
 
             <Text style={styles.sectionTitle}>Correspondence Bank details</Text>
@@ -396,6 +399,13 @@ const styles = ScaledSheet.create({
     },
     dropdownError: {
         borderColor: '#EF4444',
+    },
+    description: {
+        fontSize: '13@ms',
+        fontWeight: '500',
+        color: '#64748B',
+        marginBottom: '12@vs',
+        lineHeight: '20@ms',
     },
     sectionTitle: {
         fontSize: '14@ms',

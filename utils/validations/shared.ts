@@ -54,7 +54,12 @@ export const tinField = z
 export const tccNumberField = z.string().min(1, 'Please enter your TCC Number');
 
 /** Passport Issue/Expiry Date validations */
-export const passportIssueDateField = z.string().min(1, 'Please select Passport Issue Date');
+export const passportIssueDateField = z.string().min(1, 'Please select Passport Issue Date').refine((date) => {
+    if (!date) return true;
+    const [day, month, year] = date.split('/').map(Number);
+    const selectedDate = new Date(year, month - 1, day);
+    return selectedDate <= new Date();
+}, 'Passport Issue Date cannot be in the future');
 export const passportExpiryDateField = z.string().min(1, 'Please select Passport Expiry Date');
 
 /** Step 0: Credentials (BVN + NIN + Form A + Passport) — used by most flows */

@@ -9,7 +9,7 @@ import { useAttachBankAccountsMutation } from '@/hooks/queries/transactions/useA
 import CredentialStep from '@/components/transaction-flow/CredentialStep';
 import DocumentStep from '@/components/transaction-flow/DocumentStep';
 import ExchangeStep from '@/components/transaction-flow/ExchangeStep';
-import ProfessionalBankDetailsStep from '@/components/transaction-flow/ProfessionalBankDetailsStep';
+import HospitalBankDetailsStep from '@/components/transaction-flow/HospitalBankDetailsStep';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
 import RefundBankDetailsStep from '@/components/transaction-flow/RefundBankDetailsStep';
 import { useProfileQuery } from '@/hooks/queries/auth/useProfileQuery';
@@ -560,13 +560,12 @@ export default function MedicalPaymentScreen() {
                 )}
 
                 {currentStep === 3 && (
-                    <ProfessionalBankDetailsStep
+                    <HospitalBankDetailsStep
                         control={control}
                         watch={watch}
                         setValue={setValue}
                         errors={errors}
-                        isMedical={true}
-                        invoiceFile={docs.invoice.file}
+                        verificationFile={docs.invoice.file}
                         onUploadInvoice={() => uploadFile('INVOICE')}
                         isUploadingInvoice={isUploading}
                     />

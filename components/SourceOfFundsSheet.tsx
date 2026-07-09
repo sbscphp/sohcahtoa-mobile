@@ -5,6 +5,7 @@ import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import FileUpload from './FileUpload';
 import PrimaryButton from './PrimaryButton';
 import InputField from './InputField';
+import LoadingBackdrop from '@/components/LoadingBackdrop';
 
 interface InfoRowProps {
     label: string;
@@ -66,6 +67,7 @@ export default function SourceOfFundsSheet({
             onRequestClose={onClose}
         >
             <View style={styles.overlay}>
+                <LoadingBackdrop visible={!!isUploadingSignature} />
                 <TouchableOpacity style={styles.backdrop} onPress={onClose} activeOpacity={1} />
 
                 <View style={styles.sheetContainer}>

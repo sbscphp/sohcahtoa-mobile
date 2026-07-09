@@ -53,8 +53,15 @@ export interface CreateTransactionPayload {
         address: string;
         recipientName?: string;
         recipientPhone?: string;
+        amount?: number;
     };
     paymentDetails?: {
+        bankName?: string;
+        bankCode?: string;
+        accountNumber?: string;
+        accountName?: string;
+    };
+    bankDetails?: {
         bankName?: string;
         bankCode?: string;
         accountNumber?: string;
@@ -418,6 +425,12 @@ export interface GetTransactionByIdResponse {
             swiftCode?: string;
             routingNumber?: string;
             bankAddress?: string;
+        };
+        pickupLocation?: {
+            amount?: number;
+            currency?: string;
+            name?: string;
+            address?: string;
         };
         cashPickup?: any;
         prepaidCard?: any;
