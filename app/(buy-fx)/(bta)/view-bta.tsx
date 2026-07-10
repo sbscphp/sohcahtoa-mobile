@@ -36,7 +36,7 @@ export default function ViewBtaScreen() {
     const tx = txResponse?.data;
     const showToast = useToastStore(s => s.showToast);
 
-    console.log("Transaction", JSON.stringify(tx, null, 2))
+    // console.log("Transaction", JSON.stringify(tx, null, 2))
 
     useFocusEffect(
         useCallback(() => {
