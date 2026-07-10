@@ -675,7 +675,7 @@ export default function BusinessTravelAllowanceScreen() {
                 amount: (data.payoutMethod === 'Card (75%) + Cash (25%)' || data.payoutMethod === 'Cash (25%) + Electronic Transfer (75%)') ? (Number(data.amount) * 0.25) : (Number(data.amount) || 0),
                 currency: currencyGet.code,
             } : undefined,
-            domiciliaryDetails: (data.payoutMethod === 'Electronic Transfer (100%)' || data.payoutMethod === 'Cash (25%) + Electronic Transfer (75%)') ? {
+            beneficiaryDetails: (data.payoutMethod === 'Electronic Transfer (100%)' || data.payoutMethod === 'Cash (25%) + Electronic Transfer (75%)') ? {
                 bankName: data.domiciliaryBankName,
                 accountNumber: data.domiciliaryAccountNumber,
                 accountName: data.domiciliaryAccountName,

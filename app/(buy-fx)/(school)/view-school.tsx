@@ -143,8 +143,8 @@ export default function ViewSchoolFeesScreen() {
             'studentName', 'beneficiaryDetails.studentName'
         );
         const studentNIN = getVal(
-            (tx as any).studentNIN || (tx.personalInfo as any)?.studentNIN || (tx.beneficiaryDetails as any)?.studentNIN,
-            'studentNIN', 'beneficiaryDetails.studentNIN'
+            (tx as any).studentNin || (tx.personalInfo as any)?.studentNin || (tx.beneficiaryDetails as any)?.studentNin,
+            'studentNin', 'beneficiaryDetails.studentNin'
         );
         const studentPassportNumber = getVal(
             (tx as any).studentPassportNumber || (tx.personalInfo as any)?.studentPassportNumber || (tx.beneficiaryDetails as any)?.studentPassportDocumentNumber,

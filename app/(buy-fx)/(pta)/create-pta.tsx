@@ -651,7 +651,7 @@ export default function PersonalTravelAllowanceScreen() {
                 currency: currencyGet.code,
             } : undefined,
             payoutMethod: data.payoutMethod,
-            domiciliaryDetails: (data.payoutMethod?.includes('Electronic')) ? {
+            beneficiaryDetails: (data.payoutMethod?.includes('Electronic')) ? {
                 bankName: data.domiciliaryBankName,
                 accountNumber: data.domiciliaryAccountNumber,
                 accountName: data.domiciliaryAccountName,

@@ -32,12 +32,6 @@ export interface CreateTransactionPayload {
         correspondenceBankName?: string;
         correspondenceBankAddress?: string;
         correspondenceBankSwiftCode?: string;
-    };
-    domiciliaryDetails?: {
-        bankName?: string;
-        accountNumber?: string;
-        accountName?: string;
-        swiftCode?: string;
         routingNumber?: string;
         bankAddress?: string;
     };
@@ -198,14 +192,6 @@ export interface Transaction {
         correspondenceBankName?: string;
         correspondenceBankAddress?: string;
         correspondenceBankSwiftCode?: string;
-    };
-    domiciliaryDetails?: {
-        bankName?: string;
-        accountNumber?: string;
-        accountName?: string;
-        swiftCode?: string;
-        routingNumber?: string;
-        bankAddress?: string;
     };
     paymentDetails?: {
         name: string;
@@ -399,14 +385,6 @@ export interface GetTransactionByIdResponse {
             correspondenceBankName?: string;
             correspondenceBankAddress?: string;
             correspondenceBankSwiftCode?: string;
-        };
-        domiciliaryDetails?: {
-            bankName?: string;
-            accountNumber?: string;
-            accountName?: string;
-            swiftCode?: string;
-            routingNumber?: string;
-            bankAddress?: string;
         };
         paymentDetails?: {
             name: string;

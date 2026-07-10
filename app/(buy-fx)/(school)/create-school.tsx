@@ -167,12 +167,12 @@ export default function SchoolFeesScreen() {
                         });
                     }
 
-                    if (data.studentNIN) {
-                        if (data.studentNIN.length !== 11 || !/^\d+$/.test(data.studentNIN)) {
+                    if (data.studentNin) {
+                        if (data.studentNin.length !== 11 || !/^\d+$/.test(data.studentNin)) {
                             ctx.addIssue({
                                 code: "custom",
                                 message: 'Student NIN must be exactly 11 digits',
-                                path: ['studentNIN']
+                                path: ['studentNin']
                             });
                         }
                     }
@@ -237,7 +237,7 @@ export default function SchoolFeesScreen() {
             passportExpiryDate: '',
             amount: 0,
             studentName: '',
-            studentNIN: '',
+            studentNin: '',
             studentPassportNumber: '',
             studentPassportIssueDate: '',
             studentPassportExpiryDate: '',
@@ -482,7 +482,7 @@ export default function SchoolFeesScreen() {
                             Student Details
                         </Text>
                         <ControlledInput control={control} name="studentName" label="Student Full Name" placeholder="Enter student's full name" required />
-                        <ControlledInput control={control} name="studentNIN" label="Student NIN (if available)" placeholder="Enter student's NIN" keyboardType="numeric" maxLength={11} filterType="numeric" />
+                        <ControlledInput control={control} name="studentNin" label="Student NIN (if available)" placeholder="Enter student's NIN" keyboardType="numeric" maxLength={11} filterType="numeric" />
                         <ControlledInput control={control} name="studentPassportNumber" label="Student International Passport Number" placeholder="Enter student's passport number" required maxLength={9} filterType="alphanumeric" />
                         <View style={{ flexDirection: 'row', gap: 12 }}>
                             <View style={{ flex: 1 }}>
@@ -530,7 +530,7 @@ export default function SchoolFeesScreen() {
             label: "Student's International Passport",
             onUpload: () => {
                 setUploadTarget('student');
-                uploadFile('PASSPORT');
+                uploadFile('STUDENT_PASSPORT');
             },
             fileName: docs.studentPassport.file?.name,
             fileUri: docs.studentPassport.file?.uri, fileUrl: docs.studentPassport.meta?.fileUrl,
@@ -792,7 +792,7 @@ export default function SchoolFeesScreen() {
             beneficiaryDetails: {
                 organizationName: data.schoolName || '',
                 studentName: data.studentName,
-                studentNIN: data.studentNIN || undefined,
+                studentNin: data.studentNin || undefined,
                 studentPassportDocumentNumber: data.studentPassportNumber || undefined,
                 studentPassportIssueDate: data.studentPassportIssueDate || undefined,
                 studentPassportExpiryDate: data.studentPassportExpiryDate || undefined,

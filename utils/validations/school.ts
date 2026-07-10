@@ -12,7 +12,7 @@ export const schoolStep0Schema = baseCredentialSchema.extend({
     passportIssueDate: passportIssueDateField,
     passportExpiryDate: passportExpiryDateField,
     studentName: z.string().optional().or(z.literal('')),
-    studentNIN: z.string().optional().or(z.literal('')),
+    studentNin: z.string().optional().or(z.literal('')),
     studentPassportNumber: z.string().optional().or(z.literal('')),
     studentPassportIssueDate: z.string().optional().or(z.literal('')),
     studentPassportExpiryDate: z.string().optional().or(z.literal('')),

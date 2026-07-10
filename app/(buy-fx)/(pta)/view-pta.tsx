@@ -168,7 +168,7 @@ export default function ViewPtaScreen() {
     }, [tx, uploadFile]);
 
     const domiciliaryItems = useMemo(() => {
-        const details = (tx?.domiciliaryDetails || tx?.beneficiaryDetails) as any;
+        const details = tx?.beneficiaryDetails as any;
         if (!tx || !details) return undefined;
         return [
             ...(details.accountName || details.name ? [{ label: 'Account Name', value: details.accountName || details.name }] : []),
