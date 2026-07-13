@@ -3,6 +3,7 @@ import {
     amountStepSchema,
     baseCredentialSchema,
 } from './shared';
+import { bankDetailsRefinement } from './professional';
 
 
 import { passportExpiryDateField, passportIssueDateField } from './shared';
@@ -36,16 +37,18 @@ export const schoolStep3Schema = z.object({
     bankName: z.string().min(1, 'Please enter bank name'),
     bankAccountName: z.string().min(1, 'Please enter account name'),
     bankAccountAddress: z.string().min(1, 'Please enter bank account address'),
-    bankAccountIban: z.string().optional().or(z.literal('')),
+    bankAccountIban: z.string().optional(),
     bankAccountSwiftCode: z.string().min(1, 'Please enter SWIFT code').refine((val) => /^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$/i.test(val), {
         message: 'SWIFT code must be a valid 8 or 11 character BIC code',
     }),
     bankAccountNumber: z.string().min(5, 'Account number must be at least 5 digits').max(34, 'Account number is too long'),
-    routingNumber: z.string().optional().or(z.literal('')).refine((val) => !val || /^\d{9}$/.test(val), {
-        message: 'Routing number must be exactly 9 digits',
-    }),
+    routingNumber: z.string().optional(),
+    ifscCode: z.string().optional(),
+    purposeCode: z.string().optional(),
+    bsbCode: z.string().optional(),
+    otherBankDetails: z.string().optional(),
     paymentReference: z.string().min(1, 'Please enter payment reference / ID'),
     correspondenceBankName: z.string().optional().or(z.literal('')),
     correspondenceBankAddress: z.string().optional().or(z.literal('')),
     correspondenceBankSwiftCode: z.string().optional().or(z.literal('')),
-});
+}).superRefine(bankDetailsRefinement);

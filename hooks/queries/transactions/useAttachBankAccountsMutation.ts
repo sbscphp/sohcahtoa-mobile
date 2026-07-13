@@ -17,7 +17,9 @@ export const useAttachBankAccountsMutation = () => {
             queryClient.invalidateQueries({ queryKey: ['transaction', variables.transactionId] });
         },
         onError: (error: any) => {
+            // console.log(error,"ERROR------------------------------")
             const message = error.response?.data?.error?.message || 'Failed to attach bank accounts';
+
             showToast(message, 'error');
         },
     });

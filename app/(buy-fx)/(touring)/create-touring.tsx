@@ -569,7 +569,7 @@ export default function TouringScreen() {
         watchedFields.passportIssueDate && watchedFields.passportExpiryDate);
     const foreignAmountStr = currencyGet.code !== 'NGN' ? amountGetStr : amountSendStr;
     const foreignAmount = parseFloat(foreignAmountStr.replace(/,/g, '')) || 0;
-    const isStep2Valid = watchedFields.amount > 0;
+    const isStep2Valid = watchedFields.amount > 0 && foreignAmount <= 10000;
     const isStep3Valid = watchedFields.payoutMethod && (
         !isElectronicTransfer || (
             (watchedFields.payoutMethod?.includes('Electronic'))
@@ -620,6 +620,7 @@ export default function TouringScreen() {
                         onAmountGetChange={setAmountGetStr}
                         onAmountSendChange={setAmountSendStr}
                         allowedModes={['buy']}
+                        showLimitWarning={true}
                         error={errors.amount?.message}
                     />
                 )}

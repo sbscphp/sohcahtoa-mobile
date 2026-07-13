@@ -449,6 +449,7 @@ export default function MedicalPaymentScreen() {
                 routingNumber: data.routingNumber,
                 ifscCode: data.ifscCode,
                 purposeCode: data.purposeCode,
+                otherBankDetails: data.otherBankDetails,
                 correspondenceBankName: data.correspondenceBankName,
                 correspondenceBankAddress: data.correspondenceBankAddress,
                 correspondenceBankSwiftCode: data.correspondenceBankSwiftCode,
@@ -488,7 +489,9 @@ export default function MedicalPaymentScreen() {
         watchedFields.passportDocumentNumber && watchedFields.passportDocumentNumber.length === 9
     );
     const isStep1Valid = !!(docs.passport.meta && docs.visa.meta && docs.returnTicket.meta && docs.referenceLetter.meta && docs.overseaDoctorLetter.meta && watchedFields.passportIssueDate && watchedFields.passportExpiryDate);
-    const isStep2Valid = watchedFields.amount > 0;
+    const foreignAmountStr = currencyGet.code !== 'NGN' ? amountGetStr : amountSendStr;
+    const foreignAmount = parseFloat(foreignAmountStr.replace(/,/g, '')) || 0;
+    const isStep2Valid = watchedFields.amount > 0 && foreignAmount <= 10000;
     const beneficiaryCountryStep4 = watchedFields.beneficiaryCountry?.toLowerCase() || '';
     const isAustralia = beneficiaryCountryStep4?.includes('australia');
     const isUSA = beneficiaryCountryStep4?.includes('united states') || beneficiaryCountryStep4?.includes('usa') || beneficiaryCountryStep4?.includes('canada');
@@ -554,6 +557,7 @@ export default function MedicalPaymentScreen() {
                         onAmountGetChange={setAmountGetStr}
                         onAmountSendChange={setAmountSendStr}
                         allowedModes={['buy']}
+                        showLimitWarning={true}
                         error={errors.amount?.message as string | undefined}
                         isLoading={calculateExchangeRate.isPending}
                     />

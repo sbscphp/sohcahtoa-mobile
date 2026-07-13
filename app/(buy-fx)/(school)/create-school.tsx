@@ -259,6 +259,7 @@ export default function SchoolFeesScreen() {
             ifscCode: '',
             purposeCode: '',
             bsbCode: '',
+            otherBankDetails: '',
             correspondenceBankName: '',
             correspondenceBankAddress: '',
             correspondenceBankSwiftCode: '',
@@ -587,7 +588,7 @@ export default function SchoolFeesScreen() {
             label: "Student's International Passport",
             onUpload: () => {
                 setUploadTarget('student');
-                uploadFile('PASSPORT');
+                uploadFile('STUDENT_PASSPORT');
             },
             fileName: docs.studentPassport.file?.name,
             fileUri: docs.studentPassport.file?.uri, fileUrl: docs.studentPassport.meta?.fileUrl,
@@ -622,7 +623,7 @@ export default function SchoolFeesScreen() {
             label: "Student's International Passport",
             onUpload: () => {
                 setUploadTarget('student');
-                uploadFile('PASSPORT');
+                uploadFile('STUDENT_PASSPORT');
             },
             fileName: docs.studentPassport.file?.name,
             fileUri: docs.studentPassport.file?.uri, fileUrl: docs.studentPassport.meta?.fileUrl,
@@ -722,7 +723,13 @@ export default function SchoolFeesScreen() {
         } else if (currentStep === 2) {
             isStepValid = await trigger(['amount']);
         } else if (currentStep === 3) {
-            isStepValid = await trigger([
+            const beneficiaryCountry = (watchedFields.beneficiaryCountry || '').toLowerCase();
+            const isAustralia = beneficiaryCountry?.includes('australia');
+            const isUSA = beneficiaryCountry.includes('united states') || beneficiaryCountry.includes('usa') || beneficiaryCountry === 'canada';
+            const isIndia = beneficiaryCountry.includes('india');
+            const isUK = beneficiaryCountry.includes('united kingdom') || beneficiaryCountry === 'uk';
+
+            const fieldsToTrigger = [
                 'beneficiaryCountry',
                 'studentName',
                 'studentPassportNumber',
@@ -735,14 +742,19 @@ export default function SchoolFeesScreen() {
                 'bankName',
                 'bankAccountName',
                 'bankAccountAddress',
-                'bankAccountIban',
                 'bankAccountSwiftCode',
                 'bankAccountNumber',
-                'routingNumber',
+                'paymentReference',
                 'correspondenceBankName',
                 'correspondenceBankAddress',
                 'correspondenceBankSwiftCode',
-            ] as any);
+            ] as any;
+            if (isAustralia) fieldsToTrigger.push('bsbCode');
+            if (isUSA) fieldsToTrigger.push('routingNumber');
+            if (isIndia) fieldsToTrigger.push('ifscCode', 'purposeCode');
+            if (isUK) fieldsToTrigger.push('bankAccountIban');
+
+            isStepValid = await trigger(fieldsToTrigger);
         } else if (currentStep === 4) {
             isStepValid = !!selectedSavedAccountId;
         }
@@ -813,6 +825,7 @@ export default function SchoolFeesScreen() {
                 ifscCode: data.ifscCode,
                 purposeCode: data.purposeCode,
                 bsbCode: data.bsbCode,
+                otherBankDetails: data.otherBankDetails,
                 correspondenceBankName: data.correspondenceBankName,
                 correspondenceBankAddress: data.correspondenceBankAddress,
                 correspondenceBankSwiftCode: data.correspondenceBankSwiftCode,
@@ -867,7 +880,16 @@ export default function SchoolFeesScreen() {
         isStep1Valid = !!(docs.admission.meta && docs.studentPassport.meta && docs.invoice.meta);
     }
 
-    const isStep2Valid = watchedFields.amount > 0;
+    const foreignAmountStr = currencyGet.code !== 'NGN' ? amountGetStr : amountSendStr;
+    const foreignAmount = parseFloat(foreignAmountStr.replace(/,/g, '')) || 0;
+    const isStep2Valid = watchedFields.amount > 0 && foreignAmount <= 10000;
+
+    const beneficiaryCountryStep4 = watchedFields.beneficiaryCountry?.toLowerCase() || '';
+    const isAustralia = beneficiaryCountryStep4?.includes('australia');
+    const isUSA = beneficiaryCountryStep4?.includes('united states') || beneficiaryCountryStep4?.includes('usa') || beneficiaryCountryStep4 === 'canada';
+    const isIndia = beneficiaryCountryStep4?.includes('india');
+    const isUK = beneficiaryCountryStep4?.includes('united kingdom') || beneficiaryCountryStep4 === 'uk';
+
     const isStep3Valid = !!(
         watchedFields.beneficiaryCountry &&
         watchedFields.studentName &&
@@ -882,7 +904,11 @@ export default function SchoolFeesScreen() {
         watchedFields.bankAccountAddress &&
         watchedFields.bankAccountSwiftCode &&
         watchedFields.bankAccountNumber &&
-        watchedFields.paymentReference
+        watchedFields.paymentReference &&
+        (isAustralia ? watchedFields.bsbCode : true) &&
+        (isUSA ? watchedFields.routingNumber : true) &&
+        (isIndia ? (watchedFields.ifscCode && watchedFields.purposeCode) : true) &&
+        (isUK ? watchedFields.bankAccountIban : true)
     );
 
     const isStep4Valid = !!selectedSavedAccountId;
@@ -928,6 +954,7 @@ export default function SchoolFeesScreen() {
                         onAmountGetChange={setAmountGetStr}
                         onAmountSendChange={setAmountSendStr}
                         allowedModes={['buy']}
+                        showLimitWarning={true}
                         error={errors.amount?.message as string | undefined}
                         isSchool={true}
                     />

@@ -724,8 +724,6 @@ export default function CreateResidentScreen() {
                         allowedModes={['sell']}
                         error={errors.amount?.message as string | undefined}
                         showLimitWarning
-                        onLimitWarningPress={() => router.push('/proof-of-fund')}
-                        onDownloadPress={() => setShowSourceOfFundsSheet(true)}
                     />
                 )}
 

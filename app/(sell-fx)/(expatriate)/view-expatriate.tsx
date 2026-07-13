@@ -79,10 +79,6 @@ export default function ViewExpatriateScreen() {
             }] : []),
             ...(tx.cashPickup ? [
                 {
-                    label: 'Pickup Cash Amount (25%)',
-                    value: formatCurrency((tx?.pickupLocation?.amount ?? 0) * 0.25, (tx.cashPickup.currency || tx.currency) === 'USD' ? '$' : (tx.cashPickup.currency || tx.currency) === 'GBP' ? '£' : (tx.cashPickup.currency || tx.currency) === 'EUR' ? '€' : (tx.cashPickup.currency || tx.currency)) || 'N/A',
-                },
-                {
                     label: 'Pickup Status',
                     value: tx.cashPickup.status?.replace(/_/g, ' ') || 'N/A',
                 },

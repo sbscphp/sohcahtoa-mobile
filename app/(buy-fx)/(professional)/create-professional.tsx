@@ -554,7 +554,9 @@ export default function ProfessionalScreen() {
         (!watchedFields.passportDocumentNumber || watchedFields.passportDocumentNumber.length === 9)
     );
     const isStep1Valid = !!(docs.membership.meta && docs.invoice.meta);
-    const isStep2Valid = watchedFields.amount > 0;
+    const foreignAmountStr = currencyGet.code !== 'NGN' ? amountGetStr : amountSendStr;
+    const foreignAmount = parseFloat(foreignAmountStr.replace(/,/g, '')) || 0;
+    const isStep2Valid = watchedFields.amount > 0 && foreignAmount <= 10000;
 
     const beneficiaryCountryStep4 = watchedFields.beneficiaryCountry?.toLowerCase() || '';
     const isAustralia = beneficiaryCountryStep4?.includes('australia');
@@ -624,6 +626,7 @@ export default function ProfessionalScreen() {
                         onAmountGetChange={setAmountGetStr}
                         onAmountSendChange={setAmountSendStr}
                         allowedModes={['buy']}
+                        showLimitWarning={true}
                         error={errors.amount?.message}
                     />
                 )}

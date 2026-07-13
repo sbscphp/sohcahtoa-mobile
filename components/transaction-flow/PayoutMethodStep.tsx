@@ -82,9 +82,9 @@ export default function PayoutMethodStep({
             <Text style={{ fontSize: moderateScale(16), fontWeight: '700', color: '#0F172A', marginBottom: moderateScale(4) }}>
                 Choose your payout method
             </Text>
-            <Text style={{ fontSize: moderateScale(13), color: '#64748B', marginTop: moderateScale(-8), marginBottom: moderateScale(4) }}>
+           {!isSellFx &&  <Text style={{ fontSize: moderateScale(13), color: '#64748B', marginTop: moderateScale(-8), marginBottom: moderateScale(4) }}>
                 Note that 25% cash payout is subject to a maximum amount of $500
-            </Text>
+            </Text>}
             {isSellFx && (
                 <Text style={{ fontSize: moderateScale(13), color: '#040404ff', fontWeight: '400', marginBottom: moderateScale(-4) }}>
                   Note: No cash pickup is allowed

@@ -716,7 +716,9 @@ export default function BusinessTravelAllowanceScreen() {
     const isStep0Valid = watchedFields.bvn && watchedFields.tinNumber && watchedFields.formAId && watchedFields.passportDocumentNumber;
     const isStep1Valid = docs.passport.meta && docs.visa.meta && docs.returnTicket.meta && docs.tcc.meta && docs.corporateBodyLetter.meta && docs.partnerInvitationLetter.meta &&
         watchedFields.passportIssueDate && watchedFields.passportExpiryDate;
-    const isStep2Valid = watchedFields.amount > 0;
+    const foreignAmountStr = currencyGet.code !== 'NGN' ? amountGetStr : amountSendStr;
+    const foreignAmount = parseFloat(foreignAmountStr.replace(/,/g, '')) || 0;
+    const isStep2Valid = watchedFields.amount > 0 && foreignAmount <= 10000;
     const isStep3Valid = watchedFields.payoutMethod && (
         !isElectronicTransfer || (
             (watchedFields.payoutMethod === 'Electronic Transfer (100%)' || watchedFields.payoutMethod === 'Cash (25%) + Electronic Transfer (75%)')
@@ -770,6 +772,7 @@ export default function BusinessTravelAllowanceScreen() {
                         onAmountGetChange={setAmountGetStr}
                         onAmountSendChange={setAmountSendStr}
                         allowedModes={['buy']}
+                        showLimitWarning={true}
                         error={errors.amount?.message}
                         labelGet="You get exactly"
                         labelSend="When you send"

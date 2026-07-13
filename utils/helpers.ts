@@ -176,7 +176,7 @@ export const getTransactionDocuments = (tx: any): { label: string; value: string
     if (bvn && tx.type !== 'TOURING' && tx.type !== 'TOURIST_FX') docs.push({ label: 'BVN Number', value: bvn });
     if (nin && tx.type !== 'TOURIST_FX') docs.push({ label: 'NIN', value: nin });
     if (admissionType) docs.push({ label: 'Admission Type', value: admissionType });
-    if (tin && tx.type !== 'TOURIST_FX' && tx.type !== 'SCHOOL_FEES' && tx.type !== 'EXPATRIATE_FX') docs.push({ label: 'TIN', value: tin });
+    if (tin && tx.type !== 'TOURIST_FX' && tx.type !== 'SCHOOL_FEES' && tx.type !== 'EXPATRIATE_FX' && tx.type !== 'PTA' && tx.type !== 'PROFESSIONAL' && tx.type !== 'PROFESSIONAL_BODY') docs.push({ label: 'TIN', value: tin });
     if (formAId) docs.push({ label: 'Form A ID', value: formAId });
     if (passport) docs.push({ label: 'International Passport Number', value: passport });
     if (passportIssueDate) docs.push({ label: 'Passport Issue Date', value: passportIssueDate });

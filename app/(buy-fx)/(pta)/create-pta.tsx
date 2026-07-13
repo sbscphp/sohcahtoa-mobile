@@ -690,6 +690,9 @@ export default function PersonalTravelAllowanceScreen() {
         });
     };
 
+    const foreignAmountStr = currencyGet.code !== 'NGN' ? amountGetStr : amountSendStr;
+    const foreignAmount = parseFloat(foreignAmountStr.replace(/,/g, '')) || 0;
+    const isStep2Valid = watchedFields.amount > 0 && foreignAmount <= 10000;
     const isStep3Valid = watchedFields.payoutMethod && (
         !isElectronicTransfer || (
             watchedFields.payoutMethod?.includes('Electronic')
@@ -703,6 +706,7 @@ export default function PersonalTravelAllowanceScreen() {
 
     const isNextDisabled =
         (currentStep === 1 && (!docs.visa.file || !docs.returnTicket.file || !docs.passport.file)) ||
+        (currentStep === 2 && !isStep2Valid) ||
         (currentStep === 3 && !isStep3Valid) ||
         (currentStep === 4 && needsLocationStep && !isStep4Valid) ||
         (currentStep === refundStepIndex && !selectedSavedAccountId);
@@ -739,6 +743,7 @@ export default function PersonalTravelAllowanceScreen() {
                         onAmountGetChange={setAmountGetStr}
                         onAmountSendChange={setAmountSendStr}
                         allowedModes={['buy']}
+                        showLimitWarning={true}
                         error={errors.amount?.message}
                     />
                 )}

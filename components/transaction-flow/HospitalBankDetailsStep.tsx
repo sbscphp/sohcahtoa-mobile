@@ -38,6 +38,13 @@ export default function HospitalBankDetailsStep({
     const beneficiaryCountry = watch('beneficiaryCountry');
     const [countrySheetVisible, setCountrySheetVisible] = React.useState(false);
 
+    const isUK = beneficiaryCountry?.toLowerCase().includes('united kingdom') || beneficiaryCountry?.toLowerCase() === 'uk';
+    const isUSA = beneficiaryCountry?.toLowerCase().includes('united states') || beneficiaryCountry?.toLowerCase() === 'usa';
+    const isCanada = beneficiaryCountry?.toLowerCase() === 'canada';
+    const isIndia = beneficiaryCountry?.toLowerCase() === 'india';
+    const isAustralia = beneficiaryCountry?.toLowerCase() === 'australia';
+    const isOthers = beneficiaryCountry?.toLowerCase() === 'others';
+
     return (
         <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
             <Text style={styles.title}>Where would you like to send the fund to?</Text>
@@ -137,30 +144,10 @@ export default function HospitalBankDetailsStep({
 
                 <ControlledInput
                     control={control}
-                    name="routingNumber"
-                    label="Routing Number"
-                    placeholder="e.g 026009593 (Optional)"
-                    keyboardType="numeric"
-                    maxLength={9}
-                    filterType="numeric"
-                />
-
-                <ControlledInput
-                    control={control}
                     name="bankAccountAddress"
                     label="Bank Account Address"
                     placeholder="Enter bank account address"
                     required
-                />
-
-                <ControlledInput
-                    control={control}
-                    name="bankAccountIban"
-                    label="Bank Account IBAN"
-                    placeholder="Enter bank account IBAN (if applicable)"
-                    maxLength={34}
-                    filterType="alphanumeric"
-                    autoCapitalize="characters"
                 />
 
                 <ControlledInput
@@ -173,6 +160,77 @@ export default function HospitalBankDetailsStep({
                     filterType="alphanumeric"
                     autoCapitalize="characters"
                 />
+
+                {(isUK || isOthers) && (
+                    <ControlledInput
+                        control={control}
+                        name="bankAccountIban"
+                        label="IBAN"
+                        placeholder="e.g GB29 NWBK 6016 13331 9268 19"
+                        required
+                        filterType="alphanumeric"
+                        autoCapitalize="characters"
+                    />
+                )}
+
+                {(isUSA || isCanada) && (
+                    <ControlledInput
+                        control={control}
+                        name="routingNumber"
+                        label="Routing Number"
+                        placeholder="e.g 026009593"
+                        required
+                        keyboardType="numeric"
+                        maxLength={9}
+                        filterType="numeric"
+                    />
+                )}
+
+                {isIndia && (
+                    <>
+                        <ControlledInput
+                            control={control}
+                            name="ifscCode"
+                            label="IFSC Number"
+                            placeholder="e.g SBIN0000001"
+                            required
+                            maxLength={11}
+                            filterType="alphanumeric"
+                            autoCapitalize="characters"
+                        />
+                        <ControlledInput
+                            control={control}
+                            name="purposeCode"
+                            label="Purpose Code"
+                            placeholder="e.g GFT/P1301"
+                            required
+                        />
+                    </>
+                )}
+
+                {isAustralia && (
+                    <ControlledInput
+                        control={control}
+                        name="bsbCode"
+                        label="BSB Code"
+                        placeholder="e.g 123 - 456"
+                        required
+                        maxLength={8}
+                    />
+                )}
+
+                {isOthers && (
+                    <ControlledInput
+                        control={control}
+                        name="otherBankDetails"
+                        label="Other bank details"
+                        placeholder="Any extra identifiers or instructions for this country (clearing codes, intermediary bank, etc.)"
+                        multiline={true}
+                        numberOfLines={4}
+                        style={{ height: moderateScale(80), textAlignVertical: 'top' }}
+                        wrapperStyle={{ height: moderateScale(90), borderRadius: moderateScale(12), alignItems: 'flex-start', paddingTop: moderateScale(8) }}
+                    />
+                )}
 
                 <ControlledInput
                     control={control}
@@ -227,6 +285,12 @@ export default function HospitalBankDetailsStep({
                 selectedItem={beneficiaryCountry}
                 onSelect={(item) => {
                     setValue('beneficiaryCountry', item.value);
+                    setValue('bankAccountIban', '');
+                    setValue('routingNumber', '');
+                    setValue('ifscCode', '');
+                    setValue('purposeCode', '');
+                    setValue('bsbCode', '');
+                    setValue('otherBankDetails', '');
                 }}
                 confirmButtonText="Select Country/Region"
             />
