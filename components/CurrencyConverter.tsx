@@ -23,6 +23,7 @@ export interface CurrencyConverterProps {
     currencySend: Currency;
     onCurrencySendChange: (currency: Currency) => void;
     onDownloadPress?: () => void;
+    onTemplateDownloadPress?: () => void;
 
     amountGet: string;
     amountSend: string;
@@ -56,6 +57,7 @@ export default function CurrencyConverter({
     showLimitWarning = false,
     onLimitWarningPress,
     onDownloadPress,
+    onTemplateDownloadPress,
     error,
     isLoading = false,
     isSchool = false,
@@ -176,7 +178,7 @@ export default function CurrencyConverter({
                         </TouchableOpacity>
                             {!isBuy && (
                                 <>
-                                    <TouchableOpacity>
+                                    <TouchableOpacity onPress={onTemplateDownloadPress}>
                                         <Text style={{ fontSize: moderateScale(12), color: 'rgba(217, 45, 32, 1)', fontWeight: '400'}}>
                                             Need help? You can <Text style={{ fontSize: moderateScale(12), color: 'rgba(12, 12, 12, 1)', fontWeight: '400', textDecorationLine: 'underline' }}>Download our Proof of Funds Template </Text> to ensure your documentation meets the necessary requirements.
                                         </Text>

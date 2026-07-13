@@ -30,6 +30,7 @@ interface ExchangeStepProps {
     showLimitWarning?: boolean;
     onLimitWarningPress?: () => void;
     onDownloadPress?: () => void;
+    onTemplateDownloadPress?: () => void;
     error?: string;
     isLoading?: boolean;
     isSchool?: boolean;
@@ -53,6 +54,7 @@ export default function ExchangeStep({
     showLimitWarning,
     onLimitWarningPress,
     onDownloadPress,
+    onTemplateDownloadPress,
     error,
     isLoading,
     isSchool,
@@ -81,6 +83,7 @@ export default function ExchangeStep({
                 showLimitWarning={showLimitWarning}
                 onLimitWarningPress={onLimitWarningPress}
                 onDownloadPress={onDownloadPress}
+                onTemplateDownloadPress={onTemplateDownloadPress}
                 error={error}
                 isLoading={isLoading}
                 isSchool={isSchool}
