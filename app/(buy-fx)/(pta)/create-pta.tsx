@@ -26,6 +26,7 @@ import { useExchangeLogic } from '@/hooks/useExchangeLogic';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useToastStore } from '@/stores/useToastStore';
 import { LocationItem } from '@/utils/locations';
+import { getCurrencySymbol } from '@/utils/helpers';
 import { ptaStep0Schema, ptaStep1Schema, ptaStep2Schema, ptaStep3Schema } from '@/utils/validations/pta';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
@@ -820,12 +821,12 @@ export default function PersonalTravelAllowanceScreen() {
                 items={[
                     {
                         title: "Request Summary",
-                        description: `You are requesting ${currencyGet.code === 'USD' ? '$' : currencyGet.code === 'GBP' ? '£' : currencyGet.code === 'EUR' ? '€' : ''}${amountGetStr} ${currencyGet.code.toUpperCase()}. You will pay approximately ₦${amountSendStr}`,
+                        description: `You are requesting ${getCurrencySymbol(currencyGet.code)}${amountGetStr} ${currencyGet.code.toUpperCase()}. You will pay approximately ₦${amountSendStr}`,
                         iconType: 'info'
                     },
                     {
                         title: "Maximum Limit",
-                        description: "Please note that the maximum you can transact is $4,000 per quarter.",
+                        description: `Please note that the maximum you can transact is ${getCurrencySymbol('USD')}4,000 per quarter.`,
                         iconType: 'limit'
                     }
                 ]}

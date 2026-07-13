@@ -6,7 +6,7 @@ import TransactionViewLayout from '@/components/transaction-flow/TransactionView
 import { useGetTransactionByIdQuery } from '@/hooks/queries/transactions/useGetTransactionByIdQuery';
 import { useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useToastStore } from '@/stores/useToastStore';
-import { commonDocTypeLabels, formatCurrency, formatDate, formatTime, formatTimeWithSeconds, getTransactionDocuments, mapApiStatusToViewStatus, truncateFileName } from '@/utils/helpers';
+import { commonDocTypeLabels, formatCurrency, formatDate, formatTime, formatTimeWithSeconds, getTransactionDocuments, mapApiStatusToViewStatus, truncateFileName, getCurrencySymbol } from '@/utils/helpers';
 import { useLocalSearchParams, useRouter, useFocusEffect, useNavigation } from 'expo-router';
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import { ActivityIndicator, View, BackHandler } from 'react-native';
@@ -85,12 +85,12 @@ export default function ViewPtaScreen() {
             { label: 'Transaction ID', value: tx.referenceNumber },
             { label: 'Status', value: tx.status.replace(/_/g, ' ') },
             { label: 'Amount (₦)', value: formatCurrency(Number(tx.nairaEquivalent), '₦') },
-            { label: 'Equivalent Amount (FX)', value: formatCurrency(tx.foreignAmount, tx.currency === 'USD' ? '$' : tx.currency === 'GBP' ? '£' : tx.currency === 'EUR' ? '€' : tx.currency) },
+            { label: 'Equivalent Amount (FX)', value: formatCurrency(tx.foreignAmount, getCurrencySymbol(tx.currency)) },
             { label: 'Date Initiated', value: `${formatDate(tx.createdAt)}\n${formatTimeWithSeconds(tx.createdAt)}` },
             ...(tx.cashPickup ? [
                 {
                     label: 'Pickup Cash Amount',
-                    value: formatCurrency(tx?.pickupLocation?.amount, (tx.cashPickup.currency || tx.currency) === 'USD' ? '$' : (tx.cashPickup.currency || tx.currency) === 'GBP' ? '£' : (tx.cashPickup.currency || tx.currency) === 'EUR' ? '€' : (tx.cashPickup.currency || tx.currency)) || 'N/A',
+                    value: formatCurrency(tx?.pickupLocation?.amount, getCurrencySymbol(tx.cashPickup.currency || tx.currency)) || 'N/A',
                 },
                 {
                     label: 'Pickup Status',

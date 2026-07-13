@@ -19,7 +19,7 @@ import { useLookupAccountMutation } from '@/hooks/queries/banks/useResolveAccoun
 import { useSaveAccountMutation } from '@/hooks/queries/banks/useSaveAccountMutation';
 import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
 import { useGetTransactionsQuery } from '@/hooks/queries/transactions/useGetTransactionsQuery';
-import { formatDateToPickerFormat } from '@/utils/helpers';
+import { formatDateToPickerFormat, getCurrencySymbol } from '@/utils/helpers';
 import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useExchangeLogic } from '@/hooks/useExchangeLogic';
 import { useAuthStore } from '@/stores/useAuthStore';
@@ -604,12 +604,12 @@ export default function MedicalPaymentScreen() {
                     items={[
                         {
                             title: "Request Summary",
-                            description: `You are requesting ${currencyGet.code === 'USD' ? '$' : currencyGet.code === 'GBP' ? '£' : currencyGet.code === 'EUR' ? '€' : ''}${amountGetStr} ${currencyGet.code.toUpperCase()}. You will pay approximately ₦${amountSendStr}`,
+                            description: `You are requesting ${getCurrencySymbol(currencyGet.code)}${amountGetStr} ${currencyGet.code.toUpperCase()}. You will pay approximately ₦${amountSendStr}`,
                             iconType: 'info'
                         },
                         {
                             title: "Maximum Limit",
-                            description: "Please note that the maximum you can transact is $5,000 per quarter.",
+                            description: `Please note that the maximum you can transact is ${getCurrencySymbol('USD')}5,000 per quarter.`,
                             iconType: 'limit'
                         }
                     ]}

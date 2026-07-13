@@ -13,7 +13,7 @@ import { useProfileQuery } from '@/hooks/queries/auth/useProfileQuery';
 import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
 import { useGetTransactionsQuery } from '@/hooks/queries/transactions/useGetTransactionsQuery';
 import { useAttachBankAccountsMutation } from '@/hooks/queries/transactions/useAttachBankAccountsMutation';
-import { formatDateToPickerFormat } from '@/utils/helpers';
+import { formatDateToPickerFormat, getCurrencySymbol } from '@/utils/helpers';
 import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useExchangeLogic } from '@/hooks/useExchangeLogic';
 import SourceOfFundsSheet from '@/components/SourceOfFundsSheet';
@@ -510,7 +510,7 @@ export default function CreateResidentScreen() {
                 swiftCode: watchedFields.domiciliarySwiftCode || '',
                 routingNumber: watchedFields.domiciliaryRoutingNumber || '',
                 bankAddress: watchedFields.domiciliaryBankAddress || '',
-                currency: 'FOREIGN',
+                currency: currencyGet.code,
             }, {
                 onSuccess: (res) => {
                     if (res.data?.id) {
@@ -812,7 +812,7 @@ export default function CreateResidentScreen() {
                     items={[
                         {
                             title: "Request Summary",
-                            description: `You are selling ${currencyGet.code === 'USD' ? '$' : currencyGet.code === 'GBP' ? '£' : currencyGet.code === 'EUR' ? '€' : ''}${amountGet}. You will be sent approximately ₦${amountSend}`,
+                            description: `You are selling ${getCurrencySymbol(currencyGet.code)}${amountGet}. You will be sent approximately ₦${amountSend}`,
                             iconType: 'info'
                         }
                     ]}

@@ -1,3 +1,4 @@
+import { getCurrencySymbol } from '@/utils/helpers';
 import CurrencySelectionSheet from '@/components/CurrencySelectionSheet';
 import InputField from '@/components/InputField';
 import { ArrowDown2 } from 'iconsax-react-nativejs';
@@ -87,17 +88,8 @@ export default function CurrencyConverter({
         onCurrencySendChange(temp);
     };
 
-    const getCurrencySymbol = (code: string) => {
-        switch (code) {
-            case 'USD': return '$';
-            case 'NGN': return '₦';
-            case 'GBP': return '£';
-            case 'EUR': return '€';
-            default: return code;
-        }
-    };
-
     const foreignAmountStr = currencyGet.code !== 'NGN' ? amountGet : amountSend;
+    const foreignCurrencyCode = currencyGet.code !== 'NGN' ? currencyGet.code : currencySend.code;
     const foreignAmount = parseFloat(foreignAmountStr.replace(/,/g, '')) || 0;
 
     return (
@@ -170,7 +162,7 @@ export default function CurrencyConverter({
                             disabled={isBuy}
                         >
                             <Text style={{ fontSize: moderateScale(12), color: 'rgba(217, 45, 32, 1)', fontWeight: '400' }}>
-                                Amount is higher than $ 10,000.  
+                                Amount is higher than {getCurrencySymbol(foreignCurrencyCode)}10,000.  
                             </Text>
                             {!isBuy && (
                                 <Text style={{ fontSize: moderateScale(12), color: 'rgba(217, 45, 32, 1)', fontWeight: '400', textDecorationLine: 'underline' }}>Please Upload a proof of fund</Text>

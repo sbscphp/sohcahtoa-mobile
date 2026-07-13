@@ -5,7 +5,7 @@ import { useProfileQuery } from '@/hooks/queries/auth/useProfileQuery';
 import { useGetTransactionTotalsMutation } from '@/hooks/queries/transactions/useGetTransactionTotalsMutation';
 import { useGetTransactionsQuery } from '@/hooks/queries/transactions/useGetTransactionsQuery';
 import { useAuthStore } from '@/stores/useAuthStore';
-import { formatCurrency, formatDate, formatTime, getStatusLabel, getStatusStyle } from '@/utils/helpers';
+import { formatCurrency, formatDate, formatTime, getStatusLabel, getStatusStyle, getCurrencySymbol } from '@/utils/helpers';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Add, ArrowDown2, Bank, Buildings, Eye, EyeSlash, Hospital, ImportCircle, Notification, People, Refresh, Teacher, User, WalletAdd1, WalletMinus } from 'iconsax-react-nativejs';
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
@@ -319,10 +319,7 @@ export default function HomeScreen() {
                     <View style={styles.balanceRow}>
                         <View style={styles.currencyBadge}>
                             <Text style={styles.currencySymbol}>
-                                {selectedCurrency.code === 'NGN' ? '₦' :
-                                    selectedCurrency.code === 'USD' ? '$' :
-                                        selectedCurrency.code === 'GBP' ? '£' :
-                                            selectedCurrency.code === 'EUR' ? '€' : '$'}
+                                {getCurrencySymbol(selectedCurrency.code)}
                             </Text>
                         </View>
                         {showBalance ? (
@@ -431,7 +428,7 @@ export default function HomeScreen() {
                                             <Text style={styles.transactionDate}>{formatDate(tx.createdAt)} • {formatTime(tx.createdAt)}</Text>
                                         </View>
                                         <View style={styles.transactionAmountContainer}>
-                                            <Text style={styles.transactionAmount}>{formatCurrency(tx.foreignAmount, tx.currency === 'USD' ? '$' : tx.currency === 'NGN' ? '₦' : tx.currency)}</Text>
+                                            <Text style={styles.transactionAmount}>{formatCurrency(tx.foreignAmount, getCurrencySymbol(tx.currency))}</Text>
                                             <View style={[styles.transactionStatus, { backgroundColor: statusStyle.backgroundColor }]}>
                                                 <Text style={[styles.transactionStatusText, { color: statusStyle.color }]}>
                                                     {statusLabel}

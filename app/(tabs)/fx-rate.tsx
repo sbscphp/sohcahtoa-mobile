@@ -1,5 +1,6 @@
 import CurrencyConverter from '@/components/CurrencyConverter';
 import Header from '@/components/Header';
+import { getCurrencySymbol } from '@/utils/helpers';
 import { useGetUnreadCountQuery } from '@/hooks/queries/notifications/useGetUnreadCountQuery';
 import { useCalculateExchangeRateMutation } from '@/hooks/queries/transactions/useCalculateExchangeRateMutation';
 import { useGetExchangeRatesQuery } from '@/hooks/queries/transactions/useGetExchangeRatesQuery';
@@ -62,7 +63,7 @@ export default function FxRateScreen() {
     }, [debouncedAmountGet, currencyGet.code, currencySend.code, transactionType]);
 
     const ratesData = exchangeRatesData?.data?.map(rate => ({
-        currency: `${rate.fromCurrency} (${rate.fromCurrency === 'USD' ? '$' : rate.fromCurrency === 'GBP' ? '£' : rate.fromCurrency === 'EUR' ? '€' : ''})`,
+        currency: `${rate.fromCurrency} (${getCurrencySymbol(rate.fromCurrency)})`,
         buy: `₦${rate.buyRate} / ${rate.fromCurrency === 'USD' ? '$' : '1'}`,
         sell: `₦${rate.sellRate} / ${rate.fromCurrency === 'USD' ? '$' : '1'}`
     })) || [];

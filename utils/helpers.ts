@@ -81,6 +81,16 @@ export const formatTimeWithSeconds = (dateStr: string): string => {
     return `${hours}:${minutes}:${seconds} ${ampm}`;
 };
 
+export const getCurrencySymbol = (code: string): string => {
+    switch (code) {
+        case 'USD': return '$';
+        case 'GBP': return '£';
+        case 'EUR': return '€';
+        case 'NGN': return '₦';
+        default: return code;
+    }
+};
+
 export const formatCurrency = (amount: number | null | undefined, prefix: string = '₦'): string => {
     if (amount == null) return `${prefix} 0`;
     const num = Number(amount);
@@ -274,7 +284,7 @@ export const formatListTime = (dateStr: string): string => {
 };
 
 export const formatAmount = (amount: number, currency: string): string => {
-    const symbol = currency === 'USD' ? '$' : currency === 'GBP' ? '£' : currency === 'EUR' ? '€' : currency === 'NGN' ? '₦' : currency;
+    const symbol = getCurrencySymbol(currency);
     const num = Number(amount);
     if (isNaN(num)) return `${symbol}0`;
     const parts = num.toString().split('.');

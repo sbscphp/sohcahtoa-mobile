@@ -20,7 +20,7 @@ import { useExchangeLogic } from '@/hooks/useExchangeLogic';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useDeclarationStore } from '@/stores/useDeclarationStore';
 import { useToastStore } from '@/stores/useToastStore';
-import { formatDateToPickerFormat } from '@/utils/helpers';
+import { formatDateToPickerFormat, getCurrencySymbol } from '@/utils/helpers';
 import { LocationItem } from '@/utils/locations';
 import {
     touristStep0Schema,
@@ -562,7 +562,7 @@ export default function CreateTouristScreen() {
                 swiftCode: watchedFields.domiciliarySwiftCode || '',
                 routingNumber: watchedFields.domiciliaryRoutingNumber || '',
                 bankAddress: watchedFields.domiciliaryBankAddress || '',
-                currency: 'FOREIGN',
+                currency: currencyGet.code,
             }, {
                 onSuccess: (res) => {
                     if (res.data?.id) {
@@ -676,7 +676,7 @@ export default function CreateTouristScreen() {
                     items={[
                         {
                             title: "Request Summary",
-                            description: `You are selling ${currencyGet.code === 'USD' ? '$' : currencyGet.code === 'GBP' ? '£' : currencyGet.code === 'EUR' ? '€' : ''}${amountGet}. You will be sent approximately ₦${amountSend}`,
+                            description: `You are selling ${getCurrencySymbol(currencyGet.code)}${amountGet}. You will be sent approximately ₦${amountSend}`,
                             iconType: 'info'
                         }
                     ]}

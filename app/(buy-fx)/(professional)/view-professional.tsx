@@ -6,7 +6,7 @@ import TransactionViewLayout from '@/components/transaction-flow/TransactionView
 import { useGetTransactionByIdQuery } from '@/hooks/queries/transactions/useGetTransactionByIdQuery';
 import { useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useToastStore } from '@/stores/useToastStore';
-import { commonDocTypeLabels, formatCurrency, formatDate, formatTime, formatTimeWithSeconds, getTransactionDocuments } from '@/utils/helpers';
+import { commonDocTypeLabels, formatCurrency, formatDate, formatTime, formatTimeWithSeconds, getTransactionDocuments, getCurrencySymbol } from '@/utils/helpers';
 import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, BackHandler, View } from 'react-native';
@@ -72,7 +72,7 @@ export default function ViewProfessionalScreen() {
         return [
             { label: 'Transaction ID', value: tx.referenceNumber },
             { label: 'Amount (₦)', value: formatCurrency(tx.nairaEquivalent) },
-            { label: 'Equivalent Amount (FX)', value: formatCurrency(tx.foreignAmount, tx.currency === 'USD' ? '$' : tx.currency === 'GBP' ? '£' : tx.currency === 'EUR' ? '€' : tx.currency) },
+            { label: 'Equivalent Amount (FX)', value: formatCurrency(tx.foreignAmount, getCurrencySymbol(tx.currency)) },
             { label: 'Date Initiated', value: `${formatDate(tx.createdAt)}\n${formatTimeWithSeconds(tx.createdAt)}` },
             ...(tx.cashPickup ? [
                 {

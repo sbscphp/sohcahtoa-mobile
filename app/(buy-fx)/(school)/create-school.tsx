@@ -23,6 +23,7 @@ import { useExchangeLogic } from '@/hooks/useExchangeLogic';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useToastStore } from '@/stores/useToastStore';
 import { schoolStep0Schema, schoolStep2Schema, schoolStep3Schema } from '@/utils/validations/school';
+import { getCurrencySymbol } from '@/utils/helpers';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
 import { ArrowDown2, Teacher } from 'iconsax-react-nativejs';
@@ -1001,12 +1002,12 @@ export default function SchoolFeesScreen() {
                     items={[
                         {
                             title: "Request Summary",
-                            description: `You are requesting ${currencyGet.code === 'USD' ? '$' : currencyGet.code === 'GBP' ? '£' : currencyGet.code === 'EUR' ? '€' : ''}${amountGetStr} ${currencyGet.code.toUpperCase()}. You will pay approximately ₦${amountSendStr}`,
+                            description: `You are requesting ${getCurrencySymbol(currencyGet.code)}${amountGetStr} ${currencyGet.code.toUpperCase()}. You will pay approximately ₦${amountSendStr}`,
                             iconType: 'info'
                         },
                         {
                             title: "Maximum Limit",
-                            description: "Please note that the maximum you can transact is $10,000 per quarter.",
+                            description: `Please note that the maximum you can transact is ${getCurrencySymbol('USD')}10,000 per quarter.`,
                             iconType: 'limit'
                         }
                     ]}
