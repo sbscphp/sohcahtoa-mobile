@@ -76,11 +76,22 @@ export default function HomeScreen() {
     const { data: unreadData } = useGetUnreadCountQuery();
     const unreadCount = unreadData?.data?.count || 0;
 
+
     // console.log(unreadCount,'unreadCount------')
 
     useEffect(() => {
-        getTotals({});
-    }, []);
+        getTotals({
+            currency: selectedCurrency.code,
+            customRates: [
+                {
+                    currency: selectedCurrency.code,
+                    rate: 1
+                }
+            ]
+        });
+    }, [selectedCurrency]);
+
+    // console.log(totalsData,"TOTALS_DATA")
 
     const handleActionPress = (action: string) => {
         if (action === 'vacation') {
@@ -173,24 +184,26 @@ export default function HomeScreen() {
     const activeConfig = getSheetConfig();
 
     const getBalanceData = () => {
-        const totals = totalsData?.data;
+        const totals: any = totalsData?.data || totalsData;
         if (!totals) {
             return { label: 'Total FX units', amount: '0' };
         }
 
         switch (selectedFilter) {
             case 'FX bought':
-                return { label: 'Total FX Bought', amount: totals.buy.totalAmount.toLocaleString() };
+                return { label: 'Total FX Bought', amount: (totals.buy?.totalAmount ?? 0).toLocaleString() };
             case 'FX sold':
-                return { label: 'Total FX Sold', amount: totals.sell.totalAmount.toLocaleString() };
+                return { label: 'Total FX Sold', amount: (totals.sell?.totalAmount ?? 0).toLocaleString() };
             case 'Received FX':
-                return { label: 'Total FX Received', amount: totals.remittance.totalAmount.toLocaleString() };
+                return { label: 'Total FX Received', amount: (totals.remittance?.totalAmount ?? 0).toLocaleString() };
             default:
-                return { label: 'Total FX units', amount: totals.all.totalAmount.toLocaleString() };
+                return { label: 'Total FX units', amount: (totals.all?.totalAmount ?? 0).toLocaleString() };
         }
     };
 
     const balanceData = getBalanceData();
+
+    // console.log(balanceData,"BALANCE_DATA")
 
     const queryParams = useMemo(() => {
         const params: any = { limit: 5 };

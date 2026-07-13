@@ -439,6 +439,7 @@ export interface CustomRate {
 }
 
 export interface GetTransactionTotalsPayload {
+    currency?: string;
     customRates?: CustomRate[];
 }
 
