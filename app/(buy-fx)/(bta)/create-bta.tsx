@@ -114,6 +114,12 @@ const btaFormSchema = z.object({
                 message: 'Please enter domiciliary account number',
                 path: ['domiciliaryAccountNumber']
             });
+        } else if (data.domiciliaryAccountNumber.length !== 10 || !/^\d+$/.test(data.domiciliaryAccountNumber)) {
+            ctx.addIssue({
+                code: "custom",
+                message: 'Domiciliary account number must be 10 digits',
+                path: ['domiciliaryAccountNumber']
+            });
         }
         if (!data.domiciliaryBankName) {
             ctx.addIssue({
@@ -713,7 +719,7 @@ export default function BusinessTravelAllowanceScreen() {
     };
 
 
-    const isStep0Valid = watchedFields.bvn && watchedFields.tinNumber && watchedFields.formAId && watchedFields.passportDocumentNumber;
+    const isStep0Valid = watchedFields.bvn && watchedFields.tinNumber && watchedFields.formAId && watchedFields.formAId.length === 10 && watchedFields.passportDocumentNumber;
     const isStep1Valid = docs.passport.meta && docs.visa.meta && docs.returnTicket.meta && docs.tcc.meta && docs.corporateBodyLetter.meta && docs.partnerInvitationLetter.meta &&
         watchedFields.passportIssueDate && watchedFields.passportExpiryDate;
     const foreignAmountStr = currencyGet.code !== 'NGN' ? amountGetStr : amountSendStr;
@@ -722,7 +728,7 @@ export default function BusinessTravelAllowanceScreen() {
     const isStep3Valid = watchedFields.payoutMethod && (
         !isElectronicTransfer || (
             (watchedFields.payoutMethod === 'Electronic Transfer (100%)' || watchedFields.payoutMethod === 'Cash (25%) + Electronic Transfer (75%)')
-            ? (watchedFields.domiciliaryAccountNumber && watchedFields.domiciliaryBankName && watchedFields.domiciliaryAccountName && watchedFields.domiciliarySwiftCode && watchedFields.domiciliaryRoutingNumber && watchedFields.domiciliaryBankAddress)
+            ? (watchedFields.domiciliaryAccountNumber && watchedFields.domiciliaryAccountNumber.length === 10 && watchedFields.domiciliaryBankName && watchedFields.domiciliaryAccountName && watchedFields.domiciliarySwiftCode && watchedFields.domiciliaryRoutingNumber && watchedFields.domiciliaryBankAddress)
             : (watchedFields.customerBankName && watchedFields.customerBankCode && watchedFields.customerAccountNumber && watchedFields.customerAccountName)
         )
     );
@@ -849,6 +855,7 @@ export default function BusinessTravelAllowanceScreen() {
                     onClose={() => setInitiateSheetVisible(false)}
                     onConfirm={handleSubmit(onSubmit)}
                     title="Initiate BTA Transaction request?"
+                    limitCurrencySymbol={getCurrencySymbol(currencyGet.code)}
                     items={[
                         {
                             title: "Request Summary",
@@ -857,7 +864,7 @@ export default function BusinessTravelAllowanceScreen() {
                         },
                         {
                             title: "Maximum Limit",
-                            description: `Please note that the maximum you can transact is ${getCurrencySymbol('USD')}5,000 per quarter.`,
+                            description: `Please note that the maximum you can transact is ${getCurrencySymbol(currencyGet.code)}5,000 per quarter.`,
                             iconType: 'limit'
                         }
                     ]}

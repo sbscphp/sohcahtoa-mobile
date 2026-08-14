@@ -1,12 +1,14 @@
 import ControlledInput from '@/components/ControlledInput';
+import GenericSelectionSheet, { SelectionItem } from '@/components/GenericSelectionSheet';
 import { Ionicons } from '@expo/vector-icons';
-import { ArrowDown2 } from 'iconsax-react-nativejs';
+import { ArrowDown2, Bank } from 'iconsax-react-nativejs';
 import React from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 import { moderateScale } from 'react-native-size-matters';
 import { useWatch } from 'react-hook-form';
 import { useAttachBankAccountsMutation } from '@/hooks/queries/transactions/useAttachBankAccountsMutation';
 import { useGetSavedAccountsQuery } from '@/hooks/queries/banks/useGetSavedAccountsQuery';
+import { useGetBanksQuery } from '@/hooks/queries/banks/useGetBanksQuery';
 
 export interface SavedAccount {
     id: string;
@@ -49,6 +51,12 @@ export default function PayoutMethodStep({
 }: PayoutMethodStepProps) {
     const attachBankAccountsMutation = useAttachBankAccountsMutation();
     const { data: savedAccountsResponse } = useGetSavedAccountsQuery();
+    const [bankSheetVisible, setBankSheetVisible] = React.useState(false);
+    const { data: banksResponse } = useGetBanksQuery();
+    const banksList = React.useMemo(() =>
+        (banksResponse?.data || []).map(b => ({ id: b.code, label: b.name, value: b.code })),
+        [banksResponse]);
+    const watchedBankName = useWatch({ control, name: 'domiciliaryBankName', defaultValue: '' });
 
     const localSavedAccounts = React.useMemo(() => {
         if (!savedAccountsResponse?.data) return savedAccounts;
@@ -275,15 +283,23 @@ export default function PayoutMethodStep({
                         label="Domiciliary Account Number"
                         placeholder="Enter domiciliary account number"
                         required
-                        filterType="alphanumeric"
+                        keyboardType="numeric"
+                        maxLength={10}
+                        filterType="numeric"
                     />
-                    <ControlledInput
-                        control={control}
-                        name="domiciliaryBankName"
-                        label="Domiciliary Bank Name"
-                        placeholder="Enter domiciliary bank name"
-                        required
-                    />
+                    <TouchableOpacity onPress={() => setBankSheetVisible(true)} activeOpacity={0.8}>
+                        <View pointerEvents="none">
+                            <ControlledInput
+                                control={control}
+                                name="domiciliaryBankName"
+                                label="Domiciliary Bank Name"
+                                placeholder="Select domiciliary bank name"
+                                required
+                                rightIcon={ArrowDown2}
+                                editable={false}
+                            />
+                        </View>
+                    </TouchableOpacity>
                     <ControlledInput
                         control={control}
                         name="domiciliaryAccountName"
@@ -320,6 +336,22 @@ export default function PayoutMethodStep({
                     />
                 </View>
             )}
+
+            <GenericSelectionSheet
+                visible={bankSheetVisible}
+                onClose={() => setBankSheetVisible(false)}
+                title="Select Bank"
+                headerIcon={Bank}
+                items={banksList}
+                selectedItem={watchedBankName || ''}
+                onSelect={(item) => {
+                    setValue('domiciliaryBankName', item.label, { shouldValidate: true, shouldDirty: true });
+                    setBankSheetVisible(false);
+                }}
+                confirmButtonText="Select Bank"
+                searchable={true}
+                searchPlaceholder="Search bank..."
+            />
         </View>
     );
 }

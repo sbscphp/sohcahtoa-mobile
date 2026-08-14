@@ -138,6 +138,12 @@ const ptaFormSchema = z.object({
                 message: 'Please enter domiciliary account number',
                 path: ['domiciliaryAccountNumber']
             });
+        } else if (data.domiciliaryAccountNumber.length !== 10 || !/^\d+$/.test(data.domiciliaryAccountNumber)) {
+            ctx.addIssue({
+                code: "custom",
+                message: 'Domiciliary account number must be 10 digits',
+                path: ['domiciliaryAccountNumber']
+            });
         }
         if (!data.domiciliaryBankName) {
             ctx.addIssue({
@@ -697,7 +703,7 @@ export default function PersonalTravelAllowanceScreen() {
     const isStep3Valid = watchedFields.payoutMethod && (
         !isElectronicTransfer || (
             watchedFields.payoutMethod?.includes('Electronic')
-            ? (watchedFields.domiciliaryAccountNumber && watchedFields.domiciliaryBankName && watchedFields.domiciliaryAccountName && watchedFields.domiciliarySwiftCode && watchedFields.domiciliaryRoutingNumber && watchedFields.domiciliaryBankAddress)
+            ? (watchedFields.domiciliaryAccountNumber && watchedFields.domiciliaryAccountNumber.length === 10 && watchedFields.domiciliaryBankName && watchedFields.domiciliaryAccountName && watchedFields.domiciliarySwiftCode && watchedFields.domiciliaryRoutingNumber && watchedFields.domiciliaryBankAddress)
             : (watchedFields.customerBankName && watchedFields.customerBankCode && watchedFields.customerAccountNumber && watchedFields.customerAccountName)
         )
     );
@@ -818,6 +824,7 @@ export default function PersonalTravelAllowanceScreen() {
                 onClose={() => setInitiateSheetVisible(false)}
                 onConfirm={handleSubmit(handleInitiate)}
                 loading={createTransaction.isPending}
+                limitCurrencySymbol={getCurrencySymbol(currencyGet.code)}
                 items={[
                     {
                         title: "Request Summary",
@@ -826,7 +833,7 @@ export default function PersonalTravelAllowanceScreen() {
                     },
                     {
                         title: "Maximum Limit",
-                        description: `Please note that the maximum you can transact is ${getCurrencySymbol('USD')}4,000 per quarter.`,
+                        description: `Please note that the maximum you can transact is ${getCurrencySymbol(currencyGet.code)}4,000 per quarter.`,
                         iconType: 'limit'
                     }
                 ]}

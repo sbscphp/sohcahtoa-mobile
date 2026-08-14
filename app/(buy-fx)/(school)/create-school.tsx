@@ -999,6 +999,7 @@ export default function SchoolFeesScreen() {
                     onClose={() => setInitiateSheetVisible(false)}
                     onConfirm={handleSubmit(onSubmit)}
                     title={`Initiate ${admissionType} Transaction request?`}
+                    limitCurrencySymbol={getCurrencySymbol(currencyGet.code)}
                     items={[
                         {
                             title: "Request Summary",
@@ -1007,7 +1008,7 @@ export default function SchoolFeesScreen() {
                         },
                         {
                             title: "Maximum Limit",
-                            description: `Please note that the maximum you can transact is ${getCurrencySymbol('USD')}10,000 per quarter.`,
+                            description: `Please note that the maximum you can transact is ${getCurrencySymbol(currencyGet.code)}10,000 per quarter.`,
                             iconType: 'limit'
                         }
                     ]}

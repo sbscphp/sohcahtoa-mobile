@@ -113,12 +113,12 @@ export const medicalBankDetailsStepSchema = z.object({
 });
 
 /** Step 2: Exchange amount — parameterised by max amount */
-export const amountStepSchema = (max: number, label: string) =>
+export const amountStepSchema = (max: number, label: string, currencySymbol: string = '$') =>
     z.object({
         amount: z
             .number()
             .positive('Please enter a valid amount')
-            .max(max, `Please note that the maximum you can transact is $${max.toLocaleString()} per quarter.`),
+            .max(max, `Please note that the maximum you can transact for ${label} is ${currencySymbol}${max.toLocaleString()} per quarter.`),
     });
 /** Step: Customer Bank Details confirmation */
 export const customerBankDetailsStepSchema = z.object({

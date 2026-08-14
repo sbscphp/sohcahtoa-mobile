@@ -177,7 +177,7 @@ export default function ViewTouristScreen() {
                 onTabChange={setActiveTab}
                 tabs={[{ key: 'overview', label: 'Overview' }, { key: 'details', label: 'Transaction Details' }, { key: 'docs', label: 'Documentation' }]}
                 onBack={handleBack}
-                showActionButton={status !== 'pending' && status !== 'rejected' && status !== 'settled'}
+                showActionButton={tx?.status !== 'DEPOSIT_CONFIRMED' && status !== 'pending' && status !== 'rejected' && status !== 'settled'}
                 actionButtonTitle={status === 'approved' || status === 'awaiting_disbursement' ? "Proceed to Payment" : "Resubmit Transaction Request"}
                 onActionPress={handleProceed}
             >

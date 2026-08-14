@@ -23,6 +23,7 @@ interface InitiateTransactionSheetProps {
     confirmText?: string;
     items?: InfoItemProps[];
     loading?: boolean;
+    limitCurrencySymbol?: string;
 }
 
 const InitiateTransactionSheet: React.FC<InitiateTransactionSheetProps> = ({
@@ -33,10 +34,11 @@ const InitiateTransactionSheet: React.FC<InitiateTransactionSheetProps> = ({
     subtitle = "Kindly note the following",
     confirmText = "Yes Initiate Request",
     loading,
+    limitCurrencySymbol = '$',
     items = [
         {
             title: "",
-            description: "Please note that the maximum you can transact is $4,000 per quarter.",
+            description: `Please note that the maximum you can transact is ${limitCurrencySymbol}4,000 per quarter.`,
             iconType: 'limit'
         }
     ]
@@ -69,7 +71,7 @@ const InitiateTransactionSheet: React.FC<InitiateTransactionSheetProps> = ({
         if (item.iconType === 'limit') {
             return (
                 <View style={styles.infoIconCircle}>
-                    <Text style={{ fontSize: moderateScale(16), fontWeight: '600', color: '#0F172A' }}>$</Text>
+                    <Text style={{ fontSize: moderateScale(16), fontWeight: '600', color: '#0F172A' }}>{limitCurrencySymbol}</Text>
                 </View>
             );
         }

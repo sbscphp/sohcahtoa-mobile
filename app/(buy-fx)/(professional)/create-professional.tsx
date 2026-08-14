@@ -669,6 +669,7 @@ export default function ProfessionalScreen() {
                     onConfirm={handleSubmit(onSubmit)}
                     title="Initiate Professional Transaction request?"
                     loading={createTransaction.isPending}
+                    limitCurrencySymbol={getCurrencySymbol(currencyGet.code)}
                     items={[
                         {
                             title: "Request Summary",
@@ -677,7 +678,7 @@ export default function ProfessionalScreen() {
                         },
                         {
                             title: "Maximum Limit",
-                            description: `Please note that the maximum you can transact is ${getCurrencySymbol('USD')}2,000 per quarter.`,
+                            description: `Please note that the maximum you can transact is ${getCurrencySymbol(currencyGet.code)}2,000 per quarter.`,
                             iconType: 'limit'
                         }
                     ]}

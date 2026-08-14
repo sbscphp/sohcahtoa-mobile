@@ -601,6 +601,7 @@ export default function MedicalPaymentScreen() {
                     onConfirm={handleSubmit(onSubmit)}
                     title="Initiate Medical Transaction request?"
                     loading={createTransaction.isPending}
+                    limitCurrencySymbol={getCurrencySymbol(currencyGet.code)}
                     items={[
                         {
                             title: "Request Summary",
@@ -609,7 +610,7 @@ export default function MedicalPaymentScreen() {
                         },
                         {
                             title: "Maximum Limit",
-                            description: `Please note that the maximum you can transact is ${getCurrencySymbol('USD')}5,000 per quarter.`,
+                            description: `Please note that the maximum you can transact is ${getCurrencySymbol(currencyGet.code)}5,000 per quarter.`,
                             iconType: 'limit'
                         }
                     ]}

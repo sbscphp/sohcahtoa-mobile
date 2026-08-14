@@ -276,7 +276,7 @@ export default function ViewMedicalPaymentScreen() {
                     { key: 'docs', label: 'Documentation' },
                 ]}
                 onBack={handleBack}
-                showActionButton={status !== 'pending' && status !== 'rejected' && status !== 'settled'}
+                showActionButton={tx?.status !== 'DEPOSIT_CONFIRMED' && status !== 'pending' && status !== 'rejected' && status !== 'settled'}
                 actionButtonTitle={status === 'approved' || status === 'awaiting_disbursement' ? "Proceed to Payment" : "Resubmit Request"}
                 onActionPress={handleProceed}
             >

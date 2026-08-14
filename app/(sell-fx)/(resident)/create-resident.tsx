@@ -553,7 +553,7 @@ export default function CreateResidentScreen() {
         } else if (currentStep === 4 && needsLocationStep) {
             isStepValid = await trigger(['selectedState', 'selectedCity', 'selectedLocation', 'pickupDate', 'pickupTime']);
         } else if (currentStep === refundStepIndex) {
-            isStepValid = !!(watchedFields.domiciliaryBankName && watchedFields.domiciliaryAccountNumber);
+            isStepValid = !!(watchedFields.domiciliaryBankName && watchedFields.domiciliaryAccountNumber && watchedFields.domiciliaryAccountNumber.length === 10);
             if (!isStepValid) {
                 showToast('Please enter your domiciliary account details for refunds', 'error');
             }
@@ -678,7 +678,7 @@ export default function CreateResidentScreen() {
     const isStep2Valid = watchedFields.amount > 0 && (foreignAmount <= 10000 || (hasProofOfFunds && isDeclarationCompleted));
     const isStep3Valid = watchedFields.payoutMethod && (!isElectronicTransfer || (watchedFields.customerBankName && watchedFields.customerBankCode && watchedFields.customerAccountNumber && watchedFields.customerAccountName));
     const isStep4Valid = !needsLocationStep || !!(watchedFields.selectedState && watchedFields.selectedCity && watchedFields.selectedLocation && watchedFields.pickupDate && watchedFields.pickupTime);
-    const isRefundStepValid = !!(watchedFields.domiciliaryBankName && watchedFields.domiciliaryAccountNumber);
+    const isRefundStepValid = !!(watchedFields.domiciliaryBankName && watchedFields.domiciliaryAccountNumber && watchedFields.domiciliaryAccountNumber.length === 10);
  
     const isNextDisabled =
         (currentStep === 0 && !isStep0Valid) ||
