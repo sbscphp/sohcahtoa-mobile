@@ -57,8 +57,8 @@ export default function MoreScreen() {
         },
         {
             icon: <Bookmark size={moderateScale(18)} color="rgba(255, 104, 19, 1)" variant="Linear" />,
-            title: 'Transient history',
-            subtitle: 'View and manege your trans history',
+            title: 'Payment history',
+            subtitle: 'View and manege your payment history',
             onPress: () => router.push('/(more)/transient-history'),
         },
         {

@@ -5,7 +5,7 @@ import { Text, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import EmptyState from '../../assets/icons/no-search-found.svg';
 
-export type TransactionStatus = 'pending' | 'approved' | 'more_info' | 'rejected' | 'awaiting_disbursement' | 'settled';
+export type TransactionStatus = 'pending' | 'approved' | 'more_info' | 'rejected' | 'awaiting_disbursement' | 'settled' | 'refunded';
 
 interface TransactionStatusViewProps {
     status: TransactionStatus;
@@ -26,7 +26,7 @@ const getApiStatusColors = (rawStatus: string) => {
     if (['APPROVED', 'COMPLETED', 'SETTLED'].includes(status)) {
         return { background: '#DCFCE7', text: '#166534' };
     }
-    if (['REJECTED', 'CANCELLED'].includes(status)) {
+    if (['REJECTED', 'CANCELLED', 'REFUNDED'].includes(status)) {
         return { background: '#FECACA', text: '#991B1B' };
     }
     if (['AWAITING_DEPOSIT', 'DEPOSIT_PENDING', 'DEPOSIT_CONFIRMED', 'DISBURSEMENT_IN_PROGRESS', 'AWAITING_DISBURSEMENT', 'AWAITING_REFUND_VERIFICATION'].includes(status)) {
@@ -39,75 +39,77 @@ const getApiStatusColors = (rawStatus: string) => {
 };
 
 export default function TransactionStatusView({ status, apiStatus, id, date, time, message, comments }: TransactionStatusViewProps) {
+    const isRefunded = status === 'refunded' || apiStatus?.toUpperCase() === 'REFUNDED';
     const apiStatusLabel = apiStatus ? formatApiStatus(apiStatus) : undefined;
     const apiStatusColors = apiStatus ? getApiStatusColors(apiStatus) : undefined;
     const statusLabel = apiStatusLabel || (status === 'approved' ? 'Approved' :
         status === 'awaiting_disbursement' ? 'Awaiting Disbursement' :
             status === 'rejected' ? 'Rejected' :
                 status === 'settled' ? 'Settled' :
-                    'Information Pending');
+                    status === 'refunded' ? 'Refunded' :
+                        'Information Pending');
 
-    const renderComments = () => {
-        if (!comments || comments.length === 0) return null;
+    // const renderComments = () => {
+    //     if (!comments || comments.length === 0) return null;
 
-        return (
-            <View style={styles.commentsSection}>
-                <View style={styles.commentsHeaderRow}>
-                    <Text style={styles.commentsTitle}>Activity History</Text>
-                    <View style={styles.commentCountBadge}>
-                        <Text style={styles.commentCountText}>{comments.length}</Text>
-                    </View>
-                </View>
+    //     return (
+    //         <View style={styles.commentsSection}>
+    //             <View style={styles.commentsHeaderRow}>
+    //                 <Text style={styles.commentsTitle}>Activity History</Text>
+    //                 <View style={styles.commentCountBadge}>
+    //                     <Text style={styles.commentCountText}>{comments.length}</Text>
+    //                 </View>
+    //             </View>
 
-                <View style={styles.timelineContainer}>
-                    {comments.map((comment, index) => {
-                        const isLast = index === comments.length - 1;
-                        const actionLabel = comment.action?.replace(/_/g, ' ').toLowerCase() || 'comment added';
-                        const isRejected = comment.action?.includes('REJECTED');
-                        const isInfo = comment.action?.includes('MORE_INFO');
+    //             <View style={styles.timelineContainer}>
+    //                 {comments.map((comment, index) => {
+    //                     const isLast = index === comments.length - 1;
+    //                     const actionLabel = comment.action?.replace(/_/g, ' ').toLowerCase() || 'comment added';
+    //                     const isRejected = comment.action?.includes('REJECTED');
+    //                     const isInfo = comment.action?.includes('MORE_INFO');
 
-                        return (
-                            <View key={comment.id || index} style={styles.timelineItem}>
-                                {!isLast && <View style={styles.timelineLine} />}
-                                <View style={[
-                                    styles.timelineDot,
-                                    isRejected && styles.timelineDotRejected,
-                                    isInfo && styles.timelineDotInfo
-                                ]} />
+    //                     return (
+    //                         <View key={comment.id || index} style={styles.timelineItem}>
+    //                             {!isLast && <View style={styles.timelineLine} />}
+    //                             <View style={[
+    //                                 styles.timelineDot,
+    //                                 isRejected && styles.timelineDotRejected,
+    //                                 isInfo && styles.timelineDotInfo
+    //                             ]} />
                                 
-                                <View style={styles.timelineContent}>
-                                    <View style={styles.commentHeader}>
-                                        <View style={styles.commentAuthorRow}>
-                                            <Text style={styles.commentUser}>{comment.addedBy}</Text>
-                                            <View style={[
-                                                styles.actionBadge,
-                                                isRejected && styles.actionBadgeRejected,
-                                                isInfo && styles.actionBadgeInfo
-                                            ]}>
-                                                <Text style={[
-                                                    styles.actionBadgeText,
-                                                    isRejected && styles.actionBadgeTextRejected,
-                                                    isInfo && styles.actionBadgeTextInfo
-                                                ]}>{actionLabel}</Text>
-                                            </View>
-                                        </View>
-                                        <Text style={styles.commentDate}>
-                                            {new Date(comment.createdAt).toLocaleDateString()} • {new Date(comment.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                        </Text>
-                                    </View>
-                                    <View style={styles.commentBubble}>
-                                        <Text style={styles.commentMessage}>{comment.message}</Text>
-                                    </View>
-                                </View>
-                            </View>
-                        );
-                    })}
-                </View>
-            </View>
-        );
-    };
+    //                             <View style={styles.timelineContent}>
+    //                                 <View style={styles.commentHeader}>
+    //                                     <View style={styles.commentAuthorRow}>
+    //                                         <Text style={styles.commentUser}>{comment.addedBy}</Text>
+    //                                         <View style={[
+    //                                             styles.actionBadge,
+    //                                             isRejected && styles.actionBadgeRejected,
+    //                                             isInfo && styles.actionBadgeInfo
+    //                                         ]}>
+    //                                             <Text style={[
+    //                                                 styles.actionBadgeText,
+    //                                                 isRejected && styles.actionBadgeTextRejected,
+    //                                                 isInfo && styles.actionBadgeTextInfo
+    //                                             ]}>{actionLabel}</Text>
+    //                                         </View>
+    //                                     </View>
+    //                                     <Text style={styles.commentDate}>
+    //                                         {new Date(comment.createdAt).toLocaleDateString()} • {new Date(comment.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+    //                                     </Text>
+    //                                 </View>
+    //                                 <View style={styles.commentBubble}>
+    //                                     <Text style={styles.commentMessage}>{comment.message}</Text>
+    //                                 </View>
+    //                             </View>
+    //                         </View>
+    //                     );
+    //                 })}
+    //             </View>
+    //         </View>
+    //     );
+    // };
 
-    if (status === 'pending') {
+    if (status === 'pending' && !isRefunded) {
         return (
             <View style={styles.tabContent}>
                 <View style={styles.pendingContainer}>
@@ -120,7 +122,7 @@ export default function TransactionStatusView({ status, apiStatus, id, date, tim
                     </Text>
                 </View>
 
-                {renderComments()}
+                {/* {renderComments()} */}
             </View>
         );
     }
@@ -131,44 +133,54 @@ export default function TransactionStatusView({ status, apiStatus, id, date, tim
             <View style={[
                 styles.statusCard,
                 status === 'more_info' && styles.statusCardMoreInfo,
-                status === 'rejected' && styles.statusCardRejected
+                status === 'rejected' && styles.statusCardRejected,
+                isRefunded && styles.statusCardRefunded,
             ]}>
                 <View style={styles.statusHeader}>
-                    <Text style={[styles.statusTitle, status === 'rejected' && styles.statusTitleRejected]}>
+                    <Text style={[
+                        styles.statusTitle,
+                        status === 'rejected' && styles.statusTitleRejected,
+                        isRefunded && styles.statusTitleRefunded,
+                    ]}>
                         {status === 'approved' || status === 'awaiting_disbursement' || status === 'settled' ? 'Request Approved' :
-                            status === 'rejected' ? 'Request Rejected' : 'More Information Requested'}
+                            status === 'rejected' ? 'Request Rejected' :
+                                isRefunded ? 'Transaction Refunded' :
+                                    'More Information Requested'}
                     </Text>
 
                 </View>
                 <Text style={[
                     styles.statusId,
                     status === 'more_info' && styles.statusIdMoreInfo,
-                    status === 'rejected' && styles.statusIdRejected
+                    status === 'rejected' && styles.statusIdRejected,
+                    isRefunded && styles.statusIdRefunded,
                 ]}>ID: {id}</Text>
                 <View style={styles.statusMetaRow}>
 
                     <View style={styles.metaItem}>
                         <Calendar size={moderateScale(14)}
-                            color={status === 'approved' || status === 'awaiting_disbursement' || status === 'settled' ? "#16A34A" : status === 'rejected' ? "#EF4444" : "#7C3AED"}
+                            color={status === 'approved' || status === 'awaiting_disbursement' || status === 'settled' ? "#16A34A" : status === 'rejected' || isRefunded ? "#EF4444" : "#7C3AED"}
 
                         />
                         <Text style={[
                             styles.metaText,
                             status === 'more_info' && styles.metaTextMoreInfo,
-                            status === 'rejected' && styles.metaTextRejected
+                            status === 'rejected' && styles.metaTextRejected,
+                            isRefunded && styles.metaTextRefunded,
                         ]}>
                             {date}
                         </Text>
                     </View>
                     <View style={styles.metaItem}>
                         <Clock size={moderateScale(14)}
-                            color={status === 'approved' || status === 'awaiting_disbursement' || status === 'settled' ? "#16A34A" : status === 'rejected' ? "#EF4444" : "#7C3AED"}
+                            color={status === 'approved' || status === 'awaiting_disbursement' || status === 'settled' ? "#16A34A" : status === 'rejected' || isRefunded ? "#EF4444" : "#7C3AED"}
 
                         />
                         <Text style={[
                             styles.metaText,
                             status === 'more_info' && styles.metaTextMoreInfo,
-                            status === 'rejected' && styles.metaTextRejected
+                            status === 'rejected' && styles.metaTextRejected,
+                            isRefunded && styles.metaTextRefunded,
                         ]}>
                             {time}
                         </Text>
@@ -189,6 +201,7 @@ export default function TransactionStatusView({ status, apiStatus, id, date, tim
                     !apiStatus && status === 'more_info' && styles.txStatusBadgeMoreInfo,
                     !apiStatus && status === 'awaiting_disbursement' && styles.txStatusBadgeAwaiting,
                     !apiStatus && status === 'rejected' && styles.txStatusBadgeRejected,
+                    !apiStatus && isRefunded && styles.txStatusBadgeRefunded,
                     apiStatus && apiStatusColors && { backgroundColor: apiStatusColors.background }
                 ]}>
                     <Text style={[
@@ -196,6 +209,7 @@ export default function TransactionStatusView({ status, apiStatus, id, date, tim
                         !apiStatus && status === 'more_info' && styles.txStatusTextMoreInfo,
                         !apiStatus && status === 'awaiting_disbursement' && styles.txStatusTextAwaiting,
                         !apiStatus && status === 'rejected' && styles.txStatusTextRejected,
+                        !apiStatus && isRefunded && styles.txStatusTextRefunded,
                         apiStatus && apiStatusColors && { color: apiStatusColors.text }
                     ]}>
                         {statusLabel}
@@ -203,7 +217,7 @@ export default function TransactionStatusView({ status, apiStatus, id, date, tim
                 </View>
             </View>
 
-            {status === 'approved' ? null : renderComments()}
+            {/* {status === 'approved' ? null : renderComments()} */}
         </View>
     );
 }
@@ -225,6 +239,9 @@ const styles = ScaledSheet.create({
     statusCardRejected: {
         backgroundColor: 'rgba(255, 228, 232, 1)',
     },
+    statusCardRefunded: {
+        backgroundColor: 'rgba(255, 228, 232, 1)',
+    },
     statusHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -238,6 +255,9 @@ const styles = ScaledSheet.create({
     statusTitleRejected: {
         color: '#991B1B',
     },
+    statusTitleRefunded: {
+        color: '#991B1B',
+    },
     statusId: {
         fontSize: '12@ms',
         color: '#8a8f8cff',
@@ -246,6 +266,9 @@ const styles = ScaledSheet.create({
         color: '#8a8f8cff',
     },
     statusIdRejected: {
+        color: '#8a8f8cff',
+    },
+    statusIdRefunded: {
         color: '#8a8f8cff',
     },
     statusMetaRow: {
@@ -265,6 +288,9 @@ const styles = ScaledSheet.create({
         color: '#4C1D95',
     },
     metaTextRejected: {
+        color: '#991B1B',
+    },
+    metaTextRefunded: {
         color: '#991B1B',
     },
     messageBox: {
@@ -318,6 +344,12 @@ const styles = ScaledSheet.create({
         backgroundColor: '#FECACA',
     },
     txStatusTextRejected: {
+        color: '#991B1B',
+    },
+    txStatusBadgeRefunded: {
+        backgroundColor: '#FECACA',
+    },
+    txStatusTextRefunded: {
         color: '#991B1B',
     },
 

@@ -60,7 +60,7 @@ export default function TransientHistoryScreen() {
     return (
         <View style={[styles.container, { paddingTop: insets.top }]}>
             <Header
-                title="Transient History"
+                title="Payment History"
             />
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>

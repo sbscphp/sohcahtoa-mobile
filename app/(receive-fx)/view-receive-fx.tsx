@@ -80,6 +80,8 @@ export default function ViewReceiveFxScreen() {
     const getMessage = () => {
         if (status === 'approved')
             return "This is a message box that show the message from the SohCahToa Admin regarding the approval of this client transaction request. As this is approved, this customer would then be able to take an action from this point";
+        if (status === 'refunded')
+            return "This transaction has been refunded. The funds have been returned to your original account.";
 
         return "Your document is currently undergoing approval. You will receive a mail notification once your documents is approved.";
     };

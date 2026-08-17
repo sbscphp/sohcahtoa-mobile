@@ -82,6 +82,16 @@ export default function ViewSchoolFeesScreen() {
                     value: tx.cashPickup.pickupLocation || 'N/A',
                     isRightAligned: true
                 },
+                {
+                    label: 'Pickup Address',
+                    value: tx.cashPickup.pickupAddress,
+                    isRightAligned: true,
+                },
+                {
+                    label: 'Pickup Phone',
+                    value: tx.cashPickup.pickupPhone,
+                    isRightAligned: true,
+                },
                 ...((tx.cashPickup.scheduledPickupDate || tx.cashPickup.schedulePickupDate) ? [{
                     label: 'Pickup Date',
                     value: formatDate(tx.cashPickup.scheduledPickupDate || tx.cashPickup.schedulePickupDate),
@@ -276,6 +286,8 @@ export default function ViewSchoolFeesScreen() {
         if (!tx) return '';
         if (status === 'approved' || status === 'awaiting_disbursement' || status === 'settled') return "Congratulations! Your school fees payment request has been approved. Please proceed to payment.";
         if (status === 'rejected') return tx.rejection?.reason || "Your application has been declined.";
+        if (status === 'refunded' || tx.status === 'REFUNDED')
+            return (tx as any)?.refundReason || (tx as any)?.refund?.reason || "This transaction has been refunded. The funds have been returned to your original account.";
         return `Your transaction is currently ${tx.status.replace(/_/g, ' ').toLowerCase()}. Please check back for updates.`;
     };
 
@@ -290,11 +302,11 @@ export default function ViewSchoolFeesScreen() {
             onTabChange={setActiveTab}
             tabs={[{ key: 'overview', label: 'Overview' }, { key: 'details', label: 'Transaction Details' }, { key: 'docs', label: 'Documentation' }]}
             onBack={handleBack}
-            showActionButton={tx?.status !== 'DEPOSIT_CONFIRMED' && status !== 'pending' && status !== 'rejected' && status !== 'settled'}
+            showActionButton={tx?.status !== 'DEPOSIT_CONFIRMED' && status !== 'pending' && status !== 'rejected' && status !== 'settled' && status !== 'refunded' && tx?.status !== 'REFUNDED'}
             actionButtonTitle={status === 'approved' || status === 'awaiting_disbursement' ? "Proceed to Payment" : "Resubmit Request"}
             onActionPress={handleProceed}
         >
-            {activeTab === 'overview' && (<TransactionStatusView status={status} id={tx?.referenceNumber?.slice(-6) || ''} date={tx ? formatDate(tx.createdAt) : ''} time={tx ? formatTime(tx.createdAt) : ''} message={getMessage()} comments={tx?.comments} />)}
+            {activeTab === 'overview' && (<TransactionStatusView status={status} apiStatus={tx?.status} id={tx?.referenceNumber?.slice(-6) || ''} date={tx ? formatDate(tx.createdAt) : ''} time={tx ? formatTime(tx.createdAt) : ''} message={getMessage()} comments={tx?.comments} />)}
             {activeTab === 'details' && (
                 <TransactionDetailsView
                     details={detailsItems}

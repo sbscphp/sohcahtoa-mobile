@@ -317,7 +317,7 @@ const styles = ScaledSheet.create({
         shadowRadius: 8,
     },
     submitButton: {
-        marginTop: '40@vs'
+        marginTop: '14@vs'
     },
 
     fileEmptyContainer: {

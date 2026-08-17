@@ -63,4 +63,24 @@ describe('TransactionStatusView', () => {
         expect(getByText('Request Approved')).toBeTruthy();
         expect(getByText('Settled')).toBeTruthy();
     });
+
+    it('renders refunded status correctly', () => {
+        const props = { ...defaultProps, status: 'refunded' as const, message: 'Transaction was refunded due to compliance limits.' };
+        const { getByText, queryByText } = render(<TransactionStatusView {...props} />);
+
+        expect(getByText('Transaction Refunded')).toBeTruthy();
+        expect(getByText('Transaction was refunded due to compliance limits.')).toBeTruthy();
+        expect(getByText('Refunded')).toBeTruthy();
+        expect(queryByText('Application is Under Review')).toBeNull();
+    });
+
+    it('renders apiStatus REFUNDED correctly when status is pending', () => {
+        const props = { ...defaultProps, status: 'pending' as const, apiStatus: 'REFUNDED', message: 'Funds have been returned.' };
+        const { getByText, queryByText } = render(<TransactionStatusView {...props} />);
+
+        expect(getByText('Transaction Refunded')).toBeTruthy();
+        expect(getByText('Funds have been returned.')).toBeTruthy();
+        expect(getByText('REFUNDED')).toBeTruthy();
+        expect(queryByText('Application is Under Review')).toBeNull();
+    });
 });

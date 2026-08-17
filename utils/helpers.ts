@@ -17,6 +17,7 @@ export const mapApiStatusToViewStatus = (status: string): TransactionStatus => {
         'COMPLETED': 'settled',
         'REJECTED': 'rejected',
         'CANCELLED': 'rejected',
+        'REFUNDED': 'refunded',
     };
     return map[status] || 'pending';
 };
@@ -217,6 +218,7 @@ export const getStatusLabel = (status: string): string => {
         'COMPLETED': 'Completed',
         'REJECTED': 'Rejected',
         'CANCELLED': 'Cancelled',
+        'REFUNDED': 'Refunded',
     };
     return map[status] || status;
 };
@@ -250,9 +252,11 @@ export const getStatusStyle = (status: string) => {
             return { color: '#3538CD', bg: '#EEF4FF', backgroundColor: '#EEF4FF' };
         case 'REJECTED':
         case 'CANCELLED':
+        case 'REFUNDED':
         case 'Declined':
         case 'Rejected':
         case 'Cancelled':
+        case 'Refunded':
             return { color: '#B42318', bg: '#FEF3F2', backgroundColor: '#FEF3F2' };
         case 'APPROVED':
         case 'COMPLETED':

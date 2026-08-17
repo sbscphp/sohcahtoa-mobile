@@ -86,6 +86,16 @@ export default function ViewExpatriateScreen() {
                     label: 'Pickup Location',
                     value: tx.cashPickup.pickupLocation || 'N/A',
                 },
+                {
+                    label: 'Pickup Address',
+                    value: tx.cashPickup.pickupAddress,
+                    isRightAligned: true,
+                },
+                {
+                    label: 'Pickup Phone',
+                    value: tx.cashPickup.pickupPhone,
+                    isRightAligned: true,
+                },
                 ...(tx.cashPickup.pickupCity ? [{
                     label: 'Pickup City',
                     value: tx.cashPickup.pickupCity,
@@ -170,6 +180,8 @@ export default function ViewExpatriateScreen() {
         if (!tx) return '';
         if (status === 'approved' || status === 'awaiting_disbursement' || status === 'settled') return "Congratulations! Your application has been approved. Kindly proceed to complete the transaction.";
         if (status === 'rejected') return tx.rejection?.reason || "Your request has been declined.";
+        if (status === 'refunded' || tx.status === 'REFUNDED')
+            return (tx as any)?.refundReason || (tx as any)?.refund?.reason || "This transaction has been refunded. The funds have been returned to your original account.";
         return `Your transaction is currently ${tx.status.replace(/_/g, ' ').toLowerCase()}. Please check back for updates.`;
     };
     if (isLoading) return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}><ActivityIndicator size="large" color="#FF6B2C" /></View>;
@@ -183,11 +195,11 @@ export default function ViewExpatriateScreen() {
             onTabChange={setActiveTab}
             tabs={[{ key: 'overview', label: 'Overview' }, { key: 'details', label: 'Transaction Details' }, { key: 'docs', label: 'Documentation' }]}
             onBack={handleBack}
-            showActionButton={tx?.status !== 'DEPOSIT_CONFIRMED' && status !== 'pending' && status !== 'rejected' && status !== 'settled'}
+            showActionButton={tx?.status !== 'DEPOSIT_CONFIRMED' && status !== 'pending' && status !== 'rejected' && status !== 'settled' && status !== 'refunded' && tx?.status !== 'REFUNDED'}
             actionButtonTitle={status === 'approved' || status === 'awaiting_disbursement' ? "Proceed to Payment" : "Resubmit Transaction Request"}
             onActionPress={handleProceed}
         >
-            {activeTab === 'overview' && (<TransactionStatusView status={status} id={tx?.referenceNumber?.slice(-6) || ''} date={tx ? formatDate(tx.createdAt) : ''} time={tx ? formatTime(tx.createdAt) : ''} message={getMessage()} comments={tx?.comments} />)}
+            {activeTab === 'overview' && (<TransactionStatusView status={status} apiStatus={tx?.status} id={tx?.referenceNumber?.slice(-6) || ''} date={tx ? formatDate(tx.createdAt) : ''} time={tx ? formatTime(tx.createdAt) : ''} message={getMessage()} comments={tx?.comments} />)}
             {activeTab === 'details' && (
                 <TransactionDetailsView
                     details={detailsItems}

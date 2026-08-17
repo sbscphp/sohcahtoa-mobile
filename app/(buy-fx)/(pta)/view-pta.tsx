@@ -90,7 +90,7 @@ export default function ViewPtaScreen() {
             ...(tx.cashPickup ? [
                 {
                     label: 'Pickup Cash Amount',
-                    value: formatCurrency(tx?.pickupLocation?.amount, getCurrencySymbol(tx.cashPickup.currency || tx.currency)) || 'N/A',
+                    value: formatCurrency(tx?.pickupLocation?.amount || tx?.cashPickup?.amount , getCurrencySymbol(tx.cashPickup.currency || tx.currency)) || 'N/A',
                 },
                 {
                     label: 'Pickup Status',
@@ -99,6 +99,16 @@ export default function ViewPtaScreen() {
                 {
                     label: 'Pickup Location',
                     value: pickupLocation || 'N/A',
+                },
+                {
+                    label: 'Pickup Address',
+                    value: tx.cashPickup.pickupAddress,
+                    isRightAligned: true,
+                },
+                {
+                    label: 'Pickup Phone',
+                    value: tx.cashPickup.pickupPhone,
+                    isRightAligned: true,
                 },
                 {
                     label: 'Pickup City',
@@ -248,6 +258,8 @@ export default function ViewPtaScreen() {
             return "Congratulations! Your application has been approved. Kindly proceed to make payment.";
         if (status === 'rejected')
             return tx.rejection?.reason || "Your application has been declined.";
+        if (status === 'refunded' || tx.status === 'REFUNDED')
+            return (tx as any)?.refundReason || (tx as any)?.refund?.reason || "This transaction has been refunded. The funds have been returned to your original account.";
         return `Your transaction is currently ${tx.status.replace(/_/g, ' ').toLowerCase()}. Please check back for updates.`;
     };
 
@@ -268,7 +280,7 @@ export default function ViewPtaScreen() {
             onTabChange={setActiveTab}
             tabs={tabs}
             onBack={handleBack}
-            showActionButton={tx?.status !== 'DEPOSIT_CONFIRMED' && status !== 'pending' && status !== 'rejected' && status !== 'settled'}
+            showActionButton={tx?.status !== 'DEPOSIT_CONFIRMED' && status !== 'pending' && status !== 'rejected' && status !== 'settled' && status !== 'refunded' && tx?.status !== 'REFUNDED'}
             actionButtonTitle={status === 'approved' || status === 'awaiting_disbursement' ? "Proceed to Payment" : "Resubmit Transaction Request"}
             onActionPress={handleProceed}
         >
