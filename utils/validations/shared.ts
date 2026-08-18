@@ -45,9 +45,9 @@ export const tinField = z
     .refine((val) => {
         if (!val) return false;
         const clean = val.replace(/[^0-9]/g, '');
-        return /^\d{10,13}$/.test(clean);
+        return clean.length >= 9 && clean.length <= 13;
     }, {
-        message: 'TIN must be between 10 and 13 digits',
+        message: 'TIN must be between 9 and 13 digits',
     });
 
 /** Tax Clearance Certificate Number validation (TCC) */

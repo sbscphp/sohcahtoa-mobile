@@ -44,7 +44,7 @@ export default function ViewBtaScreen() {
         }, [refetch])
     );
 
-    // console.log('Transaction:', JSON.stringify(tx, null, 2));
+    console.log('Transaction:', JSON.stringify(tx, null, 2));
 
     const { upload: uploadFile, isPending: isUploading } = useDocumentUpload({
         transactionId: transactionId || undefined,
@@ -107,12 +107,12 @@ export default function ViewBtaScreen() {
                 },
                 {
                     label: 'Pickup Address',
-                    value: tx.cashPickup.pickupAddress,
+                    value: tx.cashPickup.pickupAddress || tx.pickupLocation?.address,
                     isRightAligned: true,
                 },
                 {
                     label: 'Pickup Phone',
-                    value: tx.cashPickup.pickupPhone,
+                    value: tx.cashPickup.pickupPhone || "N/A",
                     isRightAligned: true,
                 },
                 {

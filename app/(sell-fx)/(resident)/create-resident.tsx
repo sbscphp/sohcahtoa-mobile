@@ -81,21 +81,13 @@ const residentFormSchema = z.object({
     }
 
     if (data.tinNumber) {
-        const cleanTin = data.tinNumber.replace(/[^a-zA-Z0-9]/g, '');
-        if (cleanTin.length >= 10) {
-            if (!/^\d+$/.test(cleanTin)) {
-                ctx.addIssue({
-                    code: "custom",
-                    message: 'TIN must contain only digits',
-                    path: ['tinNumber']
-                });
-            } else if (cleanTin.length < 10 || cleanTin.length > 13) {
-                ctx.addIssue({
-                    code: "custom",
-                    message: 'TIN must be between 10 and 13 digits',
-                    path: ['tinNumber']
-                });
-            }
+        const cleanTin = data.tinNumber.replace(/[^0-9]/g, '');
+        if (cleanTin.length < 9 || cleanTin.length > 13) {
+            ctx.addIssue({
+                code: "custom",
+                message: 'TIN must be between 9 and 13 digits',
+                path: ['tinNumber']
+            });
         }
     }
 
@@ -409,7 +401,7 @@ export default function CreateResidentScreen() {
                     placeholder="Enter TIN"
                     required={!watchedFields.bvn}
                     keyboardType="default"
-                    maxLength={13}
+                    maxLength={15}
                 />
             )
         },
@@ -553,7 +545,7 @@ export default function CreateResidentScreen() {
         } else if (currentStep === 4 && needsLocationStep) {
             isStepValid = await trigger(['selectedState', 'selectedCity', 'selectedLocation', 'pickupDate', 'pickupTime']);
         } else if (currentStep === refundStepIndex) {
-            isStepValid = !!(watchedFields.domiciliaryBankName && watchedFields.domiciliaryAccountNumber && watchedFields.domiciliaryAccountNumber.length === 10);
+            isStepValid = !!(watchedFields.domiciliaryBankName && watchedFields.domiciliaryAccountNumber);
             if (!isStepValid) {
                 showToast('Please enter your domiciliary account details for refunds', 'error');
             }
@@ -678,7 +670,7 @@ export default function CreateResidentScreen() {
     const isStep2Valid = watchedFields.amount > 0 && (foreignAmount <= 10000 || (hasProofOfFunds && isDeclarationCompleted));
     const isStep3Valid = watchedFields.payoutMethod && (!isElectronicTransfer || (watchedFields.customerBankName && watchedFields.customerBankCode && watchedFields.customerAccountNumber && watchedFields.customerAccountName));
     const isStep4Valid = !needsLocationStep || !!(watchedFields.selectedState && watchedFields.selectedCity && watchedFields.selectedLocation && watchedFields.pickupDate && watchedFields.pickupTime);
-    const isRefundStepValid = !!(watchedFields.domiciliaryBankName && watchedFields.domiciliaryAccountNumber && watchedFields.domiciliaryAccountNumber.length === 10);
+    const isRefundStepValid = !!(watchedFields.domiciliaryBankName && watchedFields.domiciliaryAccountNumber);
  
     const isNextDisabled =
         (currentStep === 0 && !isStep0Valid) ||

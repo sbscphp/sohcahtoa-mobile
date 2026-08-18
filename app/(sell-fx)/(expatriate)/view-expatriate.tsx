@@ -86,14 +86,14 @@ export default function ViewExpatriateScreen() {
                     label: 'Pickup Location',
                     value: tx.cashPickup.pickupLocation || 'N/A',
                 },
-                {
+                 {
                     label: 'Pickup Address',
-                    value: tx.cashPickup.pickupAddress,
+                    value: tx.cashPickup.pickupAddress || tx.pickupLocation?.address,
                     isRightAligned: true,
                 },
                 {
                     label: 'Pickup Phone',
-                    value: tx.cashPickup.pickupPhone,
+                    value: tx.cashPickup.pickupPhone || "N/A",
                     isRightAligned: true,
                 },
                 ...(tx.cashPickup.pickupCity ? [{

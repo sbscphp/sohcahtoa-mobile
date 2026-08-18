@@ -283,9 +283,9 @@ export default function PayoutMethodStep({
                         label="Domiciliary Account Number"
                         placeholder="Enter domiciliary account number"
                         required
-                        keyboardType="numeric"
-                        maxLength={10}
-                        filterType="numeric"
+                        keyboardType={isSellFx ? undefined : "numeric"}
+                        maxLength={isSellFx ? undefined : 10}
+                        filterType={isSellFx ? "alphanumeric" : "numeric"}
                     />
                     <TouchableOpacity onPress={() => setBankSheetVisible(true)} activeOpacity={0.8}>
                         <View pointerEvents="none">

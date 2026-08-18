@@ -195,7 +195,7 @@ export default function ProfessionalBankDetailsStep({
                 <ControlledInput
                     control={control}
                     name="bankAccountSwiftCode"
-                    label="SWIFT CODE"
+                    label="SWIFT/BIC"
                     placeholder={isUK ? "e.g ABCDUS33XXX" : "e.g ABCDUS33XXXcode"}
                     required
                     maxLength={11}

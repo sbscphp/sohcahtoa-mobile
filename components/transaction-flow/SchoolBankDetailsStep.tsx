@@ -162,15 +162,15 @@ You may also upload an invoice below to use as confirmation during internet bank
                 <ControlledInput
                     control={control}
                     name="bankAccountAddress"
-                    label="Bank Account Address"
-                    placeholder="Enter bank account address"
+                    label="Bank Address"
+                    placeholder="Enter bank address"
                     required
                 />
 
                 <ControlledInput
                     control={control}
                     name="bankAccountSwiftCode"
-                    label="Bank Account Swift Code"
+                    label="SWIFT/BIC"
                     placeholder="e.g ABCDUS33XXX"
                     required
                     maxLength={11}

@@ -424,7 +424,7 @@ export default function CreateExpatriateScreen() {
             if (isAddingNewAccount) {
                 return;
             }
-            isStepValid = !!(watchedFields.domiciliaryBankName && watchedFields.domiciliaryAccountNumber && watchedFields.domiciliaryAccountNumber.length === 10);
+            isStepValid = !!(watchedFields.domiciliaryBankName && watchedFields.domiciliaryAccountNumber);
             if (!isStepValid) {
                 showToast('Please enter your domiciliary account details for refunds', 'error');
             }
@@ -550,7 +550,7 @@ export default function CreateExpatriateScreen() {
     
     const isStep3Valid = !!watchedFields.payoutMethod && (!isElectronicTransfer || !!(watchedFields.customerBankName && watchedFields.customerBankCode && watchedFields.customerAccountNumber && watchedFields.customerAccountName));
     const isStep4Valid = !needsLocationStep || !!(watchedFields.selectedState && watchedFields.selectedCity && watchedFields.selectedLocation && watchedFields.pickupDate && watchedFields.pickupTime);
-    const isRefundStepValid = !!(watchedFields.domiciliaryBankName && watchedFields.domiciliaryAccountNumber && watchedFields.domiciliaryAccountNumber.length === 10);
+    const isRefundStepValid = !!(watchedFields.domiciliaryBankName && watchedFields.domiciliaryAccountNumber);
 
     const isNextDisabled =
         (currentStep === 0 && !isStep0Valid) ||

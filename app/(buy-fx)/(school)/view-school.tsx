@@ -82,14 +82,14 @@ export default function ViewSchoolFeesScreen() {
                     value: tx.cashPickup.pickupLocation || 'N/A',
                     isRightAligned: true
                 },
-                {
+                 {
                     label: 'Pickup Address',
-                    value: tx.cashPickup.pickupAddress,
+                    value: tx.cashPickup.pickupAddress || tx.pickupLocation?.address,
                     isRightAligned: true,
                 },
                 {
                     label: 'Pickup Phone',
-                    value: tx.cashPickup.pickupPhone,
+                    value: tx.cashPickup.pickupPhone || 'N/A',
                     isRightAligned: true,
                 },
                 ...((tx.cashPickup.scheduledPickupDate || tx.cashPickup.schedulePickupDate) ? [{

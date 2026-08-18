@@ -7,9 +7,19 @@ describe('BTA TIN Validation', () => {
         expect(result.success).toBe(false);
     });
 
-    it('should reject TIN with fewer than 10 digits', () => {
-        const result = tinField.safeParse('123456789');
+    it('should reject TIN with fewer than 9 digits', () => {
+        const result = tinField.safeParse('12345678');
         expect(result.success).toBe(false);
+    });
+
+    it('should accept valid 9-digit TIN', () => {
+        const result = tinField.safeParse('123456789');
+        expect(result.success).toBe(true);
+    });
+
+    it('should accept valid formatted TIN with hyphens', () => {
+        const result = tinField.safeParse('08120451-1001');
+        expect(result.success).toBe(true);
     });
 
     it('should reject TIN with more than 13 digits', () => {
@@ -17,7 +27,7 @@ describe('BTA TIN Validation', () => {
         expect(result.success).toBe(false);
     });
 
-    it('should reject non-numeric TIN', () => {
+    it('should reject non-numeric TIN with letters', () => {
         const result = tinField.safeParse('12345ABCDE');
         expect(result.success).toBe(false);
     });
