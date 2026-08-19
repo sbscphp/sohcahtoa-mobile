@@ -509,8 +509,12 @@ export default function CreateResidentScreen() {
                         setSelectedSavedAccountId(res.data.id);
                     }
                     setIsAddingNewAccount(false);
+                },
+                onError: () => {
+                    setIsAddingNewAccount(false);
                 }
             });
+            setIsAddingNewAccount(false);
         }
     };
 

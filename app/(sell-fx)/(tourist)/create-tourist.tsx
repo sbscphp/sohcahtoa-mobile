@@ -569,8 +569,12 @@ export default function CreateTouristScreen() {
                         setSelectedSavedAccountId(res.data.id);
                     }
                     setIsAddingNewAccount(false);
+                },
+                onError: () => {
+                    setIsAddingNewAccount(false);
                 }
             });
+            setIsAddingNewAccount(false);
         }
     };
 

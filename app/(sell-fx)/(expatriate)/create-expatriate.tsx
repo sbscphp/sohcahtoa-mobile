@@ -386,8 +386,12 @@ export default function CreateExpatriateScreen() {
                         setSelectedSavedAccountId(res.data.id);
                     }
                     setIsAddingNewAccount(false);
+                },
+                onError: () => {
+                    setIsAddingNewAccount(false);
                 }
             });
+            setIsAddingNewAccount(false);
         }
     };
 

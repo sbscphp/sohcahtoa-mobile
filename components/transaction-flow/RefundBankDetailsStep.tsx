@@ -48,8 +48,28 @@ export default function RefundBankDetailsStep({
 
     const domiciliaryAccounts = React.useMemo(() => {
         if (!isDomiciliary) return [];
-        return (savedAccountsResponse?.data || []).filter((a: any) => a.currency === 'FOREIGN');
-    }, [savedAccountsResponse, isDomiciliary]);
+        const apiAccounts = (savedAccountsResponse?.data || []).filter((a: any) => a.currency === 'FOREIGN');
+        if (domiciliaryAccount?.bankName && domiciliaryAccount?.accountNumber) {
+            const existsInApi = apiAccounts.some((a: any) =>
+                a.accountNumber === domiciliaryAccount.accountNumber && a.bankName === domiciliaryAccount.bankName
+            );
+            if (!existsInApi) {
+                return [
+                    {
+                        id: 'form-state-domiciliary-account',
+                        bankName: domiciliaryAccount.bankName,
+                        accountNumber: domiciliaryAccount.accountNumber,
+                        accountName: domiciliaryAccount.accountName || '',
+                        swiftCode: domiciliaryAccount.swiftCode || '',
+                        routingNumber: domiciliaryAccount.routingNumber || '',
+                        bankAddress: domiciliaryAccount.bankAddress || '',
+                    },
+                    ...apiAccounts,
+                ];
+            }
+        }
+        return apiAccounts;
+    }, [savedAccountsResponse, isDomiciliary, domiciliaryAccount]);
 
     if (isDomiciliary) {
         if (isLoading) {
