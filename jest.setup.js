@@ -42,6 +42,7 @@ jest.mock('iconsax-react-nativejs', () => ({
     Folder: 'Folder',
     Lock: 'Lock',
     Sms: 'Sms',
+    InfoCircle: 'InfoCircle',
 }));
 
 jest.mock('@expo/vector-icons', () => ({

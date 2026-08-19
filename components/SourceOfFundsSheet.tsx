@@ -6,6 +6,7 @@ import FileUpload from './FileUpload';
 import PrimaryButton from './PrimaryButton';
 import InputField from './InputField';
 import LoadingBackdrop from '@/components/LoadingBackdrop';
+import { getInitials } from '@/utils/helpers';
 
 interface InfoRowProps {
     label: string;
@@ -58,6 +59,15 @@ export default function SourceOfFundsSheet({
 }: SourceOfFundsSheetProps) {
 
     const [declarationMethod, setDeclarationMethod] = React.useState<'initials' | 'signature'>('initials');
+
+    React.useEffect(() => {
+        if (visible && (!initials || !initials.trim()) && customerInfo?.fullName && onChangeInitials) {
+            const autoInitials = getInitials(customerInfo.fullName);
+            if (autoInitials) {
+                onChangeInitials(autoInitials);
+            }
+        }
+    }, [visible, customerInfo?.fullName, initials, onChangeInitials]);
 
     return (
         <Modal
