@@ -194,8 +194,25 @@ export const getTransactionDocuments = (tx: any): { label: string; value: string
     if (passportExpiryDate) docs.push({ label: 'Passport Expiry Date', value: passportExpiryDate });
     if (schoolInvoiceNumber) docs.push({ label: 'School Invoice Number', value: schoolInvoiceNumber });
 
-    const declarationInitials = getValue(tx.declarationInitials || tx.personalInfo?.declarationInitials, ['declarationInitials', 'personalInfo.declarationInitials']);
-    if (declarationInitials) docs.push({ label: 'Declaration Initials', value: declarationInitials });
+    let digitalSignature = getValue(
+        tx.digitalSignature || tx.declarationInitials || tx.personalInfo?.digitalSignature || tx.personalInfo?.declarationInitials,
+        ['digitalSignature', 'declarationInitials', 'personalInfo.digitalSignature', 'personalInfo.declarationInitials', 'declaration.initials', 'declaration.digitalSignature']
+    );
+
+    if (!digitalSignature && tx.requiredDocuments && Array.isArray(tx.requiredDocuments)) {
+        const sigDoc = tx.requiredDocuments.find((d: any) => d.type === 'DIGITAL_SIGNATURE' || d.type === 'DECLARATION_DOCUMENT');
+        if (sigDoc) {
+            if (sigDoc.value) {
+                digitalSignature = String(sigDoc.value);
+            } else if (sigDoc.initials) {
+                digitalSignature = String(sigDoc.initials);
+            } else if (sigDoc.uploaded?.fileName && !sigDoc.uploaded.fileName.includes('.') && sigDoc.uploaded.fileName.length <= 5) {
+                digitalSignature = String(sigDoc.uploaded.fileName);
+            }
+        }
+    }
+
+    if (digitalSignature) docs.push({ label: 'Declaration Document (Signature)', value: digitalSignature });
 
     return docs;
 };

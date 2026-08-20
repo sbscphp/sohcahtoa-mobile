@@ -24,7 +24,7 @@ describe('TransactionDocsView', () => {
     it('displays correct status text for documents', () => {
         const { getByText } = render(<TransactionDocsView {...defaultProps} />);
 
-        expect(getByText('Approved')).toBeTruthy();
+        expect(getByText('Verified')).toBeTruthy();
         expect(getByText('Pending')).toBeTruthy();
     });
 
@@ -35,6 +35,6 @@ describe('TransactionDocsView', () => {
         };
         const { getByText } = render(<TransactionDocsView {...props} />);
 
-        expect(getByText('Rejected')).toBeTruthy();
+        expect(getByText('Failed')).toBeTruthy();
     });
 });

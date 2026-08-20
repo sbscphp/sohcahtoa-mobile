@@ -46,9 +46,22 @@ export default function RefundBankDetailsStep({
 }: RefundBankDetailsStepProps) {
     const { data: savedAccountsResponse, isLoading } = useGetSavedAccountsQuery();
 
+    console.log(JSON.stringify(savedAccountsResponse?.data, null, 2), "REFUND BANK DETAILS")
+
     const domiciliaryAccounts = React.useMemo(() => {
         if (!isDomiciliary) return [];
-        const apiAccounts = (savedAccountsResponse?.data || []).filter((a: any) => a.currency === 'FOREIGN');
+        let apiAccounts = (savedAccountsResponse?.data || []).filter((a: any) =>
+            a.currency === 'FOREIGN' ||
+            (a.currency && a.currency !== 'NGN') ||
+            a.isDomiciliary === true ||
+            (a.bankName && a.bankName.toLowerCase().includes('dom')) ||
+            !!a.swiftCode ||
+            !!a.routingNumber ||
+            !!a.bankAddress
+        );
+        if (apiAccounts.length === 0 && (savedAccountsResponse?.data || []).length > 0) {
+            apiAccounts = savedAccountsResponse?.data || [];
+        }
         if (domiciliaryAccount?.bankName && domiciliaryAccount?.accountNumber) {
             const existsInApi = apiAccounts.some((a: any) =>
                 a.accountNumber === domiciliaryAccount.accountNumber && a.bankName === domiciliaryAccount.bankName
@@ -70,6 +83,19 @@ export default function RefundBankDetailsStep({
         }
         return apiAccounts;
     }, [savedAccountsResponse, isDomiciliary, domiciliaryAccount]);
+
+    const displayLocalAccounts = React.useMemo(() => {
+        if (savedAccounts && savedAccounts.length > 0) {
+            return savedAccounts;
+        }
+        return (savedAccountsResponse?.data || []).map((a: any) => ({
+            id: a.id,
+            bankName: a.bankName,
+            accountNumber: a.accountNumber,
+            accountName: a.accountName,
+            bankCode: a.bankCode || '',
+        }));
+    }, [savedAccounts, savedAccountsResponse]);
 
     if (isDomiciliary) {
         if (isLoading) {
@@ -190,7 +216,7 @@ export default function RefundBankDetailsStep({
             </Text>
             
             {/* Saved Accounts List */}
-            {savedAccounts.map((account) => {
+            {displayLocalAccounts.map((account) => {
                 const isSelected = selectedSavedAccountId === account.id;
                 return (
                     <TouchableOpacity
@@ -231,7 +257,7 @@ export default function RefundBankDetailsStep({
                 );
             })}
 
-            {(!savedAccounts || savedAccounts.length === 0) && (
+            {(!displayLocalAccounts || displayLocalAccounts.length === 0) && (
                 <View style={{
                     padding: moderateScale(16),
                     backgroundColor: '#F8F9FA',

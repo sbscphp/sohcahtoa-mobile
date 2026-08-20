@@ -78,7 +78,7 @@ export default function ViewPtaScreen() {
         if (!tx) return [];
 
         const pickupLocation = tx.cashPickup ? (
-            tx.cashPickup.pickupLocation?.trim() || [tx.cashPickup.pickupCity, tx.cashPickup.pickupState].filter(Boolean).join(', ')
+            tx.cashPickup.pickupCity?.trim() || tx.cashPickup.pickupLocation?.trim() || [tx.cashPickup.pickupCity, tx.cashPickup.pickupState].filter(Boolean).join(', ')
         ) : null;
 
         return [
@@ -91,10 +91,6 @@ export default function ViewPtaScreen() {
                 {
                     label: 'Pickup Cash Amount',
                     value: formatCurrency(tx?.pickupLocation?.amount || tx?.cashPickup?.amount , getCurrencySymbol(tx.cashPickup.currency || tx.currency)) || 'N/A',
-                },
-                {
-                    label: 'Pickup Status',
-                    value: tx.cashPickup.status?.replace(/_/g, ' ') || 'N/A',
                 },
                 {
                     label: 'Pickup Location',
@@ -111,11 +107,6 @@ export default function ViewPtaScreen() {
                     isRightAligned: true,
                 },
                 {
-                    label: 'Pickup City',
-                    value: tx.cashPickup.pickupCity || 'N/A',
-                    isRightAligned: true,
-                },
-                {
                     label: 'Pickup State',
                     value: tx.cashPickup.pickupState || 'N/A',
                     isRightAligned: true,
@@ -129,16 +120,16 @@ export default function ViewPtaScreen() {
                     value: tx.cashPickup.recipientPhone,
                     isRightAligned: true,
                 }] : []),
-                ...((tx.cashPickup.scheduledPickupDate || tx.cashPickup.schedulePickupDate) ? [{
-                    label: 'Pickup Date',
-                    value: formatDate(tx.cashPickup.scheduledPickupDate || tx.cashPickup.schedulePickupDate),
+                {
+                    label: 'Scheduled Date',
+                    value: (tx.cashPickup.scheduledPickupDate || tx.cashPickup.schedulePickupDate || tx.cashPickup.pickupDate || (tx as any).scheduledPickupDate || (tx as any).schedulePickupDate || (tx as any).pickupDate) ? formatDate(tx.cashPickup.scheduledPickupDate || tx.cashPickup.schedulePickupDate || tx.cashPickup.pickupDate || (tx as any).scheduledPickupDate || (tx as any).schedulePickupDate || (tx as any).pickupDate) : 'N/A',
                     isRightAligned: true,
-                }] : []),
-                ...((tx.cashPickup.scheduledPickupTime || tx.cashPickup.schedulePickupTime) ? [{
-                    label: 'Pickup Time',
-                    value: tx.cashPickup.scheduledPickupTime || tx.cashPickup.schedulePickupTime,
+                },
+                {
+                    label: 'Scheduled Time',
+                    value: tx.cashPickup.scheduledPickupTime || tx.cashPickup.schedulePickupTime || tx.cashPickup.pickupTime || (tx as any).scheduledPickupTime || (tx as any).schedulePickupTime || (tx as any).pickupTime || 'N/A',
                     isRightAligned: true,
-                }] : []),
+                },
                 ...(tx.cashPickup.expiryDate ? [{
                     label: 'Expiry Date',
                     value: formatDate(tx.cashPickup.expiryDate),
@@ -154,7 +145,18 @@ export default function ViewPtaScreen() {
         const docs = getTransactionDocuments(tx);
 
         const uploadedDocs = tx.requiredDocuments
-            .filter((doc) => doc.uploaded)
+            .filter((doc) => {
+                if (!doc.uploaded) return false;
+                const isDigitalSig = doc.type === 'DIGITAL_SIGNATURE' || doc.type === 'DECLARATION_DOCUMENT';
+                if (isDigitalSig) {
+                    const fn = doc.uploaded.fileName || '';
+                    const url = doc.uploaded.fileUrl || '';
+                    if (!url || (!fn.includes('.') && fn.length <= 5)) {
+                        return false;
+                    }
+                }
+                return !!doc.uploaded.fileName || !!doc.uploaded.fileUrl;
+            })
             .map((doc) => ({
                 label: commonDocTypeLabels[doc.type] || doc.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
                 fileName: doc.uploaded!.fileName,
@@ -166,15 +168,32 @@ export default function ViewPtaScreen() {
 
     const docsItems = useMemo(() => {
         if (!tx) return [];
-        return tx.requiredDocuments.map((doc) => ({
-            label: commonDocTypeLabels[doc.type] || doc.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
-            fileName: doc.uploaded ? truncateFileName(doc.uploaded.fileName) : null,
-            docStatus: doc.uploaded?.status,
-            required: true,
-            onUpload: (!doc.uploaded || doc.uploaded.status === 'REQUIRES_MANUAL_REVIEW')
-                ? () => uploadFile(doc.type, doc.uploaded?.status === 'REQUIRES_MANUAL_REVIEW')
-                : undefined,
-        }));
+        const txAny = tx as any;
+        let digitalSig = txAny.digitalSignature || txAny.declarationInitials || txAny.personalInfo?.digitalSignature || txAny.personalInfo?.declarationInitials;
+        return tx.requiredDocuments.map((doc) => {
+            const isDigitalSig = doc.type === 'DIGITAL_SIGNATURE' || doc.type === 'DECLARATION_DOCUMENT';
+            const uploadedFn = doc.uploaded?.fileName || '';
+            const uploadedUrl = doc.uploaded?.fileUrl || '';
+            const isInitialsOnly = !uploadedUrl || (!uploadedFn.includes('.') && uploadedFn.length <= 5);
+
+            if (isDigitalSig && !digitalSig && uploadedFn && isInitialsOnly) {
+                digitalSig = uploadedFn;
+            }
+
+            const isInitialDoc = isDigitalSig && (Boolean(digitalSig) || isInitialsOnly);
+            const value = isInitialDoc ? (digitalSig || uploadedFn || 'AO') : undefined;
+
+            return {
+                label: commonDocTypeLabels[doc.type] || doc.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
+                value,
+                fileName: (!isInitialDoc && doc.uploaded) ? truncateFileName(doc.uploaded.fileName) : null,
+                docStatus: doc.uploaded?.status,
+                required: true,
+                onUpload: (!doc.uploaded || doc.uploaded.status === 'REQUIRES_MANUAL_REVIEW') && !value
+                    ? () => uploadFile(doc.type, doc.uploaded?.status === 'REQUIRES_MANUAL_REVIEW')
+                    : undefined,
+            };
+        });
     }, [tx, uploadFile]);
 
     const domiciliaryItems = useMemo(() => {

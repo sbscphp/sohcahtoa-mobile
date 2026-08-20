@@ -60,12 +60,13 @@ export default function PayoutMethodStep({
 
     const localSavedAccounts = React.useMemo(() => {
         if (!savedAccountsResponse?.data) return savedAccounts;
-        // Find raw account IDs that are local (not FOREIGN)
+        // Find raw account IDs that are local (NGN)
         const localAccountIds = savedAccountsResponse.data
-            .filter((a: any) => a.currency !== 'FOREIGN')
+            .filter((a: any) => a.currency === 'NGN' || !a.currency)
             .map((a: any) => a.id);
             
-        return savedAccounts.filter(account => localAccountIds.includes(account.id));
+        const filtered = savedAccounts.filter(account => localAccountIds.includes(account.id));
+        return filtered.length > 0 ? filtered : savedAccounts;
     }, [savedAccounts, savedAccountsResponse]);
 
     const [localSelectedIds, setLocalSelectedIds] = React.useState<string[]>([]);

@@ -92,16 +92,16 @@ export default function ViewSchoolFeesScreen() {
                     value: tx.cashPickup.pickupPhone || 'N/A',
                     isRightAligned: true,
                 },
-                ...((tx.cashPickup.scheduledPickupDate || tx.cashPickup.schedulePickupDate) ? [{
-                    label: 'Pickup Date',
-                    value: formatDate(tx.cashPickup.scheduledPickupDate || tx.cashPickup.schedulePickupDate),
-                    isRightAligned: true
-                }] : []),
-                ...((tx.cashPickup.scheduledPickupTime || tx.cashPickup.schedulePickupTime) ? [{
-                    label: 'Pickup Time',
-                    value: tx.cashPickup.scheduledPickupTime || tx.cashPickup.schedulePickupTime,
-                    isRightAligned: true
-                }] : []),
+                {
+                    label: 'Scheduled Date',
+                    value: (tx.cashPickup.scheduledPickupDate || tx.cashPickup.schedulePickupDate || tx.cashPickup.pickupDate || (tx as any).scheduledPickupDate || (tx as any).schedulePickupDate || (tx as any).pickupDate) ? formatDate(tx.cashPickup.scheduledPickupDate || tx.cashPickup.schedulePickupDate || tx.cashPickup.pickupDate || (tx as any).scheduledPickupDate || (tx as any).schedulePickupDate || (tx as any).pickupDate) : 'N/A',
+                    isRightAligned: true,
+                },
+                {
+                    label: 'Scheduled Time',
+                    value: tx.cashPickup.scheduledPickupTime || tx.cashPickup.schedulePickupTime || tx.cashPickup.pickupTime || (tx as any).scheduledPickupTime || (tx as any).schedulePickupTime || (tx as any).pickupTime || 'N/A',
+                    isRightAligned: true,
+                },
             ] : []),
         ];
     }, [tx]);
@@ -109,11 +109,24 @@ export default function ViewSchoolFeesScreen() {
         if (!tx) return [];
         const docs = getTransactionDocuments(tx);
 
-        const uploadedDocs = tx.requiredDocuments.filter(d => !!d.uploaded).map(d => ({
-            label: commonDocTypeLabels[d.type] || d.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
-            fileName: d.uploaded!.fileName,
-            fileUrl: d.uploaded!.fileUrl,
-        }));
+        const uploadedDocs = tx.requiredDocuments
+            .filter(d => {
+                if (!d.uploaded) return false;
+                const isDigitalSig = d.type === 'DIGITAL_SIGNATURE' || d.type === 'DECLARATION_DOCUMENT';
+                if (isDigitalSig) {
+                    const fn = d.uploaded.fileName || '';
+                    const url = d.uploaded.fileUrl || '';
+                    if (!url || (!fn.includes('.') && fn.length <= 5)) {
+                        return false;
+                    }
+                }
+                return !!d.uploaded.fileName || !!d.uploaded.fileUrl;
+            })
+            .map(d => ({
+                label: commonDocTypeLabels[d.type] || d.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
+                fileName: d.uploaded!.fileName,
+                fileUrl: d.uploaded!.fileUrl,
+            }));
         return [...docs, ...uploadedDocs];
     }, [tx]);
     
@@ -224,15 +237,32 @@ export default function ViewSchoolFeesScreen() {
 
     const docsItems = useMemo(() => {
         if (!tx) return [];
-        return tx.requiredDocuments.map((d) => ({
-            label: commonDocTypeLabels[d.type] || d.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
-            fileName: d.uploaded ? d.uploaded.fileName : null,
-            docStatus: d.uploaded?.status,
-            required: true,
-            onUpload: (!d.uploaded || d.uploaded.status === 'REQUIRES_MANUAL_REVIEW')
-                ? () => uploadFile(d.type, d.uploaded?.status === 'REQUIRES_MANUAL_REVIEW')
-                : undefined,
-        }));
+        const txAny = tx as any;
+        let digitalSig = txAny.digitalSignature || txAny.declarationInitials || txAny.personalInfo?.digitalSignature || txAny.personalInfo?.declarationInitials;
+        return tx.requiredDocuments.map((d) => {
+            const isDigitalSig = d.type === 'DIGITAL_SIGNATURE' || d.type === 'DECLARATION_DOCUMENT';
+            const uploadedFn = d.uploaded?.fileName || '';
+            const uploadedUrl = d.uploaded?.fileUrl || '';
+            const isInitialsOnly = !uploadedUrl || (!uploadedFn.includes('.') && uploadedFn.length <= 5);
+
+            if (isDigitalSig && !digitalSig && uploadedFn && isInitialsOnly) {
+                digitalSig = uploadedFn;
+            }
+
+            const isInitialDoc = isDigitalSig && (Boolean(digitalSig) || isInitialsOnly);
+            const value = isInitialDoc ? (digitalSig || uploadedFn || 'AO') : undefined;
+
+            return {
+                label: commonDocTypeLabels[d.type] || d.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
+                value,
+                fileName: (!isInitialDoc && d.uploaded) ? d.uploaded.fileName : null,
+                docStatus: d.uploaded?.status,
+                required: true,
+                onUpload: (!d.uploaded || d.uploaded.status === 'REQUIRES_MANUAL_REVIEW') && !value
+                    ? () => uploadFile(d.type, d.uploaded?.status === 'REQUIRES_MANUAL_REVIEW')
+                    : undefined,
+            };
+        });
     }, [tx, uploadFile]);
     const paymentDetailsItems = useMemo(() => {
         const pdList = tx?.paymentDetails as any;

@@ -205,33 +205,41 @@ export default function TransactionDetailsView({
                                 return base.substring(0, Math.max(0, keep)) + '...' + ext;
                             };
 
-                            return documents.map((doc, index) => (
-                                <View key={index}>
-                                    {doc.value ? (
-                                        <View style={styles.detailRow}>
-                                            <Text style={styles.detailLabel}>{doc.label}</Text>
-                                            <Text style={styles.detailValue}>{doc.value}</Text>
-                                        </View>
-                                    ) : (
-                                        <View style={styles.docRow}>
-                                            <Text style={styles.detailLabel}>{doc.label}</Text>
-                                            <TouchableOpacity
-                                                style={styles.downloadContainer}
-                                                onPress={() => {
-                                                    if (doc.fileUrl) {
-                                                        Linking.openURL(doc.fileUrl).catch(err => console.error("Couldn't open URL", err));
-                                                    }
-                                                }}
-                                                disabled={!doc.fileUrl}
-                                            >
-                                                <Text style={styles.docName} numberOfLines={1}>{truncateFileName(doc.fileName)}</Text>
-                                                <FileText size={moderateScale(16)} color={doc.fileUrl ? "#FF6813" : "rgba(152, 162, 179, 1)"} />
-                                            </TouchableOpacity>
-                                        </View>
-                                    )}
-                                    {index < documents.length - 1 && <View style={[styles.separator, { marginTop: verticalScale(12) }]} />}
-                                </View>
-                            ));
+                            return documents.map((doc, index) => {
+                                const isInitialsDoc = Boolean(
+                                    doc.value ||
+                                    (!doc.fileUrl && doc.fileName && (!doc.fileName.includes('.') || doc.fileName.length <= 5))
+                                );
+                                const displayValue = doc.value || doc.fileName;
+
+                                return (
+                                    <View key={index}>
+                                        {isInitialsDoc ? (
+                                            <View style={styles.detailRow}>
+                                                <Text style={styles.detailLabel}>{doc.label}</Text>
+                                                <Text style={styles.detailValue}>{displayValue}</Text>
+                                            </View>
+                                        ) : (
+                                            <View style={styles.docRow}>
+                                                <Text style={styles.detailLabel}>{doc.label}</Text>
+                                                <TouchableOpacity
+                                                    style={styles.downloadContainer}
+                                                    onPress={() => {
+                                                        if (doc.fileUrl) {
+                                                            Linking.openURL(doc.fileUrl).catch(err => console.error("Couldn't open URL", err));
+                                                        }
+                                                    }}
+                                                    disabled={!doc.fileUrl}
+                                                >
+                                                    <Text style={styles.docName} numberOfLines={1}>{truncateFileName(doc.fileName)}</Text>
+                                                    <FileText size={moderateScale(16)} color={doc.fileUrl ? "#FF6813" : "rgba(152, 162, 179, 1)"} />
+                                                </TouchableOpacity>
+                                            </View>
+                                        )}
+                                        {index < documents.length - 1 && <View style={[styles.separator, { marginTop: verticalScale(12) }]} />}
+                                    </View>
+                                );
+                            });
                         })()}
                         <View style={styles.separator} />
                     </>

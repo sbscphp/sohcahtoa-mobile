@@ -16,6 +16,7 @@ jest.mock('lucide-react-native', () => ({
     Check: 'Check',
     AlertCircle: 'AlertCircle',
     Clock: 'Clock',
+    FileText: 'FileText',
 }));
 
 jest.mock('react-native-size-matters', () => ({

@@ -61,13 +61,20 @@ export default function SourceOfFundsSheet({
     const [declarationMethod, setDeclarationMethod] = React.useState<'initials' | 'signature'>('initials');
 
     React.useEffect(() => {
-        if (visible && (!initials || !initials.trim()) && customerInfo?.fullName && onChangeInitials) {
-            const autoInitials = getInitials(customerInfo.fullName);
-            if (autoInitials) {
-                onChangeInitials(autoInitials);
+        if (visible) {
+            if (signatureFile) {
+                setDeclarationMethod('signature');
+            } else if (initials && initials.trim()) {
+                setDeclarationMethod('initials');
+            } else if (customerInfo?.fullName && onChangeInitials) {
+                const autoInitials = getInitials(customerInfo.fullName);
+                if (autoInitials) {
+                    onChangeInitials(autoInitials);
+                }
+                setDeclarationMethod('initials');
             }
         }
-    }, [visible, customerInfo?.fullName, initials, onChangeInitials]);
+    }, [visible, customerInfo?.fullName, initials, onChangeInitials, signatureFile]);
 
     return (
         <Modal

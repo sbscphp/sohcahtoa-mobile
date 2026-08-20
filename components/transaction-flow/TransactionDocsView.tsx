@@ -61,36 +61,44 @@ export default function TransactionDocsView({ status, documents }: TransactionDo
 
     return (
         <View style={styles.container}>
-            {documents.map((doc, index) => (
-                <View key={index} style={styles.docCardContainer}>
-                    {doc.value ? (
-                        <View style={styles.valueRow}>
-                            <Text style={styles.detailLabel}>{doc.label}</Text>
-                            <Text style={styles.detailValue}>{doc.value}</Text>
-                        </View>
-                    ) : (
-                        <>
-                            <View style={styles.docHeaderRow}>
-                                <Text style={styles.docTitle}>{doc.label} {doc.required && <Text style={styles.required}>*</Text>}</Text>
+            {documents.map((doc, index) => {
+                const isInitialsDoc = Boolean(
+                    doc.value ||
+                    (!doc.fileName?.includes('.') && doc.fileName && doc.fileName.length <= 5)
+                );
+                const displayValue = doc.value || doc.fileName;
+
+                return (
+                    <View key={index} style={styles.docCardContainer}>
+                        {isInitialsDoc && displayValue ? (
+                            <View style={styles.valueRow}>
+                                <Text style={styles.detailLabel}>{doc.label}</Text>
+                                <Text style={styles.detailValue}>{displayValue}</Text>
                             </View>
-                            <FileUpload
-                                onUpload={doc.onUpload || (() => { })}
-                                fileName={doc.fileName}
-                                title={`Upload ${doc.label}`}
-                                status={getDocStatus(doc.docStatus) as any}
-                            />
-                            {doc.fileName && (
-                                <View style={[styles.docStatusRow, { marginTop: 0 }]}>
-                                    <StatusIndicator docStatus={doc.docStatus} />
-                                    <Text style={getStatusTextStyle(doc.docStatus)}>
-                                        {getStatusText(doc.docStatus)}
-                                    </Text>
+                        ) : (
+                            <>
+                                <View style={styles.docHeaderRow}>
+                                    <Text style={styles.docTitle}>{doc.label} {doc.required && <Text style={styles.required}>*</Text>}</Text>
                                 </View>
-                            )}
-                        </>
-                    )}
-                </View>
-            ))}
+                                <FileUpload
+                                    onUpload={doc.onUpload || (() => { })}
+                                    fileName={doc.fileName}
+                                    title={`Upload ${doc.label}`}
+                                    status={getDocStatus(doc.docStatus) as any}
+                                />
+                                {doc.fileName && (
+                                    <View style={[styles.docStatusRow, { marginTop: 0 }]}>
+                                        <StatusIndicator docStatus={doc.docStatus} />
+                                        <Text style={getStatusTextStyle(doc.docStatus)}>
+                                            {getStatusText(doc.docStatus)}
+                                        </Text>
+                                    </View>
+                                )}
+                            </>
+                        )}
+                    </View>
+                );
+            })}
         </View>
     );
 }
