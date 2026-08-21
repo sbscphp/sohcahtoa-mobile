@@ -49,65 +49,65 @@ export default function TransactionStatusView({ status, apiStatus, id, date, tim
                     status === 'refunded' ? 'Refunded' :
                         'Information Pending');
 
-    // const renderComments = () => {
-    //     if (!comments || comments.length === 0) return null;
+    const renderComments = () => {
+        if (!comments || comments.length === 0) return null;
 
-    //     return (
-    //         <View style={styles.commentsSection}>
-    //             <View style={styles.commentsHeaderRow}>
-    //                 <Text style={styles.commentsTitle}>Activity History</Text>
-    //                 <View style={styles.commentCountBadge}>
-    //                     <Text style={styles.commentCountText}>{comments.length}</Text>
-    //                 </View>
-    //             </View>
+        return (
+            <View style={styles.commentsSection}>
+                <View style={styles.commentsHeaderRow}>
+                    <Text style={styles.commentsTitle}>Activity History</Text>
+                    <View style={styles.commentCountBadge}>
+                        <Text style={styles.commentCountText}>{comments.length}</Text>
+                    </View>
+                </View>
 
-    //             <View style={styles.timelineContainer}>
-    //                 {comments.map((comment, index) => {
-    //                     const isLast = index === comments.length - 1;
-    //                     const actionLabel = comment.action?.replace(/_/g, ' ').toLowerCase() || 'comment added';
-    //                     const isRejected = comment.action?.includes('REJECTED');
-    //                     const isInfo = comment.action?.includes('MORE_INFO');
+                <View style={styles.timelineContainer}>
+                    {comments.map((comment, index) => {
+                        const isLast = index === comments.length - 1;
+                        const actionLabel = comment.action?.replace(/_/g, ' ').toLowerCase() || 'comment added';
+                        const isRejected = comment.action?.includes('REJECTED');
+                        const isInfo = comment.action?.includes('MORE_INFO');
 
-    //                     return (
-    //                         <View key={comment.id || index} style={styles.timelineItem}>
-    //                             {!isLast && <View style={styles.timelineLine} />}
-    //                             <View style={[
-    //                                 styles.timelineDot,
-    //                                 isRejected && styles.timelineDotRejected,
-    //                                 isInfo && styles.timelineDotInfo
-    //                             ]} />
+                        return (
+                            <View key={comment.id || index} style={styles.timelineItem}>
+                                {!isLast && <View style={styles.timelineLine} />}
+                                <View style={[
+                                    styles.timelineDot,
+                                    isRejected && styles.timelineDotRejected,
+                                    isInfo && styles.timelineDotInfo
+                                ]} />
                                 
-    //                             <View style={styles.timelineContent}>
-    //                                 <View style={styles.commentHeader}>
-    //                                     <View style={styles.commentAuthorRow}>
-    //                                         <Text style={styles.commentUser}>{comment.addedBy}</Text>
-    //                                         <View style={[
-    //                                             styles.actionBadge,
-    //                                             isRejected && styles.actionBadgeRejected,
-    //                                             isInfo && styles.actionBadgeInfo
-    //                                         ]}>
-    //                                             <Text style={[
-    //                                                 styles.actionBadgeText,
-    //                                                 isRejected && styles.actionBadgeTextRejected,
-    //                                                 isInfo && styles.actionBadgeTextInfo
-    //                                             ]}>{actionLabel}</Text>
-    //                                         </View>
-    //                                     </View>
-    //                                     <Text style={styles.commentDate}>
-    //                                         {new Date(comment.createdAt).toLocaleDateString()} • {new Date(comment.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-    //                                     </Text>
-    //                                 </View>
-    //                                 <View style={styles.commentBubble}>
-    //                                     <Text style={styles.commentMessage}>{comment.message}</Text>
-    //                                 </View>
-    //                             </View>
-    //                         </View>
-    //                     );
-    //                 })}
-    //             </View>
-    //         </View>
-    //     );
-    // };
+                                <View style={styles.timelineContent}>
+                                    {/* <View style={styles.commentHeader}>
+                                        <View style={styles.commentAuthorRow}>
+                                            <Text style={styles.commentUser}>{comment.addedBy}</Text>
+                                            <View style={[
+                                                styles.actionBadge,
+                                                isRejected && styles.actionBadgeRejected,
+                                                isInfo && styles.actionBadgeInfo
+                                            ]}>
+                                                <Text style={[
+                                                    styles.actionBadgeText,
+                                                    isRejected && styles.actionBadgeTextRejected,
+                                                    isInfo && styles.actionBadgeTextInfo
+                                                ]}>{actionLabel}</Text>
+                                            </View>
+                                        </View>
+                                        <Text style={styles.commentDate}>
+                                            {new Date(comment.createdAt).toLocaleDateString()} • {new Date(comment.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        </Text>
+                                    </View> */}
+                                    <View style={styles.commentBubble}>
+                                        <Text style={styles.commentMessage}>{comment.message}</Text>
+                                    </View>
+                                </View>
+                            </View>
+                        );
+                    })}
+                </View>
+            </View>
+        );
+    };
 
     if (status === 'pending' && !isRefunded) {
         return (
@@ -122,7 +122,7 @@ export default function TransactionStatusView({ status, apiStatus, id, date, tim
                     </Text>
                 </View>
 
-                {/* {renderComments()} */}
+                {renderComments()}
             </View>
         );
     }

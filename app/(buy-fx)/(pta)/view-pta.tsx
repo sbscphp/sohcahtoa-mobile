@@ -6,7 +6,7 @@ import TransactionViewLayout from '@/components/transaction-flow/TransactionView
 import { useGetTransactionByIdQuery } from '@/hooks/queries/transactions/useGetTransactionByIdQuery';
 import { useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useToastStore } from '@/stores/useToastStore';
-import { commonDocTypeLabels, formatCurrency, formatDate, formatTime, formatTimeWithSeconds, getTransactionDocuments, mapApiStatusToViewStatus, truncateFileName, getCurrencySymbol } from '@/utils/helpers';
+import { commonDocTypeLabels, formatCurrency, formatDate, formatTime, formatTimeWithSeconds, getTransactionDocuments, mapApiStatusToViewStatus, isPaymentRequired, getTransactionMessage, truncateFileName, getCurrencySymbol } from '@/utils/helpers';
 import { useLocalSearchParams, useRouter, useFocusEffect, useNavigation } from 'expo-router';
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import { ActivityIndicator, View, BackHandler } from 'react-native';
@@ -271,16 +271,7 @@ export default function ViewPtaScreen() {
         return items;
     }, [tx]);
 
-    const getMessage = () => {
-        if (!tx) return '';
-        if (status === 'approved' || status === 'awaiting_disbursement' || status === 'settled')
-            return "Congratulations! Your application has been approved. Kindly proceed to make payment.";
-        if (status === 'rejected')
-            return tx.rejection?.reason || "Your application has been declined.";
-        if (status === 'refunded' || tx.status === 'REFUNDED')
-            return (tx as any)?.refundReason || (tx as any)?.refund?.reason || "This transaction has been refunded. The funds have been returned to your original account.";
-        return `Your transaction is currently ${tx.status.replace(/_/g, ' ').toLowerCase()}. Please check back for updates.`;
-    };
+    const getMessage = () => getTransactionMessage(tx, 'application');
 
     if (isLoading) {
         return (
@@ -299,8 +290,8 @@ export default function ViewPtaScreen() {
             onTabChange={setActiveTab}
             tabs={tabs}
             onBack={handleBack}
-            showActionButton={tx?.status !== 'DEPOSIT_CONFIRMED' && status !== 'pending' && status !== 'rejected' && status !== 'settled' && status !== 'refunded' && tx?.status !== 'REFUNDED'}
-            actionButtonTitle={status === 'approved' || status === 'awaiting_disbursement' ? "Proceed to Payment" : "Resubmit Transaction Request"}
+            showActionButton={isPaymentRequired(tx?.status) || status === 'more_info'}
+            actionButtonTitle={isPaymentRequired(tx?.status) ? "Proceed to Payment" : "Resubmit Transaction Request"}
             onActionPress={handleProceed}
         >
             {activeTab === 'overview' && (

@@ -473,13 +473,31 @@ export default function BusinessTravelAllowanceScreen() {
 
     const profileBvn = user?.kyc?.bvn || '';
     const profileNin = (user?.kyc as any)?.nin || (user as any)?.nin || '';
+    const profileTin = user?.kyc?.tinNumber || user?.kyc?.tin || (user?.profile as any)?.tinNumber || (user as any)?.tinNumber || '';
     const isBvnDisabled = !!profileBvn;
     const isNinDisabled = !!profileNin;
+
+    const transactionTin = useMemo(() => {
+        for (const tx of transactions) {
+            const tinVal = tx.personalInfo?.tinNumber || (tx as any).tinNumber || (tx as any).taxClearanceNumber;
+            if (tinVal) return String(tinVal);
+        }
+        return '';
+    }, [transactions]);
+
+    const storedTin = profileTin || transactionTin;
+    const isTinDisabled = !!storedTin;
+
+    React.useEffect(() => {
+        if (storedTin && !watchedFields.tinNumber) {
+            setValue('tinNumber', storedTin, { shouldValidate: true, shouldDirty: true });
+        }
+    }, [storedTin, setValue, watchedFields.tinNumber]);
 
     const credentialFields = [
         { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number(BVN)" placeholder="Enter your BVN" required keyboardType="numeric" maxLength={11} filterType="numeric" disabled={isBvnDisabled} /> },
         { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number(NIN)" placeholder="Enter your NIN" required={!isNinDisabled} keyboardType="numeric" maxLength={11} filterType="numeric" disabled={isNinDisabled} /> },
-        { customComponent: <ControlledInput control={control} name="tinNumber" label="Tax Identification Number(TIN)" placeholder="Enter your TIN" required keyboardType="default" maxLength={15} /> },
+        { customComponent: <ControlledInput control={control} name="tinNumber" label="Tax Identification Number(TIN)" placeholder="Enter your TIN" required keyboardType="default" maxLength={15} disabled={isTinDisabled} /> },
         { customComponent: <ControlledInput control={control} name="formAId" label="Form A ID" placeholder="Enter Form A ID" required keyboardType="numeric" maxLength={10} filterType="numeric" /> },
         { customComponent: <ControlledInput control={control} name="passportDocumentNumber" label="International Passport Number" placeholder="Enter international passport" required maxLength={9} filterType="alphanumeric" /> }
     ];

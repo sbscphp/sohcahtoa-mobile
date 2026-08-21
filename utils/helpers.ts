@@ -1,7 +1,40 @@
 import { TransactionStatus } from '@/components/transaction-flow/TransactionStatusView';
 import { Transaction } from '@/types/api/transactions';
 
-export const mapApiStatusToViewStatus = (status: string): TransactionStatus => {
+export const isPaymentRequired = (apiStatus?: string): boolean => {
+    if (!apiStatus) return false;
+    const normalized = apiStatus.toUpperCase();
+    return normalized === 'APPROVED' || normalized === 'AWAITING_DEPOSIT';
+};
+
+export const getTransactionMessage = (tx: any, contextName: string = 'application'): string => {
+    if (!tx) return '';
+    const apiStatus = tx.status ? tx.status.toUpperCase() : '';
+
+    if (apiStatus === 'APPROVED' || apiStatus === 'AWAITING_DEPOSIT') {
+        return `Congratulations! Your ${contextName} has been approved. Please proceed to payment.`;
+    }
+    if (apiStatus === 'DEPOSIT_CONFIRMED' || apiStatus === 'DEPOSIT_PENDING') {
+        return 'Your deposit has been received and confirmed. Processing disbursement.';
+    }
+    if (apiStatus === 'DISBURSEMENT_IN_PROGRESS' || apiStatus === 'AWAITING_DISBURSEMENT') {
+        return 'Disbursement is currently in progress. Your funds will be credited shortly.';
+    }
+    if (apiStatus === 'COMPLETED' || apiStatus === 'SETTLED') {
+        return 'Your transaction has been completed successfully.';
+    }
+    if (apiStatus === 'REJECTED' || apiStatus === 'CANCELLED') {
+        return tx.rejection?.reason || 'Your application has been declined.';
+    }
+    if (apiStatus === 'REFUNDED') {
+        return tx.refundReason || tx.refund?.reason || 'This transaction has been refunded. The funds have been returned to your original account.';
+    }
+    return `Your transaction is currently ${apiStatus.replace(/_/g, ' ').toLowerCase()}. Please check back for updates.`;
+};
+
+export const mapApiStatusToViewStatus = (status?: string): TransactionStatus => {
+    if (!status) return 'pending';
+    const normalized = status.toUpperCase();
     const map: Record<string, TransactionStatus> = {
         'DRAFT': 'pending',
         'AWAITING_VERIFICATION': 'pending',
@@ -19,7 +52,7 @@ export const mapApiStatusToViewStatus = (status: string): TransactionStatus => {
         'CANCELLED': 'rejected',
         'REFUNDED': 'refunded',
     };
-    return map[status] || 'pending';
+    return map[normalized] || 'pending';
 };
 
 export const formatDate = (dateStr: string): string => {

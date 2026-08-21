@@ -124,9 +124,23 @@ export default function CreateResidentScreen() {
     const createTransaction = useCreateTransactionMutation();
     const attachBankAccountsMutation = useAttachBankAccountsMutation();
     useProfileQuery();
-    const user = useAuthStore(s => s.user);
+    const profileTin = user?.kyc?.tinNumber || user?.kyc?.tin || (user?.profile as any)?.tinNumber || (user as any)?.tinNumber || '';
     const isBvnDisabled = !!user?.kyc?.bvn;
     const isNinDisabled = !!user?.kyc?.nin;
+
+    const { data: transactionsResponse } = useGetTransactionsQuery();
+    const transactions = transactionsResponse?.pages?.flatMap(p => p.data) || [];
+
+    const transactionTin = useMemo(() => {
+        for (const tx of transactions) {
+            const tinVal = tx.personalInfo?.tinNumber || (tx as any).tinNumber || (tx as any).taxClearanceNumber;
+            if (tinVal) return String(tinVal);
+        }
+        return '';
+    }, [transactions]);
+
+    const storedTin = profileTin || transactionTin;
+    const isTinDisabled = !!storedTin;
 
     // Dynamic Locations
     const { data: states = [] } = useGetPickupStatesQuery();
@@ -208,10 +222,10 @@ export default function CreateResidentScreen() {
         if (user?.kyc?.nin) {
             setValue('nin', user.kyc.nin);
         }
-        if (user?.kyc?.tinNumber) {
-            setValue('tinNumber', user.kyc.tinNumber);
+        if (storedTin && !watchedFields.tinNumber) {
+            setValue('tinNumber', storedTin, { shouldValidate: true, shouldDirty: true });
         }
-    }, [user?.kyc?.nin, user?.kyc?.tinNumber, setValue]);
+    }, [user?.kyc?.nin, storedTin, setValue, watchedFields.tinNumber]);
 
     const { data: filteredCities = [] } = useGetPickupCitiesQuery(watchedFields.selectedState?.title);
 
@@ -315,8 +329,6 @@ export default function CreateResidentScreen() {
         currentRate,
     } = useExchangeLogic({ setValue, initialAmount: '0', initialTransactionType: 'sell' });
 
-    const { data: transactionsResponse } = useGetTransactionsQuery();
-    const transactions = transactionsResponse?.pages?.flatMap(p => p.data) || [];
 
     React.useEffect(() => {
         if (transactions.length > 0) {
@@ -399,9 +411,10 @@ export default function CreateResidentScreen() {
                     name="tinNumber"
                     label={watchedFields.bvn ? "Tax Identification Number (TIN) (Optional)" : "Tax Identification Number (TIN)"}
                     placeholder="Enter TIN"
-                    required={!watchedFields.bvn}
+                    required={!watchedFields.bvn && !isTinDisabled}
                     keyboardType="default"
                     maxLength={15}
+                    disabled={isTinDisabled}
                 />
             )
         },

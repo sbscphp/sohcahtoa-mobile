@@ -123,19 +123,11 @@ export default function AllTransactionsScreen() {
     };
 
     const renderFooter = () => {
-        if (!hasNextPage) return null;
+        if (!isFetchingNextPage) return null;
         return (
-            <TouchableOpacity
-                style={styles.loadMoreButton}
-                disabled={isFetchingNextPage}
-                onPress={() => fetchNextPage()}
-            >
-                {isFetchingNextPage ? (
-                    <ActivityIndicator size="small" color="#FF6B2C" />
-                ) : (
-                    <Text style={styles.loadMoreButtonText}>Load More</Text>
-                )}
-            </TouchableOpacity>
+            <View style={styles.footerLoader}>
+                <ActivityIndicator size="small" color="#FF6B2C" />
+            </View>
         );
     };
 
@@ -163,6 +155,12 @@ export default function AllTransactionsScreen() {
                     stickySectionHeadersEnabled={false}
                     showsVerticalScrollIndicator={false}
                     ListFooterComponent={renderFooter}
+                    onEndReached={() => {
+                        if (hasNextPage && !isFetchingNextPage) {
+                            fetchNextPage();
+                        }
+                    }}
+                    onEndReachedThreshold={0.5}
                 />
             ) : (
                 <View style={styles.emptyContainer}>
@@ -330,20 +328,9 @@ const styles = ScaledSheet.create({
         fontSize: '16@ms',
         fontWeight: '600',
     },
-    loadMoreButton: {
-        paddingVertical: '12@vs',
-        borderRadius: '8@ms',
-        backgroundColor: '#F1F5F9',
-        borderWidth: 1,
-        borderColor: '#E2E8F0',
+    footerLoader: {
+        paddingVertical: '16@vs',
         alignItems: 'center',
         justifyContent: 'center',
-        marginTop: '16@vs',
-        marginBottom: '24@vs',
-    },
-    loadMoreButtonText: {
-        fontSize: '13@ms',
-        fontWeight: '600',
-        color: '#0F172A',
     },
 });

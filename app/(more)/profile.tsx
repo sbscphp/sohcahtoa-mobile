@@ -21,7 +21,7 @@ export default function MyProfileScreen() {
         { label: 'Full name', value: user?.profile ? `${user.profile.firstName} ${user.profile.lastName}` : 'N/A' },
         { label: 'Date of Birth', value: user?.profile?.dateOfBirth ? new Date(user.profile.dateOfBirth).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A' },
         { label: 'BVN', value: user?.kyc?.bvn || 'N/A' },
-        { label: 'TIN', value: user?.kyc?.tin || user?.kyc?.tinNumber || 'N/A' },
+        { label: 'TIN', value: user?.kyc?.tin || user?.kyc?.tinNumber || (user?.profile as any)?.tinNumber || (user as any)?.tinNumber || 'N/A' },
         { label: 'Phone Number', value: user?.phoneNumber || 'N/A' },
         { label: 'Email Address', value: user?.email || 'N/A' },
         { label: 'Date Joined', value: user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'N/A' },

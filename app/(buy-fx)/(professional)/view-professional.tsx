@@ -6,7 +6,7 @@ import TransactionViewLayout from '@/components/transaction-flow/TransactionView
 import { useGetTransactionByIdQuery } from '@/hooks/queries/transactions/useGetTransactionByIdQuery';
 import { useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useToastStore } from '@/stores/useToastStore';
-import { commonDocTypeLabels, formatCurrency, formatDate, formatTime, formatTimeWithSeconds, getTransactionDocuments, getCurrencySymbol } from '@/utils/helpers';
+import { commonDocTypeLabels, formatCurrency, formatDate, formatTime, formatTimeWithSeconds, getTransactionDocuments, getCurrencySymbol, mapApiStatusToViewStatus, isPaymentRequired, getTransactionMessage } from '@/utils/helpers';
 import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, BackHandler, View } from 'react-native';
@@ -48,11 +48,7 @@ export default function ViewProfessionalScreen() {
         onError: () => showToast('Failed to upload document. Please try again.', 'error'),
     });
 
-    const mapStatus = (s: string): TransactionStatus => {
-        const map: Record<string, TransactionStatus> = { 'DRAFT': 'pending', 'AWAITING_VERIFICATION': 'pending', 'VERIFICATION_IN_PROGRESS': 'pending', 'VERIFICATION_COMPLETED': 'pending', 'AWAITING_DEPOSIT': 'awaiting_disbursement', 'DEPOSIT_PENDING': 'awaiting_disbursement', 'DEPOSIT_CONFIRMED': 'awaiting_disbursement', 'COMPLIANCE_REVIEW': 'pending', 'ADMIN_APPROVAL_PENDING': 'pending', 'APPROVED': 'approved', 'DISBURSEMENT_IN_PROGRESS': 'awaiting_disbursement', 'COMPLETED': 'settled', 'REJECTED': 'rejected', 'CANCELLED': 'rejected' };
-        return map[s] || 'pending';
-    };
-    const status: TransactionStatus = tx ? mapStatus(tx.status) : 'pending';
+    const status: TransactionStatus = tx ? mapApiStatusToViewStatus(tx.status) : 'pending';
     const handleBack = () => {
         if (fromSuccess === 'true') {
             router.replace('/(tabs)');
@@ -278,14 +274,7 @@ export default function ViewProfessionalScreen() {
         return items;
     }, [tx]);
 
-    const getMessage = () => {
-        if (!tx) return '';
-        if (status === 'approved' || status === 'awaiting_disbursement' || status === 'settled') return "Congratulations! Your exam payment request has been approved. Please proceed to payment.";
-        if (status === 'rejected') return tx.rejection?.reason || "Your application has been declined.";
-        if (status === 'refunded' || tx.status === 'REFUNDED')
-            return (tx as any)?.refundReason || (tx as any)?.refund?.reason || "This transaction has been refunded. The funds have been returned to your original account.";
-        return `Your transaction is currently ${tx.status.replace(/_/g, ' ').toLowerCase()}. Please check back for updates.`;
-    };
+    const getMessage = () => getTransactionMessage(tx, 'exam payment request');
     if (isLoading) return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}><ActivityIndicator size="large" color="#FF6B2C" /></View>;
 
     return (
@@ -297,8 +286,8 @@ export default function ViewProfessionalScreen() {
                 onTabChange={setActiveTab}
                 tabs={[{ key: 'overview', label: 'Overview' }, { key: 'details', label: 'Transaction Details' }, { key: 'docs', label: 'Documentation' }]}
                 onBack={handleBack}
-                showActionButton={tx?.status !== 'DEPOSIT_CONFIRMED' && status !== 'pending' && status !== 'rejected' && status !== 'settled' && status !== 'refunded' && tx?.status !== 'REFUNDED'}
-                actionButtonTitle={status === 'approved' || status === 'awaiting_disbursement' ? "Proceed to Payment" : "Resubmit Request"}
+                showActionButton={isPaymentRequired(tx?.status) || status === 'more_info'}
+                actionButtonTitle={isPaymentRequired(tx?.status) ? "Proceed to Payment" : "Resubmit Request"}
                 onActionPress={handleProceed}
             >
                 {activeTab === 'overview' && (<TransactionStatusView status={status} apiStatus={tx?.status} id={tx?.referenceNumber?.slice(-6) || ''} date={tx ? formatDate(tx.createdAt) : ''} time={tx ? formatTime(tx.createdAt) : ''} message={getMessage()} comments={tx?.comments} />)}
