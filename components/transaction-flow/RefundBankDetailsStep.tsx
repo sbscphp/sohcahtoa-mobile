@@ -4,34 +4,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { moderateScale } from 'react-native-size-matters';
 import { useGetSavedAccountsQuery } from '@/hooks/queries/banks/useGetSavedAccountsQuery';
 
-export interface SavedAccount {
-    id: string;
-    bankName: string;
-    accountNumber: string;
-    accountName: string;
-    bankCode?: string;
-}
+import { SavedAccount, DomiciliaryAccount, RefundBankDetailsStepProps } from '@/types/transaction-flow';
 
-export interface DomiciliaryAccount {
-    bankName?: string;
-    accountNumber?: string;
-    accountName?: string;
-    swiftCode?: string;
-    routingNumber?: string;
-    bankAddress?: string;
-}
-
-interface RefundBankDetailsStepProps {
-    savedAccounts: SavedAccount[];
-    selectedSavedAccountId: string | null;
-    setSelectedSavedAccountId: (id: string | null) => void;
-    setValue: (name: any, value: any, options?: any) => void;
-    setIsAddingNewAccount: (visible: boolean) => void;
-    title?: string;
-    description?: string;
-    isDomiciliary?: boolean;
-    domiciliaryAccount?: DomiciliaryAccount;
-}
+export { SavedAccount, DomiciliaryAccount };
 
 export default function RefundBankDetailsStep({
     savedAccounts,
@@ -46,22 +21,19 @@ export default function RefundBankDetailsStep({
 }: RefundBankDetailsStepProps) {
     const { data: savedAccountsResponse, isLoading } = useGetSavedAccountsQuery();
 
-    console.log(JSON.stringify(savedAccountsResponse?.data, null, 2), "REFUND BANK DETAILS")
+    // console.log(JSON.stringify(savedAccountsResponse?.data, null, 2), "REFUND BANK DETAILS")
 
     const domiciliaryAccounts = React.useMemo(() => {
         if (!isDomiciliary) return [];
-        let apiAccounts = (savedAccountsResponse?.data || []).filter((a: any) =>
-            a.currency === 'FOREIGN' ||
-            (a.currency && a.currency !== 'NGN') ||
-            a.isDomiciliary === true ||
-            (a.bankName && a.bankName.toLowerCase().includes('dom')) ||
-            !!a.swiftCode ||
-            !!a.routingNumber ||
-            !!a.bankAddress
-        );
-        if (apiAccounts.length === 0 && (savedAccountsResponse?.data || []).length > 0) {
-            apiAccounts = savedAccountsResponse?.data || [];
-        }
+        let apiAccounts = (savedAccountsResponse?.data || []).filter((a: any) => {
+            const currency = (a.currency || '').toUpperCase();
+           
+            if (currency === 'NGN' || currency === 'NAIRA') {
+                return false;
+            }
+            return currency !== '' || a.isDomiciliary === true;
+        });
+
         if (domiciliaryAccount?.bankName && domiciliaryAccount?.accountNumber) {
             const existsInApi = apiAccounts.some((a: any) =>
                 a.accountNumber === domiciliaryAccount.accountNumber && a.bankName === domiciliaryAccount.bankName
@@ -85,16 +57,32 @@ export default function RefundBankDetailsStep({
     }, [savedAccountsResponse, isDomiciliary, domiciliaryAccount]);
 
     const displayLocalAccounts = React.useMemo(() => {
-        if (savedAccounts && savedAccounts.length > 0) {
-            return savedAccounts;
-        }
-        return (savedAccountsResponse?.data || []).map((a: any) => ({
-            id: a.id,
-            bankName: a.bankName,
-            accountNumber: a.accountNumber,
-            accountName: a.accountName,
-            bankCode: a.bankCode || '',
-        }));
+        const rawAccounts = (savedAccounts && savedAccounts.length > 0)
+            ? savedAccounts
+            : (savedAccountsResponse?.data || []);
+
+        return rawAccounts
+            .filter((a: any) => {
+                const currency = (a.currency || '').toUpperCase();
+                // If currency is specified and is foreign (not NGN), exclude it from local accounts
+                if (currency && currency !== 'NGN' && currency !== 'NAIRA') {
+                    return false;
+                }
+                if (a.isDomiciliary === true) {
+                    return false;
+                }
+                if (a.swiftCode || a.routingNumber || a.bankAddress || a.iban) {
+                    return false;
+                }
+                return true;
+            })
+            .map((a: any) => ({
+                id: a.id,
+                bankName: a.bankName,
+                accountNumber: a.accountNumber,
+                accountName: a.accountName,
+                bankCode: a.bankCode || '',
+            }));
     }, [savedAccounts, savedAccountsResponse]);
 
     if (isDomiciliary) {

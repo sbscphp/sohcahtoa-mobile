@@ -124,6 +124,7 @@ export default function CreateResidentScreen() {
     const createTransaction = useCreateTransactionMutation();
     const attachBankAccountsMutation = useAttachBankAccountsMutation();
     useProfileQuery();
+    const user = useAuthStore(s => s.user);
     const profileTin = user?.kyc?.tinNumber || user?.kyc?.tin || (user?.profile as any)?.tinNumber || (user as any)?.tinNumber || '';
     const isBvnDisabled = !!user?.kyc?.bvn;
     const isNinDisabled = !!user?.kyc?.nin;

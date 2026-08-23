@@ -34,7 +34,7 @@ export default function ViewResidentScreen() {
     const tx = txResponse?.data;
     const showToast = useToastStore(s => s.showToast);
 
-    console.log(JSON.stringify(tx, null, 2), "TX");
+    // console.log(JSON.stringify(tx, null, 2), "TX");
 
     useFocusEffect(
         useCallback(() => {

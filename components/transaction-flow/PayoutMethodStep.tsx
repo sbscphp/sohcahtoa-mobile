@@ -4,35 +4,16 @@ import { Ionicons } from '@expo/vector-icons';
 import { ArrowDown2, Bank } from 'iconsax-react-nativejs';
 import React from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
-import { moderateScale } from 'react-native-size-matters';
+import { moderateScale, s } from 'react-native-size-matters';
 import { useWatch } from 'react-hook-form';
 import { useAttachBankAccountsMutation } from '@/hooks/queries/transactions/useAttachBankAccountsMutation';
 import { useGetSavedAccountsQuery } from '@/hooks/queries/banks/useGetSavedAccountsQuery';
 import { useGetBanksQuery } from '@/hooks/queries/banks/useGetBanksQuery';
 
-export interface SavedAccount {
-    id: string;
-    bankName: string;
-    accountNumber: string;
-    accountName: string;
-    bankCode?: string;
-}
+import { SavedAccount, PayoutMethodStepProps } from '@/types/transaction-flow';
+import { findBank, isNigerianAccount } from '@/utils/banks';
 
-interface PayoutMethodStepProps {
-    control: any;
-    setValue: (name: any, value: any, options?: any) => void;
-    setPayoutSheetVisible: (visible: boolean) => void;
-    savedAccounts: SavedAccount[];
-    selectedSavedAccountId: string | null;
-    setSelectedSavedAccountId: (id: string | null) => void;
-    setIsAddingNewAccount: (visible: boolean) => void;
-    transactionId?: string;
-    isMultiSelect?: boolean;
-    selectedSavedAccountIds?: string[];
-    setSelectedSavedAccountIds?: (ids: string[]) => void;
-    isExpatriate?: boolean;
-    isSellFx?: boolean;
-}
+export { SavedAccount };
 
 export default function PayoutMethodStep({
     control,
@@ -59,15 +40,27 @@ export default function PayoutMethodStep({
     const watchedBankName = useWatch({ control, name: 'domiciliaryBankName', defaultValue: '' });
 
     const localSavedAccounts = React.useMemo(() => {
-        if (!savedAccountsResponse?.data) return savedAccounts;
-        // Find raw account IDs that are local (NGN)
-        const localAccountIds = savedAccountsResponse.data
-            .filter((a: any) => a.currency === 'NGN' || !a.currency)
-            .map((a: any) => a.id);
-            
-        const filtered = savedAccounts.filter(account => localAccountIds.includes(account.id));
-        return filtered.length > 0 ? filtered : savedAccounts;
-    }, [savedAccounts, savedAccountsResponse]);
+        const validBanks = banksResponse?.data || [];
+        const rawAccounts = savedAccountsResponse?.data || [];
+        const validNgnIds = new Set(
+            rawAccounts.filter((acc: any) => isNigerianAccount(acc, validBanks)).map((acc: any) => acc.id)
+        );
+
+        if (savedAccounts?.length) {
+            return savedAccounts.filter((acc) => validNgnIds.has(acc.id) && !!acc.bankCode);
+        }
+
+        return rawAccounts
+            .filter((acc: any) => validNgnIds.has(acc.id))
+            .map((acc: any) => ({
+                id: acc.id,
+                bankName: acc.bankName,
+                accountNumber: acc.accountNumber,
+                accountName: acc.accountName,
+                bankCode: findBank(acc.bankName, validBanks)?.code || '',
+                currency: acc.currency,
+            }));
+    }, [savedAccounts, savedAccountsResponse, banksResponse]);
 
     const [localSelectedIds, setLocalSelectedIds] = React.useState<string[]>([]);
     const activeSelectedIds = selectedSavedAccountIds !== undefined ? selectedSavedAccountIds : localSelectedIds;

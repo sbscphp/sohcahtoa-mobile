@@ -35,7 +35,7 @@ import { View } from 'react-native';
 import { ScaledSheet } from 'react-native-size-matters';
 import { z } from 'zod';
 
-import AddNewAccountStep from '@/components/transaction-flow/AddNewAccountStep';
+// import AddNewAccountStep from '@/components/transaction-flow/AddNewAccountStep';
 import { useGetBanksQuery } from '@/hooks/queries/banks/useGetBanksQuery';
 import { useGetSavedAccountsQuery } from '@/hooks/queries/banks/useGetSavedAccountsQuery';
 import { useLookupAccountMutation } from '@/hooks/queries/banks/useResolveAccountMutation';

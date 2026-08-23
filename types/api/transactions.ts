@@ -163,6 +163,7 @@ export interface Transaction {
         bvn?: string;
         nin?: string;
         admissionType?: string;
+        tinNumber?: string;
         passportDocumentNumber?: string;
         passportIssueDate?: string;
         passportExpiryDate?: string;
@@ -345,6 +346,7 @@ export interface GetTransactionByIdResponse {
             bvn?: string;
             nin?: string;
             admissionType?: string;
+            tinNumber?: string;
             passportDocumentNumber?: string;
             passportIssueDate?: string;
             passportExpiryDate?: string;

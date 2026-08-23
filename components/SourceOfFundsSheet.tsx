@@ -150,6 +150,7 @@ export default function SourceOfFundsSheet({
                                 placeholder="Enter your initials"
                                 value={initials}
                                 onChangeText={onChangeInitials}
+                                disabled
                                 required
                             />
                         ) : (
