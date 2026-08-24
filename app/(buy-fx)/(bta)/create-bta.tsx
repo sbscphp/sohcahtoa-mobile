@@ -22,7 +22,7 @@ import { useGetPickupCitiesQuery } from '@/hooks/queries/transactions/useGetPick
 import { useGetPickupPointsQuery } from '@/hooks/queries/transactions/useGetPickupPointsQuery';
 import { useGetPickupStatesQuery } from '@/hooks/queries/transactions/useGetPickupStatesQuery';
 import { useGetTransactionsQuery } from '@/hooks/queries/transactions/useGetTransactionsQuery';
-import { formatDateToPickerFormat, getCurrencySymbol } from '@/utils/helpers';
+import { buildPickupLocationPayload, formatDateToPickerFormat, getCurrencySymbol } from '@/utils/helpers';
 import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useExchangeLogic } from '@/hooks/useExchangeLogic';
 import { useAuthStore } from '@/stores/useAuthStore';
@@ -689,16 +689,15 @@ export default function BusinessTravelAllowanceScreen() {
                 ...(docs.corporateBodyLetter.meta ? [docs.corporateBodyLetter.meta] : []),
                 ...(docs.partnerInvitationLetter.meta ? [docs.partnerInvitationLetter.meta] : []),
             ],
-            pickupLocation: (needsLocationStep && data.selectedLocation) ? {
-                name: (data.selectedLocation as LocationItem).title,
-                address: (data.selectedLocation as LocationItem).subtitle || '',
-                state: (data.selectedState as LocationItem)?.title || '',
-                city: (data.selectedCity as LocationItem)?.title || '',
-                scheduledPickupDate: formatDateForApi(data.pickupDate || ''),
-                scheduledPickupTime: data.pickupTime || '',
+            pickupLocation: (needsLocationStep && data.selectedLocation) ? buildPickupLocationPayload({
+                selectedLocation: data.selectedLocation as LocationItem,
+                selectedState: data.selectedState as LocationItem,
+                selectedCity: data.selectedCity as LocationItem,
+                pickupDate: data.pickupDate || '',
+                pickupTime: data.pickupTime || '',
                 amount: (data.payoutMethod === 'Card (75%) + Cash (25%)' || data.payoutMethod === 'Cash (25%) + Electronic Transfer (75%)') ? (Number(data.amount) * 0.25) : (Number(data.amount) || 0),
                 currency: currencyGet.code,
-            } : undefined,
+            }) : undefined,
             beneficiaryDetails: (data.payoutMethod === 'Electronic Transfer (100%)' || data.payoutMethod === 'Cash (25%) + Electronic Transfer (75%)') ? {
                 bankName: data.domiciliaryBankName,
                 accountNumber: data.domiciliaryAccountNumber,

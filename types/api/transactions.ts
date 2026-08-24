@@ -43,11 +43,22 @@ export interface CreateTransactionPayload {
     }[];
     pickupLocation?: {
         id?: string;
+        locationId?: string;
         name: string;
         address: string;
-        recipientName?: string;
+        state?: string;
+        city?: string;
+        phoneNumber?: string;
         recipientPhone?: string;
+        recipientName?: string;
+        email?: string;
+        recipientEmail?: string;
+        scheduledPickupDate?: string;
+        scheduledPickupTime?: string;
+        date?: string;
+        time?: string;
         amount?: number;
+        currency?: string;
     };
     paymentDetails?: {
         bankName?: string;
@@ -70,6 +81,7 @@ export interface CreateTransactionPayload {
         routingNumber?: string;
         bankAddress?: string;
     };
+    digitalSignature?: string;
 }
 
 export interface CreateTransactionResponse {
@@ -357,15 +369,31 @@ export interface GetTransactionByIdResponse {
         };
         requiredDocuments: {
             type: string;
+            required?: boolean;
             uploaded?: {
                 id: string;
                 fileName: string;
-                fileUrl: string;
+                fileUrl: string | null;
                 status: string;
-                rejectionNotes?: string;
+                rejectionNotes?: string | null;
                 uploadedAt: string;
-                verifiedAt?: string;
+                verifiedAt?: string | null;
+                signed?: boolean;
+                signatureText?: string | null;
+                note?: string | null;
             };
+            uploads?: {
+                id: string;
+                fileName: string;
+                fileUrl: string | null;
+                status: string;
+                rejectionNotes?: string | null;
+                uploadedAt: string;
+                verifiedAt?: string | null;
+                signed?: boolean;
+                signatureText?: string | null;
+                note?: string | null;
+            }[];
         }[];
         beneficiaryDetails?: {
             name: string;

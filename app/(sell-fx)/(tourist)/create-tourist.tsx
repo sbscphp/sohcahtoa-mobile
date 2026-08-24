@@ -20,7 +20,7 @@ import { useExchangeLogic } from '@/hooks/useExchangeLogic';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useDeclarationStore } from '@/stores/useDeclarationStore';
 import { useToastStore } from '@/stores/useToastStore';
-import { formatDateToPickerFormat, getCurrencySymbol } from '@/utils/helpers';
+import { buildPickupLocationPayload, formatDateToPickerFormat, getCurrencySymbol } from '@/utils/helpers';
 import { LocationItem } from '@/utils/locations';
 import {
     touristStep0Schema,
@@ -457,19 +457,19 @@ export default function CreateTouristScreen() {
                 routingNumber: data.domiciliaryRoutingNumber,
                 bankAddress: data.domiciliaryBankAddress,
             },
-            declarationMethod: useDeclarationStore.getState().declarationMethod || undefined,
-            declarationInitials: useDeclarationStore.getState().declarationMethod === 'initials' ? initials : undefined,
+            ...(useDeclarationStore.getState().declarationMethod === 'initials' && (initials || useDeclarationStore.getState().initials) ? {
+                digitalSignature: (initials || useDeclarationStore.getState().initials).trim()
+            } : {}),
         };
 
         if (!isElectronicTransfer && data.selectedLocation) {
-            payload.pickupLocation = {
-                name: data.selectedLocation.title,
-                address: data.selectedLocation.subtitle || '',
-                state: data.selectedState?.title || '',
-                city: data.selectedCity?.title || '',
-                scheduledPickupDate: formatDateForApi(data.pickupDate),
-                scheduledPickupTime: data.pickupTime,
-            };
+            payload.pickupLocation = buildPickupLocationPayload({
+                selectedLocation: data.selectedLocation,
+                selectedState: data.selectedState,
+                selectedCity: data.selectedCity,
+                pickupDate: data.pickupDate,
+                pickupTime: data.pickupTime,
+            });
         }
 
         createTransaction.mutate(payload, {
@@ -626,6 +626,7 @@ export default function CreateTouristScreen() {
                         locations={filteredLocations}
                         selectedState={watchedFields.selectedState}
                         onSelectState={(item) => {
+                            
                             setValue('selectedState', item);
                             setValue('selectedCity', undefined as unknown as LocationItem);
                             setValue('selectedLocation', undefined as unknown as LocationItem);

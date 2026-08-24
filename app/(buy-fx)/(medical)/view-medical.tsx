@@ -6,7 +6,7 @@ import TransactionViewLayout from '@/components/transaction-flow/TransactionView
 import { useGetTransactionByIdQuery } from '@/hooks/queries/transactions/useGetTransactionByIdQuery';
 import { useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useToastStore } from '@/stores/useToastStore';
-import { commonDocTypeLabels, formatCurrency, formatDate, formatTime, formatTimeWithSeconds, getTransactionDocuments, getCurrencySymbol, mapApiStatusToViewStatus, isPaymentRequired, getTransactionMessage } from '@/utils/helpers';
+import { commonDocTypeLabels, formatCurrency, formatDate, formatTime, formatTimeWithSeconds, getTransactionDocuments, getTransactionUploadedDocs, buildTransactionDocsItems, getCurrencySymbol, mapApiStatusToViewStatus, isPaymentRequired, getTransactionMessage } from '@/utils/helpers';
 import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, BackHandler, View } from 'react-native';
@@ -108,25 +108,7 @@ export default function ViewMedicalPaymentScreen() {
     const detailsDocuments = useMemo(() => {
         if (!tx) return [];
         const docs = getTransactionDocuments(tx);
-
-        const uploadedDocs = tx.requiredDocuments
-            .filter((d) => {
-                if (!d.uploaded) return false;
-                const isDigitalSig = d.type === 'DIGITAL_SIGNATURE' || d.type === 'DECLARATION_DOCUMENT';
-                if (isDigitalSig) {
-                    const fn = d.uploaded.fileName || '';
-                    const url = d.uploaded.fileUrl || '';
-                    if (!url || (!fn.includes('.') && fn.length <= 5)) {
-                        return false;
-                    }
-                }
-                return !!d.uploaded.fileName || !!d.uploaded.fileUrl;
-            })
-            .map((d) => ({
-                label: commonDocTypeLabels[d.type] || d.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
-                fileName: d.uploaded!.fileName,
-                fileUrl: d.uploaded!.fileUrl,
-            }));
+        const uploadedDocs = getTransactionUploadedDocs(tx);
         return [...docs, ...uploadedDocs];
     }, [tx]);
 
@@ -201,33 +183,7 @@ export default function ViewMedicalPaymentScreen() {
     }, [tx]);
 
     const docsItems = useMemo(() => {
-        if (!tx) return [];
-        const txAny = tx as any;
-        let digitalSig = txAny.digitalSignature || txAny.declarationInitials || txAny.personalInfo?.digitalSignature || txAny.personalInfo?.declarationInitials;
-        return tx.requiredDocuments.map((doc) => {
-            const isDigitalSig = doc.type === 'DIGITAL_SIGNATURE' || doc.type === 'DECLARATION_DOCUMENT';
-            const uploadedFn = doc.uploaded?.fileName || '';
-            const uploadedUrl = doc.uploaded?.fileUrl || '';
-            const isInitialsOnly = !uploadedUrl || (!uploadedFn.includes('.') && uploadedFn.length <= 5);
-
-            if (isDigitalSig && !digitalSig && uploadedFn && isInitialsOnly) {
-                digitalSig = uploadedFn;
-            }
-
-            const isInitialDoc = isDigitalSig && (Boolean(digitalSig) || isInitialsOnly);
-            const value = isInitialDoc ? (digitalSig || uploadedFn || 'AO') : undefined;
-
-            return {
-                label: commonDocTypeLabels[doc.type] || doc.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
-                value,
-                fileName: (!isInitialDoc && doc.uploaded) ? doc.uploaded.fileName : null,
-                docStatus: doc.uploaded?.status,
-                required: true,
-                onUpload: (!doc.uploaded || doc.uploaded.status === 'REQUIRES_MANUAL_REVIEW') && !value
-                    ? () => uploadFile(doc.type, doc.uploaded?.status === 'REQUIRES_MANUAL_REVIEW')
-                    : undefined,
-            };
-        });
+        return buildTransactionDocsItems(tx, uploadFile);
     }, [tx, uploadFile]);
     const paymentDetailsItems = useMemo(() => {
         const pdList = tx?.paymentDetails as any;

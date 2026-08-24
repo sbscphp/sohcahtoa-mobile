@@ -26,7 +26,7 @@ import { useExchangeLogic } from '@/hooks/useExchangeLogic';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useToastStore } from '@/stores/useToastStore';
 import { LocationItem } from '@/utils/locations';
-import { getCurrencySymbol } from '@/utils/helpers';
+import { buildPickupLocationPayload, getCurrencySymbol } from '@/utils/helpers';
 import { ptaStep0Schema, ptaStep1Schema, ptaStep2Schema, ptaStep3Schema } from '@/utils/validations/pta';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
@@ -646,17 +646,15 @@ export default function PersonalTravelAllowanceScreen() {
                 ...(docs.returnTicket.meta ? [docs.returnTicket.meta] : []),
                 ...(docs.passport.meta ? [docs.passport.meta] : []),
             ],
-            pickupLocation: (needsLocationStep && data.selectedLocation) ? {
-                state: data.selectedState?.title || '',
-                city: data.selectedCity?.title || '',
-                name: data.selectedLocation?.title || '',
-                address: data.selectedLocation?.subtitle || '',
-                locationId: data.selectedLocation?.id || '',
-                date: data.pickupDate || '',
-                time: data.pickupTime || '',
+            pickupLocation: (needsLocationStep && data.selectedLocation) ? buildPickupLocationPayload({
+                selectedLocation: data.selectedLocation,
+                selectedState: data.selectedState,
+                selectedCity: data.selectedCity,
+                pickupDate: data.pickupDate || '',
+                pickupTime: data.pickupTime || '',
                 amount: (data.payoutMethod === 'Card (75%) + Cash (25%)' || data.payoutMethod === 'Cash (25%) + Electronic Transfer (75%)') ? (Number(data.amount) * 0.25) : (Number(data.amount) || 0),
                 currency: currencyGet.code,
-            } : undefined,
+            }) : undefined,
             payoutMethod: data.payoutMethod,
             beneficiaryDetails: (data.payoutMethod?.includes('Electronic')) ? {
                 bankName: data.domiciliaryBankName,

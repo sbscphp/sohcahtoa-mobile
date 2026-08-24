@@ -13,7 +13,7 @@ import { useProfileQuery } from '@/hooks/queries/auth/useProfileQuery';
 import { useCreateTransactionMutation } from '@/hooks/queries/transactions/useCreateTransactionMutation';
 import { useGetTransactionsQuery } from '@/hooks/queries/transactions/useGetTransactionsQuery';
 import { useAttachBankAccountsMutation } from '@/hooks/queries/transactions/useAttachBankAccountsMutation';
-import { formatDateToPickerFormat, getCurrencySymbol } from '@/utils/helpers';
+import { buildPickupLocationPayload, formatDateToPickerFormat, getCurrencySymbol } from '@/utils/helpers';
 import { UploadedFile, UploadedMetadata, useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useExchangeLogic } from '@/hooks/useExchangeLogic';
 import SourceOfFundsSheet from '@/components/SourceOfFundsSheet';
@@ -636,19 +636,19 @@ export default function CreateResidentScreen() {
                 routingNumber: data.domiciliaryRoutingNumber,
                 bankAddress: data.domiciliaryBankAddress,
             },
-            declarationMethod: useDeclarationStore.getState().declarationMethod || undefined,
-            declarationInitials: useDeclarationStore.getState().declarationMethod === 'initials' ? initials : undefined,
+            ...(useDeclarationStore.getState().declarationMethod === 'initials' && (initials || useDeclarationStore.getState().initials) ? {
+                digitalSignature: (initials || useDeclarationStore.getState().initials).trim()
+            } : {}),
         };
 
         if (!isElectronicTransfer && data.selectedLocation) {
-            payload.pickupLocation = {
-                name: data.selectedLocation.title,
-                address: data.selectedLocation.subtitle || '',
-                state: data.selectedState?.title || '',
-                city: data.selectedCity?.title || '',
-                scheduledPickupDate: formatDateForApi(data.pickupDate),
-                scheduledPickupTime: data.pickupTime,
-            };
+            payload.pickupLocation = buildPickupLocationPayload({
+                selectedLocation: data.selectedLocation,
+                selectedState: data.selectedState,
+                selectedCity: data.selectedCity,
+                pickupDate: data.pickupDate,
+                pickupTime: data.pickupTime,
+            });
         }
 
         createTransaction.mutate(payload, {

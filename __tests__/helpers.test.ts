@@ -65,3 +65,140 @@ describe('helpers - mapApiStatusToViewStatus', () => {
         expect(mapApiStatusToViewStatus(undefined)).toBe('pending');
     });
 });
+
+describe('helpers - digital signature handling with sample response data', () => {
+    const sampleTx = {
+        type: 'EXPATRIATE_FX',
+        requiredDocuments: [
+            {
+                type: 'DIGITAL_SIGNATURE',
+                required: true,
+                uploaded: {
+                    id: 'c4bb46ca-4a1a-4496-ae1f-02a46e6c5a1d',
+                    fileName: 'Digital Signature',
+                    fileUrl: null,
+                    status: 'PENDING',
+                    rejectionNotes: null,
+                    uploadedAt: '2026-08-24T10:33:29.046Z',
+                    verifiedAt: null,
+                    signed: true,
+                    signatureText: 'AO',
+                    note: 'Customer has already signed digitally — no document upload required'
+                }
+            }
+        ]
+    };
+
+    it('extracts signatureText "AO" as value in getTransactionDocuments', () => {
+        const { getTransactionDocuments } = require('../utils/helpers');
+        const docs = getTransactionDocuments(sampleTx);
+        expect(docs).toContainEqual({
+            label: 'Declaration Document (Signature)',
+            value: 'AO'
+        });
+    });
+
+    it('does not treat digital signature with null fileUrl as an uploaded file in getTransactionUploadedDocs', () => {
+        const { getTransactionUploadedDocs } = require('../utils/helpers');
+        const uploadedDocs = getTransactionUploadedDocs(sampleTx);
+        expect(uploadedDocs).toEqual([]);
+    });
+
+    it('builds doc item with value "AO" and does not require file upload in buildTransactionDocsItems', () => {
+        const { buildTransactionDocsItems } = require('../utils/helpers');
+        const items = buildTransactionDocsItems(sampleTx);
+        expect(items).toHaveLength(1);
+        expect(items[0].value).toBe('AO');
+        expect(items[0].fileName).toBeNull();
+    });
+});
+
+describe('helpers - buildPickupLocationPayload', () => {
+    const { buildPickupLocationPayload } = require('../utils/helpers');
+
+    it('returns undefined if selectedLocation is null or undefined', () => {
+        expect(buildPickupLocationPayload({ selectedLocation: null })).toBeUndefined();
+        expect(buildPickupLocationPayload({ selectedLocation: undefined })).toBeUndefined();
+    });
+
+    it('correctly maps all location metadata including address, phoneNumber, email, state, and city', () => {
+        const selectedLocation = {
+            id: '7dd7ba2d-9381-4d8f-b176-6c5617bac253',
+            title: 'London',
+            subtitle: '3 Musa Street',
+            metadata: {
+                id: '7dd7ba2d-9381-4d8f-b176-6c5617bac253',
+                name: 'London',
+                address: '3 Musa Street',
+                city: 'Ethiope East',
+                location: 'Delta',
+                email: 'verifytestuser@yopmail.com',
+                phoneNumber: '09098277222'
+            }
+        };
+
+        const result = buildPickupLocationPayload({
+            selectedLocation,
+            selectedState: { id: 's1', title: 'Fallback State' },
+            selectedCity: { id: 'c1', title: 'Fallback City' },
+            pickupDate: '25/08/2026',
+            pickupTime: '10:30 AM',
+            amount: 250,
+            currency: 'USD'
+        });
+
+        expect(result).toEqual({
+            id: '7dd7ba2d-9381-4d8f-b176-6c5617bac253',
+            locationId: '7dd7ba2d-9381-4d8f-b176-6c5617bac253',
+            name: 'London',
+            address: '3 Musa Street',
+            state: 'Delta',
+            city: 'Ethiope East',
+            phoneNumber: '09098277222',
+            recipientPhone: '09098277222',
+            email: 'verifytestuser@yopmail.com',
+            recipientEmail: 'verifytestuser@yopmail.com',
+            scheduledPickupDate: '2026-08-25',
+            scheduledPickupTime: '10:30 AM',
+            date: '25/08/2026',
+            time: '10:30 AM',
+            amount: 250,
+            currency: 'USD'
+        });
+    });
+
+    it('falls back to title, subtitle, and selected state/city when metadata is not present', () => {
+        const selectedLocation = {
+            id: 'loc-1',
+            title: 'Victoria Island Office',
+            subtitle: '123 Ahmadu Bello Way'
+        };
+
+        const result = buildPickupLocationPayload({
+            selectedLocation,
+            selectedState: { id: 's1', title: 'Lagos' },
+            selectedCity: { id: 'c1', title: 'Ikeja' },
+            pickupDate: '2026-08-26',
+            pickupTime: '02:00 PM'
+        });
+
+        expect(result).toEqual({
+            id: 'loc-1',
+            locationId: 'loc-1',
+            name: 'Victoria Island Office',
+            address: '123 Ahmadu Bello Way',
+            state: 'Lagos',
+            city: 'Ikeja',
+            phoneNumber: '',
+            recipientPhone: '',
+            email: '',
+            recipientEmail: '',
+            scheduledPickupDate: '2026-08-26',
+            scheduledPickupTime: '02:00 PM',
+            date: '2026-08-26',
+            time: '02:00 PM'
+        });
+    });
+});
+
+

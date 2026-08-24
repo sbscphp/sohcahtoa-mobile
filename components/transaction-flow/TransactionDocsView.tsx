@@ -5,16 +5,27 @@ import { Text, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import { TransactionStatus } from './TransactionStatusView';
 
-interface DocItem {
+export interface DocUploadItem {
+    id?: string;
+    fileName?: string | null;
+    fileUrl?: string | null;
+    status?: string;
+    docStatus?: 'VERIFIED' | 'REQUIRES_MANUAL_REVIEW' | 'FAILED' | 'APPROVED' | 'REJECTED' | 'PENDING' | string;
+    rejectionNotes?: string | null;
+    onUpload?: () => void;
+}
+
+export interface DocItem {
     label: string;
     value?: string;
     fileName?: string | null;
     onUpload?: () => void;
     required?: boolean;
     docStatus?: 'VERIFIED' | 'REQUIRES_MANUAL_REVIEW' | 'FAILED' | 'APPROVED' | 'REJECTED' | 'PENDING' | string;
+    uploads?: DocUploadItem[];
 }
 
-interface TransactionDocsViewProps {
+export interface TransactionDocsViewProps {
     status: TransactionStatus;
     documents: DocItem[];
 }
@@ -67,34 +78,77 @@ export default function TransactionDocsView({ status, documents }: TransactionDo
                     (!doc.fileName?.includes('.') && doc.fileName && doc.fileName.length <= 5)
                 );
                 const displayValue = doc.value || doc.fileName;
+                const hasMultipleUploads = Boolean(doc.uploads && doc.uploads.length > 1);
 
-                return (
-                    <View key={index} style={styles.docCardContainer}>
-                        {isInitialsDoc && displayValue ? (
+                if (isInitialsDoc && displayValue) {
+                    return (
+                        <View key={index} style={styles.docCardContainer}>
                             <View style={styles.valueRow}>
                                 <Text style={styles.detailLabel}>{doc.label}</Text>
                                 <Text style={styles.detailValue}>{displayValue}</Text>
                             </View>
-                        ) : (
-                            <>
-                                <View style={styles.docHeaderRow}>
-                                    <Text style={styles.docTitle}>{doc.label} {doc.required && <Text style={styles.required}>*</Text>}</Text>
-                                </View>
-                                <FileUpload
-                                    onUpload={doc.onUpload || (() => { })}
-                                    fileName={doc.fileName}
-                                    title={`Upload ${doc.label}`}
-                                    status={getDocStatus(doc.docStatus) as any}
-                                />
-                                {doc.fileName && (
-                                    <View style={[styles.docStatusRow, { marginTop: 0 }]}>
-                                        <StatusIndicator docStatus={doc.docStatus} />
-                                        <Text style={getStatusTextStyle(doc.docStatus)}>
-                                            {getStatusText(doc.docStatus)}
-                                        </Text>
-                                    </View>
-                                )}
-                            </>
+                        </View>
+                    );
+                }
+
+                if (hasMultipleUploads && doc.uploads) {
+                    return (
+                        <View key={index} style={styles.docCardContainer}>
+                            <View style={styles.docHeaderRow}>
+                                <Text style={styles.docTitle}>
+                                    {doc.label} {doc.required && <Text style={styles.required}>*</Text>}
+                                </Text>
+                            </View>
+                            <View style={{ gap: moderateScale(12) }}>
+                                {doc.uploads.map((upload, uIdx) => {
+                                    const currentStatus = upload.docStatus || upload.status || doc.docStatus;
+                                    return (
+                                        <View key={upload.id || uIdx}>
+                                            <FileUpload
+                                                onUpload={upload.onUpload || doc.onUpload || (() => { })}
+                                                fileName={upload.fileName}
+                                                title={`${doc.label} ${uIdx + 1}`}
+                                                status={getDocStatus(currentStatus) as any}
+                                            />
+                                            {upload.fileName && (
+                                                <View style={[styles.docStatusRow, { marginTop: 0 }]}>
+                                                    <StatusIndicator docStatus={currentStatus} />
+                                                    <Text style={getStatusTextStyle(currentStatus)}>
+                                                        {getStatusText(currentStatus)}
+                                                    </Text>
+                                                </View>
+                                            )}
+                                        </View>
+                                    );
+                                })}
+                            </View>
+                        </View>
+                    );
+                }
+
+                const singleUpload = doc.uploads && doc.uploads.length === 1 ? doc.uploads[0] : null;
+                const fileName = singleUpload?.fileName ?? doc.fileName;
+                const currentStatus = singleUpload?.docStatus ?? singleUpload?.status ?? doc.docStatus;
+                const onUpload = singleUpload?.onUpload ?? doc.onUpload;
+
+                return (
+                    <View key={index} style={styles.docCardContainer}>
+                        <View style={styles.docHeaderRow}>
+                            <Text style={styles.docTitle}>{doc.label} {doc.required && <Text style={styles.required}>*</Text>}</Text>
+                        </View>
+                        <FileUpload
+                            onUpload={onUpload || (() => { })}
+                            fileName={fileName}
+                            title={`Upload ${doc.label}`}
+                            status={getDocStatus(currentStatus) as any}
+                        />
+                        {fileName && (
+                            <View style={[styles.docStatusRow, { marginTop: 0 }]}>
+                                <StatusIndicator docStatus={currentStatus} />
+                                <Text style={getStatusTextStyle(currentStatus)}>
+                                    {getStatusText(currentStatus)}
+                                </Text>
+                            </View>
                         )}
                     </View>
                 );

@@ -1,5 +1,6 @@
 import { TransactionStatus } from '@/components/transaction-flow/TransactionStatusView';
 import { Transaction } from '@/types/api/transactions';
+import { LocationItem } from '@/utils/locations';
 
 export const isPaymentRequired = (apiStatus?: string): boolean => {
     if (!apiStatus) return false;
@@ -235,12 +236,17 @@ export const getTransactionDocuments = (tx: any): { label: string; value: string
     if (!digitalSignature && tx.requiredDocuments && Array.isArray(tx.requiredDocuments)) {
         const sigDoc = tx.requiredDocuments.find((d: any) => d.type === 'DIGITAL_SIGNATURE' || d.type === 'DECLARATION_DOCUMENT');
         if (sigDoc) {
+            const uploaded = sigDoc.uploaded;
             if (sigDoc.value) {
                 digitalSignature = String(sigDoc.value);
+            } else if (uploaded?.signatureText) {
+                digitalSignature = String(uploaded.signatureText);
+            } else if (sigDoc.signatureText) {
+                digitalSignature = String(sigDoc.signatureText);
             } else if (sigDoc.initials) {
                 digitalSignature = String(sigDoc.initials);
-            } else if (sigDoc.uploaded?.fileName && !sigDoc.uploaded.fileName.includes('.') && sigDoc.uploaded.fileName.length <= 5) {
-                digitalSignature = String(sigDoc.uploaded.fileName);
+            } else if (uploaded?.fileName && !uploaded.fileName.includes('.') && uploaded.fileName.length <= 5) {
+                digitalSignature = String(uploaded.fileName);
             }
         }
     }
@@ -248,6 +254,99 @@ export const getTransactionDocuments = (tx: any): { label: string; value: string
     if (digitalSignature) docs.push({ label: 'Declaration Document (Signature)', value: digitalSignature });
 
     return docs;
+};
+
+export const getTransactionUploadedDocs = (tx: any): { label: string; fileName?: string; fileUrl?: string }[] => {
+    if (!tx || !Array.isArray(tx.requiredDocuments)) return [];
+    const uploadedDocs: { label: string; fileName?: string; fileUrl?: string }[] = [];
+
+    tx.requiredDocuments.forEach((d: any) => {
+        const isDigitalSig = d.type === 'DIGITAL_SIGNATURE' || d.type === 'DECLARATION_DOCUMENT';
+        const baseLabel = commonDocTypeLabels[d.type] || d.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
+
+        const isDigitallySignedDoc = (u: any) => {
+            if (!isDigitalSig) return false;
+            const fn = u?.fileName || '';
+            const url = u?.fileUrl || '';
+            return !url || u?.signed || u?.signatureText || fn === 'Digital Signature' || (!fn.includes('.') && fn.length <= 5);
+        };
+
+        if (Array.isArray(d.uploads) && d.uploads.length > 0) {
+            d.uploads.forEach((u: any, idx: number) => {
+                if (isDigitallySignedDoc(u)) return;
+                if (u.fileName || u.fileUrl) {
+                    uploadedDocs.push({
+                        label: d.uploads.length > 1 ? `${baseLabel} ${idx + 1}` : baseLabel,
+                        fileName: u.fileName,
+                        fileUrl: u.fileUrl,
+                    });
+                }
+            });
+        } else if (d.uploaded) {
+            if (isDigitallySignedDoc(d.uploaded)) return;
+            if (d.uploaded.fileName || d.uploaded.fileUrl) {
+                uploadedDocs.push({
+                    label: baseLabel,
+                    fileName: d.uploaded.fileName,
+                    fileUrl: d.uploaded.fileUrl,
+                });
+            }
+        }
+    });
+
+    return uploadedDocs;
+};
+
+export const buildTransactionDocsItems = (
+    tx: any,
+    uploadFile?: (docType: string, isReupload?: boolean) => void
+) => {
+    if (!tx || !Array.isArray(tx.requiredDocuments)) return [];
+    const txAny = tx as any;
+    let digitalSig = txAny.digitalSignature || txAny.declarationInitials || txAny.personalInfo?.digitalSignature || txAny.personalInfo?.declarationInitials;
+
+    return tx.requiredDocuments.map((d: any) => {
+        const isDigitalSig = d.type === 'DIGITAL_SIGNATURE' || d.type === 'DECLARATION_DOCUMENT';
+        const uploadsList: any[] = Array.isArray(d.uploads) && d.uploads.length > 0 
+            ? d.uploads 
+            : (d.uploaded ? [d.uploaded] : []);
+
+        const firstUpload = uploadsList[0] || d.uploaded;
+        const uploadedFn = firstUpload?.fileName || '';
+        const uploadedUrl = firstUpload?.fileUrl || '';
+        const signatureText = firstUpload?.signatureText || d.signatureText || d.initials;
+        const isDigitallySigned = firstUpload?.signed || Boolean(signatureText) || uploadedFn === 'Digital Signature' || (!uploadedUrl && (!uploadedFn.includes('.') && uploadedFn.length <= 5));
+        const isInitialsOnly = isDigitalSig && (!uploadedUrl || isDigitallySigned);
+
+        if (isDigitalSig && !digitalSig && (signatureText || (isInitialsOnly && uploadedFn && uploadedFn !== 'Digital Signature'))) {
+            digitalSig = signatureText || uploadedFn;
+        }
+
+        const isInitialDoc = isDigitalSig && (Boolean(digitalSig) || isInitialsOnly);
+        const value = isInitialDoc ? (digitalSig || signatureText || 'AO') : undefined;
+
+        return {
+            label: commonDocTypeLabels[d.type] || d.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
+            value,
+            fileName: (!isInitialDoc && firstUpload) ? firstUpload.fileName : null,
+            docStatus: firstUpload?.status,
+            required: d.required !== false,
+            uploads: uploadsList.map((u: any) => ({
+                id: u.id,
+                fileName: u.fileName,
+                fileUrl: u.fileUrl,
+                status: u.status,
+                docStatus: u.status,
+                rejectionNotes: u.rejectionNotes,
+                onUpload: uploadFile && (!u.fileUrl || u.status === 'REQUIRES_MANUAL_REVIEW') && !value
+                    ? () => uploadFile(d.type, u.status === 'REQUIRES_MANUAL_REVIEW')
+                    : undefined,
+            })),
+            onUpload: uploadFile && (uploadsList.length === 0 || uploadsList.some((u: any) => u.status === 'REQUIRES_MANUAL_REVIEW')) && !value
+                ? () => uploadFile(d.type, uploadsList.some((u: any) => u.status === 'REQUIRES_MANUAL_REVIEW'))
+                : undefined,
+        };
+    });
 };
 
 export const getStatusLabel = (status: string): string => {
@@ -531,3 +630,66 @@ export const getInitials = (fullName?: string): string => {
     const lastInitial = parts[parts.length - 1].charAt(0);
     return `${firstInitial}${lastInitial}`.toUpperCase();
 };
+
+export const formatDateForApi = (dateStr?: string): string => {
+    if (!dateStr) return '';
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) {
+        const [day, month, year] = dateStr.split('/');
+        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    }
+    return dateStr;
+};
+
+export interface BuildPickupLocationParams {
+    selectedLocation?: LocationItem | null;
+    selectedState?: LocationItem | null;
+    selectedCity?: LocationItem | null;
+    pickupDate?: string;
+    pickupTime?: string;
+    amount?: number;
+    currency?: string;
+}
+
+export const buildPickupLocationPayload = (params: BuildPickupLocationParams) => {
+    const {
+        selectedLocation,
+        selectedState,
+        selectedCity,
+        pickupDate,
+        pickupTime,
+        amount,
+        currency
+    } = params;
+
+    if (!selectedLocation) return undefined;
+
+    const meta = selectedLocation.metadata || {};
+    const locationId = selectedLocation.id || meta.id || '';
+    const name = meta.name || selectedLocation.title || '';
+    const address = meta.address || selectedLocation.subtitle || '';
+    const state = meta.location || selectedState?.title || '';
+    const city = meta.city || selectedCity?.title || '';
+    const phoneNumber = meta.phoneNumber || '';
+    const email = meta.email || '';
+    const formattedDate = pickupDate ? formatDateForApi(pickupDate) : undefined;
+
+    return {
+        id: locationId,
+        locationId,
+        name,
+        address,
+        state,
+        city,
+        phoneNumber,
+        recipientPhone: phoneNumber,
+        email,
+        recipientEmail: email,
+        scheduledPickupDate: formattedDate,
+        scheduledPickupTime: pickupTime || undefined,
+        date: pickupDate || undefined,
+        time: pickupTime || undefined,
+        ...(amount !== undefined ? { amount } : {}),
+        ...(currency ? { currency } : {}),
+    };
+};
+

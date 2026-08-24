@@ -71,4 +71,36 @@ describe('SourceOfFundsSheet', () => {
 
         expect(handleChangeInitials).not.toHaveBeenCalled();
     });
+
+    it('submits with initials method when Use Initials is selected', () => {
+        const handleSubmit = jest.fn();
+        const { getByText } = render(
+            <SourceOfFundsSheet
+                {...defaultProps}
+                initials="AO"
+                onSubmit={handleSubmit}
+            />
+        );
+
+        const submitBtn = getByText('Submit');
+        fireEvent.press(submitBtn);
+
+        expect(handleSubmit).toHaveBeenCalledWith('initials');
+    });
+
+    it('submits with signature method when Upload Signature is selected and file is provided', () => {
+        const handleSubmit = jest.fn();
+        const { getByText } = render(
+            <SourceOfFundsSheet
+                {...defaultProps}
+                signatureFile="my-signature.png"
+                onSubmit={handleSubmit}
+            />
+        );
+
+        const submitBtn = getByText('Submit');
+        fireEvent.press(submitBtn);
+
+        expect(handleSubmit).toHaveBeenCalledWith('signature');
+    });
 });

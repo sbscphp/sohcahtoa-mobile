@@ -60,6 +60,17 @@ export default function LocationStep({
     const [locationSheetVisible, setLocationSheetVisible] = useState(false);
 
     const hasSelectedStateAndCity = selectedState && selectedCity;
+  
+
+    // console.log("LOCATIONS =>", locations)
+    // console.log("STATES =>", states)
+    // console.log("CITIES =>", cities)
+    // console.log("SELECTEDSTATE =>", selectedState)
+    // console.log("SELECTEDCITY =>", selectedCity)
+    // console.log("SELECTEDLOCATION =>", selectedLocation)
+    // console.log("ERRORS =>", errors)
+    // console.log("TITLE =>", title)
+
 
     return (
         <View style={styles.container}>
