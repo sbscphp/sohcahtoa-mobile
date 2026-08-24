@@ -39,7 +39,7 @@ export default function ViewExpatriateScreen() {
             refetch();
         }, [refetch])
     );
-    console.log(JSON.stringify(tx, null, 2), "EXPAT TX");
+    // console.log(JSON.stringify(tx, null, 2), "EXPAT TX");
 
     const { upload: uploadFile, isPending: isUploading } = useDocumentUpload({
         transactionId: transactionId || undefined,
