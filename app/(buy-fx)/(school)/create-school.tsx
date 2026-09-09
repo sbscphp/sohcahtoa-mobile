@@ -451,7 +451,7 @@ export default function SchoolFeesScreen() {
     const credentialFields = [
         { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number (BVN)" placeholder="Enter BVN" required keyboardType="numeric" maxLength={11} filterType="numeric" disabled={!!profileBvn} /> },
         { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number (NIN)" placeholder="Enter NIN" required keyboardType="numeric" maxLength={11} filterType="numeric" disabled={!!profileNin} /> },
-        { customComponent: <ControlledInput control={control} name="formAId" label="Form A ID" placeholder="Enter Form A ID" required keyboardType="numeric" maxLength={10} filterType="numeric" /> },
+        { customComponent: <ControlledInput control={control} name="formAId" label="Form A ID" placeholder="Enter Form A ID" required  maxLength={10}  /> },
         { customComponent: <ControlledInput control={control} name="passportDocumentNumber" label="International Passport Number" placeholder="Enter international passport number" required maxLength={9} filterType="alphanumeric" /> },
         ...(admissionType !== 'Others' ? [
             {
