@@ -6,7 +6,7 @@ import TransactionViewLayout from '@/components/transaction-flow/TransactionView
 import { useGetTransactionByIdQuery } from '@/hooks/queries/transactions/useGetTransactionByIdQuery';
 import { useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useToastStore } from '@/stores/useToastStore';
-import { commonDocTypeLabels, getTransactionDocuments, getTransactionUploadedDocs, buildTransactionDocsItems, formatDate, formatTime, formatTimeWithSeconds, formatCurrency, getCurrencySymbol, mapApiStatusToViewStatus, isPaymentRequired, getTransactionMessage } from '@/utils/helpers';
+import { commonDocTypeLabels, getTransactionDocuments, getTransactionUploadedDocs, buildTransactionDocsItems, formatDate, formatTime, formatTimeWithSeconds, formatPickupTime, formatCurrency, getCurrencySymbol, mapApiStatusToViewStatus, isPaymentRequired, getTransactionMessage } from '@/utils/helpers';
 import { useLocalSearchParams, useRouter, useFocusEffect, useNavigation } from 'expo-router';
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import { ActivityIndicator, View, BackHandler } from 'react-native';
@@ -112,7 +112,7 @@ export default function ViewTouringScreen() {
                 },
                 {
                     label: 'Scheduled Time',
-                    value: tx.cashPickup.scheduledPickupTime || tx.cashPickup.schedulePickupTime || tx.cashPickup.pickupTime || (tx as any).scheduledPickupTime || (tx as any).schedulePickupTime || (tx as any).pickupTime || 'N/A',
+                    value: formatPickupTime(tx.cashPickup.scheduledPickupTime || tx.cashPickup.schedulePickupTime || tx.cashPickup.pickupTime || (tx as any).scheduledPickupTime || (tx as any).schedulePickupTime || (tx as any).pickupTime) || 'N/A',
                     isRightAligned: true,
                 },
             ] : []),

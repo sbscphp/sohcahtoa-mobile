@@ -650,6 +650,18 @@ export interface BuildPickupLocationParams {
     currency?: string;
 }
 
+/** Converts a stored 24-hour "HH:mm" time string to "hh:mm AM/PM" for display and API submission. */
+export const formatPickupTime = (time?: string): string | undefined => {
+    if (!time) return undefined;
+    const [hStr, mStr] = time.split(':');
+    const h = parseInt(hStr, 10);
+    const m = parseInt(mStr, 10);
+    if (isNaN(h) || isNaN(m)) return time;
+    const period = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 || 12;
+    return `${String(h12).padStart(2, '0')}:${String(m).padStart(2, '0')} ${period}`;
+};
+
 export const buildPickupLocationPayload = (params: BuildPickupLocationParams) => {
     const {
         selectedLocation,
@@ -672,6 +684,7 @@ export const buildPickupLocationPayload = (params: BuildPickupLocationParams) =>
     const phoneNumber = meta.phoneNumber || '';
     const email = meta.email || '';
     const formattedDate = pickupDate ? formatDateForApi(pickupDate) : undefined;
+    const formattedTime = formatPickupTime(pickupTime);
 
     return {
         id: locationId,
@@ -685,9 +698,9 @@ export const buildPickupLocationPayload = (params: BuildPickupLocationParams) =>
         email,
         recipientEmail: email,
         scheduledPickupDate: formattedDate,
-        scheduledPickupTime: pickupTime || undefined,
+        scheduledPickupTime: formattedTime,
         date: pickupDate || undefined,
-        time: pickupTime || undefined,
+        time: formattedTime,
         ...(amount !== undefined ? { amount } : {}),
         ...(currency ? { currency } : {}),
     };

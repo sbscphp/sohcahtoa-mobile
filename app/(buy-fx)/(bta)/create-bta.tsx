@@ -146,6 +146,21 @@ const btaFormSchema = z.object({
                 message: 'Account name must be at least 3 characters and contain only letters',
                 path: ['domiciliaryAccountName']
             });
+        } else {
+            const normalize = (s: string) => s.toLowerCase().replace(/[^a-z]/g, '');
+            const enteredName = normalize(data.domiciliaryAccountName);
+            const registeredFirst = normalize(user?.profile?.firstName || '');
+            const registeredLast = normalize(user?.profile?.lastName || '');
+            if (
+                registeredFirst && registeredLast &&
+                !enteredName.includes(registeredFirst) && !enteredName.includes(registeredLast)
+            ) {
+                ctx.addIssue({
+                    code: "custom",
+                    message: "Account name doesn't match your registered name. Please check and try again.",
+                    path: ['domiciliaryAccountName']
+                });
+            }
         }
         if (!data.domiciliarySwiftCode) {
             ctx.addIssue({
@@ -153,10 +168,10 @@ const btaFormSchema = z.object({
                 message: 'Please enter SWIFT code',
                 path: ['domiciliarySwiftCode']
             });
-        } else if (!/^[A-Za-z0-9]{8}$|^[A-Za-z0-9]{11}$/.test(data.domiciliarySwiftCode)) {
+        } else if (!/^[A-Za-z]{4}[A-Za-z]{2}[A-Za-z0-9]{2}([A-Za-z0-9]{3})?$/.test(data.domiciliarySwiftCode)) {
             ctx.addIssue({
                 code: "custom",
-                message: 'SWIFT code must be either 8 or 11 alphanumeric characters',
+                message: 'Invalid SWIFT code format. Expected: 4 letters + 2 letters + 2 characters (+ optional 3 characters), e.g. CITIUS33 or CITIUS33XXX',
                 path: ['domiciliarySwiftCode']
             });
         }

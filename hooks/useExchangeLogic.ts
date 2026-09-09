@@ -96,7 +96,7 @@ export const useExchangeLogic = ({ setValue, initialAmount = '1', maxLimit, init
             }, {
                 onSuccess: (response: any) => {
                     if (response.success && response.data) {
-                        setAmountSendStr(response.data.convertedAmount.toLocaleString());
+                        setAmountSendStr(response.data.convertedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
                         setCurrentRate(response.data.appliedRate || (transactionType === 'buy' ? response.data.buyRate : response.data.sellRate));
                     }
                 }
@@ -123,7 +123,7 @@ export const useExchangeLogic = ({ setValue, initialAmount = '1', maxLimit, init
             }, {
                 onSuccess: (response: any) => {
                     if (response.success && response.data) {
-                        setAmountSendStr(response.data.convertedAmount.toLocaleString());
+                        setAmountSendStr(response.data.convertedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
                         setCurrentRate(response.data.appliedRate || (transactionType === 'buy' ? response.data.buyRate : response.data.sellRate));
                     }
                 }
@@ -156,7 +156,7 @@ export const useExchangeLogic = ({ setValue, initialAmount = '1', maxLimit, init
         if (currentRate > 0) {
             const calculatedGet = numAmount / currentRate;
             const formattedGet = calculatedGet.toFixed(2);
-            setAmountGetStr(parseFloat(formattedGet).toLocaleString());
+            setAmountGetStr(parseFloat(formattedGet).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
             if (setValue) {
                 setValue('amount', parseFloat(formattedGet), { shouldValidate: true });
             }

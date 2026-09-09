@@ -85,11 +85,23 @@ const touringFormSchema = z.object({
             ctx.addIssue({ code: "custom", message: 'Please enter account name', path: ['domiciliaryAccountName'] });
         } else if (data.domiciliaryAccountName.trim().length < 3 || !/^[A-Za-z\s.\-]+$/.test(data.domiciliaryAccountName)) {
             ctx.addIssue({ code: "custom", message: 'Account name must be at least 3 characters and contain only letters', path: ['domiciliaryAccountName'] });
+        } else {
+            const normalize = (s: string) => s.toLowerCase().replace(/[^a-z]/g, '');
+            const enteredName = normalize(data.domiciliaryAccountName);
+            const touringUser = useAuthStore.getState().user;
+            const registeredFirst = normalize(touringUser?.profile?.firstName || '');
+            const registeredLast = normalize(touringUser?.profile?.lastName || '');
+            if (
+                registeredFirst && registeredLast &&
+                !enteredName.includes(registeredFirst) && !enteredName.includes(registeredLast)
+            ) {
+                ctx.addIssue({ code: "custom", message: "Account name doesn't match your registered name. Please check and try again.", path: ['domiciliaryAccountName'] });
+            }
         }
         if (!data.domiciliarySwiftCode) {
             ctx.addIssue({ code: "custom", message: 'Please enter SWIFT code', path: ['domiciliarySwiftCode'] });
-        } else if (!/^[A-Za-z0-9]{8}$|^[A-Za-z0-9]{11}$/.test(data.domiciliarySwiftCode)) {
-            ctx.addIssue({ code: "custom", message: 'SWIFT code must be either 8 or 11 alphanumeric characters', path: ['domiciliarySwiftCode'] });
+        } else if (!/^[A-Za-z]{4}[A-Za-z]{2}[A-Za-z0-9]{2}([A-Za-z0-9]{3})?$/.test(data.domiciliarySwiftCode)) {
+            ctx.addIssue({ code: "custom", message: 'Invalid SWIFT code format. Expected: 4 letters + 2 letters + 2 characters (+ optional 3 characters), e.g. CITIUS33 or CITIUS33XXX', path: ['domiciliarySwiftCode'] });
         }
         if (!data.domiciliaryRoutingNumber) {
             ctx.addIssue({ code: "custom", message: 'Please enter routing number', path: ['domiciliaryRoutingNumber'] });
