@@ -6,7 +6,7 @@ export const residentStep0Schema = z.object({
     bvn: z.string().optional(),
     nin: z.string().optional().or(z.literal('')),
     tinNumber: z.string().optional().or(z.literal('')),
-    passportDocumentNumber: z.string().regex(/^[A-Za-z]\d{8}$/, 'Please enter a valid International Passport Number'),
+    passportDocumentNumber: z.string().min(1, 'Please enter your International Passport Number'),
 });
 
 /** Step 1: Resident documents */

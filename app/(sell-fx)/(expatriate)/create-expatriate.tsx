@@ -237,14 +237,18 @@ export default function CreateExpatriateScreen() {
             }, {
                 onSuccess: (res) => {
                     if (res.success) {
-                        setValue('customerAccountName', res.data.accountName);
+                        setValue('customerAccountName', res.data.accountName, { shouldValidate: true, shouldDirty: true });
                     }
                 },
                 onError: () => {
-                    setValue('customerAccountName', '');
+                    setValue('customerAccountName', '', { shouldValidate: true, shouldDirty: true });
                     showToast('Could not resolve account name', 'error');
                 }
             });
+        } else {
+            if (watchedFields.customerAccountName) {
+                setValue('customerAccountName', '', { shouldValidate: true, shouldDirty: true });
+            }
         }
     }, [watchedFields.customerAccountNumber, watchedFields.customerBankCode, isAddingNewAccount]);
 
@@ -391,7 +395,6 @@ export default function CreateExpatriateScreen() {
                     setIsAddingNewAccount(false);
                 }
             });
-            setIsAddingNewAccount(false);
         }
     };
 
@@ -556,17 +559,39 @@ export default function CreateExpatriateScreen() {
     const isStep4Valid = !needsLocationStep || !!(watchedFields.selectedState && watchedFields.selectedCity && watchedFields.selectedLocation && watchedFields.pickupDate && watchedFields.pickupTime);
     const isRefundStepValid = !!(watchedFields.domiciliaryBankName && watchedFields.domiciliaryAccountNumber);
 
-    const isNextDisabled =
-        (currentStep === 0 && !isStep0Valid) ||
-        (currentStep === 1 && !isStep1Valid) ||
-        (currentStep === 2 && !isStep2Valid) ||
-        (currentStep === 3 && !isStep3Valid) ||
-        (currentStep === 4 && needsLocationStep && !isStep4Valid) ||
-        (currentStep === refundStepIndex && !isRefundStepValid);
+    const isNewAccountValid = !!(
+        watchedFields.customerBankName &&
+        watchedFields.customerBankCode &&
+        watchedFields.customerAccountNumber?.length === 10 &&
+        watchedFields.customerAccountName &&
+        !resolveAccount.isPending
+    );
+
+    const isNewDomiciliaryAccountValid = !!(
+        watchedFields.domiciliaryBankName &&
+        watchedFields.domiciliaryAccountNumber &&
+        watchedFields.domiciliaryAccountName &&
+        watchedFields.domiciliarySwiftCode &&
+        watchedFields.domiciliaryRoutingNumber &&
+        watchedFields.domiciliaryBankAddress
+    );
+
+    const isNextDisabled = isAddingNewAccount
+        ? (currentStep === refundStepIndex
+            ? (!isNewDomiciliaryAccountValid || saveAccountMutation.isPending)
+            : (!isNewAccountValid || saveAccountMutation.isPending))
+        : (
+            (currentStep === 0 && !isStep0Valid) ||
+            (currentStep === 1 && !isStep1Valid) ||
+            (currentStep === 2 && !isStep2Valid) ||
+            (currentStep === 3 && !isStep3Valid) ||
+            (currentStep === 4 && needsLocationStep && !isStep4Valid) ||
+            (currentStep === refundStepIndex && !isRefundStepValid)
+        );
 
     return (
         <View style={{ flex: 1 }}>
-            <LoadingBackdrop visible={isUploading || createTransaction.isPending} />
+            <LoadingBackdrop visible={isUploading || createTransaction.isPending || saveAccountMutation.isPending || attachBankAccountsMutation.isPending} />
             <TransactionLayout
                 title="Expatriate"
                 currentStep={currentStep}

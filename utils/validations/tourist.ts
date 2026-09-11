@@ -1,9 +1,9 @@
 import { z } from 'zod';
-import { locationStepSchema, passportDocumentNumberField, passportIssueDateField } from './shared';
+import { locationStepSchema, passportIssueDateField } from './shared';
 
 /** Step 0: Tourist credentials */
 export const touristStep0Schema = z.object({
-    passportDocumentNumber: passportDocumentNumberField,
+    passportDocumentNumber: z.string().min(1, 'Please enter your International Passport Number'),
     nigerianAddress: z.string().min(1, 'Please enter your temporary stay address (e.g. hotel)'),
 });
 
