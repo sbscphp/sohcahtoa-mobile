@@ -1,10 +1,10 @@
 import { z } from 'zod';
-import { amountStepSchema, baseCredentialSchema, passportIssueDateField } from './shared';
+import { amountStepSchema, baseCredentialSchema, formAIdField, passportIssueDateField } from './shared';
 
 export const professionalStep0Schema = z.object({
     bvn: z.string().optional().or(z.literal('')),
     nin: z.string().optional().or(z.literal('')),
-    formAId: z.string().length(10, 'Form A ID must be exactly 10 digits').regex(/^\d+$/, 'Form A ID must contain only digits'),
+    formAId: formAIdField,
     passportDocumentNumber: z.string().optional().or(z.literal('')),
     passportIssueDate: passportIssueDateField.optional().or(z.literal('')),
     passportExpiryDate: z.string().optional().or(z.literal('')),

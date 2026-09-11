@@ -1,8 +1,12 @@
 import { TransactionComment } from '@/types/api/transactions';
 import { Calendar, Clock, SearchStatus } from 'iconsax-react-nativejs';
-import React from 'react';
-import { Text, View } from 'react-native';
+import { Download } from 'lucide-react-native';
+import React, { useState } from 'react';
+import { ActivityIndicator, Linking, Text, TouchableOpacity, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
+import * as WebBrowser from 'expo-web-browser';
+import { useToastStore } from '@/stores/useToastStore';
+import { getTransactionReceipt } from '@/services/transactions';
 import EmptyState from '../../assets/icons/no-search-found.svg';
 
 export type TransactionStatus = 'pending' | 'approved' | 'more_info' | 'rejected' | 'awaiting_disbursement' | 'settled' | 'refunded';
@@ -11,10 +15,12 @@ interface TransactionStatusViewProps {
     status: TransactionStatus;
     apiStatus?: string;
     id: string;
+    transactionId?: string;
     date: string;
     time: string;
     message: string;
     comments?: TransactionComment[];
+    onDownloadReceipt?: () => void;
 }
 
 const formatApiStatus = (rawStatus?: string) => rawStatus
@@ -38,7 +44,73 @@ const getApiStatusColors = (rawStatus: string) => {
     return { background: '#E2E8F0', text: '#475569' };
 };
 
-export default function TransactionStatusView({ status, apiStatus, id, date, time, message, comments }: TransactionStatusViewProps) {
+export default function TransactionStatusView({
+    status,
+    apiStatus,
+    id,
+    transactionId,
+    date,
+    time,
+    message,
+    comments,
+    onDownloadReceipt,
+}: TransactionStatusViewProps) {
+    const [isDownloading, setIsDownloading] = useState(false);
+    const showToast = useToastStore((s) => s.showToast);
+
+    const isCompleted =
+        apiStatus?.toUpperCase() === 'COMPLETED' ||
+        apiStatus?.toUpperCase() === 'SETTLED' ||
+        status === 'settled';
+
+    const handleDownloadReceipt = async () => {
+        if (onDownloadReceipt) {
+            onDownloadReceipt();
+            return;
+        }
+
+        const effectiveId = transactionId || id;
+        if (!effectiveId) {
+            showToast('Transaction ID not found', 'error');
+            return;
+        }
+
+        try {
+            setIsDownloading(true);
+            const res = await getTransactionReceipt(effectiveId);
+            const resData = res?.data;
+            const receiptUrl =
+                resData?.receiptUrl ||
+                resData?.url ||
+                resData?.fileUrl ||
+                resData?.downloadUrl ||
+                resData?.link ||
+                (typeof resData === 'string' && (resData as string).startsWith('http') ? (resData as string) : null) ||
+                (res as any)?.receiptUrl ||
+                (res as any)?.url;
+
+            if (receiptUrl) {
+                const canOpen = await Linking.canOpenURL(receiptUrl).catch(() => false);
+                if (canOpen) {
+                    await Linking.openURL(receiptUrl);
+                } else {
+                    await WebBrowser.openBrowserAsync(receiptUrl);
+                }
+            } else {
+                showToast(res?.message || 'Receipt downloaded successfully', 'success');
+            }
+        } catch (error: any) {
+            const errorMsg =
+                error?.response?.data?.message ||
+                error?.response?.data?.error?.message ||
+                error?.message ||
+                'Failed to download receipt';
+            showToast(errorMsg, 'error');
+        } finally {
+            setIsDownloading(false);
+        }
+    };
+
     const isRefunded = status === 'refunded' || apiStatus?.toUpperCase() === 'REFUNDED';
     const apiStatusLabel = apiStatus ? formatApiStatus(apiStatus) : undefined;
     const apiStatusColors = apiStatus ? getApiStatusColors(apiStatus) : undefined;
@@ -142,10 +214,11 @@ export default function TransactionStatusView({ status, apiStatus, id, date, tim
                         status === 'rejected' && styles.statusTitleRejected,
                         isRefunded && styles.statusTitleRefunded,
                     ]}>
-                        {status === 'approved' || status === 'awaiting_disbursement' || status === 'settled' ? 'Request Approved' :
-                            status === 'rejected' ? 'Request Rejected' :
-                                isRefunded ? 'Transaction Refunded' :
-                                    'More Information Requested'}
+                        {isCompleted ? 'Transaction Completed' :
+                            status === 'approved' || status === 'awaiting_disbursement' ? 'Request Approved' :
+                                status === 'rejected' ? 'Request Rejected' :
+                                    isRefunded ? 'Transaction Refunded' :
+                                        'More Information Requested'}
                     </Text>
 
                 </View>
@@ -216,6 +289,25 @@ export default function TransactionStatusView({ status, apiStatus, id, date, tim
                     </Text>
                 </View>
             </View>
+
+            {isCompleted && (
+                <TouchableOpacity
+                    style={styles.downloadReceiptButton}
+                    onPress={handleDownloadReceipt}
+                    disabled={isDownloading}
+                    activeOpacity={0.8}
+                    testID="download-receipt-button"
+                >
+                    {isDownloading ? (
+                        <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                        <View style={styles.downloadReceiptRow}>
+                            <Download size={moderateScale(18)} color="#FFFFFF" />
+                            <Text style={styles.downloadReceiptText}>Download Receipt</Text>
+                        </View>
+                    )}
+                </TouchableOpacity>
+            )}
 
             {/* {status === 'approved' ? null : renderComments()} */}
         </View>
@@ -497,5 +589,29 @@ const styles = ScaledSheet.create({
         color: '#334155',
         lineHeight: '20@ms',
         fontWeight: '400',
+    },
+    downloadReceiptButton: {
+        backgroundColor: '#FF6813',
+        height: '46@vs',
+        borderRadius: '28@ms',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: '20@vs',
+        shadowColor: '#FF6813',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    downloadReceiptRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '8@s',
+    },
+    downloadReceiptText: {
+        color: '#FFFFFF',
+        fontSize: '14@ms',
+        fontWeight: '600',
     },
 });

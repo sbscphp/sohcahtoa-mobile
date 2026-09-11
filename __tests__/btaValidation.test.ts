@@ -1,5 +1,5 @@
 import { btaStep0Schema } from '../utils/validations/bta';
-import { tinField } from '../utils/validations/shared';
+import { formAIdField, tinField } from '../utils/validations/shared';
 
 describe('BTA TIN Validation', () => {
     it('should reject empty TIN', () => {
@@ -61,3 +61,26 @@ describe('BTA TIN Validation', () => {
         expect(invalidResult.success).toBe(false);
     });
 });
+
+describe('Form A ID Validation', () => {
+    it('should accept 10-character alphanumeric Form A ID', () => {
+        const result = formAIdField.safeParse('AB12345678');
+        expect(result.success).toBe(true);
+    });
+
+    it('should accept 10-digit numeric Form A ID', () => {
+        const result = formAIdField.safeParse('1234567890');
+        expect(result.success).toBe(true);
+    });
+
+    it('should reject Form A ID with fewer than 10 characters', () => {
+        const result = formAIdField.safeParse('123456789');
+        expect(result.success).toBe(false);
+    });
+
+    it('should reject Form A ID with more than 10 characters', () => {
+        const result = formAIdField.safeParse('12345678901');
+        expect(result.success).toBe(false);
+    });
+});
+

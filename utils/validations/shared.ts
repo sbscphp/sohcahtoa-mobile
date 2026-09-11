@@ -7,8 +7,7 @@ export const ninField = z.string().optional().or(z.literal(''));
 
 export const formAIdField = z
     .string()
-    .length(10, 'Form A ID must be exactly 10 digits')
-    .regex(/^\d+$/, 'Form A ID must contain only digits');
+    .length(10, 'Form A ID must be exactly 10 characters');
 
 export const invoiceNumberField = z
     .string()

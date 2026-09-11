@@ -431,14 +431,18 @@ export default function PersonalTravelAllowanceScreen() {
             }, {
                 onSuccess: (res) => {
                     if (res.success) {
-                        setValue('customerAccountName', res.data.accountName);
+                        setValue('customerAccountName', res.data.accountName, { shouldValidate: true, shouldDirty: true });
                     }
                 },
                 onError: () => {
-                    setValue('customerAccountName', '');
+                    setValue('customerAccountName', '', { shouldValidate: true, shouldDirty: true });
                     showToast('Could not resolve account name', 'error');
                 }
             });
+        } else {
+            if (watchedFields.customerAccountName) {
+                setValue('customerAccountName', '', { shouldValidate: true, shouldDirty: true });
+            }
         }
     }, [watchedFields.customerAccountNumber, watchedFields.customerBankCode, isAddingNewAccount]);
 
@@ -724,12 +728,23 @@ export default function PersonalTravelAllowanceScreen() {
 
     const refundStepIndex = needsLocationStep ? 5 : 4;
 
-    const isNextDisabled =
-        (currentStep === 1 && (!docs.visa.file || !docs.returnTicket.file || !docs.passport.file)) ||
-        (currentStep === 2 && !isStep2Valid) ||
-        (currentStep === 3 && !isStep3Valid) ||
-        (currentStep === 4 && needsLocationStep && !isStep4Valid) ||
-        (currentStep === refundStepIndex && !selectedSavedAccountId);
+    const isNewAccountValid = !!(
+        watchedFields.customerBankName &&
+        watchedFields.customerBankCode &&
+        watchedFields.customerAccountNumber?.length === 10 &&
+        watchedFields.customerAccountName &&
+        !resolveAccount.isPending
+    );
+
+    const isNextDisabled = isAddingNewAccount
+        ? (!isNewAccountValid || saveAccountMutation.isPending)
+        : (
+            (currentStep === 1 && (!docs.visa.file || !docs.returnTicket.file || !docs.passport.file)) ||
+            (currentStep === 2 && !isStep2Valid) ||
+            (currentStep === 3 && !isStep3Valid) ||
+            (currentStep === 4 && needsLocationStep && !isStep4Valid) ||
+            (currentStep === refundStepIndex && !selectedSavedAccountId)
+        );
 
     return (
         <View style={{ flex: 1 }}>

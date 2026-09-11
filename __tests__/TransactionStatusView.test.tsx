@@ -56,12 +56,32 @@ describe('TransactionStatusView', () => {
         expect(getByText('Awaiting Disbursement')).toBeTruthy();
     });
 
-    it('renders settled status correctly', () => {
+    it('renders settled status correctly and shows download receipt button', () => {
         const props = { ...defaultProps, status: 'settled' as const };
         const { getByText } = render(<TransactionStatusView {...props} />);
 
-        expect(getByText('Request Approved')).toBeTruthy();
+        expect(getByText('Transaction Completed')).toBeTruthy();
         expect(getByText('Settled')).toBeTruthy();
+        expect(getByText('Download Receipt')).toBeTruthy();
+    });
+
+    it('renders COMPLETED apiStatus correctly and shows download receipt button', () => {
+        const props = { ...defaultProps, status: 'settled' as const, apiStatus: 'COMPLETED' };
+        const { getByText } = render(<TransactionStatusView {...props} />);
+
+        expect(getByText('Transaction Completed')).toBeTruthy();
+        expect(getByText('COMPLETED')).toBeTruthy();
+        expect(getByText('Download Receipt')).toBeTruthy();
+    });
+
+    it('does not show download receipt button for pending or rejected status', () => {
+        const pendingProps = { ...defaultProps, status: 'pending' as const };
+        const { queryByText: queryByTextPending } = render(<TransactionStatusView {...pendingProps} />);
+        expect(queryByTextPending('Download Receipt')).toBeNull();
+
+        const rejectedProps = { ...defaultProps, status: 'rejected' as const };
+        const { queryByText: queryByTextRejected } = render(<TransactionStatusView {...rejectedProps} />);
+        expect(queryByTextRejected('Download Receipt')).toBeNull();
     });
 
     it('renders refunded status correctly', () => {

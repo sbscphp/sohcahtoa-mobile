@@ -260,6 +260,7 @@ export default function ViewBtaScreen() {
                         status={status}
                         apiStatus={tx?.status}
                         id={tx?.referenceNumber?.slice(-6) || ''}
+                        transactionId={tx?.transactionId || transactionId}
                         date={tx ? formatDate(tx.createdAt) : ''}
                         time={tx ? formatTime(tx.createdAt) : ''}
                         message={getMessage()}

@@ -539,3 +539,16 @@ export interface ReuploadTransactionDocumentPayload {
         type: string;
     };
 }
+
+export interface GetTransactionReceiptResponse {
+    success: boolean;
+    data?: {
+        receiptUrl?: string;
+        url?: string;
+        fileUrl?: string;
+        downloadUrl?: string;
+        [key: string]: any;
+    };
+    message?: string;
+}
+
