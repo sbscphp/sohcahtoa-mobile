@@ -130,8 +130,21 @@ export default function ViewTouristScreen() {
     const docsItems = useMemo(() => {
         return buildTransactionDocsItems(tx, uploadFile);
     }, [tx, uploadFile]);
+    const beneficiaryDetailsItems = useMemo(() => {
+        const details = tx?.beneficiaryDetails;
+        if (!tx || !details) return undefined;
+        const items: any[] = [];
+        if (details.bankName) items.push({ label: 'Bank Name', value: details.bankName });
+        if (details.accountName) items.push({ label: 'Account Name', value: details.accountName });
+        if (details.accountNumber) items.push({ label: 'Account Number', value: details.accountNumber });
+        if ('swiftCode' in details && details.swiftCode) items.push({ label: 'SWIFT Code', value: details.swiftCode });
+        if ('routingNumber' in details && details.routingNumber) items.push({ label: 'Routing Number', value: details.routingNumber });
+        if ('bankAddress' in details && details.bankAddress) items.push({ label: 'Bank Address', value: details.bankAddress });
+        return items.length > 0 ? items : undefined;
+    }, [tx]);
+
     const bankAccountsItems = useMemo(() => {
-        const details = tx?.refundBankDetails || tx?.beneficiaryDetails;
+        const details = tx?.refundBankDetails;
         if (!tx || !details) return undefined;
         const items: any[] = [];
         if (details.bankName) items.push({ label: 'Bank Name', value: details.bankName });
@@ -164,6 +177,7 @@ export default function ViewTouristScreen() {
                     <TransactionDetailsView
                         details={detailsItems}
                         documents={detailsDocuments}
+                        beneficiaryDetails={beneficiaryDetailsItems}
                         bankAccountsDetails={bankAccountsItems}
                         currentStep={tx?.currentStep}
                     />

@@ -242,6 +242,25 @@ export interface GetTransactionsResponse {
     pagination: PaginationMeta;
 }
 
+export interface GetTransactionStatsParams {
+    group?: string;
+}
+
+export interface GetTransactionStatsResponse {
+    success: boolean;
+    data: {
+        total: number;
+        pending: number;
+        completed: number;
+        rejected: number;
+    };
+    metadata?: {
+        timestamp: string;
+        requestId: string;
+        version: string;
+    };
+}
+
 export type TransactionDocumentType =
     | 'PASSPORT'
     | 'VISA'

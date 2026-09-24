@@ -2,12 +2,56 @@ import { TransactionComment } from '@/types/api/transactions';
 import { Calendar, Clock, SearchStatus } from 'iconsax-react-nativejs';
 import { Download } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { ActivityIndicator, Linking, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
-import * as WebBrowser from 'expo-web-browser';
 import { useToastStore } from '@/stores/useToastStore';
-import { getTransactionReceipt } from '@/services/transactions';
+import { useGetTransactionReceiptMutation } from '@/hooks/queries/transactions/useGetTransactionReceiptMutation';
+import { downloadAndSaveFile } from '@/utils/fileDownload';
 import EmptyState from '../../assets/icons/no-search-found.svg';
+
+export const extractReceiptUrl = (res: any): string | undefined => {
+    if (!res) return undefined;
+    if (typeof res === 'string') {
+        const trimmed = res.trim();
+        if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('data:') || trimmed.startsWith('file://')) {
+            return trimmed;
+        }
+        if (trimmed.startsWith('JVBERi')) {
+            return `data:application/pdf;base64,${trimmed}`;
+        }
+        return undefined;
+    }
+    if (typeof res === 'object') {
+        const candidateKeys = [
+            'receiptUrl', 'receipt_url',
+            'downloadUrl', 'download_url',
+            'fileUrl', 'file_url',
+            'documentUrl', 'document_url',
+            'url', 'link', 'receipt', 'file',
+            'pdfUrl', 'pdf_url', 'pdf', 'path', 'filePath', 'file_path',
+            'invoiceUrl', 'invoice_url'
+        ];
+        for (const key of candidateKeys) {
+            if (res[key]) {
+                const found = extractReceiptUrl(res[key]);
+                if (found) return found;
+            }
+        }
+        if (res.data) {
+            const found = extractReceiptUrl(res.data);
+            if (found) return found;
+        }
+        for (const [key, val] of Object.entries(res)) {
+            if (key !== 'data' && typeof val === 'string') {
+                const trimmed = val.trim();
+                if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('data:') || trimmed.startsWith('file://')) {
+                    return trimmed;
+                }
+            }
+        }
+    }
+    return undefined;
+};
 
 export type TransactionStatus = 'pending' | 'approved' | 'more_info' | 'rejected' | 'awaiting_disbursement' | 'settled' | 'refunded';
 
@@ -55,13 +99,21 @@ export default function TransactionStatusView({
     comments,
     onDownloadReceipt,
 }: TransactionStatusViewProps) {
-    const [isDownloading, setIsDownloading] = useState(false);
+    const receiptMutation = useGetTransactionReceiptMutation();
+    const [isDownloadingLocal, setIsDownloadingLocal] = useState(false);
+    const isDownloading = receiptMutation.isPending || isDownloadingLocal;
     const showToast = useToastStore((s) => s.showToast);
 
     const isCompleted =
         apiStatus?.toUpperCase() === 'COMPLETED' ||
         apiStatus?.toUpperCase() === 'SETTLED' ||
         status === 'settled';
+
+    const canDownloadReceipt =
+        isCompleted ||
+        status === 'approved' ||
+        ['APPROVED', 'COMPLETED', 'SETTLED', 'SUCCESS', 'DISBURSED'].includes(apiStatus?.toUpperCase() || '') ||
+        !!onDownloadReceipt;
 
     const handleDownloadReceipt = async () => {
         if (onDownloadReceipt) {
@@ -70,44 +122,31 @@ export default function TransactionStatusView({
         }
 
         const effectiveId = transactionId || id;
-        if (!effectiveId) {
-            showToast('Transaction ID not found', 'error');
-            return;
-        }
+        if (!effectiveId) return;
 
         try {
-            setIsDownloading(true);
-            const res = await getTransactionReceipt(effectiveId);
-            const resData = res?.data;
-            const receiptUrl =
-                resData?.receiptUrl ||
-                resData?.url ||
-                resData?.fileUrl ||
-                resData?.downloadUrl ||
-                resData?.link ||
-                (typeof resData === 'string' && (resData as string).startsWith('http') ? (resData as string) : null) ||
-                (res as any)?.receiptUrl ||
-                (res as any)?.url;
+            setIsDownloadingLocal(true);
+            const res = await receiptMutation.mutateAsync(effectiveId);
+            const receiptUrl = extractReceiptUrl(res);
 
             if (receiptUrl) {
-                const canOpen = await Linking.canOpenURL(receiptUrl).catch(() => false);
-                if (canOpen) {
-                    await Linking.openURL(receiptUrl);
-                } else {
-                    await WebBrowser.openBrowserAsync(receiptUrl);
-                }
-            } else {
-                showToast(res?.message || 'Receipt downloaded successfully', 'success');
+                const safeId = effectiveId.replace(/[^a-zA-Z0-9_-]/g, '_');
+                const fileName = `receipt_${safeId}.pdf`;
+
+                await downloadAndSaveFile({
+                    url: receiptUrl,
+                    fileName,
+                    dialogTitle: 'Transaction Receipt',
+                });
+            }
+
+            if (res?.message) {
+                showToast(res.message, 'success');
             }
         } catch (error: any) {
-            const errorMsg =
-                error?.response?.data?.message ||
-                error?.response?.data?.error?.message ||
-                error?.message ||
-                'Failed to download receipt';
-            showToast(errorMsg, 'error');
+            // Error toast is handled by useGetTransactionReceiptMutation.onError
         } finally {
-            setIsDownloading(false);
+            setIsDownloadingLocal(false);
         }
     };
 
@@ -181,7 +220,7 @@ export default function TransactionStatusView({
         );
     };
 
-    if (status === 'pending' && !isRefunded) {
+    if (status === 'pending' && !isRefunded && !isCompleted && !canDownloadReceipt) {
         return (
             <View style={styles.tabContent}>
                 <View style={styles.pendingContainer}>
@@ -290,7 +329,7 @@ export default function TransactionStatusView({
                 </View>
             </View>
 
-            {isCompleted && (
+            {/* {canDownloadReceipt && (
                 <TouchableOpacity
                     style={styles.downloadReceiptButton}
                     onPress={handleDownloadReceipt}
@@ -307,7 +346,7 @@ export default function TransactionStatusView({
                         </View>
                     )}
                 </TouchableOpacity>
-            )}
+            )} */}
 
             {/* {status === 'approved' ? null : renderComments()} */}
         </View>

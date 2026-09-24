@@ -1,10 +1,20 @@
 {
-  "extends": "expo/tsconfig.base",
+  "extends": "expo/tsconfig.base.json",
   "compilerOptions": {
     "strict": true,
+    "baseUrl": ".",
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "lib": [
+      "DOM",
+      "ESNext"
+    ],
+    "target": "ESNext",
+    "skipLibCheck": true,
     "paths": {
       "@/*": [
-        "./*"
+        "*"
       ]
     }
   },

@@ -120,6 +120,7 @@ export default function LocationStep({
                         onTimeChange={onPickupTimeChange}
                         required
                         error={errors?.pickupTime}
+                        pickupDate={pickupDate}
                     />
                 </View>
             </View>

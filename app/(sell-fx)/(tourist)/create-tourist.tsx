@@ -22,6 +22,7 @@ import { useDeclarationStore } from '@/stores/useDeclarationStore';
 import { useToastStore } from '@/stores/useToastStore';
 import { buildPickupLocationPayload, formatDateToPickerFormat, getCurrencySymbol } from '@/utils/helpers';
 import { LocationItem } from '@/utils/locations';
+import { isPickupDateTimeAtLeastOneHourAhead, PICKUP_TOO_SOON_MESSAGE } from '@/utils/pickupDateTime';
 import {
     touristStep0Schema,
     touristStep1Schema,
@@ -95,6 +96,10 @@ const touristFormSchema = z.object({
             message: 'Passport Expiry Date cannot be the same as Passport Issue Date',
             path: ['passportExpiryDate']
         });
+    }
+
+    if (data.pickupDate && data.pickupTime && !isPickupDateTimeAtLeastOneHourAhead(data.pickupDate, data.pickupTime)) {
+        ctx.addIssue({ code: "custom", message: PICKUP_TOO_SOON_MESSAGE, path: ['pickupTime'] });
     }
 });
 

@@ -1,4 +1,5 @@
 import { useGetTransactionsQuery } from '@/hooks/queries/transactions/useGetTransactionsQuery';
+import { useGetTransactionStatsQuery } from '@/hooks/queries/transactions/useGetTransactionStatsQuery';
 import { Transaction } from '@/types/api/transactions';
 import { useQuery } from '@tanstack/react-query';
 import { getTransactions } from '@/services/transactions';
@@ -50,16 +51,23 @@ export default function TransactionScreen() {
         group ? { group } : undefined
     );
 
+    const { data: statsData, refetch: refetchStats, isError: isStatsError } = useGetTransactionStatsQuery(
+        group ? { group } : undefined
+    );
+
+    // Fallback: derive counts client-side if the stats endpoint is unavailable.
     const { data: allTransactionsResponse, refetch: refetchAll } = useQuery({
         queryKey: ['all-transactions-for-stats', group],
         queryFn: () => getTransactions(group ? { group, limit: 10000 } : { limit: 10000 }),
+        enabled: isStatsError,
     });
 
     useFocusEffect(
         useCallback(() => {
             refetch();
-            refetchAll();
-        }, [refetch, refetchAll])
+            refetchStats();
+            if (isStatsError) refetchAll();
+        }, [refetch, refetchStats, refetchAll, isStatsError])
     );
     const { data: unreadData } = useGetUnreadCountQuery();
     const unreadCount = unreadData?.data?.count || 0;
@@ -67,17 +75,16 @@ export default function TransactionScreen() {
 
 
     const transactions: Transaction[] = transactionsData?.pages?.flatMap(p => p.data) || [];
-    const totalCount = transactionsData?.pages?.[0]?.pagination?.total ?? 0;
+    const stats = statsData?.data;
 
     // console.log('transactions', transactions);
 
-    const statusCounts = useMemo(() => {
-        const allTransactions = allTransactionsResponse?.data || [];
-        const completed = allTransactions.filter(t => ['COMPLETED', 'APPROVED'].includes(t.status)).length;
-        const declined = allTransactions.filter(t => ['REJECTED', 'CANCELLED'].includes(t.status)).length;
-        const pending = allTransactions.filter(t => ['DRAFT', 'AWAITING_VERIFICATION', 'VERIFICATION_IN_PROGRESS', 'VERIFICATION_COMPLETED', 'AWAITING_DEPOSIT', 'DEPOSIT_PENDING', 'DEPOSIT_CONFIRMED', 'COMPLIANCE_REVIEW', 'ADMIN_APPROVAL_PENDING', 'DISBURSEMENT_IN_PROGRESS'].includes(t.status)).length;
-        return { completed, declined, pending };
-    }, [allTransactionsResponse]);
+
+
+    const totalCount = stats?.total ?? transactionsData?.pages?.[0]?.pagination?.total ?? 0;
+    const statusCounts = stats
+        && { completed: stats.completed, declined: stats.rejected, pending: stats.pending }
+        
 
     const renderEmpty = () => (
         <View style={styles.emptyState}>
@@ -118,15 +125,15 @@ export default function TransactionScreen() {
                 <View style={styles.statusCardsContainer}>
                     <View style={[styles.statusCard, styles.cardCompleted]}>
                         <Text style={styles.cardLabel}>Completed</Text>
-                        <Text style={[styles.cardCount, styles.textCompleted]}>{statusCounts.completed}</Text>
+                        <Text style={[styles.cardCount, styles.textCompleted]}>{statusCounts?.completed}</Text>
                     </View>
                     <View style={[styles.statusCard, styles.cardDeclined]}>
-                        <Text style={styles.cardLabel}>Declined</Text>
-                        <Text style={[styles.cardCount, styles.textDeclined]}>{statusCounts.declined}</Text>
+                        <Text style={styles.cardLabel}>Rejected</Text>
+                        <Text style={[styles.cardCount, styles.textDeclined]}>{statusCounts?.declined}</Text>
                     </View>
                     <View style={[styles.statusCard, styles.cardPending]}>
                         <Text style={styles.cardLabel}>Pending</Text>
-                        <Text style={[styles.cardCount, styles.textPending]}>{statusCounts.pending}</Text>
+                        <Text style={[styles.cardCount, styles.textPending]}>{statusCounts?.pending}</Text>
                     </View>
                 </View>
 

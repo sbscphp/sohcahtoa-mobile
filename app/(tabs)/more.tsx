@@ -54,6 +54,7 @@ export default function MoreScreen() {
             icon: <Judge size={moderateScale(18)} color="rgba(255, 104, 19, 1)" variant="Linear" />,
             title: 'Legals',
             subtitle: 'View terms, policies and compliance',
+            onPress: () => router.push('https://www.sohcahtoapayoutbdc.com/terms-of-use-customer'),
         },
         {
             icon: <Bookmark size={moderateScale(18)} color="rgba(255, 104, 19, 1)" variant="Linear" />,

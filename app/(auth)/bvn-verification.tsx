@@ -19,7 +19,10 @@ export default function BvnVerificationScreen() {
     const insets = useSafeAreaInsets();
     const { userType } = useLocalSearchParams<{ userType?: string }>();
     const [bvn, setBvn] = useState('');
-    const [error, setError] = useState<string>();
+    const [firstName, setFirstName] = useState('');
+    const [lastName, setLastName] = useState('');
+    const [email, setEmail] = useState('');
+    const [errors, setErrors] = useState<{ bvn?: string, firstName?: string, lastName?: string, email?: string }>();
     const [isSheetVisible, setIsSheetVisible] = useState(false);
 
     const { mutate: verifyBvn, isPending: isVerifyingCitizen } = useVerifyBvnMutation();
@@ -29,21 +32,24 @@ export default function BvnVerificationScreen() {
 
 
 
-    const validateBvn = (value: string) => {
+    const validateForm = () => {
         try {
-            bvnSchema.parse({ bvn: value });
-            setError(undefined);
+            bvnSchema.parse({ bvn, firstName, lastName, email });
+            setErrors(undefined);
         } catch (err) {
             if (err instanceof z.ZodError) {
-                setError(err.issues[0]?.message);
+                setErrors(err.issues.reduce((acc, issue) => {
+                    acc[issue.path[0] as keyof typeof acc] = issue.message;
+                    return acc;
+                }, {} as { bvn?: string, firstName?: string, lastName?: string, email?: string }));
             }
         }
     };
 
     const handleContinue = () => {
         try {
-            bvnSchema.parse({ bvn });
-            setError(undefined);
+            bvnSchema.parse({ bvn, firstName, lastName, email });
+            setErrors(undefined);
 
             if (userType === 'citizen' || userType === 'expatriate') {
                 verifyBvn({ bvn }, {
@@ -54,7 +60,10 @@ export default function BvnVerificationScreen() {
             }
         } catch (err) {
             if (err instanceof z.ZodError) {
-                setError(err.issues[0]?.message);
+                setErrors(err.issues.reduce((acc, issue) => {
+                    acc[issue.path[0] as keyof typeof acc] = issue.message;
+                    return acc;
+                }, {} as { bvn?: string, firstName?: string, lastName?: string, email?: string }));
             }
         }
     };
@@ -114,18 +123,57 @@ export default function BvnVerificationScreen() {
                         <Text style={styles.title}>Enter your Bank verification Number (BVN)</Text>
 
                         <InputField
+                            label="First Name"
+                            placeholder="Enter your first name"
+                            value={firstName}
+                            onChangeText={(text) => {
+                                setFirstName(text);
+                                if (errors?.firstName) validateForm();
+                            }}
+                            onBlur={() => validateForm()}
+                            required
+                            error={errors?.firstName}
+                        />
+
+                        <InputField
+                            label="Last Name"
+                            placeholder="Enter your last name"
+                            value={lastName}
+                            onChangeText={(text) => {
+                                setLastName(text);
+                                if (errors?.lastName) validateForm();
+                            }}
+                            onBlur={() => validateForm()}
+                            required
+                            error={errors?.lastName}
+                        />
+
+                        <InputField
+                            label="Email Address"
+                            placeholder="Enter your email address"
+                            value={email}
+                            onChangeText={(text) => {
+                                setEmail(text);
+                                if (errors?.email) validateForm();
+                            }}
+                            onBlur={() => validateForm()}
+                            required
+                            error={errors?.email}
+                        />
+
+                        <InputField
                             label="BVN"
                             placeholder="Enter your BVN"
                             value={bvn}
                             onChangeText={(text) => {
                                 setBvn(text);
-                                if (error) validateBvn(text);
+                                if (errors?.bvn) validateForm();
                             }}
-                            onBlur={() => validateBvn(bvn)}
+                            onBlur={() => validateForm()}
                             keyboardType="numeric"
                             maxLength={11}
                             required
-                            error={error}
+                            error={errors?.bvn}
                         />
                     </View>
                 </ScrollView>

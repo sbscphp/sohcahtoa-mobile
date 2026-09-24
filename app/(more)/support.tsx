@@ -56,12 +56,11 @@ const SupportFileUpload = ({
 
 export default function SupportScreen() {
     const router = useRouter();
-    const [customerId, setCustomerId] = useState('');
     const [category, setCategory] = useState<SelectionItem | null>(null);
     const [description, setDescription] = useState('');
     const [attachment, setAttachment] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
     const [isCategorySheetVisible, setCategorySheetVisible] = useState(false);
-    const [errors, setErrors] = useState<{ customerId?: string; category?: string; description?: string }>({});
+    const [errors, setErrors] = useState<{ category?: string; description?: string }>({});
 
     const categories: SelectionItem[] = [
         { id: '1', label: 'Issues related to transactions', value: 'TRANSACTION_ISSUE' },
@@ -99,11 +98,8 @@ export default function SupportScreen() {
     const { mutate: createSupportTicket, isPending } = useCreateSupportTicketMutation();
 
     const handleSubmit = () => {
-        const newErrors: { customerId?: string; category?: string; description?: string } = {};
+        const newErrors: { category?: string; description?: string } = {};
 
-        if (!customerId.trim()) {
-            newErrors.customerId = 'Please enter your Customer ID';
-        }
         if (!category) {
             newErrors.category = 'Please select a category';
         }
@@ -122,7 +118,7 @@ export default function SupportScreen() {
             category: category!.value,
             description,
             ...(attachment ? {
-                file: {
+                attachment: {
                     uri: attachment.uri,
                     type: attachment.mimeType || 'application/octet-stream',
                     name: attachment.name
@@ -153,18 +149,6 @@ export default function SupportScreen() {
                     <Text style={styles.instructionText}>
                         Need help? Fill out this form to contact support for assistance
                     </Text>
-
-                    <InputField
-                        label="Customer ID"
-                        placeholder="Enter customer id"
-                        value={customerId}
-                        onChangeText={(text) => {
-                            setCustomerId(text);
-                            if (errors.customerId) setErrors(prev => ({ ...prev, customerId: undefined }));
-                        }}
-                        required
-                        error={errors.customerId}
-                    />
 
                     <SelectField
                         label="Category"
@@ -302,7 +286,7 @@ const styles = ScaledSheet.create({
     },
     fab: {
         position: 'absolute',
-        bottom: '100@vs',
+        bottom: '50@vs',
         right: '20@ms',
         width: '44@ms',
         height: '44@ms',
@@ -317,7 +301,7 @@ const styles = ScaledSheet.create({
         shadowRadius: 8,
     },
     submitButton: {
-        marginTop: '14@vs'
+        marginTop: '4@vs'
     },
 
     fileEmptyContainer: {

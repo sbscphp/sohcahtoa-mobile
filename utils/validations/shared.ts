@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { isPickupDateTimeAtLeastOneHourAhead, PICKUP_TOO_SOON_MESSAGE } from '@/utils/pickupDateTime';
 
 
 export const bvnField = z.string().min(1, 'BVN is required');
@@ -76,6 +77,16 @@ export const locationStepSchema = z.object({
     selectedLocation: z.any().refine((v) => !!v, { message: 'Please select a pickup location' }),
     pickupDate: z.string().min(1, 'Please select a pickup date'),
     pickupTime: z.string().min(1, 'Please select a pickup time'),
+}).superRefine((data, ctx) => {
+    // Earliest selectable slot is 1 hour from now (past + next-hour times rejected).
+    if (data.pickupDate && data.pickupTime &&
+        !isPickupDateTimeAtLeastOneHourAhead(data.pickupDate, data.pickupTime)) {
+        ctx.addIssue({
+            code: 'custom',
+            message: PICKUP_TOO_SOON_MESSAGE,
+            path: ['pickupTime'],
+        });
+    }
 });
 
 /** Step 3: Bank Details — used by School, Professional */

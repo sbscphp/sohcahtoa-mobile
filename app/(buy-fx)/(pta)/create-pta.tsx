@@ -26,6 +26,7 @@ import { useExchangeLogic } from '@/hooks/useExchangeLogic';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useToastStore } from '@/stores/useToastStore';
 import { LocationItem } from '@/utils/locations';
+import { isPickupDateTimeAtLeastOneHourAhead, PICKUP_TOO_SOON_MESSAGE } from '@/utils/pickupDateTime';
 import { buildPickupLocationPayload, getCurrencySymbol } from '@/utils/helpers';
 import { ptaStep0Schema, ptaStep1Schema, ptaStep2Schema, ptaStep3Schema } from '@/utils/validations/pta';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -299,6 +300,10 @@ const ptaFormSchema = z.object({
             message: 'Passport Expiry Date cannot be the same as Passport Issue Date',
             path: ['passportExpiryDate']
         });
+    }
+
+    if (data.pickupDate && data.pickupTime && !isPickupDateTimeAtLeastOneHourAhead(data.pickupDate, data.pickupTime)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: PICKUP_TOO_SOON_MESSAGE, path: ['pickupTime'] });
     }
 });
 
