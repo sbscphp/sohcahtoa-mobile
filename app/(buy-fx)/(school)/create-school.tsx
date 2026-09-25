@@ -121,12 +121,6 @@ export default function SchoolFeesScreen() {
                             message: 'BVN is required',
                             path: ['bvn']
                         });
-                    } else if (data.bvn.length !== 11 || !/^\d+$/.test(data.bvn)) {
-                        ctx.addIssue({
-                            code: "custom",
-                            message: 'BVN must be exactly 11 digits',
-                            path: ['bvn']
-                        });
                     }
                 }
                 if (!profileNin) {
@@ -134,12 +128,6 @@ export default function SchoolFeesScreen() {
                         ctx.addIssue({
                             code: "custom",
                             message: 'NIN is required',
-                            path: ['nin']
-                        });
-                    } else if (data.nin.length !== 11 || !/^\d+$/.test(data.nin)) {
-                        ctx.addIssue({
-                            code: "custom",
-                            message: 'NIN must be exactly 11 digits',
                             path: ['nin']
                         });
                     }
@@ -453,8 +441,8 @@ export default function SchoolFeesScreen() {
     }, [transactions, user, profile, setValue, watchedFields.bvn, watchedFields.nin, watchedFields.passportDocumentNumber, watchedFields.passportIssueDate, watchedFields.passportExpiryDate]);
 
     const credentialFields = [
-        { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number (BVN)" placeholder="Enter BVN" required keyboardType="numeric" maxLength={11} filterType="numeric" disabled={!!profileBvn} /> },
-        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number (NIN)" placeholder="Enter NIN" required keyboardType="numeric" maxLength={11} filterType="numeric" disabled={!!profileNin} /> },
+        { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number (BVN)" placeholder="Enter BVN" required keyboardType="default" disabled={!!profileBvn} /> },
+        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number (NIN)" placeholder="Enter NIN" required keyboardType="default" disabled={!!profileNin} /> },
         { customComponent: <ControlledInput control={control} name="formAId" label="Form A ID" placeholder="Enter Form A ID" required  maxLength={10}  /> },
         { customComponent: <ControlledInput control={control} name="passportDocumentNumber" label="International Passport Number" placeholder="Enter international passport number" required maxLength={9} filterType="alphanumeric" /> },
         ...(admissionType !== 'Others' ? [
@@ -869,8 +857,8 @@ export default function SchoolFeesScreen() {
 
 
     const isStep0Valid = !!(
-        (profileBvn || (watchedFields.bvn && watchedFields.bvn.length === 11)) &&
-        (profileNin || (watchedFields.nin && watchedFields.nin.length === 11)) &&
+        (profileBvn || watchedFields.bvn) &&
+        (profileNin || watchedFields.nin) &&
         watchedFields.formAId && watchedFields.formAId.length === 10 &&
         watchedFields.passportDocumentNumber && watchedFields.passportDocumentNumber.length === 9 &&
         watchedFields.passportIssueDate && watchedFields.passportExpiryDate &&

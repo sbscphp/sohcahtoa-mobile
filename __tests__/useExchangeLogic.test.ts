@@ -55,7 +55,7 @@ describe('useExchangeLogic', () => {
         );
     });
 
-    it('should update currencyGet and trigger recalculation', () => {
+    it('should update currencyGet without triggering backend mutation', () => {
         const { result } = renderHook(() => useExchangeLogic());
         const newCurrency = {
             code: 'EUR',
@@ -69,16 +69,10 @@ describe('useExchangeLogic', () => {
         });
 
         expect(result.current.currencyGet).toEqual(newCurrency);
-        expect(mockMutate).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fromCurrency: 'EUR',
-                toCurrency: DEFAULT_SEND_CURRENCY.code,
-            }),
-            expect.any(Object)
-        );
+        expect(mockMutate).not.toHaveBeenCalled();
     });
 
-    it('should update currencySend and trigger recalculation', () => {
+    it('should update currencySend without triggering backend mutation', () => {
         const { result } = renderHook(() => useExchangeLogic());
         const newCurrency = {
             code: 'GBP',
@@ -92,13 +86,7 @@ describe('useExchangeLogic', () => {
         });
 
         expect(result.current.currencySend).toEqual(newCurrency);
-        expect(mockMutate).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fromCurrency: DEFAULT_GET_CURRENCY.code,
-                toCurrency: 'GBP',
-            }),
-            expect.any(Object)
-        );
+        expect(mockMutate).not.toHaveBeenCalled();
     });
 
     it('should update transactionType', () => {

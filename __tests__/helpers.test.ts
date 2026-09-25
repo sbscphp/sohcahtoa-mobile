@@ -111,6 +111,33 @@ describe('helpers - digital signature handling with sample response data', () =>
         expect(items[0].value).toBe('AO');
         expect(items[0].fileName).toBeNull();
     });
+
+    it('extracts hashed BVN, NIN, and TIN properly in getTransactionDocuments', () => {
+        const { getTransactionDocuments } = require('../utils/helpers');
+        const txWithHashed = {
+            type: 'BTA',
+            bvn: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+            nin: 'a1b2c3d4e5f6g7h8i9j0',
+            taxClearanceNumber: '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08',
+            formAId: '1234567890',
+            personalInfo: {
+                passportDocumentNumber: 'A12345678',
+            }
+        };
+        const docs = getTransactionDocuments(txWithHashed);
+        expect(docs).toContainEqual({
+            label: 'BVN Number',
+            value: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
+        });
+        expect(docs).toContainEqual({
+            label: 'NIN',
+            value: 'a1b2c3d4e5f6g7h8i9j0'
+        });
+        expect(docs).toContainEqual({
+            label: 'TIN',
+            value: '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08'
+        });
+    });
 });
 
 describe('helpers - buildPickupLocationPayload', () => {
@@ -179,7 +206,7 @@ describe('helpers - buildPickupLocationPayload', () => {
             selectedState: { id: 's1', title: 'Lagos' },
             selectedCity: { id: 'c1', title: 'Ikeja' },
             pickupDate: '2026-08-26',
-            pickupTime: '02:00 PM'
+            pickupTime: '14:00'
         });
 
         expect(result).toEqual({

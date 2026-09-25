@@ -4,7 +4,7 @@
     "slug": "sohcahtoa",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/s-logo.png",
+    "icon": "./assets/images/logo-centered-square.png",
     "scheme": "sohcahtoa",
     "userInterfaceStyle": "automatic",
     "ios": {
@@ -17,7 +17,7 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#ffffff",
-        "foregroundImage": "./assets/images/s-logo.png"
+        "foregroundImage": "./assets/images/logo-centered-square.png"
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.iamkennis.sohcahtoa",

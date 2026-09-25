@@ -25,6 +25,16 @@ describe('Sell FX International Passport Validation', () => {
             }
         });
 
+        it('should accept hashed bvn, nin, and tin', () => {
+            const result = residentStep0Schema.safeParse({
+                bvn: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+                nin: 'a1b2c3d4e5f6g7h8i9j0',
+                tinNumber: '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08',
+                passportDocumentNumber: 'A12345678'
+            });
+            expect(result.success).toBe(true);
+        });
+
         it('should reject empty passport number', () => {
             const result = residentStep0Schema.safeParse({
                 bvn: '12345678901',

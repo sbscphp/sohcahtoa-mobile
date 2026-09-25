@@ -207,11 +207,14 @@ export const getTransactionDocuments = (tx: any): { label: string; value: string
         return null;
     };
 
-    const bvn = getValue(tx.personalInfo?.bvn, ['bvn']);
-    const nin = getValue(tx.personalInfo?.nin, ['nin']);
+    const bvn = getValue(tx.personalInfo?.bvn || tx.bvn, ['bvn', 'personalInfo.bvn']);
+    const nin = getValue(tx.personalInfo?.nin || tx.nin, ['nin', 'personalInfo.nin']);
     const admissionType = getValue(tx.personalInfo?.admissionType, ['admissionType']);
 
-    const tin = getValue(tx.taxClearanceNumber || tx.personalInfo?.tinNumber, ['tinNumber', 'taxClearanceNumber']);
+    const tin = getValue(
+        tx.taxClearanceNumber || tx.personalInfo?.tinNumber || tx.tinNumber || tx.tin || tx.personalInfo?.tin,
+        ['tinNumber', 'taxClearanceNumber', 'tin', 'personalInfo.tinNumber', 'personalInfo.tin']
+    );
     const formAId = getValue(tx.formAId, ['formAId']);
     const passport = getValue(tx.personalInfo?.passportDocumentNumber || tx.personalInfo?.passportDocumentNumber, ['passportDocumentNumber', 'passportDocumentNumber']);
     const passportIssueDate = getValue(tx.personalInfo?.passportIssueDate, ['passportIssueDate']);

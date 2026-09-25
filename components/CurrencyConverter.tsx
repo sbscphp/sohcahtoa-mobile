@@ -61,7 +61,6 @@ export default function CurrencyConverter({
     onTemplateDownloadPress,
     error,
     isLoading = false,
-    isSchool = false,
     labelGet,
     labelSend
 }: CurrencyConverterProps) {

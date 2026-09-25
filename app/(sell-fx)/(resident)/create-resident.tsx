@@ -81,17 +81,6 @@ const residentFormSchema = z.object({
         });
     }
 
-    if (data.tinNumber) {
-        const cleanTin = data.tinNumber.replace(/[^0-9]/g, '');
-        if (cleanTin.length < 9 || cleanTin.length > 13) {
-            ctx.addIssue({
-                code: "custom",
-                message: 'TIN must be between 9 and 13 digits',
-                path: ['tinNumber']
-            });
-        }
-    }
-
     const isElectronicTransfer = data.payoutMethod?.includes('Electronic') || data.payoutMethod === 'Electronic Transfer';
 
     if (isElectronicTransfer) {
@@ -161,18 +150,6 @@ export default function CreateResidentScreen() {
                     ctx.addIssue({
                         code: "custom",
                         message: 'NIN is required',
-                        path: ['nin']
-                    });
-                } else if (data.nin.length !== 11) {
-                    ctx.addIssue({
-                        code: "custom",
-                        message: 'NIN must be exactly 11 digits',
-                        path: ['nin']
-                    });
-                } else if (!/^\d+$/.test(data.nin)) {
-                    ctx.addIssue({
-                        code: "custom",
-                        message: 'NIN must contain only digits',
                         path: ['nin']
                     });
                 }
@@ -396,7 +373,7 @@ export default function CreateResidentScreen() {
                     label={watchedFields.tinNumber ? "Bank Verification Number (BVN) (Optional)" : "Bank Verification Number (BVN)"}
                     placeholder="Enter BVN"
                     required={!watchedFields.tinNumber && !isBvnDisabled}
-                    keyboardType="numeric"
+                    keyboardType="default"
                     disabled={isBvnDisabled}
                 />
             )
@@ -409,7 +386,7 @@ export default function CreateResidentScreen() {
                     label="National Identification Number (NIN)"
                     placeholder="Enter NIN"
                     required={!isNinDisabled}
-                    keyboardType="numeric"
+                    keyboardType="default"
                     disabled={isNinDisabled}
                 />
             )
@@ -423,7 +400,6 @@ export default function CreateResidentScreen() {
                     placeholder="Enter TIN"
                     required={!watchedFields.bvn && !isTinDisabled}
                     keyboardType="default"
-                    maxLength={15}
                     disabled={isTinDisabled}
                 />
             )

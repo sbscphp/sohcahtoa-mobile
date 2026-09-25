@@ -41,14 +41,7 @@ export const workPermitNumberField = z.string().min(1, 'Please enter your Work P
 /** Tax Identification Number validation (TIN) */
 export const tinField = z
     .string()
-    .min(1, 'Tax Identification Number (TIN) is required')
-    .refine((val) => {
-        if (!val) return false;
-        const clean = val.replace(/[^0-9]/g, '');
-        return clean.length >= 9 && clean.length <= 13;
-    }, {
-        message: 'TIN must be between 9 and 13 digits',
-    });
+    .min(1, 'Tax Identification Number (TIN) is required');
 
 /** Tax Clearance Certificate Number validation (TCC) */
 export const tccNumberField = z.string().min(1, 'Please enter your TCC Number');

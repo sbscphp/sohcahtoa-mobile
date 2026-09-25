@@ -102,12 +102,6 @@ const ptaFormSchema = z.object({
                 message: 'BVN is required',
                 path: ['bvn']
             });
-        } else if (data.bvn.length !== 11 || !/^\d+$/.test(data.bvn)) {
-            ctx.addIssue({
-                code: "custom",
-                message: 'BVN must be exactly 11 digits',
-                path: ['bvn']
-            });
         }
     }
 
@@ -116,12 +110,6 @@ const ptaFormSchema = z.object({
             ctx.addIssue({
                 code: "custom",
                 message: 'NIN is required',
-                path: ['nin']
-            });
-        } else if (data.nin.length !== 11 || !/^\d+$/.test(data.nin)) {
-            ctx.addIssue({
-                code: "custom",
-                message: 'NIN must be exactly 11 digits',
                 path: ['nin']
             });
         }
@@ -516,8 +504,8 @@ export default function PersonalTravelAllowanceScreen() {
     const isNinDisabled = !!profileNin;
 
     const credentialFields = [
-        { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number(BVN)" placeholder="Enter your BVN" required keyboardType="numeric" maxLength={11} filterType="numeric" disabled={isBvnDisabled} /> },
-        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number(NIN)" placeholder="Enter your NIN" required={!isNinDisabled} keyboardType="numeric" maxLength={11} filterType="numeric" disabled={isNinDisabled} /> },
+        { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number(BVN)" placeholder="Enter your BVN" required keyboardType="default" disabled={isBvnDisabled} /> },
+        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number(NIN)" placeholder="Enter your NIN" required={!isNinDisabled} keyboardType="default" disabled={isNinDisabled} /> },
         { customComponent: <ControlledInput control={control} name="formAId" label="Form A ID" placeholder="Enter Form A ID" required  maxLength={10} /> },
         { customComponent: <ControlledInput control={control} name="passportDocumentNumber" label="International Passport Number" placeholder="Enter international passport" required maxLength={9} filterType="alphanumeric" /> },
         {

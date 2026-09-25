@@ -262,8 +262,8 @@ export default function MedicalPaymentScreen() {
     }, [watchedFields.customerAccountNumber, watchedFields.customerBankCode, isAddingNewAccount]);
 
     const credentialFields = [
-        { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number (BVN)" placeholder="Enter your BVN" required keyboardType="numeric" maxLength={11} filterType="numeric" disabled /> },
-        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number" placeholder="Enter your NIN" keyboardType="numeric" maxLength={11} filterType="numeric" disabled /> },
+        { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number (BVN)" placeholder="Enter your BVN" required keyboardType="default" disabled /> },
+        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number" placeholder="Enter your NIN" keyboardType="default" disabled /> },
         { customComponent: <ControlledInput control={control} name="formAId" label="Form A ID" placeholder="Enter Form A ID" required maxLength={10} /> },
         { customComponent: <ControlledInput control={control} name="passportDocumentNumber" label="International Passport Number" placeholder="Enter international passport" required maxLength={9} filterType="alphanumeric" /> },
     ];
@@ -487,8 +487,8 @@ export default function MedicalPaymentScreen() {
     };
 
     const isStep0Valid = !!(
-        (profileBvn || (watchedFields.bvn && watchedFields.bvn.length === 11)) &&
-        (profileNin || (watchedFields.nin && watchedFields.nin.length === 11)) &&
+        (profileBvn || watchedFields.bvn) &&
+        (profileNin || watchedFields.nin) &&
         watchedFields.formAId && watchedFields.formAId.length === 10 &&
         watchedFields.passportDocumentNumber && watchedFields.passportDocumentNumber.length === 9
     );

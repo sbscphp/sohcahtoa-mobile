@@ -616,11 +616,8 @@ export default function CreateExpatriateScreen() {
                             label="Bank Verification Number (BVN)"
                             placeholder="Enter BVN"
                             required
-                            keyboardType="numeric"
-                            maxLength={11}
-                            filterType="numeric"
+                            keyboardType="default"
                             disabled
-                            
                         />
 
                         <ControlledInput
@@ -628,9 +625,7 @@ export default function CreateExpatriateScreen() {
                             name="nin"
                             label="National Identification Number (NIN)"
                             placeholder="Enter NIN"
-                            keyboardType="numeric"
-                            maxLength={11}
-                            filterType="numeric"
+                            keyboardType="default"
                             disabled
                             required
                         />

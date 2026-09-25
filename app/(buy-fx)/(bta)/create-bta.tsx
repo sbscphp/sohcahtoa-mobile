@@ -78,12 +78,6 @@ const btaFormSchema = z.object({
                 message: 'BVN is required',
                 path: ['bvn']
             });
-        } else if (data.bvn.length !== 11 || !/^\d+$/.test(data.bvn)) {
-            ctx.addIssue({
-                code: "custom",
-                message: 'BVN must be exactly 11 digits',
-                path: ['bvn']
-            });
         }
     }
 
@@ -92,12 +86,6 @@ const btaFormSchema = z.object({
             ctx.addIssue({
                 code: "custom",
                 message: 'NIN is required',
-                path: ['nin']
-            });
-        } else if (data.nin.length !== 11 || !/^\d+$/.test(data.nin)) {
-            ctx.addIssue({
-                code: "custom",
-                message: 'NIN must be exactly 11 digits',
                 path: ['nin']
             });
         }
@@ -519,9 +507,9 @@ export default function BusinessTravelAllowanceScreen() {
     }, [storedTin, setValue, watchedFields.tinNumber]);
 
     const credentialFields = [
-        { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number(BVN)" placeholder="Enter your BVN" required keyboardType="numeric" maxLength={11} filterType="numeric" disabled={isBvnDisabled} /> },
-        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number(NIN)" placeholder="Enter your NIN" required={!isNinDisabled} keyboardType="numeric" maxLength={11} filterType="numeric" disabled={isNinDisabled} /> },
-        { customComponent: <ControlledInput control={control} name="tinNumber" label="Tax Identification Number(TIN)" placeholder="Enter your TIN" required keyboardType="default" maxLength={15} disabled={isTinDisabled} /> },
+        { customComponent: <ControlledInput control={control} name="bvn" label="Bank Verification Number(BVN)" placeholder="Enter your BVN" required keyboardType="default" disabled={isBvnDisabled} /> },
+        { customComponent: <ControlledInput control={control} name="nin" label="National Identification Number(NIN)" placeholder="Enter your NIN" required={!isNinDisabled} keyboardType="default" disabled={isNinDisabled} /> },
+        { customComponent: <ControlledInput control={control} name="tinNumber" label="Tax Identification Number(TIN)" placeholder="Enter your TIN" required keyboardType="default" disabled={isTinDisabled} /> },
         { customComponent: <ControlledInput control={control} name="formAId" label="Form A ID" placeholder="Enter Form A ID" required  maxLength={10} /> },
         { customComponent: <ControlledInput control={control} name="passportDocumentNumber" label="International Passport Number" placeholder="Enter international passport" required maxLength={9} filterType="alphanumeric" /> }
     ];
@@ -681,15 +669,7 @@ export default function BusinessTravelAllowanceScreen() {
 
     const onSubmit = (data: BtaFormValues) => {
         
-        const formatDateForApi = (dateStr: string): string => {
-            if (!dateStr) return '';
-            const parts = dateStr.split('/');
-            if (parts.length === 3) {
-                return `${parts[2]}-${parts[1]}-${parts[0]}`;
-            }
-            return dateStr;
-        };
-
+        
         const payload = {
             type: 'BTA',
             mode: "BUY",

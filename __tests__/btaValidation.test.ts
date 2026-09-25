@@ -7,11 +7,6 @@ describe('BTA TIN Validation', () => {
         expect(result.success).toBe(false);
     });
 
-    it('should reject TIN with fewer than 9 digits', () => {
-        const result = tinField.safeParse('12345678');
-        expect(result.success).toBe(false);
-    });
-
     it('should accept valid 9-digit TIN', () => {
         const result = tinField.safeParse('123456789');
         expect(result.success).toBe(true);
@@ -22,14 +17,14 @@ describe('BTA TIN Validation', () => {
         expect(result.success).toBe(true);
     });
 
-    it('should reject TIN with more than 13 digits', () => {
-        const result = tinField.safeParse('12345678901234');
-        expect(result.success).toBe(false);
+    it('should accept hashed/alphanumeric TIN', () => {
+        const result = tinField.safeParse('e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855');
+        expect(result.success).toBe(true);
     });
 
-    it('should reject non-numeric TIN with letters', () => {
+    it('should accept alphanumeric TIN with mixed letters and numbers', () => {
         const result = tinField.safeParse('12345ABCDE');
-        expect(result.success).toBe(false);
+        expect(result.success).toBe(true);
     });
 
     it('should accept valid 10-digit TIN', () => {
@@ -42,13 +37,13 @@ describe('BTA TIN Validation', () => {
         expect(result.success).toBe(true);
     });
 
-    it('should validate btaStep0Schema with required TIN', () => {
+    it('should validate btaStep0Schema with required TIN and hashed credentials', () => {
         const validPayload = {
-            bvn: '12345678901',
-            nin: '12345678901',
+            bvn: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+            nin: 'a1b2c3d4e5f6g7h8i9j0',
             formAId: '1234567890',
             passportDocumentNumber: 'A12345678',
-            tinNumber: '1234567890',
+            tinNumber: '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08',
         };
         const validResult = btaStep0Schema.safeParse(validPayload);
         expect(validResult.success).toBe(true);
