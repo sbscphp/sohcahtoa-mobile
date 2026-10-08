@@ -221,6 +221,8 @@ export default function TouringScreen() {
         amountSendStr,
         setAmountSendStr,
         currentRate,
+        rateText,
+        calculateExchangeRate,
     } = useExchangeLogic({ setValue, initialAmount: '0' });
 
     const { data: transactionsResponse } = useGetTransactionsQuery();
@@ -591,7 +593,7 @@ export default function TouringScreen() {
         watchedFields.passportIssueDate && watchedFields.passportExpiryDate);
     const foreignAmountStr = currencyGet.code !== 'NGN' ? amountGetStr : amountSendStr;
     const foreignAmount = parseFloat(foreignAmountStr.replace(/,/g, '')) || 0;
-    const isStep2Valid = watchedFields.amount > 0 && foreignAmount <= 10000;
+    const isStep2Valid = watchedFields.amount > 0 && foreignAmount <= 10000 && currentRate > 0;
     const isStep3Valid = watchedFields.payoutMethod && (
         !isElectronicTransfer || (
             (watchedFields.payoutMethod?.includes('Electronic'))
@@ -652,12 +654,13 @@ export default function TouringScreen() {
                         onCurrencySendChange={setCurrencySend}
                         amountGet={amountGetStr}
                         amountSend={amountSendStr}
-                        rate={`1 ${currencyGet.code} = ${currentRate.toLocaleString()} ${currencySend.code}`}
+                        rate={rateText}
                         onAmountGetChange={setAmountGetStr}
                         onAmountSendChange={setAmountSendStr}
                         allowedModes={['buy']}
                         showLimitWarning={true}
                         error={errors.amount?.message}
+                        isLoading={calculateExchangeRate.isPending}
                     />
                 )}
                 {currentStep === 3 && (

@@ -54,17 +54,6 @@ const findExchangeRate = (
         return baseRate > 0 ? baseRate : null;
     }
 
-    // Fallback: match either currency
-    const anyMatch = rates.find((r) => r.fromCurrency === fromCode || r.toCurrency === fromCode);
-    if (anyMatch) {
-        return mode === 'buy' ? (anyMatch.buyRate || anyMatch.rate) : (anyMatch.sellRate || anyMatch.rate);
-    }
-
-    // Fallback: first available rate
-    if (rates[0]) {
-        return mode === 'buy' ? (rates[0].buyRate || rates[0].rate) : (rates[0].sellRate || rates[0].rate);
-    }
-
     return null;
 };
 
@@ -92,6 +81,9 @@ export const useExchangeLogic = ({ setValue, initialAmount = '1', maxLimit, init
                 const converted = numAmount * rate;
                 setAmountSendStr(converted.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
             }
+        } else {
+            setCurrentRate(0);
+            setAmountSendStr('0');
         }
     }, [exchangeRates, currencyGet.code, currencySend.code, transactionType]);
 
@@ -128,6 +120,8 @@ export const useExchangeLogic = ({ setValue, initialAmount = '1', maxLimit, init
             if (currentRate > 0) {
                 const localConverted = numAmount * currentRate;
                 setAmountSendStr(localConverted.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+            } else {
+                setAmountSendStr('0');
             }
 
             calculateExchangeRate.mutate({
@@ -141,6 +135,10 @@ export const useExchangeLogic = ({ setValue, initialAmount = '1', maxLimit, init
                         setAmountSendStr(response.data.convertedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
                         setCurrentRate(response.data.appliedRate || (transactionType === 'buy' ? response.data.buyRate : response.data.sellRate));
                     }
+                },
+                onError: () => {
+                    setAmountSendStr('0');
+                    setCurrentRate(0);
                 }
             });
         } else {
@@ -158,15 +156,38 @@ export const useExchangeLogic = ({ setValue, initialAmount = '1', maxLimit, init
             setCurrencySend(currency);
         }
 
-        // Calculate rate and conversion locally in-memory without making a backend call
         const rate = findExchangeRate(exchangeRates?.data, nextGet.code, nextSend.code, transactionType);
+        const numAmount = parseFloat(amountGetStr.replace(/,/g, '')) || 0;
+
         if (rate && rate > 0) {
             setCurrentRate(rate);
 
-            const numAmount = parseFloat(amountGetStr.replace(/,/g, '')) || 0;
             if (numAmount > 0) {
                 const converted = numAmount * rate;
                 setAmountSendStr(converted.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+            }
+        } else {
+            setCurrentRate(0);
+            setAmountSendStr('0');
+
+            if (numAmount > 0) {
+                calculateExchangeRate.mutate({
+                    fromCurrency: nextGet.code,
+                    toCurrency: nextSend.code,
+                    amount: numAmount,
+                    mode: transactionType
+                }, {
+                    onSuccess: (response: any) => {
+                        if (response.success && response.data) {
+                            setAmountSendStr(response.data.convertedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+                            setCurrentRate(response.data.appliedRate || (transactionType === 'buy' ? response.data.buyRate : response.data.sellRate));
+                        }
+                    },
+                    onError: () => {
+                        setAmountSendStr('0');
+                        setCurrentRate(0);
+                    }
+                });
             }
         }
     };
@@ -200,8 +221,16 @@ export const useExchangeLogic = ({ setValue, initialAmount = '1', maxLimit, init
             if (setValue) {
                 setValue('amount', parseFloat(formattedGet), { shouldValidate: true });
             }
+        } else {
+            setAmountGetStr('0');
+            if (setValue) {
+                setValue('amount', 0, { shouldValidate: true });
+            }
         }
     };
+
+    const rateText = currentRate > 0 ? `1 ${currencyGet.code} = ${currentRate.toLocaleString()} ${currencySend.code}` : 'Rate unavailable';
+    const isRateAvailable = currentRate > 0;
 
     return {
         transactionType,
@@ -215,6 +244,8 @@ export const useExchangeLogic = ({ setValue, initialAmount = '1', maxLimit, init
         amountSendStr,
         setAmountSendStr: handleAmountSendChange,
         currentRate,
+        rateText,
+        isRateAvailable,
         calculateExchangeRate,
         exchangeRates
     };

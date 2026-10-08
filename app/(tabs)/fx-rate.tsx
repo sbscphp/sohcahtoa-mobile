@@ -57,6 +57,9 @@ export default function FxRateScreen() {
                     if (response.success && response.data) {
                         setAmountSend(response.data.convertedAmount.toString());
                     }
+                },
+                onError: () => {
+                    setAmountSend('0');
                 }
             });
         }
@@ -96,7 +99,7 @@ export default function FxRateScreen() {
                     onAmountGetChange={setAmountGet}
                     amountSend={amountSend}
                     isLoading={isCalculating}
-                    rate={`${currencyGet.code} 1 - ${currencySend.code} ${amountSend && amountGet && parseFloat(amountGet) > 0 ? (parseFloat(amountSend) / parseFloat(amountGet)).toFixed(2) : '...'}`}
+                    rate={amountSend && amountGet && parseFloat(amountGet) > 0 && parseFloat(amountSend) > 0 ? `${currencyGet.code} 1 - ${currencySend.code} ${(parseFloat(amountSend) / parseFloat(amountGet)).toFixed(2)}` : 'Rate unavailable'}
                     showLimitWarning
                     onLimitWarningPress={() => router.push('/proof-of-fund')}
                 />

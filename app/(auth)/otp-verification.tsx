@@ -104,6 +104,7 @@ export default function OtpVerificationScreen() {
                         phoneNumber: response?.data?.phoneNumber || '',
                         email: response?.data?.email || '',
                         address: response?.data?.address || '',
+                        dateOfBirth: response?.data?.dateOfBirth || '',
                         flowContext: 'email'
                     },
                 });

@@ -293,6 +293,8 @@ export default function CreateExpatriateScreen() {
         amountSendStr: amountSend,
         setAmountSendStr: setAmountSend,
         currentRate,
+        rateText,
+        calculateExchangeRate,
     } = useExchangeLogic({ setValue, initialAmount: '0', initialTransactionType: 'sell' });
 
     const { data: transactionsResponse } = useGetTransactionsQuery();
@@ -558,7 +560,7 @@ export default function CreateExpatriateScreen() {
     const foreignAmountStr = currencyGet.code !== 'NGN' ? amountGet : amountSend;
     const foreignAmount = parseFloat(foreignAmountStr.replace(/,/g, '')) || 0;
     const hasProofOfFunds = proofOfFunds.length > 0;
-    const isStep2Valid = watchedFields.amount > 0 && (foreignAmount <= 10000 || (hasProofOfFunds && isDeclarationCompleted));
+    const isStep2Valid = watchedFields.amount > 0 && (foreignAmount <= 10000 || (hasProofOfFunds && isDeclarationCompleted)) && currentRate > 0;
     
     const isStep3Valid = !!watchedFields.payoutMethod && (!isElectronicTransfer || !!(watchedFields.customerBankName && watchedFields.customerBankCode && watchedFields.customerAccountNumber && watchedFields.customerAccountName));
     const isStep4Valid = !needsLocationStep || !!(watchedFields.selectedState && watchedFields.selectedCity && watchedFields.selectedLocation && watchedFields.pickupDate && watchedFields.pickupTime);
@@ -716,11 +718,12 @@ export default function CreateExpatriateScreen() {
                         onCurrencySendChange={setCurrencySend}
                         amountGet={amountGet}
                         amountSend={amountSend}
-                        rate={`1 ${currencyGet.code} = ${currentRate.toLocaleString()} ${currencySend.code}`}
+                        rate={rateText}
                         onAmountGetChange={setAmountGet}
                         onAmountSendChange={setAmountSend}
                         allowedModes={['sell']}
                         error={errors.amount?.message as string | undefined}
+                        isLoading={calculateExchangeRate.isPending}
                         showLimitWarning
                         onLimitWarningPress={() => router.push('/proof-of-fund')}
                         onDownloadPress={() => setShowSourceOfFundsSheet(true)}

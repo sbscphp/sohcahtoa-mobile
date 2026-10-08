@@ -363,6 +363,8 @@ export default function PersonalTravelAllowanceScreen() {
         amountSendStr,
         setAmountSendStr,
         currentRate,
+        rateText,
+        calculateExchangeRate,
     } = useExchangeLogic({ setValue, initialAmount: '0', maxLimit: 4000 });
 
     // Dynamic Locations
@@ -709,7 +711,7 @@ export default function PersonalTravelAllowanceScreen() {
 
     const foreignAmountStr = currencyGet.code !== 'NGN' ? amountGetStr : amountSendStr;
     const foreignAmount = parseFloat(foreignAmountStr.replace(/,/g, '')) || 0;
-    const isStep2Valid = watchedFields.amount > 0 && foreignAmount <= 10000;
+    const isStep2Valid = watchedFields.amount > 0 && foreignAmount <= 10000 && currentRate > 0;
     const isStep3Valid = watchedFields.payoutMethod && (
         !isElectronicTransfer || (
             watchedFields.payoutMethod?.includes('Electronic')
@@ -767,12 +769,13 @@ export default function PersonalTravelAllowanceScreen() {
                         onCurrencySendChange={setCurrencySend}
                         amountGet={amountGetStr}
                         amountSend={amountSendStr}
-                        rate={`1 ${currencyGet.code} = ${currentRate.toLocaleString()} ${currencySend.code}`}
+                        rate={rateText}
                         onAmountGetChange={setAmountGetStr}
                         onAmountSendChange={setAmountSendStr}
                         allowedModes={['buy']}
                         showLimitWarning={true}
                         error={errors.amount?.message}
+                        isLoading={calculateExchangeRate.isPending}
                     />
                 )}
                 {currentStep === 3 && (

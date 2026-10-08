@@ -276,6 +276,8 @@ export default function SchoolFeesScreen() {
         amountSendStr,
         setAmountSendStr,
         currentRate,
+        rateText,
+        calculateExchangeRate,
     } = useExchangeLogic({ setValue, initialAmount: '0', maxLimit: 10000 });
 
     const [docs, setDocs] = useState({
@@ -875,7 +877,7 @@ export default function SchoolFeesScreen() {
 
     const foreignAmountStr = currencyGet.code !== 'NGN' ? amountGetStr : amountSendStr;
     const foreignAmount = parseFloat(foreignAmountStr.replace(/,/g, '')) || 0;
-    const isStep2Valid = watchedFields.amount > 0 && foreignAmount <= 10000;
+    const isStep2Valid = watchedFields.amount > 0 && foreignAmount <= 10000 && currentRate > 0;
 
     const beneficiaryCountryStep4 = watchedFields.beneficiaryCountry?.toLowerCase() || '';
     const isAustralia = beneficiaryCountryStep4?.includes('australia');
@@ -954,12 +956,13 @@ export default function SchoolFeesScreen() {
                         onCurrencySendChange={setCurrencySend}
                         amountGet={amountGetStr}
                         amountSend={amountSendStr}
-                        rate={`1 ${currencyGet.code} = ${currentRate.toLocaleString()} ${currencySend.code}`}
+                        rate={rateText}
                         onAmountGetChange={setAmountGetStr}
                         onAmountSendChange={setAmountSendStr}
                         allowedModes={['buy']}
                         showLimitWarning={true}
                         error={errors.amount?.message as string | undefined}
+                        isLoading={calculateExchangeRate.isPending}
                         isSchool={true}
                     />
                 )}

@@ -117,7 +117,6 @@ const CurrencySelectionSheet: React.FC<CurrencySelectionSheetProps> = ({
                         icon={<SearchNormal1 size={moderateScale(20)} color="#94A3B8" />}
                     />
 
-
                     <FlatList
                         data={filteredCurrencies}
                         renderItem={renderItem}

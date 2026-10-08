@@ -1,7 +1,7 @@
 import ProgressBar from '@/components/ProgressBar';
 import { useSendOtpMutation } from '@/hooks/queries/auth/useSendOtpMutation';
 import { useVerifyBvnMutation } from '@/hooks/queries/auth/useVerifyBvnMutation';
-import { bvnSchema } from '@/lib/validations/auth';
+import { BVNFormData, bvnSchema } from '@/lib/validations/auth';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
@@ -10,6 +10,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ScaledSheet } from 'react-native-size-matters';
 import { z } from 'zod';
 import AuthHeader from '../../components/AuthHeader';
+import DatePickerField from '../../components/DatePickerField';
 import InputField from '../../components/InputField';
 import OtpOptionSheet from '../../components/OtpOptionSheet';
 import PrimaryButton from '../../components/PrimaryButton';
@@ -22,33 +23,30 @@ export default function BvnVerificationScreen() {
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
     const [email, setEmail] = useState('');
-    const [errors, setErrors] = useState<{ bvn?: string, firstName?: string, lastName?: string, email?: string }>();
+    const [phoneNumber, setPhoneNumber] = useState('');
+    const [dateOfBirth, setDateOfBirth] = useState('');
+    const [errors, setErrors] = useState<Partial<Record<keyof BVNFormData, string>>>();
     const [isSheetVisible, setIsSheetVisible] = useState(false);
 
     const { mutate: verifyBvn, isPending: isVerifyingCitizen } = useVerifyBvnMutation();
     const { mutate: sendOtp, isPending: isSendingOtp } = useSendOtpMutation();
 
-    const isPending = isVerifyingCitizen 
+    const isPending = isVerifyingCitizen;
 
-
-
-    const validateForm = () => {
+    const validateField = (field: keyof BVNFormData, value: string) => {
         try {
-            bvnSchema.parse({ bvn, firstName, lastName, email });
-            setErrors(undefined);
+            bvnSchema.shape[field].parse(value);
+            setErrors((prev) => ({ ...prev, [field]: undefined }));
         } catch (err) {
             if (err instanceof z.ZodError) {
-                setErrors(err.issues.reduce((acc, issue) => {
-                    acc[issue.path[0] as keyof typeof acc] = issue.message;
-                    return acc;
-                }, {} as { bvn?: string, firstName?: string, lastName?: string, email?: string }));
+                setErrors((prev) => ({ ...prev, [field]: err.issues[0]?.message }));
             }
         }
     };
 
     const handleContinue = () => {
         try {
-            bvnSchema.parse({ bvn, firstName, lastName, email });
+            bvnSchema.parse({ bvn, firstName, lastName, email, phoneNumber, dateOfBirth });
             setErrors(undefined);
 
             if (userType === 'citizen' || userType === 'expatriate') {
@@ -60,10 +58,14 @@ export default function BvnVerificationScreen() {
             }
         } catch (err) {
             if (err instanceof z.ZodError) {
-                setErrors(err.issues.reduce((acc, issue) => {
-                    acc[issue.path[0] as keyof typeof acc] = issue.message;
-                    return acc;
-                }, {} as { bvn?: string, firstName?: string, lastName?: string, email?: string }));
+                const fieldErrors: Partial<Record<keyof BVNFormData, string>> = {};
+                err.issues.forEach((issue) => {
+                    const field = issue.path[0] as keyof BVNFormData;
+                    if (field && !fieldErrors[field]) {
+                        fieldErrors[field] = issue.message;
+                    }
+                });
+                setErrors(fieldErrors);
             }
         }
     };
@@ -83,11 +85,12 @@ export default function BvnVerificationScreen() {
             {
                 onSuccess: (response: any) => {
                     useAuthStore.getState().setTempUserInfo({
-                        firstName: response.data.firstName || '',
-                        lastName: response.data.lastName || '',
-                        phoneNumber: response.data.phoneNumber || '',
-                        email: response.data.email || '',
-                        address: response.data.address || '',
+                        firstName: firstName || response.data?.firstName || '',
+                        lastName: lastName || response.data?.lastName || '',
+                        phoneNumber: phoneNumber || response.data?.phoneNumber || '',
+                        email: email || response.data?.email || '',
+                        dateOfBirth: dateOfBirth || response.data?.dateOfBirth || '',
+                        address: response.data?.address || '',
                     });
                     setIsSheetVisible(false);
                     router.push({
@@ -96,14 +99,13 @@ export default function BvnVerificationScreen() {
                             context: 'bvn',
                             target: option,
                             userType: userType || 'citizen',
-                            contactInfo: option === 'email' ? response.data.email : response.data.phoneNumber
+                            contactInfo: option === 'email' ? (email || response.data?.email) : (phoneNumber || response.data?.phoneNumber)
                         }
                     });
                 }
             }
         );
     };
-
 
     return (
         <SafeAreaView style={styles.container}>
@@ -128,9 +130,9 @@ export default function BvnVerificationScreen() {
                             value={firstName}
                             onChangeText={(text) => {
                                 setFirstName(text);
-                                if (errors?.firstName) validateForm();
+                                if (errors?.firstName) validateField('firstName', text);
                             }}
-                            onBlur={() => validateForm()}
+                            onBlur={() => validateField('firstName', firstName)}
                             required
                             error={errors?.firstName}
                         />
@@ -141,9 +143,9 @@ export default function BvnVerificationScreen() {
                             value={lastName}
                             onChangeText={(text) => {
                                 setLastName(text);
-                                if (errors?.lastName) validateForm();
+                                if (errors?.lastName) validateField('lastName', text);
                             }}
-                            onBlur={() => validateForm()}
+                            onBlur={() => validateField('lastName', lastName)}
                             required
                             error={errors?.lastName}
                         />
@@ -154,12 +156,43 @@ export default function BvnVerificationScreen() {
                             value={email}
                             onChangeText={(text) => {
                                 setEmail(text);
-                                if (errors?.email) validateForm();
+                                if (errors?.email) validateField('email', text);
                             }}
-                            onBlur={() => validateForm()}
+                            onBlur={() => validateField('email', email)}
+                            keyboardType="email-address"
+                            autoCapitalize="none"
                             required
                             error={errors?.email}
                         />
+
+                        <InputField
+                            label="Phone Number"
+                            placeholder="Enter your phone number"
+                            value={phoneNumber}
+                            onChangeText={(text) => {
+                                setPhoneNumber(text);
+                                if (errors?.phoneNumber) validateField('phoneNumber', text);
+                            }}
+                            onBlur={() => validateField('phoneNumber', phoneNumber)}
+                            keyboardType="phone-pad"
+                            required
+                            error={errors?.phoneNumber}
+                        />
+
+                        <View style={styles.datePickerContainer}>
+                            <DatePickerField
+                                label="Date of Birth"
+                                value={dateOfBirth}
+                                onDateChange={(date) => {
+                                    setDateOfBirth(date);
+                                    if (errors?.dateOfBirth) validateField('dateOfBirth', date);
+                                }}
+                                placeholder="DD/MM/YYYY"
+                                required
+                                maximumDate={new Date()}
+                                error={errors?.dateOfBirth}
+                            />
+                        </View>
 
                         <InputField
                             label="BVN"
@@ -167,9 +200,9 @@ export default function BvnVerificationScreen() {
                             value={bvn}
                             onChangeText={(text) => {
                                 setBvn(text);
-                                if (errors?.bvn) validateForm();
+                                if (errors?.bvn) validateField('bvn', text);
                             }}
-                            onBlur={() => validateForm()}
+                            onBlur={() => validateField('bvn', bvn)}
                             keyboardType="numeric"
                             maxLength={11}
                             required
@@ -215,6 +248,9 @@ const styles = ScaledSheet.create({
         color: '#1E293B',
         // lineHeight: '28@ms',
         marginBottom: '24@vs',
+    },
+    datePickerContainer: {
+        marginBottom: '12@vs',
     },
     footer: {
         position: 'absolute',

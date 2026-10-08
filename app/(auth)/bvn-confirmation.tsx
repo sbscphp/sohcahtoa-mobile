@@ -25,6 +25,7 @@ export default function BvnConfirmationScreen() {
         lastName: paramLastName,
         phoneNumber: paramPhoneNumber,
         email: paramEmail,
+        dateOfBirth: paramDateOfBirth,
         address: paramAddress
     } = useLocalSearchParams<{
         userType?: string,
@@ -34,6 +35,7 @@ export default function BvnConfirmationScreen() {
         lastName?: string,
         phoneNumber?: string,
         email?: string,
+        dateOfBirth?: string,
         address?: string
     }>();
     console.log(verificationToken, "Verification Token");
@@ -41,6 +43,7 @@ export default function BvnConfirmationScreen() {
     const lastName = tempUserInfo?.lastName || paramLastName || '';
     const phoneNumber = tempUserInfo?.phoneNumber || paramPhoneNumber || '';
     const email = tempUserInfo?.email || paramEmail || '';
+    const dateOfBirth = tempUserInfo?.dateOfBirth || paramDateOfBirth || '';
     const address = tempUserInfo?.address || paramAddress || '';
     const { mutate: sendNigerianEmailOtp, isPending: isSendingNigerianEmailOtp } = useSendNigerianEmailOtpMutation();
     const { mutate: sendTouristOtp, isPending: isSendingTouristOtp } = useSendTouristOtpMutation();
@@ -113,6 +116,7 @@ export default function BvnConfirmationScreen() {
                         <InfoRow label="Full Name" value={`${firstName} ${lastName}`.trim()} />
                         <InfoRow label="Phone Number" value={phoneNumber} />
                         <InfoRow label="Email Address" value={email} />
+                        {dateOfBirth ? <InfoRow label="Date of Birth" value={dateOfBirth} /> : null}
                         <InfoRow label="Address" value={address} />
                     </View>
 

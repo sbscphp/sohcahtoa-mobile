@@ -232,7 +232,9 @@ export default function CurrencyConverter({
 
                 <View style={styles.rateInfo}>
                     <Text style={styles.rateLabel}>Exchange Rate</Text>
-                    <Text style={styles.rateValue}>{rate}</Text>
+                    <Text style={[styles.rateValue, (!rate || rate.toLowerCase().includes('unavailable')) && { color: '#94A3B8' }]}>
+                        {rate || 'Rate unavailable'}
+                    </Text>
                 </View>
             </View>
 

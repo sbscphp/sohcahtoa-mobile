@@ -130,6 +130,7 @@ export default function MedicalPaymentScreen() {
         amountSendStr,
         setAmountSendStr,
         currentRate,
+        rateText,
         calculateExchangeRate,
     } = useExchangeLogic({ setValue, initialAmount: '0', maxLimit: 5000 });
 
@@ -495,7 +496,7 @@ export default function MedicalPaymentScreen() {
     const isStep1Valid = !!(docs.passport.meta && docs.visa.meta && docs.returnTicket.meta && docs.referenceLetter.meta && docs.overseaDoctorLetter.meta && watchedFields.passportIssueDate && watchedFields.passportExpiryDate);
     const foreignAmountStr = currencyGet.code !== 'NGN' ? amountGetStr : amountSendStr;
     const foreignAmount = parseFloat(foreignAmountStr.replace(/,/g, '')) || 0;
-    const isStep2Valid = watchedFields.amount > 0 && foreignAmount <= 10000;
+    const isStep2Valid = watchedFields.amount > 0 && foreignAmount <= 10000 && currentRate > 0;
     const beneficiaryCountryStep4 = watchedFields.beneficiaryCountry?.toLowerCase() || '';
     const isAustralia = beneficiaryCountryStep4?.includes('australia');
     const isUSA = beneficiaryCountryStep4?.includes('united states') || beneficiaryCountryStep4?.includes('usa') || beneficiaryCountryStep4?.includes('canada');
@@ -568,7 +569,7 @@ export default function MedicalPaymentScreen() {
                         onCurrencySendChange={setCurrencySend}
                         amountGet={amountGetStr}
                         amountSend={amountSendStr}
-                        rate={`1 ${currencyGet.code} = ${currentRate.toLocaleString()} ${currencySend.code}`}
+                        rate={rateText}
                         onAmountGetChange={setAmountGetStr}
                         onAmountSendChange={setAmountSendStr}
                         allowedModes={['buy']}
