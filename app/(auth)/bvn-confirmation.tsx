@@ -1,6 +1,6 @@
 import ProgressBar from '@/components/ProgressBar';
 import { useSendExpatriateOtpMutation } from '@/hooks/queries/auth/useSendExpatriateOtpMutation';
-import { useSendNigerianEmailOtpMutation } from '@/hooks/queries/auth/useSendNigerianEmailOtpMutation';
+import { useSendOtpMutation } from '@/hooks/queries/auth/useSendOtpMutation';
 import { useSendTouristOtpMutation } from '@/hooks/queries/auth/useSendTouristOtpMutation';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -45,7 +45,7 @@ export default function BvnConfirmationScreen() {
     const email = tempUserInfo?.email || paramEmail || '';
     const dateOfBirth = tempUserInfo?.dateOfBirth || paramDateOfBirth || '';
     const address = tempUserInfo?.address || paramAddress || '';
-    const { mutate: sendNigerianEmailOtp, isPending: isSendingNigerianEmailOtp } = useSendNigerianEmailOtpMutation();
+    const { mutate: sendCitizenOtp, isPending: isSendingCitizenOtp } = useSendOtpMutation();
     const { mutate: sendTouristOtp, isPending: isSendingTouristOtp } = useSendTouristOtpMutation();
     const { mutate: sendExpatriateOtp, isPending: isSendingExpatriateOtp } = useSendExpatriateOtpMutation();
 
@@ -82,7 +82,7 @@ export default function BvnConfirmationScreen() {
         } else if (userType === 'expatriate') {
             sendExpatriateOtp(payload, { onSuccess });
         } else if (userType === 'citizen') {
-            sendNigerianEmailOtp({ verificationToken: verificationToken || '' }, { onSuccess, onError });
+            sendCitizenOtp({ verificationToken: verificationToken || '', verificationType: 'email' }, { onSuccess, onError });
         }
     };
 
@@ -137,8 +137,8 @@ export default function BvnConfirmationScreen() {
                 <PrimaryButton
                     title="Continue"
                     onPress={handleSendOtp}
-                    loading={isSendingTouristOtp || isSendingExpatriateOtp || isSendingNigerianEmailOtp}
-                    disabled={isSendingTouristOtp || isSendingExpatriateOtp || isSendingNigerianEmailOtp}
+                    loading={isSendingTouristOtp || isSendingExpatriateOtp || isSendingCitizenOtp}
+                    disabled={isSendingTouristOtp || isSendingExpatriateOtp || isSendingCitizenOtp}
                 />
             </View>
         </SafeAreaView >

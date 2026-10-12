@@ -11,7 +11,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.iamkennis.sohcahtoa",
       "infoPlist": {
-        "NSFaceIDUsageDescription": "Allows $(PRODUCT_NAME) to use Face ID for secure login."
+        "NSFaceIDUsageDescription": "Allows $(PRODUCT_NAME) to use Face ID for secure login.",
+        "UIViewControllerBasedStatusBarAppearance": false
       }
     },
     "android": {

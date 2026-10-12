@@ -92,31 +92,21 @@ export default function OtpVerificationScreen() {
 
         if (currentOtp.length === 6) {
             const onSuccess = (response: any) => {
-                // console.log(response, "OTP-response");
-
-                router.push({
-                    pathname: '/(auth)/bvn-confirmation',
-                    params: {
-                        userType: userType,
-                        verificationToken: response?.data?.verificationToken,
-                        firstName: response?.data?.firstName || '',
-                        lastName: response?.data?.lastName || '',
-                        phoneNumber: response?.data?.phoneNumber || '',
-                        email: response?.data?.email || '',
-                        address: response?.data?.address || '',
-                        dateOfBirth: response?.data?.dateOfBirth || '',
-                        flowContext: 'email'
-                    },
-                });
-                if (userType === 'tourist' || userType === 'expatriate' || type === 'reset-password') {
+                if (type === 'reset-password') {
                     router.push({
                         pathname: '/(auth)/secure-account',
                         params: {
-                            type: type,
-                            userType: userType || undefined,
-                            email: type === 'reset-password' ? contactInfo : undefined,
-                            otp: type === 'reset-password' ? currentOtp : undefined,
+                            type: 'reset-password',
+                            email: contactInfo,
+                            otp: currentOtp,
                             resetToken: response?.data?.resetToken,
+                        },
+                    });
+                } else {
+                    router.push({
+                        pathname: '/(auth)/secure-account',
+                        params: {
+                            userType: userType || 'citizen',
                         },
                     });
                 }
@@ -135,11 +125,7 @@ export default function OtpVerificationScreen() {
                 } else if (userType === 'expatriate') {
                     validateExpatriateOtp(payload, { onSuccess });
                 } else if (userType === 'citizen') {
-                    if (flowContext === 'email') {
-                        validateNigerianEmailOtp(payload);
-                    } else {
-                        validateOtp(payload, { onSuccess });
-                    }
+                    validateOtp(payload, { onSuccess });
                 }
             }
         }
@@ -157,17 +143,15 @@ export default function OtpVerificationScreen() {
         } else if (verificationToken) {
             const payload = {
                 verificationToken,
-                verificationType: target as 'phone' | 'email',
+                verificationType: (target as 'phone' | 'email') || 'email',
             };
 
             if (userType === 'tourist') {
                 resendTouristOtp(payload, { onSuccess });
             } else if (userType === 'expatriate') {
                 resendExpatriateOtp(payload, { onSuccess });
-            } else if (flowContext === 'email') {
-                resendEmailOtp({ verificationToken }, { onSuccess });
             } else {
-                resendOtp({ ...payload, verificationType: 'phone' }, { onSuccess });
+                resendOtp(payload, { onSuccess });
             }
         }
     };

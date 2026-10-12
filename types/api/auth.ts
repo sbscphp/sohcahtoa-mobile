@@ -80,11 +80,36 @@ export interface CreateAccountResponse {
 }
 
 export interface VerifyPassportPayload {
-    passportDocumentNumber: string;
+    passportDocumentNumber?: string;
+    passportNumber?: string;
+    firstName?: string;
+    lastName?: string;
+    passportDocumentUrl?: string;
 }
 
 export interface VerifyExpatriatePassportPayload {
-    bvnNumber: string;
+    passportNumber: string;
+    firstName: string;
+    lastName: string;
+    passportDocumentUrl: string;
+    email?: string;
+    phoneNumber?: string;
+}
+
+export interface VerifyExpatriatePassportResponse {
+    success: boolean;
+    data: {
+        verificationToken: string;
+        message: string;
+        firstName: string;
+        lastName: string;
+        dateOfBirth?: string;
+        email?: string;
+        phoneNumber?: string;
+        nationality?: string;
+        address?: string;
+        otp?: string;
+    };
 }
 
 export interface VerifyPassportResponse {
@@ -92,6 +117,14 @@ export interface VerifyPassportResponse {
     data: {
         verificationToken: string;
         message: string;
+        firstName?: string;
+        lastName?: string;
+        email?: string;
+        phoneNumber?: string;
+        dateOfBirth?: string;
+        nationality?: string;
+        address?: string;
+        otp?: string;
     };
 }
 
@@ -109,8 +142,18 @@ export interface SendTouristOtpResponse {
         dateOfBirth: string;
         nationality: string;
         otp: string;
+        verificationToken?: string;
+        email?: string;
+        phoneNumber?: string;
     };
 }
+
+export type SendExpatriateOtpPayload = SendTouristOtpPayload;
+export type SendExpatriateOtpResponse = SendTouristOtpResponse;
+
+export type ResendTouristOtpPayload = SendTouristOtpPayload;
+export type ResendExpatriateOtpPayload = SendTouristOtpPayload;
+export type ResendExpatriateOtpResponse = ResendTouristOtpResponse;
 
 export interface ValidateTouristOtpPayload {
     verificationToken: string;
@@ -125,8 +168,12 @@ export interface ValidateTouristOtpResponse {
         lastName: string;
         dateOfBirth: string;
         nationality: string;
+        verificationToken?: string;
     };
 }
+
+export type ValidateExpatriateOtpPayload = ValidateTouristOtpPayload;
+export type ValidateExpatriateOtpResponse = ValidateTouristOtpResponse;
 
 export interface CreateTouristAccountPayload {
     verificationToken: string;
@@ -140,6 +187,9 @@ export interface CreateTouristAccountResponse {
         message: string;
     };
 }
+
+export type CreateExpatriateAccountPayload = CreateTouristAccountPayload;
+export type CreateExpatriateAccountResponse = CreateTouristAccountResponse;
 
 export interface RefreshPayload {
     refreshToken: string;
@@ -341,5 +391,65 @@ export interface ValidateNigerianEmailOtpResponse {
     success: boolean;
     data: {
         message: string;
+    };
+}
+
+export interface InitiateIgreePayload {
+    bvn: string;
+    firstName: string;
+    lastName: string;
+    dateOfBirth: string;
+    phoneNumber: string;
+    email: string;
+}
+
+export interface InitiateIgreeResponse {
+    success: boolean;
+    data: {
+        state: string;
+        authUrl: string;
+        message: string;
+    };
+}
+
+export interface IgreeCallbackPayload {
+    code: string;
+    state: string;
+}
+
+export interface IgreeCallbackResponse {
+    success: boolean;
+    message: string;
+}
+
+export interface RetrieveIgreePayload {
+    sessionId: string;
+}
+
+export interface IgreeCustomer {
+    firstName: string;
+    lastName: string;
+    middleName?: string | null;
+    dateOfBirth: string;
+    gender: string;
+    maritalStatus?: string | null;
+    nationality?: string | null;
+    stateOfOrigin?: string | null;
+    lgaOfOrigin?: string | null;
+    nin?: string | null;
+    watchlisted?: boolean | null;
+    faceImage?: string | null;
+    email: string;
+    phoneNumber: string;
+    bvn: string;
+}
+
+export interface RetrieveIgreeResponse {
+    success: boolean;
+    data: {
+        status: 'COMPLETED' | 'PENDING' | 'FAILED' | string;
+        verificationToken: string;
+        customer: IgreeCustomer;
+        message?: string;
     };
 }

@@ -109,7 +109,7 @@ export default function SecureAccountScreen() {
                             isPassword
                             icon={Lock}
                             required
-                            disabled={!password}
+                            
                         />
 
                         <PasswordStrengthValidator password={password} />

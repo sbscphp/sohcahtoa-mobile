@@ -71,10 +71,21 @@ export type BVNFormData = z.infer<typeof bvnSchema>;
 
 // Passport validation schema
 export const passportSchema = z.object({
-    passportDocumentNumber: passportValidation,
+    firstName: z.string().min(1, 'First name is required'),
+    lastName: z.string().min(1, 'Last name is required'),
+    passportNumber: z.string().min(1, 'Passport number is required'),
+    passportDocumentUrl: z.string().min(1, 'Passport document is required'),
+    passportDocumentNumber: z.string().optional(),
+    email: z.string().email('Please enter a valid email address').optional().or(z.literal('')),
+    phoneNumber: phoneValidation.optional().or(z.literal('')),
 });
 
 export type PassportFormData = z.infer<typeof passportSchema>;
+
+// Expatriate passport validation schema
+export const expatriatePassportSchema = passportSchema;
+
+export type ExpatriatePassportFormData = PassportFormData;
 
 // OTP validation schema
 export const otpSchema = z.object({

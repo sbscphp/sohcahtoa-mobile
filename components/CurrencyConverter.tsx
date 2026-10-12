@@ -2,7 +2,7 @@ import { getCurrencySymbol } from '@/utils/helpers';
 import CurrencySelectionSheet from '@/components/CurrencySelectionSheet';
 import InputField from '@/components/InputField';
 import { ArrowDown2 } from 'iconsax-react-nativejs';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ActivityIndicator, Image, Pressable, Text, TouchableOpacity, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import SwapIcons from '../assets/icons/coins-swap.svg';

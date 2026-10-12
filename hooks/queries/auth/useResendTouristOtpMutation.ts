@@ -1,7 +1,7 @@
 import { useToastStore } from '@/stores/useToastStore';
 import { useMutation } from '@tanstack/react-query';
 import { resendTouristOtp } from '../../../services/auth';
-import { ResendTouristOtpResponse, SendTouristOtpPayload } from '../../../types/api/auth';
+import { ResendTouristOtpPayload, ResendTouristOtpResponse } from '../../../types/api/auth';
 
 interface UseResendTouristOtpMutationOptions {
     onSuccess?: (data: ResendTouristOtpResponse) => void;
@@ -12,7 +12,7 @@ export const useResendTouristOtpMutation = (options?: UseResendTouristOtpMutatio
     const showToast = useToastStore((state) => state.showToast);
 
     return useMutation({
-        mutationFn: (payload: SendTouristOtpPayload) => resendTouristOtp(payload),
+        mutationFn: (payload: ResendTouristOtpPayload) => resendTouristOtp(payload),
         onSuccess: (data: ResendTouristOtpResponse) => {
             if (data.success) {
                 const otpMessage = data.data.otp ? ` (OTP: ${data.data.otp})` : '';
