@@ -1,22 +1,54 @@
+import React, { useState, useEffect } from 'react';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { ScaledSheet, moderateScale } from 'react-native-size-matters';
+import { Add, Bank } from 'iconsax-react-nativejs';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+
 import Header from '@/components/Header';
 import PrimaryButton from '@/components/PrimaryButton';
 import ProgressBar from '@/components/ProgressBar';
-import { useRouter } from 'expo-router';
-import { Bank, Calendar } from 'iconsax-react-nativejs';
-import React, { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
-import { ScaledSheet, moderateScale } from 'react-native-size-matters';
-
-// Mock Data
-const BANKS = [
-    { id: 'sterling', name: 'Sterling Bank', account: '2224567890 - SOHCAHTOA LTD' },
-    { id: 'wema', name: 'Wema Bank', account: '2224567890 - SOHCAHTOA LTD' },
-];
+import LoadingBackdrop from '@/components/LoadingBackdrop';
+import GenericSelectionSheet from '@/components/GenericSelectionSheet';
+import AddBankAccountModal from '@/components/more/AddBankAccountModal';
+import { useGetSavedAccountsQuery } from '@/hooks/queries/banks/useGetSavedAccountsQuery';
+import { useAddBankAccount } from '@/hooks/useAddBankAccount';
 
 export default function DisbursementOptionsScreen() {
     const router = useRouter();
+    const { option } = useLocalSearchParams<{ option?: string }>();
+    const totalSteps = option === 'pickup' ? 5 : 4;
     const [selectedMethod, setSelectedMethod] = useState<'bank' | 'pickup'>('bank');
     const [selectedBank, setSelectedBank] = useState<string | null>(null);
+
+    const { data: savedAccountsResponse, isLoading: isLoadingAccounts } = useGetSavedAccountsQuery();
+    const savedAccounts = savedAccountsResponse?.data || [];
+
+    const {
+        addModalVisible,
+        setAddModalVisible,
+        bankSheetVisible,
+        setBankSheetVisible,
+        selectedBank: modalBank,
+        setSelectedBank: setModalBank,
+        accountNumber,
+        setAccountNumber,
+        accountName,
+        isResolving,
+        banks,
+        handleSave,
+        isSaving,
+    } = useAddBankAccount({
+        onSuccess: (newId) => {
+            if (newId) setSelectedBank(newId);
+        },
+    });
+
+    useEffect(() => {
+        if (!selectedBank && savedAccounts.length > 0) {
+            const defaultAcc = savedAccounts.find((a) => a.isDefault) || savedAccounts[0];
+            setSelectedBank(defaultAcc.id);
+        }
+    }, [savedAccounts, selectedBank]);
 
     const handleSubmit = () => {
         router.push('/(receive-fx)/success');
@@ -26,29 +58,19 @@ export default function DisbursementOptionsScreen() {
         <View style={styles.container}>
             <Header title="Receive Funds: IMTO" />
 
-            <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                style={{ flex: 1 }}
-            >
+            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
                 <ScrollView
                     style={styles.content}
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}
                 >
-                    <ProgressBar step={6} totalSteps={6} />
-
-                    <Text style={styles.sectionTitle}>
-                        How would you like your funds disbursed?
-                    </Text>
+                    <ProgressBar step={totalSteps} totalSteps={totalSteps} />
+                    <Text style={styles.sectionTitle}>How would you like your funds disbursed?</Text>
 
                     <View style={styles.optionsContainer}>
-
                         <View>
                             <TouchableOpacity
-                                style={[
-                                    styles.optionHeader,
-                                    selectedMethod === 'bank' && styles.optionHeaderSelected
-                                ]}
+                                style={[styles.optionHeader, selectedMethod === 'bank' && styles.optionHeaderSelected]}
                                 onPress={() => setSelectedMethod('bank')}
                                 activeOpacity={0.8}
                             >
@@ -59,30 +81,41 @@ export default function DisbursementOptionsScreen() {
                                 <View style={styles.optionContent}>
                                     <Text style={styles.subLabel}>Please select your preferred bank</Text>
 
-                                    <View style={styles.bankList}>
-                                        {BANKS.map((bank) => (
-                                            <TouchableOpacity
-                                                key={bank.id}
-                                                style={[
-                                                    styles.bankCard,
-                                                    selectedBank === bank.id && styles.bankCardSelected
-                                                ]}
-                                                onPress={() => setSelectedBank(bank.id)}
-                                                activeOpacity={0.8}
-                                            >
-                                                <View style={styles.bankIconContainer}>
-                                                    <Bank size={moderateScale(20)} color="#D97706" />
-                                                </View>
-                                                <View>
-                                                    <Text style={styles.bankName}>{bank.name}</Text>
-                                                    <Text style={styles.accountDetails}>{bank.account}</Text>
-                                                </View>
-                                            </TouchableOpacity>
-                                        ))}
-                                    </View>
+                                    {isLoadingAccounts ? (
+                                        <ActivityIndicator size="small" color="#F97316" style={{ marginVertical: moderateScale(16) }} />
+                                    ) : savedAccounts.length > 0 ? (
+                                        <View style={styles.bankList}>
+                                            {savedAccounts.map((account) => (
+                                                <TouchableOpacity
+                                                    key={account.id}
+                                                    style={[styles.bankCard, selectedBank === account.id && styles.bankCardSelected]}
+                                                    onPress={() => setSelectedBank(account.id)}
+                                                    activeOpacity={0.8}
+                                                >
+                                                    <View style={styles.bankIconContainer}>
+                                                        <Bank size={moderateScale(20)} color="#D97706" />
+                                                    </View>
+                                                    <View style={{ flex: 1 }}>
+                                                        <Text style={styles.bankName}>{account.bankName}</Text>
+                                                        <Text style={styles.accountDetails} numberOfLines={1}>
+                                                            {account.accountNumber} - {account.accountName}
+                                                        </Text>
+                                                    </View>
+                                                </TouchableOpacity>
+                                            ))}
+                                        </View>
+                                    ) : (
+                                        <View style={styles.emptyContainer}>
+                                            <Text style={styles.emptyText}>No saved bank accounts found. Please add a new account.</Text>
+                                        </View>
+                                    )}
 
-                                    <TouchableOpacity style={styles.addAccountButton}>
-                                        <Calendar size={moderateScale(18)} color="#F97316" />
+                                    <TouchableOpacity
+                                        style={styles.addAccountButton}
+                                        onPress={() => setAddModalVisible(true)}
+                                        activeOpacity={0.8}
+                                    >
+                                        <Add size={moderateScale(18)} color="#F97316" />
                                         <Text style={styles.addAccountText}>Add New Account</Text>
                                     </TouchableOpacity>
                                 </View>
@@ -90,17 +123,13 @@ export default function DisbursementOptionsScreen() {
                         </View>
 
                         <TouchableOpacity
-                            style={[
-                                styles.optionHeader,
-                                selectedMethod === 'pickup' && styles.optionHeaderSelected
-                            ]}
+                            style={[styles.optionHeader, selectedMethod === 'pickup' && styles.optionHeaderSelected]}
                             onPress={() => setSelectedMethod('pickup')}
                             activeOpacity={0.8}
                         >
                             <Text style={styles.optionTitle}>Branch Pickup</Text>
                         </TouchableOpacity>
                     </View>
-
                 </ScrollView>
             </KeyboardAvoidingView>
 
@@ -111,6 +140,36 @@ export default function DisbursementOptionsScreen() {
                     disabled={selectedMethod === 'bank' && !selectedBank}
                 />
             </View>
+
+            <AddBankAccountModal
+                visible={addModalVisible}
+                onClose={() => setAddModalVisible(false)}
+                onOpenBankSheet={() => setBankSheetVisible(true)}
+                selectedBank={modalBank}
+                accountNumber={accountNumber}
+                setAccountNumber={setAccountNumber}
+                accountName={accountName}
+                isResolving={isResolving}
+                onSave={handleSave}
+            />
+
+            <GenericSelectionSheet
+                visible={bankSheetVisible}
+                onClose={() => setBankSheetVisible(false)}
+                title="Select Bank"
+                headerIcon={Bank}
+                items={banks}
+                selectedItem={modalBank?.value || ''}
+                onSelect={(item) => {
+                    setModalBank(item);
+                    setBankSheetVisible(false);
+                }}
+                confirmButtonText="Select Bank"
+                searchable={true}
+                searchPlaceholder="Search bank..."
+            />
+
+            <LoadingBackdrop visible={isSaving} />
         </View>
     );
 }
@@ -206,6 +265,19 @@ const styles = ScaledSheet.create({
     accountDetails: {
         fontSize: '12@ms',
         color: '#94A3B8',
+    },
+    emptyContainer: {
+        padding: '16@ms',
+        marginHorizontal: '7@s',
+        marginBottom: '8@vs',
+        backgroundColor: '#F8FAFC',
+        borderRadius: '8@ms',
+        alignItems: 'center',
+    },
+    emptyText: {
+        fontSize: '13@ms',
+        color: '#64748B',
+        textAlign: 'center',
     },
     addAccountButton: {
         flexDirection: 'row',

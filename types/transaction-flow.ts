@@ -30,6 +30,7 @@ export interface PayoutMethodStepProps {
     setSelectedSavedAccountIds?: (ids: string[]) => void;
     isExpatriate?: boolean;
     isSellFx?: boolean;
+    banks?: any[];
 }
 
 export interface RefundBankDetailsStepProps {

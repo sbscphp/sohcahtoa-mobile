@@ -26,12 +26,21 @@ const STATUS_OPTIONS = [
 const TYPE_OPTIONS = [
     { label: 'PTA', value: 'PTA' },
     { label: 'BTA', value: 'BTA' },
+    { label: 'School Fees', value: 'SCHOOL_FEES' },
+    { label: 'Medical', value: 'MEDICAL' },
+    { label: 'Professional Body', value: 'PROFESSIONAL_BODY' },
+    { label: 'Touring', value: 'TOURING' },
+    { label: 'Resident', value: 'RESIDENT_FX' },
+    { label: 'Tourist', value: 'TOURIST_FX' },
+    { label: 'Expatriate', value: 'EXPATRIATE_FX' },
+    { label: 'IMTO Remittance', value: 'IMTO_REMITTANCE' },
+    { label: 'Cash Remittance', value: 'CASH_REMITTANCE' },
 ];
 
 const GROUP_OPTIONS = [
     { label: 'Buy FX', value: 'BUY' },
     { label: 'Sell FX', value: 'SELL' },
-    { label: 'Receive FX', value: 'REMITTANCE' },
+    { label: 'Others', value: 'REMITTANCE' },
 ];
 
 const CURRENCY_OPTIONS = [

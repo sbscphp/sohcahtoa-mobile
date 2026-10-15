@@ -6,7 +6,7 @@ import { useGetTransactionsQuery } from '@/hooks/queries/transactions/useGetTran
 import { Transaction } from '@/types/api/transactions';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Refresh } from 'iconsax-react-nativejs';
-import React, { useMemo, useState, useCallback } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { ActivityIndicator, SectionList, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
@@ -171,16 +171,6 @@ export default function AllTransactionsScreen() {
                     <Text style={styles.emptyDesc}>
                         No transaction available. Check back later
                     </Text>
-
-                    <View style={styles.buttonContainer}>
-                        <TouchableOpacity style={styles.buyButton} onPress={() => { /* Handle Buy FX */ }}>
-                            <Text style={styles.buyButtonText}>Buy FX</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity style={styles.sellButton} onPress={() => { /* Handle Sell FX */ }}>
-                            <Text style={styles.sellButtonText}>Sell FX</Text>
-                        </TouchableOpacity>
-                    </View>
                 </View>
             )}
 

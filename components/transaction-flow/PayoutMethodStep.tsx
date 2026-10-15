@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ArrowDown2, Bank } from 'iconsax-react-nativejs';
 import React from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
-import { moderateScale, s } from 'react-native-size-matters';
+import { moderateScale } from 'react-native-size-matters';
 import { useWatch } from 'react-hook-form';
 import { useAttachBankAccountsMutation } from '@/hooks/queries/transactions/useAttachBankAccountsMutation';
 import { useGetSavedAccountsQuery } from '@/hooks/queries/banks/useGetSavedAccountsQuery';
@@ -29,14 +29,33 @@ export default function PayoutMethodStep({
     setSelectedSavedAccountIds,
     isExpatriate = false,
     isSellFx = false,
+    banks,
 }: PayoutMethodStepProps) {
     const attachBankAccountsMutation = useAttachBankAccountsMutation();
     const { data: savedAccountsResponse } = useGetSavedAccountsQuery();
     const [bankSheetVisible, setBankSheetVisible] = React.useState(false);
     const { data: banksResponse } = useGetBanksQuery();
-    const banksList = React.useMemo(() =>
-        (banksResponse?.data || []).map(b => ({ id: b.code, label: b.name, value: b.code })),
-        [banksResponse]);
+
+    const banksList: SelectionItem[] = React.useMemo(() => {
+        if (banks && banks.length > 0) {
+            return banks.map((b: any) => ({
+                id: String(b.id || b.code || b.value || b.label),
+                label: b.label || b.name,
+                value: b.label || b.name,
+            }));
+        }
+
+        const apiBanks = Array.isArray(banksResponse)
+            ? banksResponse
+            : (banksResponse?.data || (banksResponse as any)?.banks || []);
+
+        return apiBanks.map((b: any) => ({
+            id: String(b.code || b.id || b.name),
+            label: b.name || b.label,
+            value: b.name || b.label,
+        }));
+    }, [banks, banksResponse]);
+
     const watchedBankName = useWatch({ control, name: 'domiciliaryBankName', defaultValue: '' });
 
     const localSavedAccounts = React.useMemo(() => {
@@ -79,6 +98,26 @@ export default function PayoutMethodStep({
 
     const isDomiciliaryFieldShown = isDomiciliary || isExpatriate;
 
+    const handleAccountSelect = (account: any, isSelected: boolean) => {
+        if (isMultiSelect) {
+            const nextIds = isSelected ? activeSelectedIds.filter(id => id !== account.id) : [...activeSelectedIds, account.id];
+            setActiveSelectedIds(nextIds);
+            const last = nextIds.length > 0 ? localSavedAccounts.find(a => a.id === nextIds[nextIds.length - 1]) : null;
+            setValue('customerBankName', last?.bankName || '');
+            setValue('customerBankCode', last?.bankCode || '');
+            setValue('customerAccountNumber', last?.accountNumber || '');
+            setValue('customerAccountName', last?.accountName || '');
+            if (transactionId) attachBankAccountsMutation.mutate({ transactionId, bankAccountIds: nextIds });
+        } else {
+            setSelectedSavedAccountId(account.id);
+            setValue('customerBankName', account.bankName);
+            setValue('customerBankCode', account.bankCode);
+            setValue('customerAccountNumber', account.accountNumber);
+            setValue('customerAccountName', account.accountName);
+            if (transactionId) attachBankAccountsMutation.mutate({ transactionId, bankAccountIds: [account.id] });
+        }
+    };
+
     return (
         <View style={{ gap: moderateScale(14) }}>
             <Text style={{ fontSize: moderateScale(16), fontWeight: '700', color: '#0F172A', marginBottom: moderateScale(4) }}>
@@ -119,50 +158,7 @@ export default function PayoutMethodStep({
                                 key={account.id}
                                 activeOpacity={0.9}
                                 disabled={attachBankAccountsMutation.isPending}
-                                onPress={() => {
-                                    if (isMultiSelect) {
-                                        const nextIds = isSelected
-                                            ? activeSelectedIds.filter(id => id !== account.id)
-                                            : [...activeSelectedIds, account.id];
-                                        
-                                        setActiveSelectedIds(nextIds);
-
-                                        if (nextIds.length > 0) {
-                                            const lastAccount = localSavedAccounts.find(a => a.id === nextIds[nextIds.length - 1]);
-                                            if (lastAccount) {
-                                                setValue('customerBankName', lastAccount.bankName);
-                                                setValue('customerBankCode', lastAccount.bankCode);
-                                                setValue('customerAccountNumber', lastAccount.accountNumber);
-                                                setValue('customerAccountName', lastAccount.accountName);
-                                            }
-                                        } else {
-                                            setValue('customerBankName', '');
-                                            setValue('customerBankCode', '');
-                                            setValue('customerAccountNumber', '');
-                                            setValue('customerAccountName', '');
-                                        }
-
-                                        if (transactionId) {
-                                            attachBankAccountsMutation.mutate({
-                                                transactionId,
-                                                bankAccountIds: nextIds,
-                                            });
-                                        }
-                                    } else {
-                                        setSelectedSavedAccountId(account.id);
-                                        setValue('customerBankName', account.bankName);
-                                        setValue('customerBankCode', account.bankCode);
-                                        setValue('customerAccountNumber', account.accountNumber);
-                                        setValue('customerAccountName', account.accountName);
-
-                                        if (transactionId) {
-                                            attachBankAccountsMutation.mutate({
-                                                transactionId,
-                                                bankAccountIds: [account.id],
-                                            });
-                                        }
-                                    }
-                                }}
+                                onPress={() => handleAccountSelect(account, isSelected)}
                                 style={{
                                     borderWidth: isSelected ? 1.5 : 1,
                                     borderColor: isSelected ? '#FF6B2C' : '#E2E8F0',
@@ -170,10 +166,6 @@ export default function PayoutMethodStep({
                                     borderRadius: moderateScale(12),
                                     paddingVertical: moderateScale(16),
                                     paddingHorizontal: moderateScale(16),
-                                    shadowColor: isSelected ? '#FF6B2C' : 'transparent',
-                                    shadowOffset: { width: 0, height: 1 },
-                                    shadowOpacity: isSelected ? 0.1 : 0,
-                                    shadowRadius: 2,
                                 }}
                             >
                                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -246,23 +238,10 @@ export default function PayoutMethodStep({
                         setValue('customerAccountName', '');
                         setIsAddingNewAccount(true);
                     }}
-                    style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        alignSelf: 'flex-end',
-                        marginTop: moderateScale(4),
-                        paddingHorizontal: moderateScale(4),
-                        paddingVertical: moderateScale(8)
-                    }}
+                    style={{ flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-end', marginTop: moderateScale(4), paddingHorizontal: moderateScale(4), paddingVertical: moderateScale(8) }}
                 >
                     <Ionicons name="add" size={moderateScale(18)} color="#FF6B2C" style={{ marginRight: moderateScale(4) }} />
-                    <Text style={{
-                        fontSize: moderateScale(14),
-                        fontWeight: '600',
-                        color: '#FF6B2C'
-                    }}>
-                        New Account
-                    </Text>
+                    <Text style={{ fontSize: moderateScale(14), fontWeight: '600', color: '#FF6B2C' }}>New Account</Text>
                 </TouchableOpacity>
             )}
 

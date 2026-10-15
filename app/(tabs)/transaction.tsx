@@ -18,6 +18,7 @@ const FILTER_TO_GROUP: Record<string, string | undefined> = {
     'All': undefined,
     'Buy FX': 'BUY',
     'Sell FX': 'SELL',
+    'Others': 'REMITTANCE',
     'Receive FX': 'REMITTANCE',
 };
 
@@ -44,7 +45,7 @@ export default function TransactionScreen() {
     const insets = useSafeAreaInsets();
     const [activeFilter, setActiveFilter] = useState('All');
 
-    const filters = ['All', 'Buy FX', 'Sell FX', 'Receive FX'];
+    const filters = ['All', 'Buy FX', 'Sell FX', 'Others'];
 
     const group = FILTER_TO_GROUP[activeFilter];
     const { data: transactionsData, isLoading, refetch } = useGetTransactionsQuery(

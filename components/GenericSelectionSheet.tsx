@@ -56,7 +56,7 @@ const GenericSelectionSheet: React.FC<GenericSelectionSheetProps> = ({
     }, [visible, selectedItem]);
 
     const handleConfirm = () => {
-        const item = items.find(i => i.value === tempSelected);
+        const item = items.find(i => i.value === tempSelected || i.label === tempSelected || i.id === tempSelected);
         if (item) {
             onSelect(item);
         }
@@ -112,7 +112,7 @@ const GenericSelectionSheet: React.FC<GenericSelectionSheetProps> = ({
 
                     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.listContainer}>
                         {filteredItems.map((item) => {
-                            const isSelected = tempSelected === item.value;
+                            const isSelected = tempSelected === item.value || tempSelected === item.label || tempSelected === item.id;
                             const ItemIcon = item.icon;
 
                             return (

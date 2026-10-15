@@ -9,7 +9,8 @@ import { Colors } from '../../constants/theme';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
-  const tintColor = Colors[colorScheme ?? 'light'].tint;
+  const theme = colorScheme === 'dark' ? 'dark' : 'light';
+  const tintColor = Colors[theme].tint;
   const user = useAuthStore((state) => state.user);
 
   const getInitials = () => {

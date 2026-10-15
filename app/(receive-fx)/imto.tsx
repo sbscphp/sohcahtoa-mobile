@@ -3,6 +3,7 @@ import InputField from '@/components/InputField';
 import PrimaryButton from '@/components/PrimaryButton';
 import ProgressBar from '@/components/ProgressBar';
 import { imtoSchema } from '@/utils/validations/imto';
+import { useReceiveFxRate } from '@/hooks/useReceiveFxRate';
 import { useRouter } from 'expo-router';
 import { InfoCircle, MoneyRecive } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
@@ -37,6 +38,7 @@ export default function ImtoScreen() {
     const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
 
     const router = useRouter();
+    const { formattedLimitNaira } = useReceiveFxRate();
 
     const handleValidate = () => {
         const errors: ValidationErrors = {};
@@ -94,7 +96,7 @@ export default function ImtoScreen() {
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}
                 >
-                    <ProgressBar step={1} totalSteps={6} />
+                    <ProgressBar step={1} totalSteps={4} />
 
                     <Text style={styles.sectionTitle}>
                         How would you like to receive your funds?
@@ -103,7 +105,7 @@ export default function ImtoScreen() {
                     <View style={styles.infoBanner}>
                         <InfoCircle size={moderateScale(20)} color="#F97316" variant="Bold" />
                         <Text style={styles.infoText}>
-                            Maximum USD cash pickup is <Text style={{ fontWeight: '700' }}>$500</Text>
+                            Maximum cash pickup is <Text style={{ fontWeight: '700' }}>{formattedLimitNaira}</Text>
                         </Text>
                     </View>
 

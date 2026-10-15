@@ -1,29 +1,20 @@
-import ProgressBar from '@/components/ProgressBar';
-import { useIgreeCallbackMutation } from '@/hooks/queries/auth/useIgreeCallbackMutation';
-import { useInitiateIgreeMutation } from '@/hooks/queries/auth/useInitiateIgreeMutation';
-import { useRetrieveIgreeMutation } from '@/hooks/queries/auth/useRetrieveIgreeMutation';
-import { useSendOtpMutation } from '@/hooks/queries/auth/useSendOtpMutation';
-import { useVerifyBvnMutation } from '@/hooks/queries/auth/useVerifyBvnMutation';
-import { BVNFormData, bvnSchema } from '@/lib/validations/auth';
-import { useAuthStore } from '@/stores/useAuthStore';
-import { useToastStore } from '@/stores/useToastStore';
-import * as Linking from 'expo-linking';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import * as WebBrowser from 'expo-web-browser';
-import React, { useEffect, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
+import React, { useState } from 'react';
+import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet } from 'react-native-size-matters';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { z } from 'zod';
-import AuthHeader from '../../components/AuthHeader';
-import DatePickerField from '../../components/DatePickerField';
-import IgreeConsentSheet from '../../components/IgreeConsentSheet';
-import InputField from '../../components/InputField';
-import NibssIgreeWebViewModal from '../../components/NibssIgreeWebViewModal';
-import OtpOptionSheet from '../../components/OtpOptionSheet';
-import PrimaryButton from '../../components/PrimaryButton';
 
-WebBrowser.maybeCompleteAuthSession();
+import ProgressBar from '@/components/ProgressBar';
+import AuthHeader from '../../components/AuthHeader';
+import PrimaryButton from '../../components/PrimaryButton';
+import OtpOptionSheet from '../../components/OtpOptionSheet';
+import IgreeConsentSheet from '../../components/IgreeConsentSheet';
+import NibssIgreeWebViewModal from '../../components/NibssIgreeWebViewModal';
+import BvnFormInputs from '@/components/auth/BvnFormInputs';
+import { useIgreeVerification } from '@/hooks/auth/useIgreeVerification';
+import { BVNFormData, bvnSchema } from '@/lib/validations/auth';
+import { useAuthStore } from '@/stores/useAuthStore';
 
 const formatDateForApi = (dob: string): string => {
     if (!dob) return '';
@@ -47,28 +38,11 @@ const formatPhoneNumberForApi = (phone: string): string => {
     return trimmed;
 };
 
-const extractCodeAndState = (urlStr: string) => {
-    try {
-        const parsed = Linking.parse(urlStr);
-        let code = (parsed.queryParams?.code as string) || '';
-        let state = (parsed.queryParams?.state as string) || '';
-
-        if ((!code || !state) && urlStr.includes('?')) {
-            const queryPart = urlStr.split('?')[1];
-            const searchParams = new URLSearchParams(queryPart);
-            code = code || searchParams.get('code') || '';
-            state = state || searchParams.get('state') || '';
-        }
-        return { code, state };
-    } catch {
-        return { code: '', state: '' };
-    }
-};
-
 export default function BvnVerificationScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const { userType } = useLocalSearchParams<{ userType?: string }>();
+
     const [bvn, setBvn] = useState('');
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
@@ -77,119 +51,37 @@ export default function BvnVerificationScreen() {
     const [dateOfBirth, setDateOfBirth] = useState('');
     const [errors, setErrors] = useState<Partial<Record<keyof BVNFormData, string>>>();
     const [isSheetVisible, setIsSheetVisible] = useState(false);
-    const [activeSessionId, setActiveSessionId] = useState<string>('');
-    const [authUrlToOpen, setAuthUrlToOpen] = useState<string>('');
-    const [isConsentSheetVisible, setIsConsentSheetVisible] = useState(false);
-    const [isWebViewVisible, setIsWebViewVisible] = useState(false);
-    const [isProcessingConsent, setIsProcessingConsent] = useState(false);
-    const [isPollingRetrieve, setIsPollingRetrieve] = useState(false);
-    const [callbackSubmitted, setCallbackSubmitted] = useState(false);
 
-    const pollingTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-    const { mutate: verifyBvn, isPending: isVerifyingCitizen } = useVerifyBvnMutation();
-    const { mutate: sendOtp, isPending: isSendingOtp } = useSendOtpMutation();
-    const { mutate: initiateIgree, isPending: isInitiatingIgree } = useInitiateIgreeMutation();
-    const { mutateAsync: submitIgreeCallbackAsync } = useIgreeCallbackMutation();
-    const { mutateAsync: retrieveIgreeAsync } = useRetrieveIgreeMutation();
-
-    const isPending = isVerifyingCitizen || isInitiatingIgree || isProcessingConsent || isPollingRetrieve;
-
-    useEffect(() => {
-        return () => {
-            if (pollingTimerRef.current) {
-                clearInterval(pollingTimerRef.current);
-            }
-        };
-    }, []);
-
-    const stopPolling = () => {
-        if (pollingTimerRef.current) {
-            clearInterval(pollingTimerRef.current);
-            pollingTimerRef.current = null;
-        }
-        setIsPollingRetrieve(false);
-    };
-
-    const startPollingRetrieve = (sessionId: string) => {
-        if (!sessionId) return;
-        stopPolling();
-        setIsPollingRetrieve(true);
-
-        let attempts = 0;
-        const maxAttempts = 24; // 24 * 2.5s = 60s
-
-        const poll = async () => {
-            attempts++;
-            try {
-                const retrieveRes = await retrieveIgreeAsync({ sessionId });
-                const status = retrieveRes.data?.status;
-
-                if (status === 'COMPLETED') {
-                    stopPolling();
-                    const customer = retrieveRes.data.customer;
-                    const verificationToken = retrieveRes.data.verificationToken;
-
-                    if (verificationToken) {
-                        useAuthStore.getState().setVerificationToken(verificationToken);
-                    }
-
-                    useAuthStore.getState().setTempUserInfo({
-                        firstName: customer?.firstName || firstName,
-                        lastName: customer?.lastName || lastName,
-                        phoneNumber: phoneNumber,
-                        email: email,
-                        dateOfBirth: customer?.dateOfBirth || dateOfBirth,
-                        address: [customer?.lgaOfOrigin, customer?.stateOfOrigin].filter(Boolean).join(', ') || '',
-                        nin: customer?.nin,
-                        bvn: bvn,
-                    });
-
-                    setIsConsentSheetVisible(false);
-
-                    router.push({
-                        pathname: '/(auth)/bvn-confirmation',
-                        params: {
-                            userType: userType || 'citizen',
-                            verificationToken: verificationToken,
-                            firstName: customer?.firstName || firstName,
-                            lastName: customer?.lastName || lastName,
-                            phoneNumber: phoneNumber,
-                            email: email,
-                            dateOfBirth: customer?.dateOfBirth || dateOfBirth,
-                            address: [customer?.lgaOfOrigin, customer?.stateOfOrigin].filter(Boolean).join(', ') || '',
-                            flowContext: 'email',
-                        },
-                    });
-                    return;
-                }
-
-                if (status === 'FAILED') {
-                    stopPolling();
-                    useToastStore.getState().showToast(
-                        retrieveRes.data?.message || 'BVN consent verification failed. Please restart verification.',
-                        'error'
-                    );
-                    setIsConsentSheetVisible(false);
-                    return;
-                }
-
-                // If PENDING or CONSENT_VERIFIED, keep polling until maxAttempts
-                if (attempts >= maxAttempts) {
-                    stopPolling();
-                    setIsConsentSheetVisible(true);
-                }
-            } catch (err: any) {
-                if (attempts >= maxAttempts) {
-                    stopPolling();
-                    setIsConsentSheetVisible(true);
-                }
-            }
-        };
-
-        poll();
-        pollingTimerRef.current = setInterval(poll, 2500);
-    };
+    const {
+        activeSessionId,
+        setActiveSessionId,
+        authUrlToOpen,
+        setAuthUrlToOpen,
+        isConsentSheetVisible,
+        setIsConsentSheetVisible,
+        isWebViewVisible,
+        setIsWebViewVisible,
+        isProcessingConsent,
+        isPollingRetrieve,
+        callbackSubmitted,
+        stopPolling,
+        startPollingRetrieve,
+        handleConsentCaptured,
+        handleCloseWebView,
+        verifyBvn,
+        sendOtp,
+        isSendingOtp,
+        initiateIgree,
+        isPending,
+    } = useIgreeVerification({
+        firstName,
+        lastName,
+        phoneNumber,
+        email,
+        dateOfBirth,
+        bvn,
+        userType,
+    });
 
     const validateField = (field: keyof BVNFormData, value: string) => {
         try {
@@ -200,85 +92,6 @@ export default function BvnVerificationScreen() {
                 setErrors((prev) => ({ ...prev, [field]: err.issues[0]?.message }));
             }
         }
-    };
-
-    const handleOpenBrowserSession = async (url: string, sessionId: string) => {
-        try {
-            setIsProcessingConsent(true);
-            let handledCallback = false;
-
-            const processCallbackUrl = async (callbackUrl: string) => {
-                if (handledCallback) return;
-                const { code, state: returnedState } = extractCodeAndState(callbackUrl);
-                const stateToUse = returnedState || sessionId;
-
-                if (code && stateToUse) {
-                    handledCallback = true;
-                    try {
-                        await submitIgreeCallbackAsync({ code, state: stateToUse });
-                        setCallbackSubmitted(true);
-                        startPollingRetrieve(stateToUse);
-                    } catch (err: any) {
-                        console.warn('Error submitting iGree callback:', err);
-                        useToastStore.getState().showToast(
-                            err.response?.data?.message || err.message || 'Failed to submit iGree consent',
-                            'error'
-                        );
-                        setIsConsentSheetVisible(true);
-                    }
-                }
-            };
-
-            const urlSubscription = typeof Linking.addEventListener === 'function'
-                ? Linking.addEventListener('url', (event) => {
-                    if (event.url.includes('code=') || event.url.includes('/igree')) {
-                        processCallbackUrl(event.url);
-                    }
-                })
-                : null;
-
-            // Redirect URI typically configured with NIBSS
-            const redirectUrl = Linking.createURL('/auth/nibss/igree/callback');
-            const result = await WebBrowser.openAuthSessionAsync(url, redirectUrl);
-
-            urlSubscription?.remove?.();
-
-            if (result.type === 'success' && result.url) {
-                await processCallbackUrl(result.url);
-            } else if (!handledCallback) {
-                // If user closes/cancels before redirect, DO NOT poll retrieve!
-                setIsConsentSheetVisible(true);
-            }
-        } catch (error) {
-            console.error('Consent session error:', error);
-            setIsConsentSheetVisible(true);
-        } finally {
-            setIsProcessingConsent(false);
-        }
-    };
-
-    const handleConsentCaptured = async (code: string, state: string) => {
-        setIsWebViewVisible(false);
-        setIsProcessingConsent(true);
-        try {
-            await submitIgreeCallbackAsync({ code, state });
-            setCallbackSubmitted(true);
-            startPollingRetrieve(state);
-        } catch (err: any) {
-            console.warn('Error submitting iGree callback:', err);
-            useToastStore.getState().showToast(
-                err.response?.data?.message || err.message || 'Failed to submit iGree consent',
-                'error'
-            );
-            setIsConsentSheetVisible(true);
-        } finally {
-            setIsProcessingConsent(false);
-        }
-    };
-
-    const handleCloseWebView = () => {
-        setIsWebViewVisible(false);
-        setIsConsentSheetVisible(true);
     };
 
     const handleContinue = () => {
@@ -331,15 +144,12 @@ export default function BvnVerificationScreen() {
 
     const handleOptionSelect = (option: 'phone' | 'email') => {
         const verificationToken = useAuthStore.getState().verificationToken;
-
-        if (!verificationToken) {
-            return;
-        }
+        if (!verificationToken) return;
 
         sendOtp(
             {
                 verificationToken,
-                verificationType: option
+                verificationType: option,
             },
             {
                 onSuccess: (response: any) => {
@@ -358,10 +168,10 @@ export default function BvnVerificationScreen() {
                             context: 'bvn',
                             target: option,
                             userType: userType || 'citizen',
-                            contactInfo: option === 'email' ? (email || response.data?.email) : (phoneNumber || response.data?.phoneNumber)
-                        }
+                            contactInfo: option === 'email' ? (email || response.data?.email) : (phoneNumber || response.data?.phoneNumber),
+                        },
                     });
-                }
+                },
             }
         );
     };
@@ -379,100 +189,22 @@ export default function BvnVerificationScreen() {
                     showsVerticalScrollIndicator={false}
                 >
                     <ProgressBar step={1} totalSteps={3} />
-
-                    <View style={styles.content}>
-                        <Text style={styles.title}>Enter your Bank verification Number (BVN)</Text>
-
-                        <InputField
-                            label="First Name"
-                            placeholder="Enter your first name"
-                            value={firstName}
-                            onChangeText={(text) => {
-                                setFirstName(text);
-                                if (errors?.firstName) validateField('firstName', text);
-                            }}
-                            onBlur={() => validateField('firstName', firstName)}
-                            required
-                            error={errors?.firstName}
-                        />
-
-                        <InputField
-                            label="Last Name"
-                            placeholder="Enter your last name"
-                            value={lastName}
-                            onChangeText={(text) => {
-                                setLastName(text);
-                                if (errors?.lastName) validateField('lastName', text);
-                            }}
-                            onBlur={() => validateField('lastName', lastName)}
-                            required
-                            error={errors?.lastName}
-                        />
-
-                        <InputField
-                            label="Email Address"
-                            placeholder="Enter your email address"
-                            value={email}
-                            onChangeText={(text) => {
-                                setEmail(text);
-                                if (errors?.email) validateField('email', text);
-                            }}
-                            onBlur={() => validateField('email', email)}
-                            keyboardType="email-address"
-                            autoCapitalize="none"
-                            required
-                            error={errors?.email}
-                        />
-
-                        <InputField
-                            label="Phone Number"
-                            placeholder="Enter your phone number"
-                            value={phoneNumber}
-                            onChangeText={(text) => {
-                                setPhoneNumber(text);
-                                if (errors?.phoneNumber) validateField('phoneNumber', text);
-                            }}
-                            onBlur={() => validateField('phoneNumber', phoneNumber)}
-                            keyboardType="phone-pad"
-                            required
-                            error={errors?.phoneNumber}
-                        />
-
-                        <View style={styles.datePickerContainer}>
-                            <DatePickerField
-                                label="Date of Birth"
-                                value={dateOfBirth}
-                                onDateChange={(date) => {
-                                    setDateOfBirth(date);
-                                    if (errors?.dateOfBirth) validateField('dateOfBirth', date);
-                                }}
-                                placeholder="DD/MM/YYYY"
-                                required
-                                maximumDate={new Date()}
-                                error={errors?.dateOfBirth}
-                            />
-                        </View>
-
-                        <InputField
-                            label="BVN"
-                            placeholder="Enter your BVN"
-                            value={bvn}
-                            onChangeText={(text) => {
-                                setBvn(text);
-                                if (errors?.bvn) validateField('bvn', text);
-                            }}
-                            onBlur={() => validateField('bvn', bvn)}
-                            keyboardType="numeric"
-                            maxLength={11}
-                            required
-                            error={errors?.bvn}
-                        />
-
-                        <Text style={styles.bvnHint}>
-                            If you can't remember, please dial{' '}
-                            <Text style={styles.bvnHintHighlight}>*565*0#</Text> with your registered SIM to get started.
-                        </Text>
-                    </View>
+                    <BvnFormInputs
+                        firstName={firstName}
+                        setFirstName={setFirstName}
+                        lastName={lastName}
+                        setLastName={setLastName}
+                        email={email}
+                        setEmail={setEmail}
+                        phoneNumber={phoneNumber}
+                        setPhoneNumber={setPhoneNumber}
+                        dateOfBirth={dateOfBirth}
+                        setDateOfBirth={setDateOfBirth}
+                        bvn={bvn}
+                        setBvn={setBvn}
+                        errors={errors}
+                        validateField={validateField}
+                    />
                 </ScrollView>
 
                 <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
@@ -535,30 +267,6 @@ const styles = ScaledSheet.create({
     },
     scrollContent: {
         paddingHorizontal: '24@s',
-    },
-    content: {
-        marginTop: '12@vs',
-    },
-    title: {
-        fontSize: '16@ms',
-        fontWeight: '500',
-        color: '#1E293B',
-        // lineHeight: '28@ms',
-        marginBottom: '24@vs',
-    },
-    datePickerContainer: {
-        marginBottom: '12@vs',
-    },
-    bvnHint: {
-        fontSize: '12@ms',
-        color: '#64748B',
-        lineHeight: '18@ms',
-        marginTop: '-6@vs',
-        marginBottom: '16@vs',
-    },
-    bvnHintHighlight: {
-        fontWeight: '600',
-        color: '#0F172A',
     },
     footer: {
         position: 'absolute',

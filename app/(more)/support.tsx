@@ -12,47 +12,7 @@ import { ChevronDown } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
-import FilePlus from '../../assets/icons/elements.svg';
-
-const SupportFileUpload = ({
-    onUpload,
-    onRemove,
-    file
-}: {
-    onUpload: () => void;
-    onRemove: () => void;
-    file: DocumentPicker.DocumentPickerAsset | null;
-}) => {
-    if (file) {
-
-        return (
-            <View style={styles.fileFilledContainer}>
-                <View style={styles.fileInfo}>
-                    <View style={styles.fileIconWrapper}>
-
-                        <FilePlus width={moderateScale(20)} height={moderateScale(20)} />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                        <Text style={styles.fileName} numberOfLines={1}>{file.name}</Text>
-                        <Text style={styles.fileSize}>{file.size ? `${(file.size / 1024).toFixed(0)} KB` : 'Unknown size'} – 100% uploaded</Text>
-                    </View>
-                </View>
-                <TouchableOpacity onPress={onRemove}>
-                    <Trash size={moderateScale(20)} color="#F97316" variant="Linear" />
-                </TouchableOpacity>
-            </View>
-        );
-    }
-
-    return (
-        <TouchableOpacity style={styles.fileEmptyContainer} onPress={onUpload}>
-            <View style={styles.uploadIconWrapper}>
-                <FilePlus width={moderateScale(20)} height={moderateScale(20)} />
-            </View>
-            <Text style={styles.uploadText}>Click to upload</Text>
-        </TouchableOpacity>
-    );
-};
+import SupportFileUpload from '@/components/more/SupportFileUpload';
 
 export default function SupportScreen() {
     const router = useRouter();
@@ -303,61 +263,4 @@ const styles = ScaledSheet.create({
     submitButton: {
         marginTop: '4@vs'
     },
-
-    fileEmptyContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: '16@ms',
-        borderWidth: 1,
-        borderColor: '#7e7f81ff',
-        borderRadius: '24@ms',
-        backgroundColor: '#FFFFFF',
-        height: '45@vs',
-        gap: '12@s'
-    },
-    uploadIconWrapper: {
-        width: '24@ms',
-        height: '24@ms',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    uploadText: {
-        fontSize: '14@ms',
-        color: '#94A3B8',
-        fontWeight: '400',
-    },
-    fileFilledContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '12@ms',
-        borderWidth: 1,
-        borderColor: '#E2E8F0',
-        borderRadius: '16@ms',
-        backgroundColor: '#FFFFFF',
-        height: '60@vs',
-    },
-    fileInfo: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: '12@s',
-        flex: 1,
-    },
-    fileIconWrapper: {
-        width: '32@ms',
-        height: '32@ms',
-        backgroundColor: '#F1F5F9', // Light background for icon
-        borderRadius: '8@ms',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    fileName: {
-        fontSize: '14@ms',
-        color: '#0F172A',
-        fontWeight: '500',
-    },
-    fileSize: {
-        fontSize: '12@ms',
-        color: '#64748B',
-    }
 });

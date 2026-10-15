@@ -350,7 +350,7 @@ export interface ResetPasswordPayload {
 
 export interface ResendOtpPayload {
     verificationToken: string;
-    verificationType: 'phone';
+    verificationType: 'phone' | 'email';
 }
 
 export interface ResendOtpResponse {
