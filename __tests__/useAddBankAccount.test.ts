@@ -86,3 +86,44 @@ describe('useAddBankAccount', () => {
         expect(mockSaveMutate).not.toHaveBeenCalled();
     });
 });
+
+describe('isNigerianAccount', () => {
+    const { isNigerianAccount } = require('../utils/banks');
+    const validBanks = [{ code: '011', name: 'First Bank' }, { code: '058', name: 'Guaranty Trust Bank' }];
+
+    it('identifies valid NGN accounts', () => {
+        const ngnAccount = {
+            id: '1',
+            bankName: 'First Bank',
+            accountNumber: '1234567890',
+            accountName: 'John Doe',
+            currency: 'NGN',
+        };
+        expect(isNigerianAccount(ngnAccount, validBanks)).toBe(true);
+    });
+
+    it('rejects foreign or domiciliary accounts', () => {
+        const domAccount = {
+            id: '2',
+            bankName: 'First Bank',
+            accountNumber: '1234567890',
+            currency: 'USD',
+        };
+        expect(isNigerianAccount(domAccount, validBanks)).toBe(false);
+
+        const swiftAccount = {
+            id: '3',
+            bankName: 'First Bank',
+            accountNumber: '1234567890',
+            swiftCode: 'FBNINGLA',
+        };
+        expect(isNigerianAccount(swiftAccount, validBanks)).toBe(false);
+
+        const markedDom = {
+            id: '4',
+            bankName: 'First Bank',
+            isDomiciliary: true,
+        };
+        expect(isNigerianAccount(markedDom, validBanks)).toBe(false);
+    });
+});

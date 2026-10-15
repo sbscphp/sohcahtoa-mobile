@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import { Add, Bank } from 'iconsax-react-nativejs';
@@ -11,17 +11,24 @@ import LoadingBackdrop from '@/components/LoadingBackdrop';
 import GenericSelectionSheet from '@/components/GenericSelectionSheet';
 import AddBankAccountModal from '@/components/more/AddBankAccountModal';
 import { useGetSavedAccountsQuery } from '@/hooks/queries/banks/useGetSavedAccountsQuery';
+import { useGetBanksQuery } from '@/hooks/queries/banks/useGetBanksQuery';
 import { useAddBankAccount } from '@/hooks/useAddBankAccount';
+import { isNigerianAccount } from '@/utils/banks';
 
 export default function DisbursementOptionsScreen() {
     const router = useRouter();
     const { option } = useLocalSearchParams<{ option?: string }>();
-    const totalSteps = option === 'pickup' ? 5 : 4;
+    const totalSteps = 5;
     const [selectedMethod, setSelectedMethod] = useState<'bank' | 'pickup'>('bank');
     const [selectedBank, setSelectedBank] = useState<string | null>(null);
 
     const { data: savedAccountsResponse, isLoading: isLoadingAccounts } = useGetSavedAccountsQuery();
-    const savedAccounts = savedAccountsResponse?.data || [];
+    const { data: banksResponse } = useGetBanksQuery();
+    const savedAccounts = useMemo(() => {
+        const raw = savedAccountsResponse?.data || [];
+        const validBanks = banksResponse?.data || [];
+        return raw.filter((acc) => isNigerianAccount(acc, validBanks));
+    }, [savedAccountsResponse, banksResponse]);
 
     const {
         addModalVisible,
@@ -121,14 +128,6 @@ export default function DisbursementOptionsScreen() {
                                 </View>
                             )}
                         </View>
-
-                        <TouchableOpacity
-                            style={[styles.optionHeader, selectedMethod === 'pickup' && styles.optionHeaderSelected]}
-                            onPress={() => setSelectedMethod('pickup')}
-                            activeOpacity={0.8}
-                        >
-                            <Text style={styles.optionTitle}>Branch Pickup</Text>
-                        </TouchableOpacity>
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>

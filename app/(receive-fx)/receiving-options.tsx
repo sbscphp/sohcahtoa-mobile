@@ -18,12 +18,12 @@ export default function ReceivingOptionsScreen() {
     const handleContinue = () => {
         if (selectedOption === 'pickup') {
             router.push({
-                pathname: '/(receive-fx)/split-payment',
+                pathname: '/(receive-fx)/pickup-location',
                 params: { option: 'pickup', usdAmount },
             });
         } else {
             router.push({
-                pathname: '/(receive-fx)/disbursement-options',
+                pathname: '/(receive-fx)/split-payment',
                 params: { option: 'convert' },
             });
         }
@@ -42,7 +42,7 @@ export default function ReceivingOptionsScreen() {
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}
                 >
-                    <ProgressBar step={3} totalSteps={selectedOption === 'pickup' ? 5 : 4} />
+                    <ProgressBar step={3} totalSteps={selectedOption === 'convert' ? 5 : 4} />
 
                     <Text style={styles.sectionTitle}>
                         How would you like to receive your funds?
@@ -78,9 +78,9 @@ export default function ReceivingOptionsScreen() {
                             onPress={() => setSelectedOption('pickup')}
                             activeOpacity={0.8}
                         >
-                            <Text style={styles.optionTitle}>Request cash pick up</Text>
+                            <Text style={styles.optionTitle}>Request USD cash pick up</Text>
                             <Text style={styles.optionDescription}>
-                                A portion of the amount will be able for cash pickup, and the rest will be sent as a bank transfer.
+                                A portion of the amount will be able for cash pickup in USD, and the rest will be sent as a bank transfer.
                             </Text>
                         </TouchableOpacity>
                     </View>

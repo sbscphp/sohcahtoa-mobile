@@ -3,7 +3,7 @@ import Header from '@/components/Header';
 import PrimaryButton from '@/components/PrimaryButton';
 import ProgressBar from '@/components/ProgressBar';
 import { useReceiveFxRate } from '@/hooks/useReceiveFxRate';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { InfoCircle } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
@@ -11,6 +11,7 @@ import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 
 export default function SplitPaymentScreen() {
     const router = useRouter();
+    const { option } = useLocalSearchParams<{ option?: string }>();
     const { rate, formattedLimitNaira } = useReceiveFxRate();
     const [transactionType, setTransactionType] = useState<'buy' | 'sell'>('buy');
 
@@ -41,7 +42,7 @@ export default function SplitPaymentScreen() {
     const handleContinue = () => {
         router.push({
             pathname: '/(receive-fx)/disbursement-options',
-            params: { option: 'pickup' },
+            params: { option: option || 'convert' },
         });
     };
 
@@ -81,9 +82,17 @@ export default function SplitPaymentScreen() {
                     <View style={styles.infoBanner}>
                         <InfoCircle size={moderateScale(20)} color="#F97316" variant="Bold" />
                         <View style={{ flex: 1 }}>
-                            <Text style={styles.infoTitle}>Request cash pick up</Text>
+                            <Text style={styles.infoTitle}>
+                                {option === 'pickup' ? 'Request cash pick up' : 'Exchange Rate Details'}
+                            </Text>
                             <Text style={styles.infoText}>
-                                A portion of the amount will be able for cash pickup, and the rest will be sent as a bank transfer. <Text style={{ fontWeight: '700' }}>Maximum cash pick up is {formattedLimitNaira}</Text>
+                                {option === 'pickup' ? (
+                                    <>
+                                        A portion of the amount will be able for cash pickup, and the rest will be sent as a bank transfer. <Text style={{ fontWeight: '700' }}>Maximum cash pick up is {formattedLimitNaira}</Text>
+                                    </>
+                                ) : (
+                                    `Funds will be converted to Naira at the rate of USD 1 - NGN ${rate.toLocaleString()} and disbursed to your account.`
+                                )}
                             </Text>
                         </View>
                     </View>
