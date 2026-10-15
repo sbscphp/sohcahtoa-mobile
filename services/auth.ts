@@ -1,4 +1,4 @@
-import { CreateAccountPayload, CreateAccountResponse, CreateTouristAccountPayload, CreateTouristAccountResponse, ForgotPasswordPayload, ForgotPasswordResponse, LoginPayload, LoginResponse, LogoutPayload, LogoutResponse, PassportStatusResponse, ProfileResponse, RefreshPayload, RefreshResponse, ResendEmailOtpPayload, ResendEmailOtpResponse, ResendOtpPayload, ResendOtpResponse, ResendTouristOtpResponse, ResetPasswordPayload, SendEmailOtpResponse, SendNigerianEmailOtpPayload, SendOtpPayload, SendOtpResponse, SendTouristOtpPayload, SendTouristOtpResponse, UploadPassportResponse, ValidateForgotPasswordOtpPayload, ValidateForgotPasswordOtpResponse, ValidateNigerianEmailOtpPayload, ValidateNigerianEmailOtpResponse, ValidateOtpPayload, ValidateOtpResponse, ValidateTouristOtpPayload, ValidateTouristOtpResponse, VerifyBvnPayload, VerifyBvnResponse, VerifyExpatriatePassportPayload, VerifyKycPayload, VerifyKycResponse, VerifyPassportPayload, VerifyPassportResponse } from '@/types/api/auth';
+import { CreateAccountPayload, CreateAccountResponse, CreateExpatriateAccountPayload, CreateExpatriateAccountResponse, CreateTouristAccountPayload, CreateTouristAccountResponse, ForgotPasswordPayload, ForgotPasswordResponse, IgreeCallbackPayload, IgreeCallbackResponse, InitiateIgreePayload, InitiateIgreeResponse, LoginPayload, LoginResponse, LogoutPayload, LogoutResponse, PassportStatusResponse, ProfileResponse, RefreshPayload, RefreshResponse, ResendEmailOtpPayload, ResendEmailOtpResponse, ResendExpatriateOtpPayload, ResendExpatriateOtpResponse, ResendOtpPayload, ResendOtpResponse, ResendTouristOtpPayload, ResendTouristOtpResponse, ResetPasswordPayload, RetrieveIgreePayload, RetrieveIgreeResponse, SendEmailOtpResponse, SendExpatriateOtpPayload, SendExpatriateOtpResponse, SendNigerianEmailOtpPayload, SendOtpPayload, SendOtpResponse, SendTouristOtpPayload, SendTouristOtpResponse, UploadPassportResponse, ValidateExpatriateOtpPayload, ValidateExpatriateOtpResponse, ValidateForgotPasswordOtpPayload, ValidateForgotPasswordOtpResponse, ValidateNigerianEmailOtpPayload, ValidateNigerianEmailOtpResponse, ValidateOtpPayload, ValidateOtpResponse, ValidateTouristOtpPayload, ValidateTouristOtpResponse, VerifyBvnPayload, VerifyBvnResponse, VerifyExpatriatePassportPayload, VerifyExpatriatePassportResponse, VerifyKycPayload, VerifyKycResponse, VerifyPassportPayload, VerifyPassportResponse } from '@/types/api/auth';
 import api from './api';
 
 export const loginUser = async (credentials: LoginPayload): Promise<LoginResponse> => {
@@ -36,7 +36,7 @@ export const verifyPassport = async (payload: VerifyPassportPayload): Promise<Ve
     return response.data;
 };
 
-export const verifyExpatriatePassport = async (payload: VerifyExpatriatePassportPayload): Promise<VerifyPassportResponse> => {
+export const verifyExpatriatePassport = async (payload: VerifyExpatriatePassportPayload): Promise<VerifyExpatriatePassportResponse> => {
     const response = await api.post('/auth/signup/expatriate/verify-passport', payload);
     return response.data;
 };
@@ -46,7 +46,7 @@ export const sendTouristOtp = async (payload: SendTouristOtpPayload): Promise<Se
     return response.data;
 };
 
-export const sendExpatriateOtp = async (payload: SendTouristOtpPayload): Promise<SendTouristOtpResponse> => {
+export const sendExpatriateOtp = async (payload: SendExpatriateOtpPayload): Promise<SendExpatriateOtpResponse> => {
     const response = await api.post('/auth/signup/expatriate/send-otp', payload);
     return response.data;
 };
@@ -56,7 +56,7 @@ export const validateTouristOtp = async (payload: ValidateTouristOtpPayload): Pr
     return response.data;
 };
 
-export const validateExpatriateOtp = async (payload: ValidateTouristOtpPayload): Promise<ValidateTouristOtpResponse> => {
+export const validateExpatriateOtp = async (payload: ValidateExpatriateOtpPayload): Promise<ValidateExpatriateOtpResponse> => {
     const response = await api.post('/auth/signup/expatriate/validate-otp', payload);
     return response.data;
 };
@@ -66,7 +66,7 @@ export const createTouristAccount = async (payload: CreateTouristAccountPayload)
     return response.data;
 };
 
-export const createExpatriateAccount = async (payload: CreateTouristAccountPayload): Promise<CreateTouristAccountResponse> => {
+export const createExpatriateAccount = async (payload: CreateExpatriateAccountPayload): Promise<CreateExpatriateAccountResponse> => {
     const response = await api.post('/auth/signup/expatriate/create-account', payload);
     return response.data;
 };
@@ -129,18 +129,33 @@ export const resendEmailOtp = async (payload: ResendEmailOtpPayload): Promise<Re
     return response.data;
 };
 
-export const resendTouristOtp = async (payload: SendTouristOtpPayload): Promise<ResendTouristOtpResponse> => {
+export const resendTouristOtp = async (payload: ResendTouristOtpPayload): Promise<ResendTouristOtpResponse> => {
     const response = await api.post('/auth/signup/tourist/resend-otp', payload);
     return response.data;
 };
 
-export const resendExpatriateOtp = async (payload: SendTouristOtpPayload): Promise<ResendTouristOtpResponse> => {
+export const resendExpatriateOtp = async (payload: ResendExpatriateOtpPayload): Promise<ResendExpatriateOtpResponse> => {
     const response = await api.post('/auth/signup/expatriate/resend-otp', payload);
     return response.data;
 };
 
 export const validateNigerianEmailOtp = async (payload: ValidateNigerianEmailOtpPayload): Promise<ValidateNigerianEmailOtpResponse> => {
     const response = await api.post('/auth/signup/nigerian/validate-email-otp', payload);
+    return response.data;
+};
+
+export const initiateIgree = async (payload: InitiateIgreePayload): Promise<InitiateIgreeResponse> => {
+    const response = await api.post('/auth/signup/nigerian/igree/initiate', payload);
+    return response.data;
+};
+
+export const submitIgreeCallback = async (payload: IgreeCallbackPayload): Promise<IgreeCallbackResponse> => {
+    const response = await api.post('/auth/nibss/igree/callback', payload);
+    return response.data;
+};
+
+export const retrieveIgree = async (payload: RetrieveIgreePayload): Promise<RetrieveIgreeResponse> => {
+    const response = await api.post('/auth/signup/nigerian/igree/retrieve', payload);
     return response.data;
 };
 

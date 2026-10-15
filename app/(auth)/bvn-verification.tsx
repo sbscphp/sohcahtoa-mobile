@@ -1,84 +1,165 @@
-import ProgressBar from '@/components/ProgressBar';
-import { useSendOtpMutation } from '@/hooks/queries/auth/useSendOtpMutation';
-import { useVerifyBvnMutation } from '@/hooks/queries/auth/useVerifyBvnMutation';
-import { bvnSchema } from '@/lib/validations/auth';
-import { useAuthStore } from '@/stores/useAuthStore';
-import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet } from 'react-native-size-matters';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { z } from 'zod';
+
+import ProgressBar from '@/components/ProgressBar';
 import AuthHeader from '../../components/AuthHeader';
-import InputField from '../../components/InputField';
-import OtpOptionSheet from '../../components/OtpOptionSheet';
 import PrimaryButton from '../../components/PrimaryButton';
+import OtpOptionSheet from '../../components/OtpOptionSheet';
+import IgreeConsentSheet from '../../components/IgreeConsentSheet';
+import NibssIgreeWebViewModal from '../../components/NibssIgreeWebViewModal';
+import BvnFormInputs from '@/components/auth/BvnFormInputs';
+import { useIgreeVerification } from '@/hooks/auth/useIgreeVerification';
+import { BVNFormData, bvnSchema } from '@/lib/validations/auth';
+import { useAuthStore } from '@/stores/useAuthStore';
+
+const formatDateForApi = (dob: string): string => {
+    if (!dob) return '';
+    if (dob.includes('-')) return dob;
+    const parts = dob.split('/');
+    if (parts.length === 3) {
+        const [day, month, year] = parts;
+        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    }
+    return dob;
+};
+
+const formatPhoneNumberForApi = (phone: string): string => {
+    const trimmed = phone.trim();
+    if (trimmed.startsWith('0')) {
+        return `+234${trimmed.slice(1)}`;
+    }
+    if (trimmed.startsWith('234')) {
+        return `+${trimmed}`;
+    }
+    return trimmed;
+};
 
 export default function BvnVerificationScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const { userType } = useLocalSearchParams<{ userType?: string }>();
+
     const [bvn, setBvn] = useState('');
-    const [error, setError] = useState<string>();
+    const [firstName, setFirstName] = useState('');
+    const [lastName, setLastName] = useState('');
+    const [email, setEmail] = useState('');
+    const [phoneNumber, setPhoneNumber] = useState('');
+    const [dateOfBirth, setDateOfBirth] = useState('');
+    const [errors, setErrors] = useState<Partial<Record<keyof BVNFormData, string>>>();
     const [isSheetVisible, setIsSheetVisible] = useState(false);
 
-    const { mutate: verifyBvn, isPending: isVerifyingCitizen } = useVerifyBvnMutation();
-    const { mutate: sendOtp, isPending: isSendingOtp } = useSendOtpMutation();
+    const {
+        activeSessionId,
+        setActiveSessionId,
+        authUrlToOpen,
+        setAuthUrlToOpen,
+        isConsentSheetVisible,
+        setIsConsentSheetVisible,
+        isWebViewVisible,
+        setIsWebViewVisible,
+        isProcessingConsent,
+        isPollingRetrieve,
+        callbackSubmitted,
+        stopPolling,
+        startPollingRetrieve,
+        handleConsentCaptured,
+        handleCloseWebView,
+        verifyBvn,
+        sendOtp,
+        isSendingOtp,
+        initiateIgree,
+        isPending,
+    } = useIgreeVerification({
+        firstName,
+        lastName,
+        phoneNumber,
+        email,
+        dateOfBirth,
+        bvn,
+        userType,
+    });
 
-    const isPending = isVerifyingCitizen 
-
-
-
-    const validateBvn = (value: string) => {
+    const validateField = (field: keyof BVNFormData, value: string) => {
         try {
-            bvnSchema.parse({ bvn: value });
-            setError(undefined);
+            bvnSchema.shape[field].parse(value);
+            setErrors((prev) => ({ ...prev, [field]: undefined }));
         } catch (err) {
             if (err instanceof z.ZodError) {
-                setError(err.issues[0]?.message);
+                setErrors((prev) => ({ ...prev, [field]: err.issues[0]?.message }));
             }
         }
     };
 
     const handleContinue = () => {
         try {
-            bvnSchema.parse({ bvn });
-            setError(undefined);
+            bvnSchema.parse({ bvn, firstName, lastName, email, phoneNumber, dateOfBirth });
+            setErrors(undefined);
 
-            if (userType === 'citizen' || userType === 'expatriate') {
+            if (userType === 'expatriate') {
                 verifyBvn({ bvn }, {
                     onSuccess: () => {
                         setIsSheetVisible(true);
                     }
                 });
+            } else {
+                initiateIgree(
+                    {
+                        bvn,
+                        firstName,
+                        lastName,
+                        dateOfBirth: formatDateForApi(dateOfBirth),
+                        phoneNumber: formatPhoneNumberForApi(phoneNumber),
+                        email,
+                    },
+                    {
+                        onSuccess: (response) => {
+                            const authUrl = response.data?.authUrl;
+                            const state = response.data?.state;
+                            if (authUrl && state) {
+                                setActiveSessionId(state);
+                                setAuthUrlToOpen(authUrl);
+                                setIsWebViewVisible(true);
+                            }
+                        },
+                    }
+                );
             }
         } catch (err) {
             if (err instanceof z.ZodError) {
-                setError(err.issues[0]?.message);
+                const fieldErrors: Partial<Record<keyof BVNFormData, string>> = {};
+                err.issues.forEach((issue) => {
+                    const field = issue.path[0] as keyof BVNFormData;
+                    if (field && !fieldErrors[field]) {
+                        fieldErrors[field] = issue.message;
+                    }
+                });
+                setErrors(fieldErrors);
             }
         }
     };
 
     const handleOptionSelect = (option: 'phone' | 'email') => {
         const verificationToken = useAuthStore.getState().verificationToken;
-
-        if (!verificationToken) {
-            return;
-        }
+        if (!verificationToken) return;
 
         sendOtp(
             {
                 verificationToken,
-                verificationType: option
+                verificationType: option,
             },
             {
                 onSuccess: (response: any) => {
                     useAuthStore.getState().setTempUserInfo({
-                        firstName: response.data.firstName || '',
-                        lastName: response.data.lastName || '',
-                        phoneNumber: response.data.phoneNumber || '',
-                        email: response.data.email || '',
-                        address: response.data.address || '',
+                        firstName: firstName || response.data?.firstName || '',
+                        lastName: lastName || response.data?.lastName || '',
+                        phoneNumber: phoneNumber || response.data?.phoneNumber || '',
+                        email: email || response.data?.email || '',
+                        dateOfBirth: dateOfBirth || response.data?.dateOfBirth || '',
+                        address: response.data?.address || '',
                     });
                     setIsSheetVisible(false);
                     router.push({
@@ -87,14 +168,13 @@ export default function BvnVerificationScreen() {
                             context: 'bvn',
                             target: option,
                             userType: userType || 'citizen',
-                            contactInfo: option === 'email' ? response.data.email : response.data.phoneNumber
-                        }
+                            contactInfo: option === 'email' ? (email || response.data?.email) : (phoneNumber || response.data?.phoneNumber),
+                        },
                     });
-                }
+                },
             }
         );
     };
-
 
     return (
         <SafeAreaView style={styles.container}>
@@ -109,25 +189,22 @@ export default function BvnVerificationScreen() {
                     showsVerticalScrollIndicator={false}
                 >
                     <ProgressBar step={1} totalSteps={3} />
-
-                    <View style={styles.content}>
-                        <Text style={styles.title}>Enter your Bank verification Number (BVN)</Text>
-
-                        <InputField
-                            label="BVN"
-                            placeholder="Enter your BVN"
-                            value={bvn}
-                            onChangeText={(text) => {
-                                setBvn(text);
-                                if (error) validateBvn(text);
-                            }}
-                            onBlur={() => validateBvn(bvn)}
-                            keyboardType="numeric"
-                            maxLength={11}
-                            required
-                            error={error}
-                        />
-                    </View>
+                    <BvnFormInputs
+                        firstName={firstName}
+                        setFirstName={setFirstName}
+                        lastName={lastName}
+                        setLastName={setLastName}
+                        email={email}
+                        setEmail={setEmail}
+                        phoneNumber={phoneNumber}
+                        setPhoneNumber={setPhoneNumber}
+                        dateOfBirth={dateOfBirth}
+                        setDateOfBirth={setDateOfBirth}
+                        bvn={bvn}
+                        setBvn={setBvn}
+                        errors={errors}
+                        validateField={validateField}
+                    />
                 </ScrollView>
 
                 <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
@@ -145,6 +222,39 @@ export default function BvnVerificationScreen() {
                     onSelect={handleOptionSelect}
                     loading={isSendingOtp}
                 />
+
+                <IgreeConsentSheet
+                    isVisible={isConsentSheetVisible}
+                    onClose={() => {
+                        stopPolling();
+                        setIsConsentSheetVisible(false);
+                    }}
+                    onCheckStatus={() => {
+                        if (callbackSubmitted && activeSessionId) {
+                            startPollingRetrieve(activeSessionId);
+                        } else if (authUrlToOpen) {
+                            setIsConsentSheetVisible(false);
+                            setIsWebViewVisible(true);
+                        }
+                    }}
+                    onReopenBrowser={() => {
+                        setIsConsentSheetVisible(false);
+                        handleContinue();
+                    }}
+                    checkingStatus={isPollingRetrieve || isProcessingConsent}
+                />
+
+                <NibssIgreeWebViewModal
+                    isVisible={isWebViewVisible}
+                    authUrl={authUrlToOpen}
+                    sessionId={activeSessionId}
+                    onClose={handleCloseWebView}
+                    onConsentCaptured={handleConsentCaptured}
+                    onRestartFreshSession={() => {
+                        setIsWebViewVisible(false);
+                        handleContinue();
+                    }}
+                />
             </KeyboardAvoidingView>
         </SafeAreaView>
     );
@@ -157,16 +267,6 @@ const styles = ScaledSheet.create({
     },
     scrollContent: {
         paddingHorizontal: '24@s',
-    },
-    content: {
-        marginTop: '12@vs',
-    },
-    title: {
-        fontSize: '16@ms',
-        fontWeight: '500',
-        color: '#1E293B',
-        // lineHeight: '28@ms',
-        marginBottom: '24@vs',
     },
     footer: {
         position: 'absolute',

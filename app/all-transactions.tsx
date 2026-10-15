@@ -6,7 +6,7 @@ import { useGetTransactionsQuery } from '@/hooks/queries/transactions/useGetTran
 import { Transaction } from '@/types/api/transactions';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Refresh } from 'iconsax-react-nativejs';
-import React, { useMemo, useState, useCallback } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { ActivityIndicator, SectionList, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
@@ -107,7 +107,7 @@ export default function AllTransactionsScreen() {
                     </View>
                     <View style={styles.itemContent}>
                         <View style={styles.itemTopRow}>
-                            <Text style={styles.itemTitle} numberOfLines={1}>{item.purpose || item.type}</Text>
+                            <Text style={styles.itemTitle} numberOfLines={2}>{item.purpose || item.type}</Text>
                             <Text style={styles.itemAmount}>{formatAmount(item.foreignAmount, item.currency)}</Text>
                         </View>
                         <View style={styles.itemBottomRow}>
@@ -123,19 +123,11 @@ export default function AllTransactionsScreen() {
     };
 
     const renderFooter = () => {
-        if (!hasNextPage) return null;
+        if (!isFetchingNextPage) return null;
         return (
-            <TouchableOpacity
-                style={styles.loadMoreButton}
-                disabled={isFetchingNextPage}
-                onPress={() => fetchNextPage()}
-            >
-                {isFetchingNextPage ? (
-                    <ActivityIndicator size="small" color="#FF6B2C" />
-                ) : (
-                    <Text style={styles.loadMoreButtonText}>Load More</Text>
-                )}
-            </TouchableOpacity>
+            <View style={styles.footerLoader}>
+                <ActivityIndicator size="small" color="#FF6B2C" />
+            </View>
         );
     };
 
@@ -163,6 +155,12 @@ export default function AllTransactionsScreen() {
                     stickySectionHeadersEnabled={false}
                     showsVerticalScrollIndicator={false}
                     ListFooterComponent={renderFooter}
+                    onEndReached={() => {
+                        if (hasNextPage && !isFetchingNextPage) {
+                            fetchNextPage();
+                        }
+                    }}
+                    onEndReachedThreshold={0.5}
                 />
             ) : (
                 <View style={styles.emptyContainer}>
@@ -173,16 +171,6 @@ export default function AllTransactionsScreen() {
                     <Text style={styles.emptyDesc}>
                         No transaction available. Check back later
                     </Text>
-
-                    <View style={styles.buttonContainer}>
-                        <TouchableOpacity style={styles.buyButton} onPress={() => { /* Handle Buy FX */ }}>
-                            <Text style={styles.buyButtonText}>Buy FX</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity style={styles.sellButton} onPress={() => { /* Handle Sell FX */ }}>
-                            <Text style={styles.sellButtonText}>Sell FX</Text>
-                        </TouchableOpacity>
-                    </View>
                 </View>
             )}
 
@@ -254,14 +242,14 @@ const styles = ScaledSheet.create({
         alignItems: 'center',
     },
     itemTitle: {
-        fontSize: '14@ms',
+        fontSize: '13@ms',
         fontWeight: '500',
         color: '#1E293B',
         flex: 1,
         marginRight: '8@s',
     },
     itemAmount: {
-        fontSize: '14@ms',
+        fontSize: '13@ms',
         fontWeight: '600',
         color: '#0F172A',
     },
@@ -275,7 +263,7 @@ const styles = ScaledSheet.create({
         borderRadius: '12@ms',
     },
     statusText: {
-        fontSize: '11@ms',
+        fontSize: '10.5@ms',
         fontWeight: '500',
     },
     emptyContainer: {
@@ -330,20 +318,9 @@ const styles = ScaledSheet.create({
         fontSize: '16@ms',
         fontWeight: '600',
     },
-    loadMoreButton: {
-        paddingVertical: '12@vs',
-        borderRadius: '8@ms',
-        backgroundColor: '#F1F5F9',
-        borderWidth: 1,
-        borderColor: '#E2E8F0',
+    footerLoader: {
+        paddingVertical: '16@vs',
         alignItems: 'center',
         justifyContent: 'center',
-        marginTop: '16@vs',
-        marginBottom: '24@vs',
-    },
-    loadMoreButtonText: {
-        fontSize: '13@ms',
-        fontWeight: '600',
-        color: '#0F172A',
     },
 });

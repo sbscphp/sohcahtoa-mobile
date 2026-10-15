@@ -30,7 +30,7 @@ export default function SupportDetailsScreen() {
 
     const ticket = data?.data;
 
-    // console.log(ticket);
+    // console.log(JSON.stringify(ticket, null, 2), "TICKET");
 
     if (isLoading) {
         return (
@@ -58,6 +58,14 @@ export default function SupportDetailsScreen() {
     const formattedDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     const formattedTime = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 
+    const formatCommentDate = (dateStr: string) => {
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return dateStr;
+        const commentFormattedDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        const commentFormattedTime = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+        return `${commentFormattedDate} • ${commentFormattedTime}`;
+    };
+
     return (
         <View style={styles.container}>
             <Header title="View request" />
@@ -72,6 +80,26 @@ export default function SupportDetailsScreen() {
                     <DetailRow label="Date & Time" value={`${formattedDate} • ${formattedTime}`} />
                     <DetailRow label="Customer ID" value={ticket.reference || 'N/A'} />
                 </View>
+
+                {ticket.comments && ticket.comments.length > 0 && (
+                    <View style={styles.commentsSection}>
+                        <View style={styles.commentsHeaderRow}>
+                            <Text style={styles.sectionTitle}>Comments</Text>
+                            <View style={styles.commentCountBadge}>
+                                <Text style={styles.commentCountText}>{ticket.comments.length}</Text>
+                            </View>
+                        </View>
+
+                        <View style={styles.commentsList}>
+                            {ticket.comments.map((comment, index) => (
+                                <View key={comment.id || index} style={styles.commentCard}>
+                                    <Text style={styles.commentMessage}>{comment.message}</Text>
+                                    <Text style={styles.commentDate}>{formatCommentDate(comment.createdAt)}</Text>
+                                </View>
+                            ))}
+                        </View>
+                    </View>
+                )}
             </ScrollView>
         </View>
     );
@@ -151,5 +179,48 @@ const styles = ScaledSheet.create({
     errorText: {
         fontSize: '14@ms',
         color: '#EF4444',
+    },
+    commentsSection: {
+        marginTop: '12@vs',
+        marginBottom: '40@vs',
+    },
+    commentsHeaderRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: '8@s',
+    },
+    commentCountBadge: {
+        backgroundColor: '#F1F5F9',
+        paddingHorizontal: '8@s',
+        paddingVertical: '2@vs',
+        borderRadius: '12@ms',
+        marginTop: '4@vs',
+    },
+    commentCountText: {
+        fontSize: '11@ms',
+        fontWeight: '600',
+        color: '#64748B',
+    },
+    commentsList: {
+        gap: '12@vs',
+    },
+    commentCard: {
+        backgroundColor: '#F8FAFC',
+        borderRadius: '12@ms',
+        padding: '14@ms',
+        borderWidth: 1,
+        borderColor: '#F1F5F9',
+        gap: '6@vs',
+    },
+    commentMessage: {
+        fontSize: '13@ms',
+        color: '#1E293B',
+        lineHeight: '20@ms',
+        fontWeight: '400',
+    },
+    commentDate: {
+        fontSize: '11@ms',
+        color: '#94A3B8',
+        fontWeight: '400',
     },
 });

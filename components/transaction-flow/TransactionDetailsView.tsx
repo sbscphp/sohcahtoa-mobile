@@ -29,7 +29,10 @@ interface TransactionDetailsViewProps {
     documents?: DocumentItem[];
     documentSectionTitle?: string;
     beneficiaryDetails?: DetailItem[];
+    domiciliaryDetails?: DetailItem[];
+    beneficiarySectionTitle?: string;
     paymentDetails?: DetailItem[];
+    refundBankDetails?: DetailItem[];
     disbursementDetails?: DisbursementDetails;
     settlementDetails?: DetailItem[];
     bankAccountsDetails?: DetailItem[];
@@ -64,7 +67,10 @@ export default function TransactionDetailsView({
     documents = [],
     documentSectionTitle = "Required Document",
     beneficiaryDetails,
+    domiciliaryDetails,
+    beneficiarySectionTitle,
     paymentDetails,
+    refundBankDetails,
     disbursementDetails,
     settlementDetails,
     bankAccountsDetails,
@@ -117,6 +123,8 @@ export default function TransactionDetailsView({
         );
     };
 
+    const resolvedBeneficiaryTitle = beneficiarySectionTitle || "Beneficiary Details";
+
     return (
         <View style={styles.container}>
             <Text style={styles.sectionHeader}>Transaction Details</Text>
@@ -129,10 +137,24 @@ export default function TransactionDetailsView({
                 </>
             )}
 
-            {beneficiaryDetails && beneficiaryDetails.length > 0 && !(bankAccountsDetails && bankAccountsDetails.length > 0) && (
+            {beneficiaryDetails && beneficiaryDetails.length > 0 && (
                 <>
-                    <Text style={[styles.sectionHeader, { marginTop: moderateScale(62) }]}>Beneficiary Details</Text>
+                    <Text style={[styles.sectionHeader, { marginTop: moderateScale(62) }]}>{resolvedBeneficiaryTitle}</Text>
                     {beneficiaryDetails.map((item, index) => renderDetailRow(item, index, beneficiaryDetails.length))}
+                </>
+            )}
+
+            {domiciliaryDetails && domiciliaryDetails.length > 0 && (
+                <>
+                    <Text style={[styles.sectionHeader, { marginTop: moderateScale(62) }]}>Domiciliary Bank Details</Text>
+                    {domiciliaryDetails.map((item, index) => renderDetailRow(item, index, domiciliaryDetails.length))}
+                </>
+            )}
+
+            {refundBankDetails && refundBankDetails.length > 0 && !(bankAccountsDetails && bankAccountsDetails.length > 0) && (
+                <>
+                    <Text style={[styles.sectionHeader, { marginTop: moderateScale(62) }]}>Refund Bank Details</Text>
+                    {refundBankDetails.map((item, index) => renderDetailRow(item, index, refundBankDetails.length))}
                 </>
             )}
 
@@ -145,7 +167,7 @@ export default function TransactionDetailsView({
 
             {bankAccountsDetails && bankAccountsDetails.length > 0 && (
                 <>
-                    <Text style={[styles.sectionHeader, { marginTop: moderateScale(62) }]}>Bank Details</Text>
+                    <Text style={[styles.sectionHeader, { marginTop: moderateScale(62) }]}>Refund Bank Details</Text>
                     {bankAccountsDetails.map((item, index) => renderDetailRow(item, index, bankAccountsDetails.length))}
                 </>
             )}
@@ -183,33 +205,41 @@ export default function TransactionDetailsView({
                                 return base.substring(0, Math.max(0, keep)) + '...' + ext;
                             };
 
-                            return documents.map((doc, index) => (
-                                <View key={index}>
-                                    {doc.value ? (
-                                        <View style={styles.detailRow}>
-                                            <Text style={styles.detailLabel}>{doc.label}</Text>
-                                            <Text style={styles.detailValue}>{doc.value}</Text>
-                                        </View>
-                                    ) : (
-                                        <View style={styles.docRow}>
-                                            <Text style={styles.detailLabel}>{doc.label}</Text>
-                                            <TouchableOpacity
-                                                style={styles.downloadContainer}
-                                                onPress={() => {
-                                                    if (doc.fileUrl) {
-                                                        Linking.openURL(doc.fileUrl).catch(err => console.error("Couldn't open URL", err));
-                                                    }
-                                                }}
-                                                disabled={!doc.fileUrl}
-                                            >
-                                                <Text style={styles.docName} numberOfLines={1}>{truncateFileName(doc.fileName)}</Text>
-                                                <FileText size={moderateScale(16)} color={doc.fileUrl ? "#FF6813" : "rgba(152, 162, 179, 1)"} />
-                                            </TouchableOpacity>
-                                        </View>
-                                    )}
-                                    {index < documents.length - 1 && <View style={[styles.separator, { marginTop: verticalScale(12) }]} />}
-                                </View>
-                            ));
+                            return documents.map((doc, index) => {
+                                const isInitialsDoc = Boolean(
+                                    doc.value ||
+                                    (!doc.fileUrl && doc.fileName && (!doc.fileName.includes('.') || doc.fileName.length <= 5))
+                                );
+                                const displayValue = doc.value || doc.fileName;
+
+                                return (
+                                    <View key={index}>
+                                        {isInitialsDoc ? (
+                                            <View style={styles.detailRow}>
+                                                <Text style={styles.detailLabel}>{doc.label}</Text>
+                                                <Text style={styles.detailValue}>{displayValue}</Text>
+                                            </View>
+                                        ) : (
+                                            <View style={styles.docRow}>
+                                                <Text style={styles.detailLabel}>{doc.label}</Text>
+                                                <TouchableOpacity
+                                                    style={styles.downloadContainer}
+                                                    onPress={() => {
+                                                        if (doc.fileUrl) {
+                                                            Linking.openURL(doc.fileUrl).catch(err => console.error("Couldn't open URL", err));
+                                                        }
+                                                    }}
+                                                    disabled={!doc.fileUrl}
+                                                >
+                                                    <Text style={styles.docName} numberOfLines={1}>{truncateFileName(doc.fileName)}</Text>
+                                                    <FileText size={moderateScale(16)} color={doc.fileUrl ? "#FF6813" : "rgba(152, 162, 179, 1)"} />
+                                                </TouchableOpacity>
+                                            </View>
+                                        )}
+                                        {index < documents.length - 1 && <View style={[styles.separator, { marginTop: verticalScale(12) }]} />}
+                                    </View>
+                                );
+                            });
                         })()}
                         <View style={styles.separator} />
                     </>

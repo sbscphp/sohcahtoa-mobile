@@ -6,7 +6,7 @@ import TransactionViewLayout from '@/components/transaction-flow/TransactionView
 import { useGetTransactionByIdQuery } from '@/hooks/queries/transactions/useGetTransactionByIdQuery';
 import { useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useToastStore } from '@/stores/useToastStore';
-import { commonDocTypeLabels, getTransactionDocuments, formatDate, formatTime, formatTimeWithSeconds, formatCurrency } from '@/utils/helpers';
+import { commonDocTypeLabels, getTransactionDocuments, getTransactionUploadedDocs, buildTransactionDocsItems, formatDate, formatTime, formatTimeWithSeconds, formatPickupTime, formatCurrency, getCurrencySymbol, mapApiStatusToViewStatus, isPaymentRequired, getTransactionMessage } from '@/utils/helpers';
 import { useLocalSearchParams, useRouter, useFocusEffect, useNavigation } from 'expo-router';
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import { ActivityIndicator, View, BackHandler } from 'react-native';
@@ -34,6 +34,8 @@ export default function ViewSchoolFeesScreen() {
     const tx = txResponse?.data;
     const showToast = useToastStore(s => s.showToast);
 
+    // console.log(JSON.stringify(tx, null, 2), "TX");
+
     useFocusEffect(
         useCallback(() => {
             refetch();
@@ -48,11 +50,7 @@ export default function ViewSchoolFeesScreen() {
         onError: () => showToast('Failed to upload document. Please try again.', 'error'),
     });
 
-    const mapStatus = (s: string): TransactionStatus => {
-        const map: Record<string, TransactionStatus> = { 'DRAFT': 'pending', 'AWAITING_VERIFICATION': 'pending', 'VERIFICATION_IN_PROGRESS': 'pending', 'VERIFICATION_COMPLETED': 'pending', 'AWAITING_DEPOSIT': 'awaiting_disbursement', 'DEPOSIT_PENDING': 'awaiting_disbursement', 'DEPOSIT_CONFIRMED': 'awaiting_disbursement', 'COMPLIANCE_REVIEW': 'pending', 'ADMIN_APPROVAL_PENDING': 'pending', 'APPROVED': 'approved', 'DISBURSEMENT_IN_PROGRESS': 'awaiting_disbursement', 'COMPLETED': 'settled', 'REJECTED': 'rejected', 'CANCELLED': 'rejected' };
-        return map[s] || 'pending';
-    };
-    const status: TransactionStatus = tx ? mapStatus(tx.status) : 'pending';
+    const status: TransactionStatus = tx ? mapApiStatusToViewStatus(tx.status) : 'pending';
     const handleBack = () => {
         if (fromSuccess === 'true') {
             router.replace('/(tabs)');
@@ -72,7 +70,7 @@ export default function ViewSchoolFeesScreen() {
         return [
             { label: 'Transaction ID', value: tx.referenceNumber },
             { label: 'Amount (₦)', value: formatCurrency(tx.nairaEquivalent) },
-            { label: 'Equivalent Amount (FX)', value: formatCurrency(tx.foreignAmount, tx.currency === 'USD' ? '$' : tx.currency === 'GBP' ? '£' : tx.currency === 'EUR' ? '€' : tx.currency) },
+            { label: 'Equivalent Amount (FX)', value: formatCurrency(tx.foreignAmount, getCurrencySymbol(tx.currency)) },
             { label: 'Date Initiated', value: `${formatDate(tx.createdAt)}\n${formatTimeWithSeconds(tx.createdAt)}` },
             ...(tx.cashPickup ? [
                 {
@@ -80,70 +78,143 @@ export default function ViewSchoolFeesScreen() {
                     value: tx.cashPickup.pickupLocation || 'N/A',
                     isRightAligned: true
                 },
-                ...((tx.cashPickup.scheduledPickupDate || tx.cashPickup.schedulePickupDate) ? [{
-                    label: 'Pickup Date',
-                    value: formatDate(tx.cashPickup.scheduledPickupDate || tx.cashPickup.schedulePickupDate),
-                    isRightAligned: true
-                }] : []),
-                ...((tx.cashPickup.scheduledPickupTime || tx.cashPickup.schedulePickupTime) ? [{
-                    label: 'Pickup Time',
-                    value: tx.cashPickup.scheduledPickupTime || tx.cashPickup.schedulePickupTime,
-                    isRightAligned: true
-                }] : []),
+                 {
+                    label: 'Pickup Address',
+                    value: tx.cashPickup.pickupAddress || tx.pickupLocation?.address,
+                    isRightAligned: true,
+                },
+                {
+                    label: 'Pickup Phone',
+                    value: tx.cashPickup.pickupPhone || 'N/A',
+                    isRightAligned: true,
+                },
+                {
+                    label: 'Scheduled Date',
+                    value: (tx.cashPickup.scheduledPickupDate || tx.cashPickup.schedulePickupDate || tx.cashPickup.pickupDate || (tx as any).scheduledPickupDate || (tx as any).schedulePickupDate || (tx as any).pickupDate) ? formatDate(tx.cashPickup.scheduledPickupDate || tx.cashPickup.schedulePickupDate || tx.cashPickup.pickupDate || (tx as any).scheduledPickupDate || (tx as any).schedulePickupDate || (tx as any).pickupDate) : 'N/A',
+                    isRightAligned: true,
+                },
+                {
+                    label: 'Scheduled Time',
+                    value: formatPickupTime(tx.cashPickup.scheduledPickupTime || tx.cashPickup.schedulePickupTime || tx.cashPickup.pickupTime || (tx as any).scheduledPickupTime || (tx as any).schedulePickupTime || (tx as any).pickupTime) || 'N/A',
+                    isRightAligned: true,
+                },
             ] : []),
         ];
     }, [tx]);
     const detailsDocuments = useMemo(() => {
         if (!tx) return [];
         const docs = getTransactionDocuments(tx);
-
-        const uploadedDocs = tx.requiredDocuments.filter(d => !!d.uploaded).map(d => ({
-            label: commonDocTypeLabels[d.type] || d.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
-            fileName: d.uploaded!.fileName,
-            fileUrl: d.uploaded!.fileUrl,
-        }));
+        const uploadedDocs = getTransactionUploadedDocs(tx);
         return [...docs, ...uploadedDocs];
     }, [tx]);
     
+    const getVal = (primaryVal: any, ...keys: string[]): any => {
+        if (primaryVal !== undefined && primaryVal !== null && primaryVal !== '') {
+            return primaryVal;
+        }
+        if (tx?.steps && Array.isArray(tx.steps)) {
+            for (const step of tx.steps) {
+                if (step.data && typeof step.data === 'object') {
+                    for (const key of keys) {
+                        const keyParts = key.split('.');
+                        let current = step.data;
+                        for (const k of keyParts) {
+                            if (current && typeof current === 'object') {
+                                current = current[k];
+                            } else {
+                                current = undefined;
+                                break;
+                            }
+                        }
+                        if (current !== undefined && current !== null && current !== '') {
+                            return current;
+                        }
+                    }
+                }
+            }
+        }
+        return undefined;
+    };
+
     const beneficiaryItems = useMemo(() => {
-        const details = (tx?.beneficiaryDetails || tx?.paymentDetails) as any;
-        if (!tx || !details) return undefined;
+        if (!tx) return [];
+        // console.log(tx.personalInfo)
+        const studentName = getVal(
+            (tx as any).studentName || (tx.personalInfo as any)?.studentName || (tx.beneficiaryDetails as any)?.studentName,
+            'studentName', 'beneficiaryDetails.studentName'
+        );
+        const studentNIN = getVal(
+            (tx as any).studentNin || (tx.personalInfo as any)?.studentNin || (tx.beneficiaryDetails as any)?.studentNin,
+            'studentNin', 'beneficiaryDetails.studentNin'
+        );
+        const studentPassportNumber = getVal(
+            (tx as any).studentPassportNumber || (tx.personalInfo as any)?.studentPassportNumber || (tx.beneficiaryDetails as any)?.studentPassportDocumentNumber,
+            'studentPassportNumber', 'studentPassportDocumentNumber', 'beneficiaryDetails.studentPassportDocumentNumber'
+        );
+        const studentPassportIssueDate = getVal(
+            (tx as any).studentPassportIssueDate || (tx.personalInfo as any)?.studentPassportIssueDate || (tx.beneficiaryDetails as any)?.studentPassportIssueDate,
+            'studentPassportIssueDate', 'beneficiaryDetails.studentPassportIssueDate'
+        );
+        const studentPassportExpiryDate = getVal(
+            (tx as any).studentPassportExpiryDate || (tx.personalInfo as any)?.studentPassportExpiryDate || (tx.beneficiaryDetails as any)?.studentPassportExpiryDate,
+            'studentPassportExpiryDate', 'beneficiaryDetails.studentPassportExpiryDate'
+        );
+        const admissionType = getVal((tx as any).admissionType || (tx.personalInfo as any)?.admissionType, 'admissionType');
+
+        const schoolName = getVal((tx.beneficiaryDetails as any)?.schoolName || (tx.beneficiaryDetails as any)?.organizationName, 'schoolName', 'beneficiaryDetails.schoolName', 'beneficiaryDetails.organizationName');
+        const email = getVal((tx.beneficiaryDetails as any)?.email || (tx.beneficiaryDetails as any)?.beneficiaryEmail, 'email', 'beneficiaryEmail', 'beneficiaryDetails.email', 'beneficiaryDetails.beneficiaryEmail');
+        const phone = getVal((tx.beneficiaryDetails as any)?.phoneNumber || (tx.beneficiaryDetails as any)?.phone || (tx.beneficiaryDetails as any)?.beneficiaryPhone, 'phoneNumber', 'phone', 'beneficiaryPhone', 'beneficiaryDetails.phoneNumber', 'beneficiaryDetails.phone', 'beneficiaryDetails.beneficiaryPhone');
+        const address = getVal((tx.beneficiaryDetails as any)?.address || (tx.beneficiaryDetails as any)?.beneficiaryAddress, 'address', 'beneficiaryAddress', 'beneficiaryDetails.address', 'beneficiaryDetails.beneficiaryAddress');
+        const city = getVal((tx.beneficiaryDetails as any)?.city || (tx.beneficiaryDetails as any)?.beneficiaryCity, 'city', 'beneficiaryCity', 'beneficiaryDetails.city', 'beneficiaryDetails.beneficiaryCity');
+        const state = getVal((tx.beneficiaryDetails as any)?.state || (tx.beneficiaryDetails as any)?.beneficiaryState, 'state', 'beneficiaryState', 'beneficiaryDetails.state', 'beneficiaryDetails.beneficiaryState');
+        const country = getVal((tx.beneficiaryDetails as any)?.country || (tx.beneficiaryDetails as any)?.beneficiaryCountry, 'country', 'beneficiaryCountry', 'beneficiaryDetails.country', 'beneficiaryDetails.beneficiaryCountry');
+        const bankName = getVal((tx.beneficiaryDetails as any)?.bankName, 'bankName', 'beneficiaryDetails.bankName');
+        const bankAccountName = getVal((tx.beneficiaryDetails as any)?.bankAccountName, 'bankAccountName', 'beneficiaryDetails.bankAccountName');
+        const bankAccountNumber = getVal((tx.beneficiaryDetails as any)?.bankAccountNumber || (tx.beneficiaryDetails as any)?.accountNumber, 'bankAccountNumber', 'beneficiaryDetails.bankAccountNumber', 'accountNumber', 'beneficiaryDetails.accountNumber');
+        const bankAccountAddress = getVal((tx.beneficiaryDetails as any)?.bankAccountAddress || (tx.beneficiaryDetails as any)?.bankAddress, 'bankAccountAddress', 'beneficiaryDetails.bankAccountAddress', 'bankAddress', 'beneficiaryDetails.bankAddress');
+        const bankAccountSwiftCode = getVal((tx.beneficiaryDetails as any)?.bankAccountSwiftCode || (tx.beneficiaryDetails as any)?.swiftCode, 'bankAccountSwiftCode', 'beneficiaryDetails.bankAccountSwiftCode', 'swiftCode', 'beneficiaryDetails.swiftCode');
+        const bankAccountIban = getVal((tx.beneficiaryDetails as any)?.bankAccountIban || (tx.beneficiaryDetails as any)?.iban, 'bankAccountIban', 'beneficiaryDetails.bankAccountIban', 'iban', 'beneficiaryDetails.iban');
+        const routingNumber = getVal((tx.beneficiaryDetails as any)?.routingNumber, 'routingNumber', 'beneficiaryDetails.routingNumber');
+        const paymentReference = getVal((tx.beneficiaryDetails as any)?.paymentReference, 'paymentReference', 'beneficiaryDetails.paymentReference');
+        
+        const correspondenceBankName = getVal((tx.beneficiaryDetails as any)?.correspondenceBankName, 'correspondenceBankName', 'beneficiaryDetails.correspondenceBankName');
+        const correspondenceBankAddress = getVal((tx.beneficiaryDetails as any)?.correspondenceBankAddress, 'correspondenceBankAddress', 'beneficiaryDetails.correspondenceBankAddress');
+        const correspondenceBankSwiftCode = getVal((tx.beneficiaryDetails as any)?.correspondenceBankSwiftCode, 'correspondenceBankSwiftCode', 'beneficiaryDetails.correspondenceBankSwiftCode');
+
         return [
-            ...(details.studentName ? [{ label: 'Student Name', value: details.studentName }] : []),
-            ...(details.studentPassportNumber ? [{ label: 'Student Passport Number', value: details.studentPassportNumber }] : []),
-            ...(details.admissionNumber ? [{ label: 'Admission Number', value: details.admissionNumber }] : []),
-            { label: 'Beneficiary Name', value: details.bankAccountName || details.name },
-            ...(details.address ? [{ label: 'Beneficiary Address', value: details.address }] : []),
-            ...(details.country ? [{ label: 'Country', value: details.country }] : []),
-            ...(details.bankName ? [{ label: 'Bank Name', value: details.bankName }] : []),
-            { label: 'Account Number', value: details.bankAccountNumber || details.accountNumber },
-            ...(details.bankAccountAddress || details.bankAddress ? [{ label: 'Bank Address', value: details.bankAccountAddress || details.bankAddress }] : []),
-            ...(details.bankAccountSwiftCode || details.swiftCode ? [{ label: 'SWIFT Code', value: details.bankAccountSwiftCode || details.swiftCode }] : []),
-            ...(details.paymentReference ? [{ label: 'Payment Reference', value: details.paymentReference }] : []),
-            ...(details.bankAccountIban || details.iban ? [{ label: 'IBAN', value: details.bankAccountIban || details.iban }] : []),
-            ...(details.routingNumber ? [{ label: 'Routing Number', value: details.routingNumber }] : []),
-            ...(details.ifscCode ? [{ label: 'IFSC Code', value: details.ifscCode }] : []),
-            ...(details.purposeCode ? [{ label: 'Purpose Code', value: details.purposeCode }] : []),
-            ...(details.bsbCode ? [{ label: 'BSB Code', value: details.bsbCode }] : []),
-            ...(details.correspondenceBankName ? [
-                { label: 'Correspondence Bank Name', value: details.correspondenceBankName },
-                { label: 'Correspondence Bank Address', value: details.correspondenceBankAddress },
-                { label: 'Correspondence Bank Swift Code', value: details.correspondenceBankSwiftCode },
-            ] : []),
+            ...(studentName ? [{ label: 'Student Name', value: studentName }] : []),
+            ...(studentNIN ? [{ label: 'Student NIN', value: studentNIN }] : []),
+            ...(studentPassportNumber ? [{ label: 'Student Passport Number', value: studentPassportNumber }] : []),
+            ...(studentPassportIssueDate ? [{ label: 'Student Passport Issue Date', value: formatDate(studentPassportIssueDate) }] : []),
+            ...(studentPassportExpiryDate ? [{ label: 'Student Passport Expiry Date', value: formatDate(studentPassportExpiryDate) }] : []),
+            ...(admissionType ? [{ label: 'Admission Type', value: admissionType }] : []),
+            
+            ...(schoolName ? [{ label: 'School Name', value: schoolName }] : []),
+            ...(email ? [{ label: 'School Email', value: email }] : []),
+            ...(phone ? [{ label: 'School Phone Number', value: phone }] : []),
+            ...(address ? [{ label: 'School Address', value: address }] : []),
+            ...(city ? [{ label: 'School City', value: city }] : []),
+            ...(state ? [{ label: 'School State', value: state }] : []),
+            ...(country ? [{ label: 'School Country', value: country }] : []),
+            ...(bankName ? [{ label: 'Bank Name', value: bankName }] : []),
+            ...(bankAccountName ? [{ label: 'Account Name (For the School)', value: bankAccountName }] : []),
+            ...(routingNumber ? [{ label: 'Routing Number', value: routingNumber }] : []),
+            ...(bankAccountNumber ? [{ label: 'Bank Account Number', value: bankAccountNumber }] : []),
+            ...(bankAccountAddress ? [{ label: 'Bank Address', value: bankAccountAddress }] : []),
+            ...(bankAccountIban ? [{ label: 'IBAN', value: bankAccountIban }] : []),
+            ...(bankAccountSwiftCode ? [{ label: 'SWIFT Code', value: bankAccountSwiftCode }] : []),
+            ...(paymentReference ? [{ label: 'Payment Reference / ID', value: paymentReference }] : []),
+            
+            ...(correspondenceBankName ? [{ label: 'Correspondence Bank Name', value: correspondenceBankName }] : []),
+            ...(correspondenceBankAddress ? [{ label: 'Correspondence Bank Address', value: correspondenceBankAddress }] : []),
+            ...(correspondenceBankSwiftCode ? [{ label: 'Correspondence Bank SWIFT', value: correspondenceBankSwiftCode }] : []),
         ];
     }, [tx]);
 
+    // console.log(beneficiaryItems,"BENE")
+
     const docsItems = useMemo(() => {
-        if (!tx) return [];
-        return tx.requiredDocuments.map((d) => ({
-            label: commonDocTypeLabels[d.type] || d.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
-            fileName: d.uploaded ? d.uploaded.fileName : null,
-            docStatus: d.uploaded?.status,
-            required: true,
-            onUpload: (!d.uploaded || d.uploaded.status === 'REQUIRES_MANUAL_REVIEW')
-                ? () => uploadFile(d.type, d.uploaded?.status === 'REQUIRES_MANUAL_REVIEW')
-                : undefined,
-        }));
+        return buildTransactionDocsItems(tx, uploadFile);
     }, [tx, uploadFile]);
     const paymentDetailsItems = useMemo(() => {
         const pdList = tx?.paymentDetails as any;
@@ -188,20 +259,12 @@ export default function ViewSchoolFeesScreen() {
             if (ba.bankName) items.push({ label: `${prefix}Bank Name`, value: ba.bankName });
             if (ba.accountName) items.push({ label: `${prefix}Account Name`, value: ba.accountName });
             if (ba.accountNumber) items.push({ label: `${prefix}Account Number`, value: ba.accountNumber });
-            items.push({ label: `${prefix}Default`, value: ba.isDefault ? 'Yes' : 'No' });
-            items.push({ label: `${prefix}Verified`, value: ba.isVerified ? 'Yes' : 'No' });
         });
         return items;
     }, [tx]);
 
-
-
-    const getMessage = () => {
-        if (!tx) return '';
-        if (status === 'approved' || status === 'awaiting_disbursement' || status === 'settled') return "Congratulations! Your school fees payment request has been approved. Please proceed to payment.";
-        if (status === 'rejected') return tx.rejection?.reason || "Your application has been declined.";
-        return `Your transaction is currently ${tx.status.replace(/_/g, ' ').toLowerCase()}. Please check back for updates.`;
-    };
+   
+    const getMessage = () => getTransactionMessage(tx, 'school fees payment request');
 
     if (isLoading) return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}><ActivityIndicator size="large" color="#FF6B2C" /></View>;
 
@@ -214,11 +277,11 @@ export default function ViewSchoolFeesScreen() {
             onTabChange={setActiveTab}
             tabs={[{ key: 'overview', label: 'Overview' }, { key: 'details', label: 'Transaction Details' }, { key: 'docs', label: 'Documentation' }]}
             onBack={handleBack}
-            showActionButton={status !== 'pending' && status !== 'rejected' && status !== 'settled'}
-            actionButtonTitle={status === 'approved' || status === 'awaiting_disbursement' ? "Proceed to Payment" : "Resubmit Request"}
+            showActionButton={isPaymentRequired(tx?.status) || status === 'more_info'}
+            actionButtonTitle={isPaymentRequired(tx?.status) ? "Proceed to Payment" : "Resubmit Request"}
             onActionPress={handleProceed}
         >
-            {activeTab === 'overview' && (<TransactionStatusView status={status} id={tx?.referenceNumber?.slice(-6) || ''} date={tx ? formatDate(tx.createdAt) : ''} time={tx ? formatTime(tx.createdAt) : ''} message={getMessage()} comments={tx?.comments} />)}
+            {activeTab === 'overview' && (<TransactionStatusView status={status} apiStatus={tx?.status} id={tx?.referenceNumber?.slice(-6) || ''} transactionId={tx?.transactionId || transactionId} date={tx ? formatDate(tx.createdAt) : ''} time={tx ? formatTime(tx.createdAt) : ''} message={getMessage()} comments={tx?.comments} />)}
             {activeTab === 'details' && (
                 <TransactionDetailsView
                     details={detailsItems}

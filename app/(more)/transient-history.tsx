@@ -6,7 +6,7 @@ import { ScrollView, Text, TouchableOpacity, View, ActivityIndicator } from 'rea
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { moderateScale, ScaledSheet } from 'react-native-size-matters';
 import { useGetWalletLedgerQuery } from '@/hooks/queries/wallet/useGetWalletLedgerQuery';
-import { formatCurrency, formatListDate, formatListTime, getSectionTitle } from '@/utils/helpers';
+import { formatCurrency, formatListDate, formatListTime, getSectionTitle, getCurrencySymbol } from '@/utils/helpers';
 import { WalletLedgerEntry } from '@/types/api/wallet';
 
 const groupEntriesByDate = (entries: WalletLedgerEntry[]) => {
@@ -60,7 +60,7 @@ export default function TransientHistoryScreen() {
     return (
         <View style={[styles.container, { paddingTop: insets.top }]}>
             <Header
-                title="Transient History"
+                title="Payment History"
             />
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
@@ -74,7 +74,7 @@ export default function TransientHistoryScreen() {
                         <View style={styles.balanceCard}>
                             <Text style={styles.balanceLabel}>Wallet Balance</Text>
                             <Text style={styles.balanceAmount}>
-                                {formatCurrency(currentBalance ?? 0, currentCurrency === 'USD' ? '$' : currentCurrency === 'EUR' ? '€' : '₦')}
+                                {formatCurrency(currentBalance ?? 0, getCurrencySymbol(currentCurrency))}
                             </Text>
                         </View>
 
@@ -112,7 +112,7 @@ export default function TransientHistoryScreen() {
                                             {group.data.map((item, index) => {
                                                 const isLast = index === group.data.length - 1;
                                                 const isCredit = item.type === 'CREDIT';
-                                                const currencySymbol = currentCurrency === 'USD' ? '$' : currentCurrency === 'EUR' ? '€' : '₦';
+                                                const currencySymbol = getCurrencySymbol(currentCurrency);
                                                 const amountText = `${isCredit ? '+' : '-'}${formatCurrency(item.amount, currencySymbol)}`;
 
                                                 return (
@@ -295,9 +295,6 @@ const styles = ScaledSheet.create({
     loadMoreButton: {
         paddingVertical: '12@vs',
         borderRadius: '8@ms',
-        backgroundColor: '#F1F5F9',
-        borderWidth: 1,
-        borderColor: '#E2E8F0',
         alignItems: 'center',
         justifyContent: 'center',
         marginTop: '16@vs',

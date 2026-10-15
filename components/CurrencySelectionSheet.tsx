@@ -35,6 +35,14 @@ const CurrencySelectionSheet: React.FC<CurrencySelectionSheetProps> = ({
 }) => {
     const insets = useSafeAreaInsets();
     const [searchQuery, setSearchQuery] = useState('');
+    const [selectedCode, setSelectedCode] = useState<string | undefined>(selectedCurrency);
+
+    React.useEffect(() => {
+        if (visible) {
+            setSelectedCode(selectedCurrency);
+            setSearchQuery('');
+        }
+    }, [visible, selectedCurrency]);
 
     const filteredCurrencies = POPULAR_CURRENCIES.filter(curr =>
         curr.country.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -42,12 +50,22 @@ const CurrencySelectionSheet: React.FC<CurrencySelectionSheetProps> = ({
         curr.code.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
+    const handleConfirm = () => {
+        if (selectedCode) {
+            const found = POPULAR_CURRENCIES.find(c => c.code === selectedCode);
+            if (found) {
+                onSelect(found);
+            }
+        }
+        onClose();
+    };
+
     const renderItem = ({ item }: { item: Currency }) => {
-        const isSelected = selectedCurrency === item.code;
+        const isSelected = selectedCode === item.code;
         return (
             <TouchableOpacity
                 style={[styles.itemContainer, isSelected && styles.itemContainerSelected]}
-                onPress={() => onSelect(item)}
+                onPress={() => setSelectedCode(item.code)}
             >
                 <Image source={{ uri: item.flagUrl }} style={styles.flag} />
                 <Text style={styles.itemText}>
@@ -99,7 +117,6 @@ const CurrencySelectionSheet: React.FC<CurrencySelectionSheetProps> = ({
                         icon={<SearchNormal1 size={moderateScale(20)} color="#94A3B8" />}
                     />
 
-
                     <FlatList
                         data={filteredCurrencies}
                         renderItem={renderItem}
@@ -112,8 +129,8 @@ const CurrencySelectionSheet: React.FC<CurrencySelectionSheetProps> = ({
                     <View style={styles.footerActions}>
                         <PrimaryButton
                             title="Select Currency"
-                            onPress={onClose}
-                            disabled={!selectedCurrency}
+                            onPress={handleConfirm}
+                            disabled={!selectedCode}
                         />
                         <PrimaryButton
                             title="No, Close"

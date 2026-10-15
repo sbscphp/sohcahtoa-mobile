@@ -12,56 +12,15 @@ import { ChevronDown } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
-import FilePlus from '../../assets/icons/elements.svg';
-
-const SupportFileUpload = ({
-    onUpload,
-    onRemove,
-    file
-}: {
-    onUpload: () => void;
-    onRemove: () => void;
-    file: DocumentPicker.DocumentPickerAsset | null;
-}) => {
-    if (file) {
-
-        return (
-            <View style={styles.fileFilledContainer}>
-                <View style={styles.fileInfo}>
-                    <View style={styles.fileIconWrapper}>
-
-                        <FilePlus width={moderateScale(20)} height={moderateScale(20)} />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                        <Text style={styles.fileName} numberOfLines={1}>{file.name}</Text>
-                        <Text style={styles.fileSize}>{file.size ? `${(file.size / 1024).toFixed(0)} KB` : 'Unknown size'} – 100% uploaded</Text>
-                    </View>
-                </View>
-                <TouchableOpacity onPress={onRemove}>
-                    <Trash size={moderateScale(20)} color="#F97316" variant="Linear" />
-                </TouchableOpacity>
-            </View>
-        );
-    }
-
-    return (
-        <TouchableOpacity style={styles.fileEmptyContainer} onPress={onUpload}>
-            <View style={styles.uploadIconWrapper}>
-                <FilePlus width={moderateScale(20)} height={moderateScale(20)} />
-            </View>
-            <Text style={styles.uploadText}>Click to upload</Text>
-        </TouchableOpacity>
-    );
-};
+import SupportFileUpload from '@/components/more/SupportFileUpload';
 
 export default function SupportScreen() {
     const router = useRouter();
-    const [customerId, setCustomerId] = useState('');
     const [category, setCategory] = useState<SelectionItem | null>(null);
     const [description, setDescription] = useState('');
     const [attachment, setAttachment] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
     const [isCategorySheetVisible, setCategorySheetVisible] = useState(false);
-    const [errors, setErrors] = useState<{ customerId?: string; category?: string; description?: string }>({});
+    const [errors, setErrors] = useState<{ category?: string; description?: string }>({});
 
     const categories: SelectionItem[] = [
         { id: '1', label: 'Issues related to transactions', value: 'TRANSACTION_ISSUE' },
@@ -99,11 +58,8 @@ export default function SupportScreen() {
     const { mutate: createSupportTicket, isPending } = useCreateSupportTicketMutation();
 
     const handleSubmit = () => {
-        const newErrors: { customerId?: string; category?: string; description?: string } = {};
+        const newErrors: { category?: string; description?: string } = {};
 
-        if (!customerId.trim()) {
-            newErrors.customerId = 'Please enter your Customer ID';
-        }
         if (!category) {
             newErrors.category = 'Please select a category';
         }
@@ -122,7 +78,7 @@ export default function SupportScreen() {
             category: category!.value,
             description,
             ...(attachment ? {
-                file: {
+                attachment: {
                     uri: attachment.uri,
                     type: attachment.mimeType || 'application/octet-stream',
                     name: attachment.name
@@ -153,18 +109,6 @@ export default function SupportScreen() {
                     <Text style={styles.instructionText}>
                         Need help? Fill out this form to contact support for assistance
                     </Text>
-
-                    <InputField
-                        label="Customer ID"
-                        placeholder="Enter customer id"
-                        value={customerId}
-                        onChangeText={(text) => {
-                            setCustomerId(text);
-                            if (errors.customerId) setErrors(prev => ({ ...prev, customerId: undefined }));
-                        }}
-                        required
-                        error={errors.customerId}
-                    />
 
                     <SelectField
                         label="Category"
@@ -302,7 +246,7 @@ const styles = ScaledSheet.create({
     },
     fab: {
         position: 'absolute',
-        bottom: '100@vs',
+        bottom: '50@vs',
         right: '20@ms',
         width: '44@ms',
         height: '44@ms',
@@ -317,63 +261,6 @@ const styles = ScaledSheet.create({
         shadowRadius: 8,
     },
     submitButton: {
-        marginTop: '40@vs'
+        marginTop: '4@vs'
     },
-
-    fileEmptyContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: '16@ms',
-        borderWidth: 1,
-        borderColor: '#7e7f81ff',
-        borderRadius: '24@ms',
-        backgroundColor: '#FFFFFF',
-        height: '45@vs',
-        gap: '12@s'
-    },
-    uploadIconWrapper: {
-        width: '24@ms',
-        height: '24@ms',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    uploadText: {
-        fontSize: '14@ms',
-        color: '#94A3B8',
-        fontWeight: '400',
-    },
-    fileFilledContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '12@ms',
-        borderWidth: 1,
-        borderColor: '#E2E8F0',
-        borderRadius: '16@ms',
-        backgroundColor: '#FFFFFF',
-        height: '60@vs',
-    },
-    fileInfo: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: '12@s',
-        flex: 1,
-    },
-    fileIconWrapper: {
-        width: '32@ms',
-        height: '32@ms',
-        backgroundColor: '#F1F5F9', // Light background for icon
-        borderRadius: '8@ms',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    fileName: {
-        fontSize: '14@ms',
-        color: '#0F172A',
-        fontWeight: '500',
-    },
-    fileSize: {
-        fontSize: '12@ms',
-        color: '#64748B',
-    }
 });

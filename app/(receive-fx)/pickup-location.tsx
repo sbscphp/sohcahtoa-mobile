@@ -1,23 +1,46 @@
+import React, { useState } from 'react';
+import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
+import { ScaledSheet } from 'react-native-size-matters';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+
 import Header from '@/components/Header';
 import PrimaryButton from '@/components/PrimaryButton';
 import ProgressBar from '@/components/ProgressBar';
 import LocationStep from '@/components/transaction-flow/LocationStep';
-import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
-import { ScaledSheet } from 'react-native-size-matters';
 import { CITIES, LOCATIONS, STATES, LocationItem } from '@/utils/locations';
+import { useBuyFxLocations } from '@/hooks/useBuyFxLocations';
 
 export default function PickupLocationScreen() {
     const router = useRouter();
+    const params = useLocalSearchParams();
     const [selectedState, setSelectedState] = useState<LocationItem | null>(null);
     const [selectedCity, setSelectedCity] = useState<LocationItem | null>(null);
     const [selectedLocation, setSelectedLocation] = useState<LocationItem | null>(null);
     const [pickupDate, setPickupDate] = useState('');
     const [pickupTime, setPickupTime] = useState('');
 
+    const {
+        states: apiStates,
+        filteredCities: apiCities,
+        filteredLocations: apiLocations,
+    } = useBuyFxLocations(selectedState, selectedCity);
+
+    const states = apiStates.length > 0 ? apiStates : STATES;
+    const cities = apiCities.length > 0 ? apiCities : CITIES;
+    const locations = apiLocations.length > 0 ? apiLocations : LOCATIONS;
+
     const handleSubmit = () => {
-        router.push('/(receive-fx)/split-payment');
+        router.push({
+            pathname: '/(receive-fx)/success',
+            params: {
+                ...params,
+                state: selectedState?.title,
+                city: selectedCity?.title,
+                location: selectedLocation?.title,
+                pickupDate,
+                pickupTime,
+            },
+        });
     };
 
     return (
@@ -33,13 +56,13 @@ export default function PickupLocationScreen() {
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}
                 >
-                    <ProgressBar step={4} totalSteps={6} />
+                    <ProgressBar step={4} totalSteps={4} />
 
                     <LocationStep
                         title="Where would you like to pick up your cash?"
-                        states={STATES}
-                        cities={CITIES}
-                        locations={LOCATIONS}
+                        states={states}
+                        cities={cities}
+                        locations={locations}
                         selectedState={selectedState}
                         onSelectState={(item) => {
                             setSelectedState(item);
@@ -58,13 +81,12 @@ export default function PickupLocationScreen() {
                         pickupTime={pickupTime}
                         onPickupTimeChange={setPickupTime}
                     />
-
                 </ScrollView>
             </KeyboardAvoidingView>
 
             <View style={styles.footer}>
                 <PrimaryButton
-                    title="Submit"
+                    title="Continue"
                     onPress={handleSubmit}
                     disabled={!selectedLocation}
                 />

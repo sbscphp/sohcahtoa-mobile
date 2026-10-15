@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { isPickupDateTimeAtLeastOneHourAhead, PICKUP_TOO_SOON_MESSAGE } from '@/utils/pickupDateTime';
 
 
 export const bvnField = z.string().min(1, 'BVN is required');
@@ -7,8 +8,7 @@ export const ninField = z.string().optional().or(z.literal(''));
 
 export const formAIdField = z
     .string()
-    .min(5, 'Please enter a valid Form A ID')
-    .max(20, 'Form A ID is too long');
+    .length(10, 'Form A ID must be exactly 10 characters');
 
 export const invoiceNumberField = z
     .string()
@@ -41,14 +41,18 @@ export const workPermitNumberField = z.string().min(1, 'Please enter your Work P
 /** Tax Identification Number validation (TIN) */
 export const tinField = z
     .string()
-    .length(11, 'Please enter a valid 11-digit TIN')
-    .regex(/^\d+$/, 'TIN must contain only digits');
+    .min(1, 'Tax Identification Number (TIN) is required');
 
 /** Tax Clearance Certificate Number validation (TCC) */
 export const tccNumberField = z.string().min(1, 'Please enter your TCC Number');
 
 /** Passport Issue/Expiry Date validations */
-export const passportIssueDateField = z.string().min(1, 'Please select Passport Issue Date');
+export const passportIssueDateField = z.string().min(1, 'Please select Passport Issue Date').refine((date) => {
+    if (!date) return true;
+    const [day, month, year] = date.split('/').map(Number);
+    const selectedDate = new Date(year, month - 1, day);
+    return selectedDate <= new Date();
+}, 'Passport Issue Date cannot be in the future');
 export const passportExpiryDateField = z.string().min(1, 'Please select Passport Expiry Date');
 
 /** Step 0: Credentials (BVN + NIN + Form A + Passport) — used by most flows */
@@ -66,6 +70,16 @@ export const locationStepSchema = z.object({
     selectedLocation: z.any().refine((v) => !!v, { message: 'Please select a pickup location' }),
     pickupDate: z.string().min(1, 'Please select a pickup date'),
     pickupTime: z.string().min(1, 'Please select a pickup time'),
+}).superRefine((data, ctx) => {
+    // Earliest selectable slot is 1 hour from now (past + next-hour times rejected).
+    if (data.pickupDate && data.pickupTime &&
+        !isPickupDateTimeAtLeastOneHourAhead(data.pickupDate, data.pickupTime)) {
+        ctx.addIssue({
+            code: 'custom',
+            message: PICKUP_TOO_SOON_MESSAGE,
+            path: ['pickupTime'],
+        });
+    }
 });
 
 /** Step 3: Bank Details — used by School, Professional */
@@ -102,12 +116,12 @@ export const medicalBankDetailsStepSchema = z.object({
 });
 
 /** Step 2: Exchange amount — parameterised by max amount */
-export const amountStepSchema = (max: number, label: string) =>
+export const amountStepSchema = (max: number, label: string, currencySymbol: string = '$') =>
     z.object({
         amount: z
             .number()
             .positive('Please enter a valid amount')
-            .max(max, `Please note that the maximum you can transact is $${max.toLocaleString()} per quarter.`),
+            .max(max, `Please note that the maximum you can transact for ${label} is ${currencySymbol}${max.toLocaleString()} per quarter.`),
     });
 /** Step: Customer Bank Details confirmation */
 export const customerBankDetailsStepSchema = z.object({

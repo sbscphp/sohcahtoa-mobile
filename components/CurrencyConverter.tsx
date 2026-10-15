@@ -1,7 +1,8 @@
+import { getCurrencySymbol } from '@/utils/helpers';
 import CurrencySelectionSheet from '@/components/CurrencySelectionSheet';
 import InputField from '@/components/InputField';
 import { ArrowDown2 } from 'iconsax-react-nativejs';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ActivityIndicator, Image, Pressable, Text, TouchableOpacity, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import SwapIcons from '../assets/icons/coins-swap.svg';
@@ -23,6 +24,7 @@ export interface CurrencyConverterProps {
     currencySend: Currency;
     onCurrencySendChange: (currency: Currency) => void;
     onDownloadPress?: () => void;
+    onTemplateDownloadPress?: () => void;
 
     amountGet: string;
     amountSend: string;
@@ -36,6 +38,8 @@ export interface CurrencyConverterProps {
     error?: string;
     isLoading?: boolean;
     isSchool?: boolean;
+    labelGet?: string;
+    labelSend?: string;
 }
 
 export default function CurrencyConverter({
@@ -54,14 +58,18 @@ export default function CurrencyConverter({
     showLimitWarning = false,
     onLimitWarningPress,
     onDownloadPress,
+    onTemplateDownloadPress,
     error,
     isLoading = false,
-    isSchool = false
+    labelGet,
+    labelSend
 }: CurrencyConverterProps) {
     const [currencySheetVisible, setCurrencySheetVisible] = useState(false);
     const [activeCurrencyField, setActiveCurrencyField] = useState<'get' | 'send' | null>(null);
 
     const isBuy = transactionType === 'buy';
+    const defaultLabelGet = isBuy ? 'You get exactly' : 'You send';
+    const defaultLabelSend = isBuy ? 'When you send' : 'What you get';
 
     const handleGetCurrencyPress = () => {
         setActiveCurrencyField('get');
@@ -79,17 +87,8 @@ export default function CurrencyConverter({
         onCurrencySendChange(temp);
     };
 
-    const getCurrencySymbol = (code: string) => {
-        switch (code) {
-            case 'USD': return '$';
-            case 'NGN': return '₦';
-            case 'GBP': return '£';
-            case 'EUR': return '€';
-            default: return code;
-        }
-    };
-
     const foreignAmountStr = currencyGet.code !== 'NGN' ? amountGet : amountSend;
+    const foreignCurrencyCode = currencyGet.code !== 'NGN' ? currencyGet.code : currencySend.code;
     const foreignAmount = parseFloat(foreignAmountStr.replace(/,/g, '')) || 0;
 
     return (
@@ -124,7 +123,7 @@ export default function CurrencyConverter({
 
                 <View style={styles.exchangeCard}>
                     <View style={styles.exchangeRow}>
-                        <Text style={styles.exchangeLabel}>You send</Text>
+                        <Text style={styles.exchangeLabel}>{labelGet || defaultLabelGet}</Text>
                         <Pressable
                             style={({ pressed }) => [
                                 styles.currencyPill,
@@ -154,26 +153,32 @@ export default function CurrencyConverter({
                             error={error}
                         />
                     </View>
-                    {(showLimitWarning && foreignAmount >= 10000) && (
+                    {(showLimitWarning && foreignAmount > 10000) && (
                         <>
                         <TouchableOpacity
-                            style={{ backgroundColor: '#F1F1F1', padding: 1, borderRadius: 10, marginTop: moderateScale(4) }}
+                            style={{ backgroundColor: '#F1F1F1', padding: 1, borderRadius: 10, marginTop: moderateScale(2) }}
                             onPress={onLimitWarningPress}
+                            disabled={isBuy}
                         >
                             <Text style={{ fontSize: moderateScale(12), color: 'rgba(217, 45, 32, 1)', fontWeight: '400' }}>
-                                Amount is higher than $ 10,000. Please <Text style={{ fontSize: moderateScale(12), color: 'rgba(217, 45, 32, 1)', fontWeight: '400', textDecorationLine: 'underline' }}>Upload a proof of fund</Text>
+                                Amount is higher than {getCurrencySymbol(foreignCurrencyCode)}10,000.  
                             </Text>
+                            {!isBuy && (
+                                <Text style={{ fontSize: moderateScale(12), color: 'rgba(217, 45, 32, 1)', fontWeight: '400', textDecorationLine: 'underline' }}>Please Upload a proof of fund</Text>
+                            )}
                         </TouchableOpacity>
-                      {isSchool ? null : <>  <TouchableOpacity>
-                            <Text style={{ fontSize: moderateScale(12), color: 'rgba(217, 45, 32, 1)', fontWeight: '400'}}>
-                                Need help? You can <Text style={{ fontSize: moderateScale(12), color: 'rgba(12, 12, 12, 1)', fontWeight: '400', textDecorationLine: 'underline' }}>Download our Proof of Funds Template </Text> to ensure your documentation meets the necessary requirements.
-                            </Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={onDownloadPress}>
-                            <Text style={{ fontSize: moderateScale(12), color: 'rgba(12, 12, 12, 1)', fontWeight: '400', textDecorationLine: 'underline' }}>View declaration form to upload signature .</Text>
-                        </TouchableOpacity>
-                        </>
-}
+                            {!isBuy && (
+                                <>
+                                    <TouchableOpacity onPress={onTemplateDownloadPress}>
+                                        <Text style={{ fontSize: moderateScale(12), color: 'rgba(217, 45, 32, 1)', fontWeight: '400'}}>
+                                            Need help? You can <Text style={{ fontSize: moderateScale(12), color: 'rgba(12, 12, 12, 1)', fontWeight: '400', textDecorationLine: 'underline' }}>Download our Proof of Funds Template </Text> to ensure your documentation meets the necessary requirements.
+                                        </Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity onPress={onDownloadPress}>
+                                        <Text style={{ fontSize: moderateScale(12), color: 'rgba(12, 12, 12, 1)', fontWeight: '400', textDecorationLine: 'underline' }}>View declaration form to upload signature .</Text>
+                                    </TouchableOpacity>
+                                </>
+                            )}
                         </>
                     )}
                 </View>
@@ -193,7 +198,7 @@ export default function CurrencyConverter({
 
             <View style={styles.exchangeCard}>
                 <View style={styles.exchangeRow}>
-                    <Text style={[styles.exchangeLabel, { paddingHorizontal: 10 }]}>What you get</Text>
+                    <Text style={[styles.exchangeLabel, { paddingHorizontal: 10 }]}>{labelSend || defaultLabelSend}</Text>
                     <Pressable
                         style={({ pressed }) => [
                             styles.currencyPill,
@@ -227,7 +232,9 @@ export default function CurrencyConverter({
 
                 <View style={styles.rateInfo}>
                     <Text style={styles.rateLabel}>Exchange Rate</Text>
-                    <Text style={styles.rateValue}>{rate}</Text>
+                    <Text style={[styles.rateValue, (!rate || rate.toLowerCase().includes('unavailable')) && { color: '#94A3B8' }]}>
+                        {rate || 'Rate unavailable'}
+                    </Text>
                 </View>
             </View>
 

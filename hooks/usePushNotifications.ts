@@ -16,6 +16,8 @@ Notifications.setNotificationHandler({
         shouldShowAlert: true,
         shouldPlaySound: true,
         shouldSetBadge: true,
+        shouldShowBanner: true,
+        shouldShowList: true,
     }),
 });
 
@@ -48,7 +50,7 @@ export const usePushNotifications = () => {
         });
 
         responseListener.current = Notifications.addNotificationResponseReceivedListener(async (response: Notifications.NotificationResponse) => {
-            const data = response.notification.request.content.data;
+            const data = (response.notification.request.content.data || {}) as Record<string, any>;
             const title = response.notification.request.content.title || '';
             const body = response.notification.request.content.body || '';
             
@@ -104,12 +106,8 @@ export const usePushNotifications = () => {
         });
 
         return () => {
-            if (notificationListener.current) {
-                Notifications.removeNotificationSubscription(notificationListener.current);
-            }
-            if (responseListener.current) {
-                Notifications.removeNotificationSubscription(responseListener.current);
-            }
+            notificationListener.current?.remove();
+            responseListener.current?.remove();
         };
     }, [isAuthenticated, hasSeenPrompt]);
 };

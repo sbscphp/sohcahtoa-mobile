@@ -44,20 +44,21 @@ export default function AddNewAccountStep({
 
             <ControlledInput
                 control={control}
-                name="customerAccountName"
-                label="Account Name"
-                placeholder="Enter account name"
-                required
-            />
-
-            <ControlledInput
-                control={control}
                 name="customerAccountNumber"
                 label="Account Number"
                 placeholder="Enter account number"
                 required
                 keyboardType="numeric"
                 maxLength={10}
+            />
+
+            <ControlledInput
+                control={control}
+                name="customerAccountName"
+                label="Account Name"
+                placeholder="Auto-populated account name"
+                required
+                disabled={true}
             />
 
             {isResolving && (

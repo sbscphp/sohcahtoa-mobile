@@ -1,7 +1,41 @@
 import { TransactionStatus } from '@/components/transaction-flow/TransactionStatusView';
 import { Transaction } from '@/types/api/transactions';
+import { LocationItem } from '@/utils/locations';
 
-export const mapApiStatusToViewStatus = (status: string): TransactionStatus => {
+export const isPaymentRequired = (apiStatus?: string): boolean => {
+    if (!apiStatus) return false;
+    const normalized = apiStatus.toUpperCase();
+    return normalized === 'APPROVED' || normalized === 'AWAITING_DEPOSIT';
+};
+
+export const getTransactionMessage = (tx: any, contextName: string = 'application'): string => {
+    if (!tx) return '';
+    const apiStatus = tx.status ? tx.status.toUpperCase() : '';
+
+    if (apiStatus === 'APPROVED' || apiStatus === 'AWAITING_DEPOSIT') {
+        return `Congratulations! Your ${contextName} has been approved. Please proceed to payment.`;
+    }
+    if (apiStatus === 'DEPOSIT_CONFIRMED' || apiStatus === 'DEPOSIT_PENDING') {
+        return 'Your deposit has been received and confirmed. Processing disbursement.';
+    }
+    if (apiStatus === 'DISBURSEMENT_IN_PROGRESS' || apiStatus === 'AWAITING_DISBURSEMENT') {
+        return 'Disbursement is currently in progress. Your funds will be credited shortly.';
+    }
+    if (apiStatus === 'COMPLETED' || apiStatus === 'SETTLED') {
+        return 'Your transaction has been completed successfully.';
+    }
+    if (apiStatus === 'REJECTED' || apiStatus === 'CANCELLED') {
+        return tx.rejection?.reason || 'Your application has been declined.';
+    }
+    if (apiStatus === 'REFUNDED') {
+        return tx.refundReason || tx.refund?.reason || 'This transaction has been refunded. The funds have been returned to your original account.';
+    }
+    return `Your transaction is currently ${apiStatus.replace(/_/g, ' ').toLowerCase()}. Please check back for updates.`;
+};
+
+export const mapApiStatusToViewStatus = (status?: string): TransactionStatus => {
+    if (!status) return 'pending';
+    const normalized = status.toUpperCase();
     const map: Record<string, TransactionStatus> = {
         'DRAFT': 'pending',
         'AWAITING_VERIFICATION': 'pending',
@@ -17,12 +51,48 @@ export const mapApiStatusToViewStatus = (status: string): TransactionStatus => {
         'COMPLETED': 'settled',
         'REJECTED': 'rejected',
         'CANCELLED': 'rejected',
+        'REFUNDED': 'refunded',
     };
-    return map[status] || 'pending';
+    return map[normalized] || 'pending';
 };
 
 export const formatDate = (dateStr: string): string => {
-    const d = new Date(dateStr);
+    if (!dateStr) return '';
+    let d = new Date(dateStr);
+    if (isNaN(d.getTime())) {
+        const slashParts = dateStr.split('/');
+        if (slashParts.length === 3) {
+            if (slashParts[0].length === 4) {
+                const year = parseInt(slashParts[0], 10);
+                const month = parseInt(slashParts[1], 10) - 1;
+                const day = parseInt(slashParts[2], 10);
+                d = new Date(year, month, day);
+            } else {
+                const day = parseInt(slashParts[0], 10);
+                const month = parseInt(slashParts[1], 10) - 1;
+                const year = parseInt(slashParts[2], 10);
+                d = new Date(year, month, day);
+            }
+        } else {
+            const dashParts = dateStr.split('-');
+            if (dashParts.length === 3) {
+                if (dashParts[0].length === 4) {
+                    const year = parseInt(dashParts[0], 10);
+                    const month = parseInt(dashParts[1], 10) - 1;
+                    const day = parseInt(dashParts[2], 10);
+                    d = new Date(year, month, day);
+                } else if (dashParts[2].length === 4) {
+                    const day = parseInt(dashParts[0], 10);
+                    const month = parseInt(dashParts[1], 10) - 1;
+                    const year = parseInt(dashParts[2], 10);
+                    d = new Date(year, month, day);
+                }
+            }
+        }
+    }
+    if (isNaN(d.getTime())) {
+        return dateStr;
+    }
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
 };
@@ -38,10 +108,22 @@ export const formatTime = (dateStr: string): string => {
 
 export const formatTimeWithSeconds = (dateStr: string): string => {
     const d = new Date(dateStr);
-    const hours = String(d.getHours()).padStart(2, '0');
+    let hours = d.getHours();
     const minutes = String(d.getMinutes()).padStart(2, '0');
     const seconds = String(d.getSeconds()).padStart(2, '0');
-    return `${hours}:${minutes}:${seconds}`;
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12 || 12;
+    return `${hours}:${minutes}:${seconds} ${ampm}`;
+};
+
+export const getCurrencySymbol = (code: string): string => {
+    switch (code) {
+        case 'USD': return '$';
+        case 'GBP': return '£';
+        case 'EUR': return '€';
+        case 'NGN': return '₦';
+        default: return code;
+    }
 };
 
 export const formatCurrency = (amount: number | null | undefined, prefix: string = '₦'): string => {
@@ -79,8 +161,8 @@ export const commonDocTypeLabels: Record<string, string> = {
     'INTERNATIONAL_PASSPORT': 'International Passport',
     'TIN': 'TIN',
     'TCC': 'TCC',
-    'CORPORATE_BODY_LETTER': 'Corporate Body Letter',
-    'PARTNER_INVITATION_LETTER': 'Partner Invitation Letter',
+    'CORPORATE_BODY_LETTER': 'Letter of Request from Employer',
+    'PARTNER_INVITATION_LETTER': 'Letter of Invitation from Overseas Partner',
     'SCHOOL_ADMISSION': 'School Admission',
     'MEDICAL_LETTER': 'Medical Letter',
     'OVERSEAS_MEDICAL_LETTER': 'Overseas Medical Letter',
@@ -88,6 +170,7 @@ export const commonDocTypeLabels: Record<string, string> = {
     'MEMBERSHIP_CARD': 'Membership Card',
     'INVOICE': 'Invoice',
     'RECEIPT': 'Receipt',
+    'STUDENT_PASSPORT': 'Student International Passport',
     'PROOF_OF_FUNDS': 'Proof of Funds',
     'DIGITAL_SIGNATURE': 'Declaration Document (Signature)',
 };
@@ -124,11 +207,14 @@ export const getTransactionDocuments = (tx: any): { label: string; value: string
         return null;
     };
 
-    const bvn = getValue(tx.personalInfo?.bvn, ['bvn']);
-    const nin = getValue(tx.personalInfo?.nin, ['nin']);
+    const bvn = getValue(tx.personalInfo?.bvn || tx.bvn, ['bvn', 'personalInfo.bvn']);
+    const nin = getValue(tx.personalInfo?.nin || tx.nin, ['nin', 'personalInfo.nin']);
     const admissionType = getValue(tx.personalInfo?.admissionType, ['admissionType']);
 
-    const tin = getValue(tx.taxClearanceNumber || tx.personalInfo?.tinNumber, ['tinNumber', 'taxClearanceNumber']);
+    const tin = getValue(
+        tx.taxClearanceNumber || tx.personalInfo?.tinNumber || tx.tinNumber || tx.tin || tx.personalInfo?.tin,
+        ['tinNumber', 'taxClearanceNumber', 'tin', 'personalInfo.tinNumber', 'personalInfo.tin']
+    );
     const formAId = getValue(tx.formAId, ['formAId']);
     const passport = getValue(tx.personalInfo?.passportDocumentNumber || tx.personalInfo?.passportDocumentNumber, ['passportDocumentNumber', 'passportDocumentNumber']);
     const passportIssueDate = getValue(tx.personalInfo?.passportIssueDate, ['passportIssueDate']);
@@ -138,17 +224,132 @@ export const getTransactionDocuments = (tx: any): { label: string; value: string
     if (bvn && tx.type !== 'TOURING' && tx.type !== 'TOURIST_FX') docs.push({ label: 'BVN Number', value: bvn });
     if (nin && tx.type !== 'TOURIST_FX') docs.push({ label: 'NIN', value: nin });
     if (admissionType) docs.push({ label: 'Admission Type', value: admissionType });
-    if (tin && tx.type !== 'TOURIST_FX' && tx.type !== 'SCHOOL_FEES' && tx.type !== 'EXPATRIATE_FX') docs.push({ label: 'TIN', value: tin });
+    if (tin && tx.type !== 'TOURIST_FX' && tx.type !== 'SCHOOL_FEES' && tx.type !== 'EXPATRIATE_FX' && tx.type !== 'PTA' && tx.type !== 'PROFESSIONAL' && tx.type !== 'PROFESSIONAL_BODY') docs.push({ label: 'TIN', value: tin });
     if (formAId) docs.push({ label: 'Form A ID', value: formAId });
     if (passport) docs.push({ label: 'International Passport Number', value: passport });
     if (passportIssueDate) docs.push({ label: 'Passport Issue Date', value: passportIssueDate });
     if (passportExpiryDate) docs.push({ label: 'Passport Expiry Date', value: passportExpiryDate });
     if (schoolInvoiceNumber) docs.push({ label: 'School Invoice Number', value: schoolInvoiceNumber });
 
-    const declarationInitials = getValue(tx.declarationInitials || tx.personalInfo?.declarationInitials, ['declarationInitials', 'personalInfo.declarationInitials']);
-    if (declarationInitials) docs.push({ label: 'Declaration Initials', value: declarationInitials });
+    let digitalSignature = getValue(
+        tx.digitalSignature || tx.declarationInitials || tx.personalInfo?.digitalSignature || tx.personalInfo?.declarationInitials,
+        ['digitalSignature', 'declarationInitials', 'personalInfo.digitalSignature', 'personalInfo.declarationInitials', 'declaration.initials', 'declaration.digitalSignature']
+    );
+
+    if (!digitalSignature && tx.requiredDocuments && Array.isArray(tx.requiredDocuments)) {
+        const sigDoc = tx.requiredDocuments.find((d: any) => d.type === 'DIGITAL_SIGNATURE' || d.type === 'DECLARATION_DOCUMENT');
+        if (sigDoc) {
+            const uploaded = sigDoc.uploaded;
+            if (sigDoc.value) {
+                digitalSignature = String(sigDoc.value);
+            } else if (uploaded?.signatureText) {
+                digitalSignature = String(uploaded.signatureText);
+            } else if (sigDoc.signatureText) {
+                digitalSignature = String(sigDoc.signatureText);
+            } else if (sigDoc.initials) {
+                digitalSignature = String(sigDoc.initials);
+            } else if (uploaded?.fileName && !uploaded.fileName.includes('.') && uploaded.fileName.length <= 5) {
+                digitalSignature = String(uploaded.fileName);
+            }
+        }
+    }
+
+    if (digitalSignature) docs.push({ label: 'Declaration Document (Signature)', value: digitalSignature });
 
     return docs;
+};
+
+export const getTransactionUploadedDocs = (tx: any): { label: string; fileName?: string; fileUrl?: string }[] => {
+    if (!tx || !Array.isArray(tx.requiredDocuments)) return [];
+    const uploadedDocs: { label: string; fileName?: string; fileUrl?: string }[] = [];
+
+    tx.requiredDocuments.forEach((d: any) => {
+        const isDigitalSig = d.type === 'DIGITAL_SIGNATURE' || d.type === 'DECLARATION_DOCUMENT';
+        const baseLabel = commonDocTypeLabels[d.type] || d.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
+
+        const isDigitallySignedDoc = (u: any) => {
+            if (!isDigitalSig) return false;
+            const fn = u?.fileName || '';
+            const url = u?.fileUrl || '';
+            return !url || u?.signed || u?.signatureText || fn === 'Digital Signature' || (!fn.includes('.') && fn.length <= 5);
+        };
+
+        if (Array.isArray(d.uploads) && d.uploads.length > 0) {
+            d.uploads.forEach((u: any, idx: number) => {
+                if (isDigitallySignedDoc(u)) return;
+                if (u.fileName || u.fileUrl) {
+                    uploadedDocs.push({
+                        label: d.uploads.length > 1 ? `${baseLabel} ${idx + 1}` : baseLabel,
+                        fileName: u.fileName,
+                        fileUrl: u.fileUrl,
+                    });
+                }
+            });
+        } else if (d.uploaded) {
+            if (isDigitallySignedDoc(d.uploaded)) return;
+            if (d.uploaded.fileName || d.uploaded.fileUrl) {
+                uploadedDocs.push({
+                    label: baseLabel,
+                    fileName: d.uploaded.fileName,
+                    fileUrl: d.uploaded.fileUrl,
+                });
+            }
+        }
+    });
+
+    return uploadedDocs;
+};
+
+export const buildTransactionDocsItems = (
+    tx: any,
+    uploadFile?: (docType: string, isReupload?: boolean) => void
+) => {
+    if (!tx || !Array.isArray(tx.requiredDocuments)) return [];
+    const txAny = tx as any;
+    let digitalSig = txAny.digitalSignature || txAny.declarationInitials || txAny.personalInfo?.digitalSignature || txAny.personalInfo?.declarationInitials;
+
+    return tx.requiredDocuments.map((d: any) => {
+        const isDigitalSig = d.type === 'DIGITAL_SIGNATURE' || d.type === 'DECLARATION_DOCUMENT';
+        const uploadsList: any[] = Array.isArray(d.uploads) && d.uploads.length > 0 
+            ? d.uploads 
+            : (d.uploaded ? [d.uploaded] : []);
+
+        const firstUpload = uploadsList[0] || d.uploaded;
+        const uploadedFn = firstUpload?.fileName || '';
+        const uploadedUrl = firstUpload?.fileUrl || '';
+        const signatureText = firstUpload?.signatureText || d.signatureText || d.initials;
+        const isDigitallySigned = firstUpload?.signed || Boolean(signatureText) || uploadedFn === 'Digital Signature' || (!uploadedUrl && (!uploadedFn.includes('.') && uploadedFn.length <= 5));
+        const isInitialsOnly = isDigitalSig && (!uploadedUrl || isDigitallySigned);
+
+        if (isDigitalSig && !digitalSig && (signatureText || (isInitialsOnly && uploadedFn && uploadedFn !== 'Digital Signature'))) {
+            digitalSig = signatureText || uploadedFn;
+        }
+
+        const isInitialDoc = isDigitalSig && (Boolean(digitalSig) || isInitialsOnly);
+        const value = isInitialDoc ? (digitalSig || signatureText || 'AO') : undefined;
+
+        return {
+            label: commonDocTypeLabels[d.type] || d.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
+            value,
+            fileName: (!isInitialDoc && firstUpload) ? firstUpload.fileName : null,
+            docStatus: firstUpload?.status,
+            required: d.required !== false,
+            uploads: uploadsList.map((u: any) => ({
+                id: u.id,
+                fileName: u.fileName,
+                fileUrl: u.fileUrl,
+                status: u.status,
+                docStatus: u.status,
+                rejectionNotes: u.rejectionNotes,
+                onUpload: uploadFile && (!u.fileUrl || u.status === 'REQUIRES_MANUAL_REVIEW') && !value
+                    ? () => uploadFile(d.type, u.status === 'REQUIRES_MANUAL_REVIEW')
+                    : undefined,
+            })),
+            onUpload: uploadFile && (uploadsList.length === 0 || uploadsList.some((u: any) => u.status === 'REQUIRES_MANUAL_REVIEW')) && !value
+                ? () => uploadFile(d.type, uploadsList.some((u: any) => u.status === 'REQUIRES_MANUAL_REVIEW'))
+                : undefined,
+        };
+    });
 };
 
 export const getStatusLabel = (status: string): string => {
@@ -169,6 +370,7 @@ export const getStatusLabel = (status: string): string => {
         'COMPLETED': 'Completed',
         'REJECTED': 'Rejected',
         'CANCELLED': 'Cancelled',
+        'REFUNDED': 'Refunded',
     };
     return map[status] || status;
 };
@@ -202,9 +404,11 @@ export const getStatusStyle = (status: string) => {
             return { color: '#3538CD', bg: '#EEF4FF', backgroundColor: '#EEF4FF' };
         case 'REJECTED':
         case 'CANCELLED':
+        case 'REFUNDED':
         case 'Declined':
         case 'Rejected':
         case 'Cancelled':
+        case 'Refunded':
             return { color: '#B42318', bg: '#FEF3F2', backgroundColor: '#FEF3F2' };
         case 'APPROVED':
         case 'COMPLETED':
@@ -236,7 +440,7 @@ export const formatListTime = (dateStr: string): string => {
 };
 
 export const formatAmount = (amount: number, currency: string): string => {
-    const symbol = currency === 'USD' ? '$' : currency === 'GBP' ? '£' : currency === 'EUR' ? '€' : currency === 'NGN' ? '₦' : currency;
+    const symbol = getCurrencySymbol(currency);
     const num = Number(amount);
     if (isNaN(num)) return `${symbol}0`;
     const parts = num.toString().split('.');
@@ -416,5 +620,92 @@ export const getNotificationRoute = (
     }
 
     return null;
+};
+
+export const getInitials = (fullName?: string): string => {
+    if (!fullName) return '';
+    const parts = fullName.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return '';
+    if (parts.length === 1) {
+        return parts[0].slice(0, 2).toUpperCase();
+    }
+    const firstInitial = parts[0].charAt(0);
+    const lastInitial = parts[parts.length - 1].charAt(0);
+    return `${firstInitial}${lastInitial}`.toUpperCase();
+};
+
+export const formatDateForApi = (dateStr?: string): string => {
+    if (!dateStr) return '';
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) {
+        const [day, month, year] = dateStr.split('/');
+        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    }
+    return dateStr;
+};
+
+export interface BuildPickupLocationParams {
+    selectedLocation?: LocationItem | null;
+    selectedState?: LocationItem | null;
+    selectedCity?: LocationItem | null;
+    pickupDate?: string;
+    pickupTime?: string;
+    amount?: number;
+    currency?: string;
+}
+
+/** Converts a stored 24-hour "HH:mm" time string to "hh:mm AM/PM" for display and API submission. */
+export const formatPickupTime = (time?: string): string | undefined => {
+    if (!time) return undefined;
+    const [hStr, mStr] = time.split(':');
+    const h = parseInt(hStr, 10);
+    const m = parseInt(mStr, 10);
+    if (isNaN(h) || isNaN(m)) return time;
+    const period = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 || 12;
+    return `${String(h12).padStart(2, '0')}:${String(m).padStart(2, '0')} ${period}`;
+};
+
+export const buildPickupLocationPayload = (params: BuildPickupLocationParams) => {
+    const {
+        selectedLocation,
+        selectedState,
+        selectedCity,
+        pickupDate,
+        pickupTime,
+        amount,
+        currency
+    } = params;
+
+    if (!selectedLocation) return undefined;
+
+    const meta = selectedLocation.metadata || {};
+    const locationId = selectedLocation.id || meta.id || '';
+    const name = meta.name || selectedLocation.title || '';
+    const address = meta.address || selectedLocation.subtitle || '';
+    const state = meta.location || selectedState?.title || '';
+    const city = meta.city || selectedCity?.title || '';
+    const phoneNumber = meta.phoneNumber || '';
+    const email = meta.email || '';
+    const formattedDate = pickupDate ? formatDateForApi(pickupDate) : undefined;
+    const formattedTime = formatPickupTime(pickupTime);
+
+    return {
+        id: locationId,
+        locationId,
+        name,
+        address,
+        state,
+        city,
+        phoneNumber,
+        recipientPhone: phoneNumber,
+        email,
+        recipientEmail: email,
+        scheduledPickupDate: formattedDate,
+        scheduledPickupTime: formattedTime,
+        date: pickupDate || undefined,
+        time: formattedTime,
+        ...(amount !== undefined ? { amount } : {}),
+        ...(currency ? { currency } : {}),
+    };
 };
 

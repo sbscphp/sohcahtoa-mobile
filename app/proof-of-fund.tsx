@@ -1,5 +1,6 @@
 import Header from '@/components/Header';
 import PrimaryButton from '@/components/PrimaryButton';
+import LoadingBackdrop from '@/components/LoadingBackdrop';
 import { useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useToastStore } from '@/stores/useToastStore';
 import { useDeclarationStore } from '@/stores/useDeclarationStore';
@@ -88,6 +89,7 @@ export default function ProofOfFundScreen() {
 
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
+            <LoadingBackdrop visible={isPending} />
             <Header title="Proof of fund" />
             
             <ScrollView contentContainerStyle={styles.scrollContent}>

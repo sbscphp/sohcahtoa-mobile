@@ -2,6 +2,7 @@ import Header from '@/components/Header';
 import InputField from '@/components/InputField';
 import PrimaryButton from '@/components/PrimaryButton';
 import ProgressBar from '@/components/ProgressBar';
+import { useReceiveFxRate } from '@/hooks/useReceiveFxRate';
 import { useRouter } from 'expo-router';
 import { InfoCircle } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
@@ -10,14 +11,21 @@ import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 
 export default function ReceivingOptionsScreen() {
     const router = useRouter();
+    const { rate, formattedLimitNaira } = useReceiveFxRate();
     const [selectedOption, setSelectedOption] = useState<'convert' | 'pickup' | null>(null);
     const [usdAmount, setUsdAmount] = useState('');
 
     const handleContinue = () => {
         if (selectedOption === 'pickup') {
-            router.push('/(receive-fx)/pickup-location');
+            router.push({
+                pathname: '/(receive-fx)/pickup-location',
+                params: { option: 'pickup', usdAmount },
+            });
         } else {
-            router.push('/(receive-fx)/select-bank');
+            router.push({
+                pathname: '/(receive-fx)/split-payment',
+                params: { option: 'convert' },
+            });
         }
     };
 
@@ -34,7 +42,7 @@ export default function ReceivingOptionsScreen() {
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}
                 >
-                    <ProgressBar step={3} totalSteps={6} />
+                    <ProgressBar step={3} totalSteps={selectedOption === 'convert' ? 5 : 4} />
 
                     <Text style={styles.sectionTitle}>
                         How would you like to receive your funds?
@@ -43,7 +51,7 @@ export default function ReceivingOptionsScreen() {
                     <View style={styles.infoBanner}>
                         <InfoCircle size={moderateScale(20)} color="#F97316" variant="Bold" />
                         <Text style={styles.infoText}>
-                            Maximum USD cash pickup is <Text style={{ fontWeight: '700' }}>$500</Text>
+                            Maximum cash pickup is <Text style={{ fontWeight: '700' }}>{formattedLimitNaira}</Text>
                         </Text>
                     </View>
 
@@ -90,7 +98,9 @@ export default function ReceivingOptionsScreen() {
                             />
                             <View style={styles.amountFooter}>
                                 <Text style={styles.amountLeftLabel}>Amount left (NGN)</Text>
-                                <Text style={styles.amountLeftValue}>NGN 600,000.00</Text>
+                                <Text style={styles.amountLeftValue}>
+                                    {`NGN ${(Math.max(0, 5000 - (parseFloat(usdAmount) || 0)) * rate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                                </Text>
                             </View>
                         </View>
                     )}

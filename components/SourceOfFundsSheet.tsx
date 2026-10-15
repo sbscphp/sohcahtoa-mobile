@@ -5,6 +5,8 @@ import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import FileUpload from './FileUpload';
 import PrimaryButton from './PrimaryButton';
 import InputField from './InputField';
+import LoadingBackdrop from '@/components/LoadingBackdrop';
+import { getInitials } from '@/utils/helpers';
 
 interface InfoRowProps {
     label: string;
@@ -58,6 +60,22 @@ export default function SourceOfFundsSheet({
 
     const [declarationMethod, setDeclarationMethod] = React.useState<'initials' | 'signature'>('initials');
 
+    React.useEffect(() => {
+        if (visible) {
+            if (signatureFile) {
+                setDeclarationMethod('signature');
+            } else if (initials && initials.trim()) {
+                setDeclarationMethod('initials');
+            } else if (customerInfo?.fullName && onChangeInitials) {
+                const autoInitials = getInitials(customerInfo.fullName);
+                if (autoInitials) {
+                    onChangeInitials(autoInitials);
+                }
+                setDeclarationMethod('initials');
+            }
+        }
+    }, [visible, customerInfo?.fullName, initials, onChangeInitials, signatureFile]);
+
     return (
         <Modal
             visible={visible}
@@ -66,6 +84,7 @@ export default function SourceOfFundsSheet({
             onRequestClose={onClose}
         >
             <View style={styles.overlay}>
+                <LoadingBackdrop visible={!!isUploadingSignature} />
                 <TouchableOpacity style={styles.backdrop} onPress={onClose} activeOpacity={1} />
 
                 <View style={styles.sheetContainer}>
@@ -131,6 +150,7 @@ export default function SourceOfFundsSheet({
                                 placeholder="Enter your initials"
                                 value={initials}
                                 onChangeText={onChangeInitials}
+                                disabled
                                 required
                             />
                         ) : (

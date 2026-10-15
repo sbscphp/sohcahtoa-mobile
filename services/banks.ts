@@ -11,6 +11,11 @@ export interface SavedBankAccount {
   bankName: string;
   accountNumber: string;
   accountName: string;
+  bankCode?: string;
+  swiftCode?: string;
+  routingNumber?: string;
+  bankAddress?: string;
+  currency?: string;
   isVerified: boolean;
   isDefault: boolean;
   createdAt: string;
@@ -60,6 +65,10 @@ export interface SaveAccountPayload {
   bankName: string;
   accountNumber: string;
   accountName: string;
+  swiftCode?: string;
+  routingNumber?: string;
+  bankAddress?: string;
+  currency?: string;
 }
 
 export interface SaveAccountResponse {

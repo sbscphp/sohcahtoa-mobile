@@ -1,5 +1,4 @@
 import CurrencyConverter from '@/components/CurrencyConverter';
-import React from 'react';
 import { Text, View } from 'react-native';
 import { ScaledSheet } from 'react-native-size-matters';
 
@@ -23,16 +22,19 @@ interface ExchangeStepProps {
     amountGet: string;
     amountSend: string;
 
-    rate: string; // e.g., "1 USD = 1500 NGN"
+    rate: string;
     allowedModes?: ('buy' | 'sell')[];
     onAmountGetChange?: (amount: string) => void;
     onAmountSendChange?: (amount: string) => void;
     showLimitWarning?: boolean;
     onLimitWarningPress?: () => void;
     onDownloadPress?: () => void;
+    onTemplateDownloadPress?: () => void;
     error?: string;
     isLoading?: boolean;
     isSchool?: boolean;
+    labelGet?: string;
+    labelSend?: string;
 }
 
 export default function ExchangeStep({
@@ -51,9 +53,12 @@ export default function ExchangeStep({
     showLimitWarning,
     onLimitWarningPress,
     onDownloadPress,
+    onTemplateDownloadPress,
     error,
     isLoading,
-    isSchool
+    isSchool,
+    labelGet,
+    labelSend,
 }: ExchangeStepProps) {
 
 
@@ -77,9 +82,12 @@ export default function ExchangeStep({
                 showLimitWarning={showLimitWarning}
                 onLimitWarningPress={onLimitWarningPress}
                 onDownloadPress={onDownloadPress}
+                onTemplateDownloadPress={onTemplateDownloadPress}
                 error={error}
                 isLoading={isLoading}
                 isSchool={isSchool}
+                labelGet={labelGet}
+                labelSend={labelSend}
             />
         </View>
     );

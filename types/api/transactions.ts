@@ -32,6 +32,8 @@ export interface CreateTransactionPayload {
         correspondenceBankName?: string;
         correspondenceBankAddress?: string;
         correspondenceBankSwiftCode?: string;
+        routingNumber?: string;
+        bankAddress?: string;
     };
     documents: {
         documentType: string;
@@ -41,10 +43,22 @@ export interface CreateTransactionPayload {
     }[];
     pickupLocation?: {
         id?: string;
+        locationId?: string;
         name: string;
         address: string;
-        recipientName?: string;
+        state?: string;
+        city?: string;
+        phoneNumber?: string;
         recipientPhone?: string;
+        recipientName?: string;
+        email?: string;
+        recipientEmail?: string;
+        scheduledPickupDate?: string;
+        scheduledPickupTime?: string;
+        date?: string;
+        time?: string;
+        amount?: number;
+        currency?: string;
     };
     paymentDetails?: {
         bankName?: string;
@@ -52,6 +66,22 @@ export interface CreateTransactionPayload {
         accountNumber?: string;
         accountName?: string;
     };
+    bankDetails?: {
+        bankName?: string;
+        bankCode?: string;
+        accountNumber?: string;
+        accountName?: string;
+    };
+    refundBankDetails?: {
+        bankName?: string;
+        bankCode?: string;
+        accountNumber?: string;
+        accountName?: string;
+        swiftCode?: string;
+        routingNumber?: string;
+        bankAddress?: string;
+    };
+    digitalSignature?: string;
 }
 
 export interface CreateTransactionResponse {
@@ -145,6 +175,7 @@ export interface Transaction {
         bvn?: string;
         nin?: string;
         admissionType?: string;
+        tinNumber?: string;
         passportDocumentNumber?: string;
         passportIssueDate?: string;
         passportExpiryDate?: string;
@@ -182,6 +213,17 @@ export interface Transaction {
         bankName: string;
         iban: string;
     };
+    refundBankDetails?: {
+        name?: string;
+        accountNumber?: string;
+        accountName?: string;
+        bankName?: string;
+        bankCode?: string;
+        iban?: string;
+        swiftCode?: string;
+        routingNumber?: string;
+        bankAddress?: string;
+    };
     documents: TransactionDocument[];
     cashPickup: TransactionCashPickup | null;
     comments?: TransactionComment[];
@@ -198,6 +240,25 @@ export interface GetTransactionsResponse {
     success: boolean;
     data: Transaction[];
     pagination: PaginationMeta;
+}
+
+export interface GetTransactionStatsParams {
+    group?: string;
+}
+
+export interface GetTransactionStatsResponse {
+    success: boolean;
+    data: {
+        total: number;
+        pending: number;
+        completed: number;
+        rejected: number;
+    };
+    metadata?: {
+        timestamp: string;
+        requestId: string;
+        version: string;
+    };
 }
 
 export type TransactionDocumentType =
@@ -316,6 +377,7 @@ export interface GetTransactionByIdResponse {
             bvn?: string;
             nin?: string;
             admissionType?: string;
+            tinNumber?: string;
             passportDocumentNumber?: string;
             passportIssueDate?: string;
             passportExpiryDate?: string;
@@ -326,15 +388,31 @@ export interface GetTransactionByIdResponse {
         };
         requiredDocuments: {
             type: string;
+            required?: boolean;
             uploaded?: {
                 id: string;
                 fileName: string;
-                fileUrl: string;
+                fileUrl: string | null;
                 status: string;
-                rejectionNotes?: string;
+                rejectionNotes?: string | null;
                 uploadedAt: string;
-                verifiedAt?: string;
+                verifiedAt?: string | null;
+                signed?: boolean;
+                signatureText?: string | null;
+                note?: string | null;
             };
+            uploads?: {
+                id: string;
+                fileName: string;
+                fileUrl: string | null;
+                status: string;
+                rejectionNotes?: string | null;
+                uploadedAt: string;
+                verifiedAt?: string | null;
+                signed?: boolean;
+                signatureText?: string | null;
+                note?: string | null;
+            }[];
         }[];
         beneficiaryDetails?: {
             name: string;
@@ -363,6 +441,23 @@ export interface GetTransactionByIdResponse {
             accountNumber: string;
             bankName: string;
             iban: string;
+        };
+        refundBankDetails?: {
+            name?: string;
+            accountNumber?: string;
+            accountName?: string;
+            bankName?: string;
+            bankCode?: string;
+            iban?: string;
+            swiftCode?: string;
+            routingNumber?: string;
+            bankAddress?: string;
+        };
+        pickupLocation?: {
+            amount?: number;
+            currency?: string;
+            name?: string;
+            address?: string;
         };
         cashPickup?: any;
         prepaidCard?: any;
@@ -393,6 +488,7 @@ export interface CustomRate {
 }
 
 export interface GetTransactionTotalsPayload {
+    currency?: string;
     customRates?: CustomRate[];
 }
 
@@ -462,3 +558,16 @@ export interface ReuploadTransactionDocumentPayload {
         type: string;
     };
 }
+
+export interface GetTransactionReceiptResponse {
+    success: boolean;
+    data?: {
+        receiptUrl?: string;
+        url?: string;
+        fileUrl?: string;
+        downloadUrl?: string;
+        [key: string]: any;
+    };
+    message?: string;
+}
+

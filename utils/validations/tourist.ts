@@ -1,14 +1,15 @@
 import { z } from 'zod';
-import { locationStepSchema } from './shared';
+import { locationStepSchema, passportIssueDateField } from './shared';
 
 /** Step 0: Tourist credentials */
 export const touristStep0Schema = z.object({
-    passportDocumentNumber: z.string().regex(/^[A-Za-z]\d{8}$/, 'Please enter a valid International Passport Number'),
+    passportDocumentNumber: z.string().min(1, 'Please enter your International Passport Number'),
+    nigerianAddress: z.string().min(1, 'Please enter your temporary stay address (e.g. hotel)'),
 });
 
 /** Step 1: Tourist documents */
 export const touristStep1Schema = z.object({
-    passportIssueDate: z.string().min(1, 'Please select Passport Issue Date'),
+    passportIssueDate: passportIssueDateField,
     passportExpiryDate: z.string().min(1, 'Please select Passport Expiry Date'),
 });
 

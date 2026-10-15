@@ -1,112 +1,283 @@
 import ProgressBar from '@/components/ProgressBar';
+import { useUploadPassportMutation } from '@/hooks/queries/auth/useUploadPassportMutation';
+import { useVerifyExpatriatePassportMutation } from '@/hooks/queries/auth/useVerifyExpatriatePassportMutation';
 import { useVerifyPassportMutation } from '@/hooks/queries/auth/useVerifyPassportMutation';
-import { PassportFormData, passportValidation } from '@/lib/validations/auth';
+import { PassportFormData, passportSchema } from '@/lib/validations/auth';
 import { useAuthStore } from '@/stores/useAuthStore';
+import { useToastStore } from '@/stores/useToastStore';
 import { zodResolver } from '@hookform/resolvers/zod';
+import * as DocumentPicker from 'expo-document-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { ScrollView, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet } from 'react-native-size-matters';
-import { z } from 'zod';
 import AuthHeader from '../../components/AuthHeader';
 import ControlledInput from '../../components/ControlledInput';
+import FileUpload from '../../components/FileUpload';
+import LoadingBackdrop from '../../components/LoadingBackdrop';
 import PrimaryButton from '../../components/PrimaryButton';
-import Toast from '../../components/Toast';
 
 export default function PassportVerificationScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const { userType } = useLocalSearchParams<{ userType?: string }>();
-    const [showToast, setShowToast] = useState(false);
-
-    const schema = z.object({
-        passportDocumentNumber: passportValidation
-    });
+    const isExpatriate = userType === 'expatriate';
+    const showToast = useToastStore((state) => state.showToast);
+    const [uploadedFile, setUploadedFile] = useState<{
+        name: string;
+        uri: string;
+        fileUrl?: string;
+        type: string;
+        size?: number;
+    } | null>(null);
 
     const {
         control,
         handleSubmit,
+        setValue,
         formState: { errors, isValid }
     } = useForm<PassportFormData>({
-        resolver: zodResolver(schema),
+        resolver: zodResolver(passportSchema),
         defaultValues: {
-            passportDocumentNumber: '',
+            firstName: '',
+            lastName: '',
+            passportNumber: '',
+            passportDocumentUrl: '',
         },
         mode: 'onChange'
     });
-    const { mutate: verifyPassport, isPending } = useVerifyPassportMutation();
 
-    const onSubmit = (data: PassportFormData) => {
+    const { mutate: verifyPassport, isPending: isVerifyingTourist } = useVerifyPassportMutation();
+    const { mutate: verifyExpatriatePassport, isPending: isVerifyingExpatriate } = useVerifyExpatriatePassportMutation();
+    const { mutate: uploadPassportDoc, isPending: isUploadingDoc } = useUploadPassportMutation();
+
+    const isPending = isVerifyingTourist || isVerifyingExpatriate || isUploadingDoc;
+
+    const handlePickDocument = async () => {
+        try {
+            const result = await DocumentPicker.getDocumentAsync({
+                type: ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg', 'image/heic', 'image/webp'],
+                copyToCacheDirectory: true,
+            });
+
+            if (result.canceled || !result.assets || result.assets.length === 0) {
+                return;
+            }
+
+            const asset = result.assets[0];
+
+            const MAX_SIZE = 10 * 1024 * 1024;
+            if (asset.size && asset.size > MAX_SIZE) {
+                showToast('File size exceeds the 10 MB limit', 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('document', {
+                uri: asset.uri,
+                name: asset.name,
+                type: asset.mimeType || 'application/octet-stream',
+            } as any);
+            formData.append('file', {
+                uri: asset.uri,
+                name: asset.name,
+                type: asset.mimeType || 'application/octet-stream',
+            } as any);
+            formData.append('passport', {
+                uri: asset.uri,
+                name: asset.name,
+                type: asset.mimeType || 'application/octet-stream',
+            } as any);
+
+            uploadPassportDoc(formData, {
+                onSuccess: (res) => {
+                    const passportUrl = res.data?.passportDocumentUrl;
+                    if (passportUrl) {
+                        setValue('passportDocumentUrl', passportUrl, {
+                            shouldValidate: true,
+                            shouldDirty: true,
+                        });
+                        setUploadedFile({
+                            name: asset.name,
+                            uri: asset.uri,
+                            fileUrl: passportUrl,
+                            type: asset.mimeType || 'application/octet-stream',
+                            size: asset.size,
+                        });
+                    }
+                },
+            });
+        } catch (err) {
+            console.error('Error picking document:', err);
+        }
+    };
+
+    const onTouristSubmit = (data: PassportFormData) => {
         const onSuccess = (response: any) => {
             if (response.success) {
                 useAuthStore.getState().setTempUserInfo({
-                    firstName: response.data.firstName || '',
-                    lastName: response.data.lastName || '',
-                    phoneNumber: response.data.phoneNumber || '',
-                    email: response.data.email || '',
-                    address: response.data.address || response.data.nationality || '',
+                    firstName: response.data?.firstName || data.firstName,
+                    lastName: response.data?.lastName || data.lastName,
+                    phoneNumber: response.data?.phoneNumber || '',
+                    email: response.data?.email || '',
+                    address: response.data?.address || response.data?.nationality || '',
+                    dateOfBirth: response.data?.dateOfBirth || '',
                 });
                 router.push({
                     pathname: '/(auth)/bvn-confirmation',
                     params: {
-                        userType: userType || 'tourist',
-                        verificationToken: response.data.verificationToken,
-                        firstName: response.data.firstName || '',
-                        lastName: response.data.lastName || '',
-                        phoneNumber: response.data.phoneNumber || '',
-                        email: response.data.email || '',
-                        address: response.data.address || response.data.nationality || '',
+                        userType: 'tourist',
+                        verificationToken: response.data?.verificationToken,
+                        firstName: response.data?.firstName || data.firstName,
+                        lastName: response.data?.lastName || data.lastName,
+                        phoneNumber: response.data?.phoneNumber || '',
+                        email: response.data?.email || '',
+                        address: response.data?.address || response.data?.nationality || '',
                         flowContext: 'passport'
                     }
                 });
             }
         };
 
-        verifyPassport({ passportDocumentNumber: data.passportDocumentNumber }, { onSuccess });
+        verifyPassport(
+            {
+                passportNumber: data.passportNumber,
+                passportDocumentNumber: data.passportNumber,
+                firstName: data.firstName,
+                lastName: data.lastName,
+                passportDocumentUrl: data.passportDocumentUrl,
+            },
+            { onSuccess }
+        );
+    };
+
+    const onExpatriateSubmit = (data: PassportFormData) => {
+        const onSuccess = (response: any) => {
+            if (response.success) {
+                useAuthStore.getState().setTempUserInfo({
+                    firstName: response.data?.firstName || data.firstName,
+                    lastName: response.data?.lastName || data.lastName,
+                    phoneNumber: data.phoneNumber || '',
+                    email: data.email || '',
+                    dateOfBirth: response.data?.dateOfBirth || '',
+                    address: response.data?.nationality || '',
+                });
+                router.push({
+                    pathname: '/(auth)/bvn-confirmation',
+                    params: {
+                        userType: 'expatriate',
+                        verificationToken: response.data?.verificationToken,
+                        firstName: response.data?.firstName || data.firstName,
+                        lastName: response.data?.lastName || data.lastName,
+                        phoneNumber: data.phoneNumber || '',
+                        email: data.email || '',
+                        dateOfBirth: response.data?.dateOfBirth || '',
+                        address: response.data?.nationality || '',
+                        flowContext: 'passport'
+                    }
+                });
+            }
+        };
+
+        verifyExpatriatePassport(
+            {
+                passportNumber: data.passportNumber,
+                firstName: data.firstName,
+                lastName: data.lastName,
+                passportDocumentUrl: data.passportDocumentUrl,
+                email: data.email,
+                phoneNumber: data.phoneNumber,
+            },
+            { onSuccess }
+        );
+    };
+
+    const onSubmit = (data: PassportFormData) => {
+        if (isExpatriate) {
+            onExpatriateSubmit(data);
+        } else {
+            onTouristSubmit(data);
+        }
     };
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-            <AuthHeader title="Sign up" />
-            <ScrollView contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
-                <ProgressBar step={1} totalSteps={3} />
-                <Text style={styles.title}>
-                    Enter your International Passport Number.
-                </Text>
-                <View style={styles.formSection}>
-                    <View style={styles.inputSpacing}>
+        <SafeAreaView style={styles.container}>
+            <LoadingBackdrop visible={isUploadingDoc} />
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                style={styles.container}
+            >
+                <AuthHeader title="Upload Passport." />
+                <ScrollView contentContainerStyle={[styles.contentContainer, { paddingBottom: insets.bottom + 100 }]} showsVerticalScrollIndicator={false}>
+                    <ProgressBar step={1} totalSteps={3} />
+
+                    <View style={styles.headerSection}>
+                        <Text style={styles.title}>Verify Your Identity</Text>
+                        <Text style={styles.subtitle}>
+                            {isExpatriate
+                                ? 'We require your international passport to confirm your identity as an expatriate'
+                                : 'We require your international passport to confirm your identity as a tourist'}
+                        </Text>
+                    </View>
+
+                    <View style={styles.formSection}>
                         <ControlledInput
                             control={control}
-                            name="passportDocumentNumber"
-                            label="International Passport Number"
-                            placeholder="Enter your Passport Number"
+                            name="firstName"
+                            label="First Name"
+                            placeholder="Enter first name"
                             required
-                            maxLength={9}
-                            filterType="alphanumeric"
-                            autoCapitalize="characters"
                         />
+                        <View style={styles.inputSpacing}>
+                            <ControlledInput
+                                control={control}
+                                name="lastName"
+                                label="Last Name"
+                                placeholder="Enter last name"
+                                required
+                            />
+                        </View>
+                        <View style={styles.inputSpacing}>
+                            <ControlledInput
+                                control={control}
+                                name="passportNumber"
+                                label="Passport Number"
+                                placeholder="Enter passport number"
+                                autoCapitalize="characters"
+                                required
+                            />
+                        </View>
+                        <View style={styles.uploadSection}>
+                            <Text style={styles.label}>
+                                Upload International Passport <Text style={styles.required}>*</Text>
+                            </Text>
+                            <FileUpload
+                                onUpload={handlePickDocument}
+                                fileName={uploadedFile?.name || null}
+                                fileUri={uploadedFile?.uri || null}
+                                fileUrl={uploadedFile?.fileUrl || null}
+                                fileType={uploadedFile?.type || null}
+                                error={errors.passportDocumentUrl?.message}
+                            />
+                            {errors.passportDocumentUrl?.message ? (
+                                <Text style={styles.errorText}>{errors.passportDocumentUrl.message}</Text>
+                            ) : null}
+                        </View>
                     </View>
+                </ScrollView>
+
+                <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
+                    <PrimaryButton
+                        title="Verify Passport"
+                        onPress={handleSubmit(onSubmit)}
+                        loading={isPending}
+                        disabled={isPending || !isValid}
+                    />
                 </View>
-            </ScrollView>
-
-            <View style={styles.footer}>
-                <PrimaryButton
-                    title="Verify Passport"
-                    onPress={handleSubmit(onSubmit)}
-                    loading={isPending}
-                    disabled={isPending || !isValid}
-                />
-            </View>
-
-            <Toast
-                visible={showToast}
-                message="File uploaded successfully"
-                type="success"
-                onDismiss={() => setShowToast(false)}
-            />
-        </View>
+            </KeyboardAvoidingView>
+        </SafeAreaView>
     );
 }
 
@@ -118,20 +289,33 @@ const styles = ScaledSheet.create({
     contentContainer: {
         paddingHorizontal: '20@s',
         paddingTop: '20@vs',
-        paddingBottom: '100@vs',
+    },
+    headerSection: {
+        marginTop: '16@vs',
+        marginBottom: '20@vs',
     },
     title: {
-        fontSize: '15@ms',
-        fontWeight: '500',
+        fontSize: '16@ms',
+        fontWeight: '600',
         color: '#0F172A',
-        marginBottom: '14@vs',
+        marginBottom: '6@vs',
         lineHeight: '22@ms',
+    },
+    subtitle: {
+        fontSize: '13@ms',
+        fontWeight: '400',
+        color: '#64748B',
+        lineHeight: '20@ms',
     },
     formSection: {
         marginBottom: '14@vs',
     },
     inputSpacing: {
         marginTop: '12@vs',
+    },
+    uploadSection: {
+        marginTop: '16@vs',
+        marginBottom: '8@vs',
     },
     label: {
         fontSize: '13@ms',
@@ -142,13 +326,10 @@ const styles = ScaledSheet.create({
     required: {
         color: '#EF4444',
     },
-    dateRow: {
-        flexDirection: 'row',
-        gap: '12@s',
-        marginBottom: '24@vs',
-    },
-    dateField: {
-        flex: 1,
+    errorText: {
+        color: '#EF4444',
+        fontSize: '12@ms',
+        marginTop: '4@vs',
     },
     footer: {
         position: 'absolute',
@@ -156,7 +337,6 @@ const styles = ScaledSheet.create({
         left: 0,
         right: 0,
         paddingHorizontal: '20@s',
-        paddingBottom: '20@vs',
         paddingTop: '10@vs',
         backgroundColor: '#FFFFFF',
         borderTopWidth: 1,

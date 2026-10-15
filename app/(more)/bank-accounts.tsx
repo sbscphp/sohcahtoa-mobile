@@ -1,21 +1,21 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import {
   ActivityIndicator,
-  Modal,
   ScrollView,
   Text,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
-import { Add, Bank, Trash, TickCircle, Warning2, ArrowDown2, CloseCircle } from 'iconsax-react-nativejs';
+import { Add, Bank } from 'iconsax-react-nativejs';
 
 import Header from '@/components/Header';
 import PrimaryButton from '@/components/PrimaryButton';
-import InputField from '@/components/InputField';
 import GenericSelectionSheet, { SelectionItem } from '@/components/GenericSelectionSheet';
 import LoadingBackdrop from '@/components/LoadingBackdrop';
+import BankAccountCard from '@/components/more/BankAccountCard';
+import AddBankAccountModal from '@/components/more/AddBankAccountModal';
+import DeleteAccountModal from '@/components/more/DeleteAccountModal';
 
 import { useGetSavedAccountsQuery } from '@/hooks/queries/banks/useGetSavedAccountsQuery';
 import { useGetBanksQuery } from '@/hooks/queries/banks/useGetBanksQuery';
@@ -29,7 +29,6 @@ export default function BankAccountsScreen() {
   const insets = useSafeAreaInsets();
   const showToast = useToastStore((state) => state.showToast);
 
-  // Queries and mutations
   const { data: savedAccountsResponse, isLoading: isLoadingAccounts } = useGetSavedAccountsQuery();
   const { data: banksResponse } = useGetBanksQuery();
   const resolveAccount = useLookupAccountMutation();
@@ -37,15 +36,11 @@ export default function BankAccountsScreen() {
   const setDefaultMutation = useSetDefaultBankAccountMutation();
   const deleteMutation = useDeleteBankAccountMutation();
 
-  // Modals visibility
   const [addModalVisible, setAddModalVisible] = useState(false);
   const [bankSheetVisible, setBankSheetVisible] = useState(false);
   const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
-  
-  // Selection states
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
 
-  // New account form state
   const [selectedBank, setSelectedBank] = useState<SelectionItem | null>(null);
   const [accountNumber, setAccountNumber] = useState('');
   const [accountName, setAccountName] = useState('');
@@ -58,7 +53,6 @@ export default function BankAccountsScreen() {
 
   const savedAccounts = savedAccountsResponse?.data || [];
 
-  // Reset form when modal opens/closes
   useEffect(() => {
     if (!addModalVisible) {
       setSelectedBank(null);
@@ -68,7 +62,6 @@ export default function BankAccountsScreen() {
     }
   }, [addModalVisible]);
 
-  // Account resolution logic
   useEffect(() => {
     if (accountNumber.length === 10 && selectedBank) {
       setIsResolving(true);
@@ -96,7 +89,6 @@ export default function BankAccountsScreen() {
     }
   }, [accountNumber, selectedBank]);
 
-  // Actions
   const handleSave = () => {
     if (!selectedBank || accountNumber.length !== 10 || !accountName) {
       showToast('Please fill out all bank account details.', 'error');
@@ -138,7 +130,7 @@ export default function BankAccountsScreen() {
         onError: () => {
           setDeleteConfirmVisible(false);
           setSelectedAccountId(null);
-        }
+        },
       });
     }
   };
@@ -177,55 +169,16 @@ export default function BankAccountsScreen() {
       ) : (
         <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent}>
           {savedAccounts.map((account) => (
-            <View key={account.id} style={[styles.accountCard, account.isDefault && styles.defaultCard]}>
-              <View style={styles.cardHeader}>
-                <View style={styles.bankNameWrapper}>
-                  <View style={styles.bankIconContainer}>
-                    <Bank size={moderateScale(20)} color="#FF6813" variant="Bold" />
-                  </View>
-                  <Text style={styles.bankName} numberOfLines={1}>{account.bankName}</Text>
-                </View>
-                {account.isDefault ? (
-                  <View style={styles.defaultBadge}>
-                    <TickCircle size={moderateScale(12)} color="#10B981" variant="Bold" />
-                    <Text style={styles.defaultText}>Default</Text>
-                  </View>
-                ) : (
-                  <TouchableOpacity
-                    style={styles.makeDefaultBtn}
-                    onPress={() => handleMakeDefault(account.id)}
-                  >
-                    <Text style={styles.makeDefaultText}>Set Default</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-
-              <View style={styles.cardDetails}>
-                <View style={styles.detailItem}>
-                  <Text style={styles.detailLabel}>Account Number</Text>
-                  <Text style={styles.detailValue}>{account.accountNumber}</Text>
-                </View>
-                <View style={styles.detailItem}>
-                  <Text style={styles.detailLabel}>Account Name</Text>
-                  <Text style={styles.detailValue} numberOfLines={1}>{account.accountName}</Text>
-                </View>
-              </View>
-
-              <View style={styles.cardFooter}>
-                <TouchableOpacity
-                  style={styles.deleteBtn}
-                  onPress={() => handleDeletePress(account.id)}
-                >
-                  <Trash size={moderateScale(16)} color="#EF4444" variant="Linear" />
-                  <Text style={styles.deleteBtnText}>Remove Account</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
+            <BankAccountCard
+              key={account.id}
+              account={account}
+              onMakeDefault={handleMakeDefault}
+              onDelete={handleDeletePress}
+            />
           ))}
         </ScrollView>
       )}
 
-      {/* Loading overlay */}
       <LoadingBackdrop
         visible={
           setDefaultMutation.isPending ||
@@ -234,105 +187,24 @@ export default function BankAccountsScreen() {
         }
       />
 
-      {/* Confirmation modal for delete */}
-      <Modal
-        transparent
+      <DeleteAccountModal
         visible={deleteConfirmVisible}
-        animationType="fade"
-        onRequestClose={() => setDeleteConfirmVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.warningIconContainer}>
-              <Warning2 size={moderateScale(24)} color="#EF4444" variant="Bold" />
-            </View>
-            <Text style={styles.modalTitle}>Delete Bank Account</Text>
-            <Text style={styles.modalMessage}>
-              Are you sure you want to remove this bank account? This action cannot be undone.
-            </Text>
-            <PrimaryButton
-              title="Yes, Delete"
-              onPress={confirmDelete}
-              style={{ backgroundColor: '#EF4444', marginBottom: moderateScale(12) }}
-            />
-            <PrimaryButton
-              title="No, Cancel"
-              onPress={() => setDeleteConfirmVisible(false)}
-              style={{ backgroundColor: '#F1F5F9' }}
-              textStyle={{ color: '#0F172A' }}
-            />
-          </View>
-        </View>
-      </Modal>
+        onClose={() => setDeleteConfirmVisible(false)}
+        onConfirm={confirmDelete}
+      />
 
-      {/* Add Bank Account Modal Sheet */}
-      <Modal
-        animationType="slide"
-        transparent={true}
+      <AddBankAccountModal
         visible={addModalVisible}
-        onRequestClose={() => setAddModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.bottomSheet}>
-            <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>Add Bank Account</Text>
-              <TouchableOpacity onPress={() => setAddModalVisible(false)}>
-                <CloseCircle size={moderateScale(24)} color="#94A3B8" variant="Bold" />
-              </TouchableOpacity>
-            </View>
+        onClose={() => setAddModalVisible(false)}
+        onOpenBankSheet={() => setBankSheetVisible(true)}
+        selectedBank={selectedBank}
+        accountNumber={accountNumber}
+        setAccountNumber={setAccountNumber}
+        accountName={accountName}
+        isResolving={isResolving}
+        onSave={handleSave}
+      />
 
-            <ScrollView contentContainerStyle={styles.sheetContent}>
-              <TouchableOpacity onPress={() => setBankSheetVisible(true)} activeOpacity={0.8}>
-                <View pointerEvents="none">
-                  <InputField
-                    label="Bank Name"
-                    placeholder="Select Bank"
-                    required
-                    value={selectedBank?.label || ''}
-                    rightIcon={ArrowDown2}
-                    editable={false}
-                  />
-                </View>
-              </TouchableOpacity>
-
-              <InputField
-                label="Account Number"
-                placeholder="Enter 10-digit number"
-                required
-                keyboardType="numeric"
-                maxLength={10}
-                value={accountNumber}
-                onChangeText={setAccountNumber}
-              />
-
-              {accountName ? (
-                <View style={styles.resolvedNameContainer}>
-                  <Text style={styles.resolvedLabel}>Account Name</Text>
-                  <Text style={styles.resolvedValue}>{accountName}</Text>
-                </View>
-              ) : isResolving ? (
-                <Text style={styles.resolvingText}>Resolving account name...</Text>
-              ) : null}
-
-              <View style={styles.sheetFooter}>
-                <PrimaryButton
-                  title="Save Bank Details"
-                  onPress={handleSave}
-                  disabled={!selectedBank || accountNumber.length !== 10 || !accountName}
-                />
-                <TouchableOpacity
-                  style={styles.sheetCloseBtn}
-                  onPress={() => setAddModalVisible(false)}
-                >
-                  <Text style={styles.sheetCloseText}>Cancel</Text>
-                </TouchableOpacity>
-              </View>
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Nested Selection Sheet for Banks list */}
       <GenericSelectionSheet
         visible={bankSheetVisible}
         onClose={() => setBankSheetVisible(false)}
@@ -378,245 +250,35 @@ const styles = ScaledSheet.create({
     padding: '20@ms',
     gap: '16@vs',
   },
-  accountCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: '16@ms',
-    padding: '16@ms',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  defaultCard: {
-    borderColor: '#FF6813',
-    backgroundColor: '#FFFFFF',
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-    paddingBottom: '12@vs',
-    marginBottom: '12@vs',
-  },
-  bankNameWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: '8@ms',
-    flex: 1,
-  },
-  bankIconContainer: {
-    width: '32@ms',
-    height: '32@ms',
-    borderRadius: '16@ms',
-    backgroundColor: '#FFF5F1',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  bankName: {
-    fontSize: '14@ms',
-    fontWeight: '600',
-    color: '#0F172A',
-    flex: 1,
-  },
-  defaultBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: '4@ms',
-    backgroundColor: '#ECFDF5',
-    paddingHorizontal: '8@s',
-    paddingVertical: '4@vs',
-    borderRadius: '12@ms',
-  },
-  defaultText: {
-    fontSize: '11@ms',
-    fontWeight: '600',
-    color: '#10B981',
-  },
-  makeDefaultBtn: {
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: '10@s',
-    paddingVertical: '6@vs',
-    borderRadius: '20@ms',
-  },
-  makeDefaultText: {
-    fontSize: '11@ms',
-    fontWeight: '600',
-    color: '#475569',
-  },
-  cardDetails: {
-    gap: '10@vs',
-  },
-  detailItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  detailLabel: {
-    fontSize: '12@ms',
-    color: '#64748B',
-  },
-  detailValue: {
-    fontSize: '13@ms',
-    fontWeight: '500',
-    color: '#1E293B',
-    maxWidth: '65%',
-  },
-  cardFooter: {
-    marginTop: '16@vs',
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-    paddingTop: '12@vs',
-    alignItems: 'flex-start',
-  },
-  deleteBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: '6@ms',
-  },
-  deleteBtnText: {
-    fontSize: '12@ms',
-    fontWeight: '600',
-    color: '#EF4444',
-  },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: '32@ms',
-    backgroundColor: '#F8F9FA',
+    paddingHorizontal: '32@ms',
   },
   emptyIconContainer: {
     width: '80@ms',
     height: '80@ms',
     borderRadius: '40@ms',
-    backgroundColor: '#E2E8F0',
+    backgroundColor: '#F8FAFC',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: '20@vs',
+    marginBottom: '16@vs',
   },
   emptyTitle: {
     fontSize: '18@ms',
     fontWeight: '700',
-    color: '#1E293B',
+    color: '#0F172A',
     marginBottom: '8@vs',
   },
   emptySubtitle: {
     fontSize: '14@ms',
     color: '#64748B',
     textAlign: 'center',
-    marginBottom: '32@vs',
     lineHeight: '20@ms',
+    marginBottom: '24@vs',
   },
   emptyAddBtn: {
     width: '100%',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: '20@ms',
-  },
-  modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: '24@ms',
-    padding: '24@ms',
-    width: '100%',
-    alignItems: 'center',
-  },
-  warningIconContainer: {
-    width: '48@ms',
-    height: '48@ms',
-    borderRadius: '24@ms',
-    backgroundColor: '#FEE2E2',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: '16@vs',
-    alignSelf: 'flex-start',
-  },
-  modalTitle: {
-    fontSize: '18@ms',
-    fontWeight: '700',
-    color: '#0F172A',
-    marginBottom: '8@vs',
-    alignSelf: 'flex-start',
-  },
-  modalMessage: {
-    fontSize: '14@ms',
-    color: '#64748B',
-    marginBottom: '32@vs',
-    lineHeight: '20@ms',
-    alignSelf: 'flex-start',
-  },
-  bottomSheet: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: '24@ms',
-    padding: '20@ms',
-    width: '100%',
-    maxHeight: '90%',
-  },
-  sheetHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-    paddingBottom: '16@vs',
-    marginBottom: '16@vs',
-  },
-  sheetTitle: {
-    fontSize: '16@ms',
-    fontWeight: '700',
-    color: '#0F172A',
-  },
-  sheetContent: {
-    paddingBottom: '20@vs',
-  },
-  resolvedNameContainer: {
-    backgroundColor: '#F8FAFC',
-    padding: '12@ms',
-    borderRadius: '8@ms',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    marginTop: '4@vs',
-    marginBottom: '16@vs',
-  },
-  resolvedLabel: {
-    fontSize: '11@ms',
-    color: '#64748B',
-    marginBottom: '4@vs',
-  },
-  resolvedValue: {
-    fontSize: '13@ms',
-    fontWeight: '600',
-    color: '#0F172A',
-  },
-  resolvingText: {
-    fontSize: '11@ms',
-    color: '#F97316',
-    fontStyle: 'italic',
-    marginTop: '4@vs',
-    marginBottom: '16@vs',
-    marginLeft: '4@s',
-  },
-  sheetFooter: {
-    gap: '12@vs',
-    marginTop: '20@vs',
-  },
-  sheetCloseBtn: {
-    backgroundColor: '#F1F5F9',
-    borderRadius: '30@ms',
-    paddingVertical: '16@vs',
-    alignItems: 'center',
-  },
-  sheetCloseText: {
-    color: '#475569',
-    fontSize: '14@ms',
-    fontWeight: '600',
   },
 });

@@ -38,12 +38,12 @@ export default function MoreScreen() {
             subtitle: 'Update password, keep your account secure.',
             onPress: () => router.push('/security/change-password'),
         },
-        {
-            icon: <Cards size={moderateScale(18)} color="rgba(255, 104, 19, 1)" variant="Linear" />,
-            title: 'Manage Cards',
-            subtitle: 'Update or remove your payment cards',
-            onPress: () => router.push('/security/change-password'),
-        },
+        // {
+        //     icon: <Cards size={moderateScale(18)} color="rgba(255, 104, 19, 1)" variant="Linear" />,
+        //     title: 'Manage Cards',
+        //     subtitle: 'Update or remove your payment cards',
+        //     onPress: () => router.push('/security/change-password'),
+        // },
         {
             icon: <Headphone size={moderateScale(18)} color="rgba(255, 104, 19, 1)" variant="Linear" />,
             title: 'Support',
@@ -54,11 +54,12 @@ export default function MoreScreen() {
             icon: <Judge size={moderateScale(18)} color="rgba(255, 104, 19, 1)" variant="Linear" />,
             title: 'Legals',
             subtitle: 'View terms, policies and compliance',
+            onPress: () => router.push('https://www.sohcahtoapayoutbdc.com/terms-of-use-customer'),
         },
         {
             icon: <Bookmark size={moderateScale(18)} color="rgba(255, 104, 19, 1)" variant="Linear" />,
-            title: 'Transient history',
-            subtitle: 'View and manege your trans history',
+            title: 'Payment history',
+            subtitle: 'View and manege your payment history',
             onPress: () => router.push('/(more)/transient-history'),
         },
         {

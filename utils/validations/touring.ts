@@ -10,8 +10,9 @@ export const touringStep1Schema = z.object({
     passportExpiryDate: passportExpiryDateField,
 });
 
-/** Step 2: Touring amount — max $4,000 */
-export const touringStep2Schema = amountStepSchema(4000, 'Tourist');
+export const touringStep2Schema = z.object({
+    amount: z.number().positive('Please enter a valid amount'),
+});
 
 /** Step 3: Touring uses a pickup location */
 export const touringStep3Schema = locationStepSchema;

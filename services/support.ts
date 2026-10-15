@@ -6,8 +6,8 @@ export const createSupportTicket = async (payload: CreateSupportTicketPayload): 
     formData.append('category', payload.category);
     formData.append('description', payload.description);
 
-    if (payload.file) {
-        formData.append('file', payload.file);
+    if (payload.attached) {
+        formData.append('attached', payload.attached);
     }
 
     const response = await api.post('/customer/support/tickets', formData, {

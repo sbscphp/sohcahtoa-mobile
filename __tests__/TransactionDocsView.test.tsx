@@ -24,7 +24,7 @@ describe('TransactionDocsView', () => {
     it('displays correct status text for documents', () => {
         const { getByText } = render(<TransactionDocsView {...defaultProps} />);
 
-        expect(getByText('Approved')).toBeTruthy();
+        expect(getByText('Verified')).toBeTruthy();
         expect(getByText('Pending')).toBeTruthy();
     });
 
@@ -35,6 +35,29 @@ describe('TransactionDocsView', () => {
         };
         const { getByText } = render(<TransactionDocsView {...props} />);
 
-        expect(getByText('Rejected')).toBeTruthy();
+        expect(getByText('Failed')).toBeTruthy();
+    });
+
+    it('renders multiple uploads correctly (e.g. Proof of Funds)', () => {
+        const props = {
+            status: 'pending' as const,
+            documents: [
+                {
+                    label: 'Proof of Funds',
+                    required: true,
+                    uploads: [
+                        { id: '1', fileName: 'funds_statement1.pdf', status: 'VERIFIED' },
+                        { id: '2', fileName: 'funds_statement2.pdf', status: 'PENDING' },
+                    ],
+                },
+            ],
+        };
+        const { getByText } = render(<TransactionDocsView {...props} />);
+
+        expect(getByText('Proof of Funds *')).toBeTruthy();
+        expect(getByText(/Proof of Funds 1/)).toBeTruthy();
+        expect(getByText(/Proof of Funds 2/)).toBeTruthy();
+        expect(getByText('Verified')).toBeTruthy();
+        expect(getByText('Pending')).toBeTruthy();
     });
 });

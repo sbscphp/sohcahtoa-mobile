@@ -1,6 +1,7 @@
 import { useUploadTransactionDocumentMutation } from '@/hooks/queries/transactions/useUploadTransactionDocumentMutation';
 import { useReuploadTransactionDocumentMutation } from '@/hooks/queries/transactions/useReuploadTransactionDocumentMutation';
 import { useAuthStore } from '@/stores/useAuthStore';
+import { useToastStore } from '@/stores/useToastStore';
 import * as DocumentPicker from 'expo-document-picker';
 
 export interface UploadedFile {
@@ -32,6 +33,7 @@ interface UseDocumentUploadOptions {
 
 export function useDocumentUpload({ onSuccess, onError, transactionId }: UseDocumentUploadOptions) {
     const user = useAuthStore((state) => state.user);
+    const showToast = useToastStore((state) => state.showToast);
     const uploadDocument = useUploadTransactionDocumentMutation();
     const reuploadDocument = useReuploadTransactionDocumentMutation();
 
@@ -45,6 +47,12 @@ export function useDocumentUpload({ onSuccess, onError, transactionId }: UseDocu
             if (result.canceled || !result.assets || result.assets.length === 0) return;
 
             const asset = result.assets[0];
+
+            const MAX_SIZE = 10 * 1024 * 1024;
+            if (asset.size && asset.size > MAX_SIZE) {
+                showToast('File size exceeds the 10 MB limit', 'error');
+                return;
+            }
 
             if (!user?.id) {
                 console.error('User ID not found');

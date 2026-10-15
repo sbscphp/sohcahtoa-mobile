@@ -1,33 +1,19 @@
 import ControlledInput from '@/components/ControlledInput';
+import GenericSelectionSheet, { SelectionItem } from '@/components/GenericSelectionSheet';
 import { Ionicons } from '@expo/vector-icons';
-import { ArrowDown2 } from 'iconsax-react-nativejs';
+import { ArrowDown2, Bank } from 'iconsax-react-nativejs';
 import React from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 import { moderateScale } from 'react-native-size-matters';
 import { useWatch } from 'react-hook-form';
 import { useAttachBankAccountsMutation } from '@/hooks/queries/transactions/useAttachBankAccountsMutation';
+import { useGetSavedAccountsQuery } from '@/hooks/queries/banks/useGetSavedAccountsQuery';
+import { useGetBanksQuery } from '@/hooks/queries/banks/useGetBanksQuery';
 
-export interface SavedAccount {
-    id: string;
-    bankName: string;
-    accountNumber: string;
-    accountName: string;
-    bankCode?: string;
-}
+import { SavedAccount, PayoutMethodStepProps } from '@/types/transaction-flow';
+import { findBank, isNigerianAccount } from '@/utils/banks';
 
-interface PayoutMethodStepProps {
-    control: any;
-    setValue: (name: any, value: any, options?: any) => void;
-    setPayoutSheetVisible: (visible: boolean) => void;
-    savedAccounts: SavedAccount[];
-    selectedSavedAccountId: string | null;
-    setSelectedSavedAccountId: (id: string | null) => void;
-    setIsAddingNewAccount: (visible: boolean) => void;
-    transactionId?: string;
-    isMultiSelect?: boolean;
-    selectedSavedAccountIds?: string[];
-    setSelectedSavedAccountIds?: (ids: string[]) => void;
-}
+export { SavedAccount };
 
 export default function PayoutMethodStep({
     control,
@@ -41,8 +27,59 @@ export default function PayoutMethodStep({
     isMultiSelect = false,
     selectedSavedAccountIds,
     setSelectedSavedAccountIds,
+    isExpatriate = false,
+    isSellFx = false,
+    banks,
 }: PayoutMethodStepProps) {
     const attachBankAccountsMutation = useAttachBankAccountsMutation();
+    const { data: savedAccountsResponse } = useGetSavedAccountsQuery();
+    const [bankSheetVisible, setBankSheetVisible] = React.useState(false);
+    const { data: banksResponse } = useGetBanksQuery();
+
+    const banksList: SelectionItem[] = React.useMemo(() => {
+        if (banks && banks.length > 0) {
+            return banks.map((b: any) => ({
+                id: String(b.id || b.code || b.value || b.label),
+                label: b.label || b.name,
+                value: b.label || b.name,
+            }));
+        }
+
+        const apiBanks = Array.isArray(banksResponse)
+            ? banksResponse
+            : (banksResponse?.data || (banksResponse as any)?.banks || []);
+
+        return apiBanks.map((b: any) => ({
+            id: String(b.code || b.id || b.name),
+            label: b.name || b.label,
+            value: b.name || b.label,
+        }));
+    }, [banks, banksResponse]);
+
+    const watchedBankName = useWatch({ control, name: 'domiciliaryBankName', defaultValue: '' });
+
+    const localSavedAccounts = React.useMemo(() => {
+        const validBanks = banksResponse?.data || [];
+        const rawAccounts = savedAccountsResponse?.data || [];
+        const validNgnIds = new Set(
+            rawAccounts.filter((acc: any) => isNigerianAccount(acc, validBanks)).map((acc: any) => acc.id)
+        );
+
+        if (savedAccounts?.length) {
+            return savedAccounts.filter((acc) => validNgnIds.has(acc.id) && !!acc.bankCode);
+        }
+
+        return rawAccounts
+            .filter((acc: any) => validNgnIds.has(acc.id))
+            .map((acc: any) => ({
+                id: acc.id,
+                bankName: acc.bankName,
+                accountNumber: acc.accountNumber,
+                accountName: acc.accountName,
+                bankCode: findBank(acc.bankName, validBanks)?.code || '',
+                currency: acc.currency,
+            }));
+    }, [savedAccounts, savedAccountsResponse, banksResponse]);
 
     const [localSelectedIds, setLocalSelectedIds] = React.useState<string[]>([]);
     const activeSelectedIds = selectedSavedAccountIds !== undefined ? selectedSavedAccountIds : localSelectedIds;
@@ -54,13 +91,46 @@ export default function PayoutMethodStep({
         defaultValue: ''
     });
 
-    const isElectronic = payoutMethod?.includes('Electronic') || payoutMethod === 'Electronic_Transfer';
+    const isElectronic = payoutMethod?.includes('Electronic');
+
+    const isDomiciliary = payoutMethod === 'Electronic Transfer (100%)' || 
+                           payoutMethod === 'Cash (25%) + Electronic Transfer (75%)';
+
+    const isDomiciliaryFieldShown = isDomiciliary || isExpatriate;
+
+    const handleAccountSelect = (account: any, isSelected: boolean) => {
+        if (isMultiSelect) {
+            const nextIds = isSelected ? activeSelectedIds.filter(id => id !== account.id) : [...activeSelectedIds, account.id];
+            setActiveSelectedIds(nextIds);
+            const last = nextIds.length > 0 ? localSavedAccounts.find(a => a.id === nextIds[nextIds.length - 1]) : null;
+            setValue('customerBankName', last?.bankName || '');
+            setValue('customerBankCode', last?.bankCode || '');
+            setValue('customerAccountNumber', last?.accountNumber || '');
+            setValue('customerAccountName', last?.accountName || '');
+            if (transactionId) attachBankAccountsMutation.mutate({ transactionId, bankAccountIds: nextIds });
+        } else {
+            setSelectedSavedAccountId(account.id);
+            setValue('customerBankName', account.bankName);
+            setValue('customerBankCode', account.bankCode);
+            setValue('customerAccountNumber', account.accountNumber);
+            setValue('customerAccountName', account.accountName);
+            if (transactionId) attachBankAccountsMutation.mutate({ transactionId, bankAccountIds: [account.id] });
+        }
+    };
 
     return (
         <View style={{ gap: moderateScale(14) }}>
             <Text style={{ fontSize: moderateScale(16), fontWeight: '700', color: '#0F172A', marginBottom: moderateScale(4) }}>
                 Choose your payout method
             </Text>
+           {!isSellFx &&  <Text style={{ fontSize: moderateScale(13), color: '#64748B', marginTop: moderateScale(-8), marginBottom: moderateScale(4) }}>
+                Note that 25% cash payout is subject to a maximum amount of $500
+            </Text>}
+            {isSellFx && (
+                <Text style={{ fontSize: moderateScale(13), color: '#040404ff', fontWeight: '400', marginBottom: moderateScale(-4) }}>
+                  Note: No cash pickup is allowed
+                </Text>
+            )}
             <TouchableOpacity onPress={() => setPayoutSheetVisible(true)} activeOpacity={0.8}>
                 <View pointerEvents="none">
                     <ControlledInput
@@ -76,9 +146,9 @@ export default function PayoutMethodStep({
             </TouchableOpacity>
 
             {/* Saved Accounts List */}
-            {isElectronic && (
+            {isElectronic && !isDomiciliary && (
                 <View style={{ marginTop: moderateScale(8), gap: moderateScale(12) }}>
-                    {savedAccounts.map((account) => {
+                    {localSavedAccounts.map((account) => {
                         const isSelected = isMultiSelect
                             ? activeSelectedIds.includes(account.id)
                             : selectedSavedAccountId === account.id;
@@ -88,50 +158,7 @@ export default function PayoutMethodStep({
                                 key={account.id}
                                 activeOpacity={0.9}
                                 disabled={attachBankAccountsMutation.isPending}
-                                onPress={() => {
-                                    if (isMultiSelect) {
-                                        const nextIds = isSelected
-                                            ? activeSelectedIds.filter(id => id !== account.id)
-                                            : [...activeSelectedIds, account.id];
-                                        
-                                        setActiveSelectedIds(nextIds);
-
-                                        if (nextIds.length > 0) {
-                                            const lastAccount = savedAccounts.find(a => a.id === nextIds[nextIds.length - 1]);
-                                            if (lastAccount) {
-                                                setValue('customerBankName', lastAccount.bankName);
-                                                setValue('customerBankCode', lastAccount.bankCode);
-                                                setValue('customerAccountNumber', lastAccount.accountNumber);
-                                                setValue('customerAccountName', lastAccount.accountName);
-                                            }
-                                        } else {
-                                            setValue('customerBankName', '');
-                                            setValue('customerBankCode', '');
-                                            setValue('customerAccountNumber', '');
-                                            setValue('customerAccountName', '');
-                                        }
-
-                                        if (transactionId) {
-                                            attachBankAccountsMutation.mutate({
-                                                transactionId,
-                                                bankAccountIds: nextIds,
-                                            });
-                                        }
-                                    } else {
-                                        setSelectedSavedAccountId(account.id);
-                                        setValue('customerBankName', account.bankName);
-                                        setValue('customerBankCode', account.bankCode);
-                                        setValue('customerAccountNumber', account.accountNumber);
-                                        setValue('customerAccountName', account.accountName);
-
-                                        if (transactionId) {
-                                            attachBankAccountsMutation.mutate({
-                                                transactionId,
-                                                bankAccountIds: [account.id],
-                                            });
-                                        }
-                                    }
-                                }}
+                                onPress={() => handleAccountSelect(account, isSelected)}
                                 style={{
                                     borderWidth: isSelected ? 1.5 : 1,
                                     borderColor: isSelected ? '#FF6B2C' : '#E2E8F0',
@@ -139,10 +166,6 @@ export default function PayoutMethodStep({
                                     borderRadius: moderateScale(12),
                                     paddingVertical: moderateScale(16),
                                     paddingHorizontal: moderateScale(16),
-                                    shadowColor: isSelected ? '#FF6B2C' : 'transparent',
-                                    shadowOffset: { width: 0, height: 1 },
-                                    shadowOpacity: isSelected ? 0.1 : 0,
-                                    shadowRadius: 2,
                                 }}
                             >
                                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -180,7 +203,7 @@ export default function PayoutMethodStep({
             )}
 
 
-            {isElectronic && (!savedAccounts || savedAccounts.length === 0) && (
+            {isElectronic && !isDomiciliary && (!localSavedAccounts || localSavedAccounts.length === 0) && (
                 <View style={{
                     padding: moderateScale(16),
                     backgroundColor: '#F8F9FA',
@@ -204,7 +227,7 @@ export default function PayoutMethodStep({
             )}
 
            
-            {isElectronic && (
+            {isElectronic && !isDomiciliary && (
                 <TouchableOpacity
                     activeOpacity={0.8}
                     onPress={() => {
@@ -215,25 +238,93 @@ export default function PayoutMethodStep({
                         setValue('customerAccountName', '');
                         setIsAddingNewAccount(true);
                     }}
-                    style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        alignSelf: 'flex-end',
-                        marginTop: moderateScale(4),
-                        paddingHorizontal: moderateScale(4),
-                        paddingVertical: moderateScale(8)
-                    }}
+                    style={{ flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-end', marginTop: moderateScale(4), paddingHorizontal: moderateScale(4), paddingVertical: moderateScale(8) }}
                 >
                     <Ionicons name="add" size={moderateScale(18)} color="#FF6B2C" style={{ marginRight: moderateScale(4) }} />
-                    <Text style={{
-                        fontSize: moderateScale(14),
-                        fontWeight: '600',
-                        color: '#FF6B2C'
-                    }}>
-                        New Account
-                    </Text>
+                    <Text style={{ fontSize: moderateScale(14), fontWeight: '600', color: '#FF6B2C' }}>New Account</Text>
                 </TouchableOpacity>
             )}
+
+            {isDomiciliaryFieldShown && (
+                <View style={{ gap: moderateScale(16), marginTop: moderateScale(8) }}>
+                    <Text style={{ fontSize: moderateScale(16), fontWeight: '700', color: '#0F172A', marginBottom: moderateScale(4) }}>
+                        Domiciliary Account Details
+                    </Text>
+                    <ControlledInput
+                        control={control}
+                        name="domiciliaryAccountNumber"
+                        label="Domiciliary Account Number"
+                        placeholder="Enter domiciliary account number"
+                        required
+                        keyboardType={isSellFx ? undefined : "numeric"}
+                        maxLength={isSellFx ? undefined : 10}
+                        filterType={isSellFx ? "alphanumeric" : "numeric"}
+                    />
+                    <TouchableOpacity onPress={() => setBankSheetVisible(true)} activeOpacity={0.8}>
+                        <View pointerEvents="none">
+                            <ControlledInput
+                                control={control}
+                                name="domiciliaryBankName"
+                                label="Domiciliary Bank Name"
+                                placeholder="Select domiciliary bank name"
+                                required
+                                rightIcon={ArrowDown2}
+                                editable={false}
+                            />
+                        </View>
+                    </TouchableOpacity>
+                    <ControlledInput
+                        control={control}
+                        name="domiciliaryAccountName"
+                        label="Account Name"
+                        placeholder="Enter account name"
+                        required
+                    />
+                    <ControlledInput
+                        control={control}
+                        name="domiciliarySwiftCode"
+                        label="SWIFT Code"
+                        placeholder="Enter SWIFT code"
+                        required
+                        maxLength={11}
+                        filterType="alphanumeric"
+                        autoCapitalize="characters"
+                    />
+                    <ControlledInput
+                        control={control}
+                        name="domiciliaryRoutingNumber"
+                        label="Routing Number"
+                        placeholder="Enter routing number"
+                        required
+                        keyboardType="numeric"
+                        maxLength={9}
+                        filterType="numeric"
+                    />
+                    <ControlledInput
+                        control={control}
+                        name="domiciliaryBankAddress"
+                        label="Bank Address"
+                        placeholder="Enter bank address"
+                        required
+                    />
+                </View>
+            )}
+
+            <GenericSelectionSheet
+                visible={bankSheetVisible}
+                onClose={() => setBankSheetVisible(false)}
+                title="Select Bank"
+                headerIcon={Bank}
+                items={banksList}
+                selectedItem={watchedBankName || ''}
+                onSelect={(item) => {
+                    setValue('domiciliaryBankName', item.label, { shouldValidate: true, shouldDirty: true });
+                    setBankSheetVisible(false);
+                }}
+                confirmButtonText="Select Bank"
+                searchable={true}
+                searchPlaceholder="Search bank..."
+            />
         </View>
     );
 }

@@ -6,7 +6,7 @@ import TransactionViewLayout from '@/components/transaction-flow/TransactionView
 import { useGetTransactionByIdQuery } from '@/hooks/queries/transactions/useGetTransactionByIdQuery';
 import { useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useToastStore } from '@/stores/useToastStore';
-import { commonDocTypeLabels, getTransactionDocuments, formatDate, formatTime, formatTimeWithSeconds, formatCurrency } from '@/utils/helpers';
+import { commonDocTypeLabels, getTransactionDocuments, getTransactionUploadedDocs, buildTransactionDocsItems, formatDate, formatTime, formatTimeWithSeconds, formatPickupTime, formatCurrency, getCurrencySymbol, mapApiStatusToViewStatus, isPaymentRequired, getTransactionMessage } from '@/utils/helpers';
 import { useLocalSearchParams, useRouter, useFocusEffect, useNavigation } from 'expo-router';
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import { ActivityIndicator, View, BackHandler } from 'react-native';
@@ -34,6 +34,8 @@ export default function ViewTouringScreen() {
     const tx = txResponse?.data;
     const showToast = useToastStore(s => s.showToast);
 
+    // console.log("Transaction", JSON.stringify(tx, null, 2))
+
     useFocusEffect(
         useCallback(() => {
             refetch();
@@ -48,11 +50,7 @@ export default function ViewTouringScreen() {
 
     // console.log(JSON.stringify(tx, null, 2), "TRANSACTION");
 
-    const mapStatus = (s: string): TransactionStatus => {
-        const map: Record<string, TransactionStatus> = { 'DRAFT': 'pending', 'AWAITING_VERIFICATION': 'pending', 'VERIFICATION_IN_PROGRESS': 'pending', 'VERIFICATION_COMPLETED': 'pending', 'AWAITING_DEPOSIT': 'awaiting_disbursement', 'DEPOSIT_PENDING': 'awaiting_disbursement', 'DEPOSIT_CONFIRMED': 'awaiting_disbursement', 'COMPLIANCE_REVIEW': 'pending', 'ADMIN_APPROVAL_PENDING': 'pending', 'APPROVED': 'approved', 'DISBURSEMENT_IN_PROGRESS': 'awaiting_disbursement', 'COMPLETED': 'settled', 'REJECTED': 'rejected', 'CANCELLED': 'rejected' };
-        return map[s] || 'pending';
-    };
-    const status: TransactionStatus = tx ? mapStatus(tx.status) : 'pending';
+    const status: TransactionStatus = tx ? mapApiStatusToViewStatus(tx.status) : 'pending';
     const handleBack = () => {
         if (fromSuccess === 'true') {
             router.replace('/(tabs)');
@@ -72,26 +70,27 @@ export default function ViewTouringScreen() {
         return [
             { label: 'Transaction ID', value: tx.referenceNumber },
             { label: 'Amount (₦)', value: formatCurrency(tx.nairaEquivalent) },
-            { label: 'Equivalent Amount (FX)', value: formatCurrency(tx.foreignAmount, tx.currency === 'USD' ? '$' : tx.currency === 'GBP' ? '£' : tx.currency === 'EUR' ? '€' : tx.currency) },
+            { label: 'Equivalent Amount (FX)', value: formatCurrency(tx.foreignAmount, getCurrencySymbol(tx.currency)) },
             { label: 'Date Initiated', value: `${formatDate(tx.createdAt)}\n${formatTimeWithSeconds(tx.createdAt)}` },
             ...(tx.cashPickup ? [
                 {
                     label: 'Pickup Cash Amount',
-                    value: formatCurrency(tx.cashPickup.amount, (tx.cashPickup.currency || tx.currency) === 'USD' ? '$' : (tx.cashPickup.currency || tx.currency) === 'GBP' ? '£' : (tx.cashPickup.currency || tx.currency) === 'EUR' ? '€' : (tx.cashPickup.currency || tx.currency)) || 'N/A',
-                },
-                {
-                    label: 'Pickup Status',
-                    value: tx.cashPickup.status?.replace(/_/g, ' ') || 'N/A',
+                    value: formatCurrency(tx?.pickupLocation?.amount, getCurrencySymbol(tx.cashPickup.currency || tx.currency)) || 'N/A',
                 },
                 {
                     label: 'Pickup Location',
-                    value: tx.cashPickup.pickupLocation || 'N/A',
+                    value: tx.cashPickup.pickupCity || tx.cashPickup.pickupLocation || 'N/A',
                 },
-                ...(tx.cashPickup.pickupCity ? [{
-                    label: 'Pickup City',
-                    value: tx.cashPickup.pickupCity,
+                {
+                    label: 'Pickup Address',
+                    value: tx.cashPickup.pickupAddress || tx.pickupLocation?.address,
                     isRightAligned: true,
-                }] : []),
+                },
+                {
+                    label: 'Pickup Phone',
+                    value: tx.cashPickup.pickupPhone || "N/A",
+                    isRightAligned: true,
+                },
                 ...(tx.cashPickup.pickupState ? [{
                     label: 'Pickup State',
                     value: tx.cashPickup.pickupState,
@@ -106,16 +105,16 @@ export default function ViewTouringScreen() {
                     value: tx.cashPickup.recipientPhone,
                     isRightAligned: true,
                 }] : []),
-                ...((tx.cashPickup.scheduledPickupDate || tx.cashPickup.schedulePickupDate) ? [{
-                    label: 'Pickup Date',
-                    value: formatDate(tx.cashPickup.scheduledPickupDate || tx.cashPickup.schedulePickupDate),
+                {
+                    label: 'Scheduled Date',
+                    value: (tx.cashPickup.scheduledPickupDate || tx.cashPickup.schedulePickupDate || tx.cashPickup.pickupDate || (tx as any).scheduledPickupDate || (tx as any).schedulePickupDate || (tx as any).pickupDate) ? formatDate(tx.cashPickup.scheduledPickupDate || tx.cashPickup.schedulePickupDate || tx.cashPickup.pickupDate || (tx as any).scheduledPickupDate || (tx as any).schedulePickupDate || (tx as any).pickupDate) : 'N/A',
                     isRightAligned: true,
-                }] : []),
-                ...((tx.cashPickup.scheduledPickupTime || tx.cashPickup.schedulePickupTime) ? [{
-                    label: 'Pickup Time',
-                    value: tx.cashPickup.scheduledPickupTime || tx.cashPickup.schedulePickupTime,
+                },
+                {
+                    label: 'Scheduled Time',
+                    value: formatPickupTime(tx.cashPickup.scheduledPickupTime || tx.cashPickup.schedulePickupTime || tx.cashPickup.pickupTime || (tx as any).scheduledPickupTime || (tx as any).schedulePickupTime || (tx as any).pickupTime) || 'N/A',
                     isRightAligned: true,
-                }] : []),
+                },
             ] : []),
         ];
     }, [tx]);
@@ -123,28 +122,14 @@ export default function ViewTouringScreen() {
     const detailsDocuments = useMemo(() => {
         if (!tx) return [];
         const docs = getTransactionDocuments(tx);
-
-        const uploadedDocs = tx.requiredDocuments.filter(d => !!d.uploaded).map(d => ({
-            label: commonDocTypeLabels[d.type] || d.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
-            fileName: d.uploaded!.fileName,
-            fileUrl: d.uploaded!.fileUrl,
-        }));
+        const uploadedDocs = getTransactionUploadedDocs(tx);
         return [...docs, ...uploadedDocs];
     }, [tx]);
 
     const docsItems = useMemo(() => {
-        if (!tx) return [];
-        return tx.requiredDocuments.map((d) => ({
-            label: commonDocTypeLabels[d.type] || d.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
-            fileName: d.uploaded ? d.uploaded.fileName : null,
-            docStatus: d.uploaded?.status,
-            required: true,
-            onUpload: (!d.uploaded || d.uploaded.status === 'REQUIRES_MANUAL_REVIEW')
-                ? () => uploadFile(d.type, d.uploaded?.status === 'REQUIRES_MANUAL_REVIEW')
-                : undefined,
-        }));
+        return buildTransactionDocsItems(tx, uploadFile);
     }, [tx, uploadFile]);
-    const beneficiaryItems = useMemo(() => {
+    const domiciliaryItems = useMemo(() => {
         const details = tx?.beneficiaryDetails as any;
         if (!tx || !details) return undefined;
         return [
@@ -154,7 +139,7 @@ export default function ViewTouringScreen() {
             ...(details.studentName ? [{ label: 'Student Name', value: details.studentName }] : []),
             ...(details.studentPassportNumber ? [{ label: 'Student Passport Number', value: details.studentPassportNumber }] : []),
             ...(details.admissionNumber ? [{ label: 'Admission Number', value: details.admissionNumber }] : []),
-            ...(details.address ? [{ label: 'Address', value: details.address }] : []),
+            ...(details.address || details.bankAddress ? [{ label: 'Bank Address', value: details.address || details.bankAddress }] : []),
             ...(details.country ? [{ label: 'Country', value: details.country }] : []),
             ...(details.swiftCode ? [{ label: 'SWIFT Code', value: details.swiftCode }] : []),
             ...(details.iban ? [{ label: 'IBAN', value: details.iban }] : []),
@@ -162,6 +147,16 @@ export default function ViewTouringScreen() {
             ...(details.ifscCode ? [{ label: 'IFSC Code', value: details.ifscCode }] : []),
             ...(details.purposeCode ? [{ label: 'Purpose Code', value: details.purposeCode }] : []),
             ...(details.bsbCode ? [{ label: 'BSB Code', value: details.bsbCode }] : []),
+        ];
+    }, [tx]);
+
+    const refundBankItems = useMemo(() => {
+        const details = (tx?.refundBankDetails || tx?.paymentDetails) as any;
+        if (!tx || !details || Array.isArray(details)) return undefined;
+        return [
+            ...(details.bankName ? [{ label: 'Bank Name', value: details.bankName }] : []),
+            ...(details.accountNumber ? [{ label: 'Account Number', value: details.accountNumber }] : []),
+            ...(details.accountName ? [{ label: 'Account Name', value: details.accountName }] : []),
         ];
     }, [tx]);
 
@@ -208,18 +203,11 @@ export default function ViewTouringScreen() {
             if (ba.bankName) items.push({ label: `${prefix}Bank Name`, value: ba.bankName });
             if (ba.accountName) items.push({ label: `${prefix}Account Name`, value: ba.accountName });
             if (ba.accountNumber) items.push({ label: `${prefix}Account Number`, value: ba.accountNumber });
-            items.push({ label: `${prefix}Default`, value: ba.isDefault ? 'Yes' : 'No' });
-            items.push({ label: `${prefix}Verified`, value: ba.isVerified ? 'Yes' : 'No' });
         });
         return items;
     }, [tx]);
 
-    const getMessage = () => {
-        if (!tx) return '';
-        if (status === 'approved' || status === 'awaiting_disbursement' || status === 'settled') return "Congratulations! Your touring allowance request has been approved. Please proceed to payment.";
-        if (status === 'rejected') return tx.rejection?.reason || "Your application has been declined.";
-        return `Your transaction is currently ${tx.status.replace(/_/g, ' ').toLowerCase()}. Please check back for updates.`;
-    };
+    const getMessage = () => getTransactionMessage(tx, 'touring allowance request');
     if (isLoading) return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}><ActivityIndicator size="large" color="#FF6B2C" /></View>;
 
     return (
@@ -231,16 +219,17 @@ export default function ViewTouringScreen() {
             onTabChange={setActiveTab}
             tabs={[{ key: 'overview', label: 'Overview' }, { key: 'details', label: 'Transaction Details' }, { key: 'docs', label: 'Documentation' }]}
             onBack={handleBack}
-            showActionButton={status !== 'pending' && status !== 'rejected' && status !== 'settled'}
-            actionButtonTitle={status === 'approved' || status === 'awaiting_disbursement' ? "Proceed to Payment" : "Resubmit Request"}
+            showActionButton={isPaymentRequired(tx?.status) || status === 'more_info'}
+            actionButtonTitle={isPaymentRequired(tx?.status) ? "Proceed to Payment" : "Resubmit Request"}
             onActionPress={handleProceed}
         >
-            {activeTab === 'overview' && (<TransactionStatusView status={status} id={tx?.referenceNumber?.slice(-6) || ''} date={tx ? formatDate(tx.createdAt) : ''} time={tx ? formatTime(tx.createdAt) : ''} message={getMessage()} comments={tx?.comments} />)}
+            {activeTab === 'overview' && (<TransactionStatusView status={status} apiStatus={tx?.status} id={tx?.referenceNumber?.slice(-6) || ''} transactionId={tx?.transactionId || transactionId} date={tx ? formatDate(tx.createdAt) : ''} time={tx ? formatTime(tx.createdAt) : ''} message={getMessage()} comments={tx?.comments} />)}
             {activeTab === 'details' && (
                 <TransactionDetailsView
                     details={detailsItems}
                     documents={detailsDocuments}
-                    beneficiaryDetails={beneficiaryItems}
+                    domiciliaryDetails={domiciliaryItems}
+                    refundBankDetails={refundBankItems}
                     paymentDetails={paymentDetailsItems}
                     settlementDetails={settlementItems}
                     bankAccountsDetails={bankAccountsItems}

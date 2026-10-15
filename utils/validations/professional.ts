@@ -1,10 +1,14 @@
 import { z } from 'zod';
-import { amountStepSchema, baseCredentialSchema } from './shared';
+import { amountStepSchema, baseCredentialSchema, formAIdField, passportIssueDateField } from './shared';
 
-export const professionalStep0Schema = baseCredentialSchema.extend({
-    passportIssueDate: z.string().min(1, 'Please select Passport Issue Date'),
-    passportExpiryDate: z.string().min(1, 'Please select Passport Expiry Date'),
-    memberNumber: z.string().min(1, 'Evidence of Membership or Registration number is required'),
+export const professionalStep0Schema = z.object({
+    bvn: z.string().optional().or(z.literal('')),
+    nin: z.string().optional().or(z.literal('')),
+    formAId: formAIdField,
+    passportDocumentNumber: z.string().optional().or(z.literal('')),
+    passportIssueDate: passportIssueDateField.optional().or(z.literal('')),
+    passportExpiryDate: z.string().optional().or(z.literal('')),
+    memberNumber: z.string().min(1, 'Membership/Registration number is required'),
 });
 
 /** Step 1: Professional documents */
@@ -14,7 +18,7 @@ export const professionalStep1Schema = z.object({});
 export const professionalStep2Schema = amountStepSchema(2000, 'Professional');
 
 /** Step 3: Professional uses specific bank details schema */
-export const professionalStep3Schema = z.object({
+export const professionalStep3BaseSchema = z.object({
     beneficiaryCountry: z.string().min(1, 'Please select country/region'),
     bankAccountName: z.string().min(1, 'Please enter beneficiary name'),
     beneficiaryAddress: z.string().min(1, 'Please enter beneficiary address'),
@@ -33,10 +37,7 @@ export const professionalStep3Schema = z.object({
     bsbCode: z.string().optional(),
     otherBankDetails: z.string().optional(),
 
-    // Keep old fields as optional to prevent react-hook-form initialization or submission issues
-    memberName: z.string().optional(),
-    memberNumber: z.string().optional(),
-    organizationName: z.string().optional(),
+    organizationName: z.string().min(1, 'Please enter organization name'),
     beneficiaryPhone: z.string().optional(),
     beneficiaryEmail: z.string().optional(),
     beneficiaryCity: z.string().optional(),
@@ -44,21 +45,30 @@ export const professionalStep3Schema = z.object({
     correspondenceBankName: z.string().optional(),
     correspondenceBankAddress: z.string().optional(),
     correspondenceBankSwiftCode: z.string().optional(),
-}).superRefine((data, ctx) => {
+});
+
+export const bankDetailsRefinement = (data: {
+    beneficiaryCountry?: string;
+    bankAccountIban?: string;
+    routingNumber?: string;
+    ifscCode?: string;
+    purposeCode?: string;
+    bsbCode?: string;
+}, ctx: z.RefinementCtx) => {
     const country = data.beneficiaryCountry?.toLowerCase() || '';
 
     if (country.includes('united kingdom') || country === 'uk') {
         if (!data.bankAccountIban) {
             ctx.addIssue({
-                code: z.ZodIssueCode.custom,
+                code: "custom",
                 message: 'Please enter IBAN',
                 path: ['bankAccountIban']
             });
         } else {
             const cleanIban = data.bankAccountIban.replace(/\s/g, '');
-            if (!/^GB\d{2}[A-Z]{4}\d{14}$/i.test(cleanIban)) {
+            if (cleanIban.length < 22) {
                 ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
+                    code: "custom",
                     message: 'Please enter a valid UK IBAN (exactly 22 characters, starting with GB)',
                     path: ['bankAccountIban']
                 });
@@ -67,13 +77,13 @@ export const professionalStep3Schema = z.object({
     } else if (country.includes('united states') || country === 'usa' || country === 'canada') {
         if (!data.routingNumber) {
             ctx.addIssue({
-                code: z.ZodIssueCode.custom,
+                code: "custom",
                 message: 'Please enter routing number',
                 path: ['routingNumber']
             });
         } else if (!/^\d{9}$/.test(data.routingNumber)) {
             ctx.addIssue({
-                code: z.ZodIssueCode.custom,
+                code: "custom",
                 message: 'Routing number must be exactly 9 digits',
                 path: ['routingNumber']
             });
@@ -81,20 +91,20 @@ export const professionalStep3Schema = z.object({
     } else if (country.includes('india')) {
         if (!data.ifscCode) {
             ctx.addIssue({
-                code: z.ZodIssueCode.custom,
+                code: "custom",
                 message: 'Please enter IFSC number',
                 path: ['ifscCode']
             });
         } else if (!/^[A-Za-z]{4}0[A-Za-z0-9]{6}$/.test(data.ifscCode)) {
             ctx.addIssue({
-                code: z.ZodIssueCode.custom,
+                code: "custom",
                 message: 'Please enter a valid 11-character IFSC code (e.g. SBIN0000001)',
                 path: ['ifscCode']
             });
         }
         if (!data.purposeCode) {
             ctx.addIssue({
-                code: z.ZodIssueCode.custom,
+                code: "custom",
                 message: 'Please enter purpose code',
                 path: ['purposeCode']
             });
@@ -102,16 +112,21 @@ export const professionalStep3Schema = z.object({
     } else if (country.includes('australia')) {
         if (!data.bsbCode) {
             ctx.addIssue({
-                code: z.ZodIssueCode.custom,
+                code: "custom",
                 message: 'Please enter BSB code',
                 path: ['bsbCode']
             });
         } else if (!/^\d{3}-?\d{3}$/.test(data.bsbCode.replace(/\s/g, ''))) {
             ctx.addIssue({
-                code: z.ZodIssueCode.custom,
+                code: "custom",
                 message: 'BSB code must be exactly 6 digits (e.g. 123-456 or 123456)',
                 path: ['bsbCode']
             });
         }
     }
-});
+};
+
+export const professionalStep3Schema = professionalStep3BaseSchema.extend({
+    memberName: z.string().min(1, 'Please enter member name'),
+    memberNumber: z.string().min(1, 'Please enter membership number'),
+}).superRefine(bankDetailsRefinement);

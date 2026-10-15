@@ -1,7 +1,8 @@
-import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { ScaledSheet } from 'react-native-size-matters';
+import React, { useState } from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
+import { Eye, EyeSlash } from 'iconsax-react-nativejs';
 import Chip from '../assets/images/chip.svg';
 
 interface VirtualCardProps {
@@ -9,9 +10,8 @@ interface VirtualCardProps {
     balance?: string; 
     last4Digits: string;
     expiry: string;
+    initialHidden?: boolean;
 }
-
-
 
 const VisaLogo = () => (
     <Text style={styles.visaText}>VISA</Text>
@@ -50,8 +50,11 @@ const VirtualCard: React.FC<VirtualCardProps> = ({
     name,
     balance = "$...",
     last4Digits,
-    expiry
+    expiry,
+    initialHidden = false
 }) => {
+    const [isHidden, setIsHidden] = useState(initialHidden);
+
     return (
         <View style={styles.cardContainer}>
             <CardBackground />
@@ -61,6 +64,19 @@ const VirtualCard: React.FC<VirtualCardProps> = ({
                     <Chip />
                     <Text style={styles.prepaidText}>Prepaid card</Text>
                     <View style={{ flex: 1 }} />
+                    <TouchableOpacity
+                        onPress={() => setIsHidden(prev => !prev)}
+                        activeOpacity={0.7}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        style={{ marginRight: moderateScale(12) }}
+                        accessibilityLabel={isHidden ? "Show card details" : "Hide card details"}
+                    >
+                        {isHidden ? (
+                            <EyeSlash size={moderateScale(20)} color="#FFFFFF" />
+                        ) : (
+                            <Eye size={moderateScale(20)} color="#FFFFFF" />
+                        )}
+                    </TouchableOpacity>
                     <VisaLogo />
                 </View>
                 <View style={styles.bottomSection}>
@@ -84,10 +100,10 @@ const VirtualCard: React.FC<VirtualCardProps> = ({
                                 <View style={styles.dot} />
                                 <View style={styles.dot} />
                             </View>
-                            <Text style={styles.cardNumber}>{last4Digits}</Text>
+                            <Text style={styles.cardNumber}>{isHidden ? '••••' : last4Digits}</Text>
                         </View>
 
-                        <Text style={styles.balanceText}>{balance}</Text>
+                        <Text style={styles.balanceText}>{isHidden ? '••••' : balance}</Text>
                     </View>
 
                     <View style={styles.footerRow}>
@@ -96,7 +112,7 @@ const VirtualCard: React.FC<VirtualCardProps> = ({
                                 <Text style={styles.validThruLabel}>VALID</Text>
                                 <Text style={styles.validThruLabel}>THRU</Text>
                             </View>
-                            <Text style={styles.expiryDate}>{expiry}</Text>
+                            <Text style={styles.expiryDate}>{isHidden ? '••/••' : expiry}</Text>
                         </View>
                         <Text style={styles.cardHolder}>{name}</Text>
                     </View>

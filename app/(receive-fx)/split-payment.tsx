@@ -2,7 +2,8 @@ import CurrencyConverter from '@/components/CurrencyConverter';
 import Header from '@/components/Header';
 import PrimaryButton from '@/components/PrimaryButton';
 import ProgressBar from '@/components/ProgressBar';
-import { useRouter } from 'expo-router';
+import { useReceiveFxRate } from '@/hooks/useReceiveFxRate';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { InfoCircle } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
@@ -10,6 +11,8 @@ import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 
 export default function SplitPaymentScreen() {
     const router = useRouter();
+    const { option } = useLocalSearchParams<{ option?: string }>();
+    const { rate, formattedLimitNaira } = useReceiveFxRate();
     const [transactionType, setTransactionType] = useState<'buy' | 'sell'>('buy');
 
     // Mock currencies for display
@@ -21,17 +24,26 @@ export default function SplitPaymentScreen() {
     });
 
     const [currencySend, setCurrencySend] = useState({
-        code: 'USD',
-        country: 'United States',
-        currencyName: 'US Dollar',
+        code: 'NGN',
+        country: 'Nigeria',
+        currencyName: 'Naira',
         flagUrl: 'https://flagcdn.com/w320/ng.png'
     });
 
     const [amountGet, setAmountGet] = useState('1');
-    const [amountSend, setAmountSend] = useState('1,500');
+    const [amountSend, setAmountSend] = useState(rate.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+
+    const handleAmountGetChange = (val: string) => {
+        setAmountGet(val);
+        const num = parseFloat(val.replace(/,/g, '')) || 0;
+        setAmountSend((num * rate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+    };
 
     const handleContinue = () => {
-        router.push('/(receive-fx)/disbursement-options');
+        router.push({
+            pathname: '/(receive-fx)/disbursement-options',
+            params: { option: option || 'convert' },
+        });
     };
 
     return (
@@ -47,7 +59,7 @@ export default function SplitPaymentScreen() {
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}
                 >
-                    <ProgressBar step={5} totalSteps={6} />
+                    <ProgressBar step={4} totalSteps={5} />
 
                     <Text style={styles.sectionTitle}>
                         How would you like to receive your funds?
@@ -62,17 +74,25 @@ export default function SplitPaymentScreen() {
                         onCurrencySendChange={setCurrencySend}
                         amountGet={amountGet}
                         amountSend={amountSend}
-                        rate="USD1 - NGN1500"
-                        onAmountGetChange={setAmountGet}
+                        rate={`USD 1 - NGN ${rate.toLocaleString()}`}
+                        onAmountGetChange={handleAmountGetChange}
                         onAmountSendChange={setAmountSend}
                     />
 
                     <View style={styles.infoBanner}>
                         <InfoCircle size={moderateScale(20)} color="#F97316" variant="Bold" />
                         <View style={{ flex: 1 }}>
-                            <Text style={styles.infoTitle}>Request USD cash pick up</Text>
+                            <Text style={styles.infoTitle}>
+                                {option === 'pickup' ? 'Request cash pick up' : 'Exchange Rate Details'}
+                            </Text>
                             <Text style={styles.infoText}>
-                                A portion of the amount will be able for cash pickup in USD, and the rest will be sent as a bank transfer. <Text style={{ fontWeight: '700' }}>Maximum USD cash pick up is $500</Text>
+                                {option === 'pickup' ? (
+                                    <>
+                                        A portion of the amount will be able for cash pickup, and the rest will be sent as a bank transfer. <Text style={{ fontWeight: '700' }}>Maximum cash pick up is {formattedLimitNaira}</Text>
+                                    </>
+                                ) : (
+                                    `Funds will be converted to Naira at the rate of USD 1 - NGN ${rate.toLocaleString()} and disbursed to your account.`
+                                )}
                             </Text>
                         </View>
                     </View>

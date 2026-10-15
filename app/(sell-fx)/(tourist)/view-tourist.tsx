@@ -6,10 +6,10 @@ import TransactionViewLayout from '@/components/transaction-flow/TransactionView
 import { useGetTransactionByIdQuery } from '@/hooks/queries/transactions/useGetTransactionByIdQuery';
 import { useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useToastStore } from '@/stores/useToastStore';
-import { commonDocTypeLabels, getTransactionDocuments, formatDate, formatTime, formatTimeWithSeconds, formatCurrency } from '@/utils/helpers';
-import { useLocalSearchParams, useRouter, useFocusEffect, useNavigation } from 'expo-router';
-import React, { useMemo, useState, useCallback, useEffect } from 'react';
-import { ActivityIndicator, View, BackHandler } from 'react-native';
+import { commonDocTypeLabels, formatCurrency, formatDate, formatTime, formatTimeWithSeconds, getTransactionDocuments, getTransactionUploadedDocs, buildTransactionDocsItems, getCurrencySymbol, mapApiStatusToViewStatus, isPaymentRequired, getTransactionMessage } from '@/utils/helpers';
+import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, BackHandler, View } from 'react-native';
 
 export default function ViewTouristScreen() {
     const router = useRouter();
@@ -42,17 +42,13 @@ export default function ViewTouristScreen() {
 
     const { upload: uploadFile, isPending: isUploading } = useDocumentUpload({
         transactionId: transactionId || undefined,
-        onSuccess: () => {},
+        onSuccess: () => { },
         onError: () => showToast('Failed to upload document. Please try again.', 'error'),
     });
 
     // console.log(JSON.stringify(tx, null, 2), "TRANSACTION");
 
-    const mapStatus = (s: string): TransactionStatus => {
-        const map: Record<string, TransactionStatus> = { 'DRAFT': 'pending', 'AWAITING_VERIFICATION': 'pending', 'VERIFICATION_IN_PROGRESS': 'pending', 'VERIFICATION_COMPLETED': 'pending', 'AWAITING_DEPOSIT': 'awaiting_disbursement', 'DEPOSIT_PENDING': 'awaiting_disbursement', 'DEPOSIT_CONFIRMED': 'awaiting_disbursement', 'COMPLIANCE_REVIEW': 'pending', 'ADMIN_APPROVAL_PENDING': 'pending', 'APPROVED': 'approved', 'DISBURSEMENT_IN_PROGRESS': 'awaiting_disbursement', 'COMPLETED': 'settled', 'REJECTED': 'rejected', 'CANCELLED': 'rejected' };
-        return map[s] || 'pending';
-    };
-    const status: TransactionStatus = tx ? mapStatus(tx.status) : 'pending';
+    const status: TransactionStatus = tx ? mapApiStatusToViewStatus(tx.status) : 'pending';
     const handleBack = () => {
         if (fromSuccess === 'true') {
             router.replace('/(tabs)');
@@ -72,26 +68,31 @@ export default function ViewTouristScreen() {
         return [
             { label: 'Transaction ID', value: tx.referenceNumber },
             { label: 'Amount (₦)', value: formatCurrency(tx.nairaEquivalent) },
-            { label: 'Equivalent Amount (FX)', value: formatCurrency(tx.foreignAmount, tx.currency === 'USD' ? '$' : tx.currency === 'GBP' ? '£' : tx.currency === 'EUR' ? '€' : tx.currency) },
+            { label: 'Equivalent Amount (FX)', value: formatCurrency(tx.foreignAmount, getCurrencySymbol(tx.currency)) },
             { label: 'Date Initiated', value: `${formatDate(tx.createdAt)}\n${formatTimeWithSeconds(tx.createdAt)}` },
+            ...((tx.personalInfo as any)?.nigerianAddress || (tx as any).nigerianAddress ? [{
+                label: 'Temporary Nigerian Address',
+                value: (tx.personalInfo as any)?.nigerianAddress || (tx as any).nigerianAddress
+            }] : []),
+            ...((tx as any).payoutMethod ? [{
+                label: 'Payout Method',
+                value: (tx as any).payoutMethod
+            }] : []),
             ...(tx.cashPickup ? [
                 {
-                    label: 'Pickup Cash Amount',
-                    value: formatCurrency(tx.cashPickup.amount, (tx.cashPickup.currency || tx.currency) === 'USD' ? '$' : (tx.cashPickup.currency || tx.currency) === 'GBP' ? '£' : (tx.cashPickup.currency || tx.currency) === 'EUR' ? '€' : (tx.cashPickup.currency || tx.currency)) || 'N/A',
-                },
-                {
-                    label: 'Pickup Status',
-                    value: tx.cashPickup.status?.replace(/_/g, ' ') || 'N/A',
-                },
-                {
                     label: 'Pickup Location',
-                    value: tx.cashPickup.pickupLocation || 'N/A',
+                    value: tx.cashPickup.pickupCity || tx.cashPickup.pickupLocation || 'N/A',
                 },
-                ...(tx.cashPickup.pickupCity ? [{
-                    label: 'Pickup City',
-                    value: tx.cashPickup.pickupCity,
+                {
+                    label: 'Pickup Address',
+                    value: tx.cashPickup.pickupAddress || tx.pickupLocation?.address,
                     isRightAligned: true,
-                }] : []),
+                },
+                {
+                    label: 'Pickup Phone',
+                    value: tx.cashPickup.pickupPhone || "N/A",
+                    isRightAligned: true,
+                },
                 ...(tx.cashPickup.pickupState ? [{
                     label: 'Pickup State',
                     value: tx.cashPickup.pickupState,
@@ -106,74 +107,83 @@ export default function ViewTouristScreen() {
                     value: tx.cashPickup.recipientPhone,
                     isRightAligned: true,
                 }] : []),
-                ...((tx.cashPickup.scheduledPickupDate || tx.cashPickup.schedulePickupDate) ? [{
-                    label: 'Pickup Date',
-                    value: formatDate(tx.cashPickup.scheduledPickupDate || tx.cashPickup.schedulePickupDate),
+                {
+                    label: 'Scheduled Date',
+                    value: (tx.cashPickup.scheduledPickupDate || tx.cashPickup.schedulePickupDate || tx.cashPickup.pickupDate || (tx as any).scheduledPickupDate || (tx as any).schedulePickupDate || (tx as any).pickupDate) ? formatDate(tx.cashPickup.scheduledPickupDate || tx.cashPickup.schedulePickupDate || tx.cashPickup.pickupDate || (tx as any).scheduledPickupDate || (tx as any).schedulePickupDate || (tx as any).pickupDate) : 'N/A',
                     isRightAligned: true,
-                }] : []),
-                ...((tx.cashPickup.scheduledPickupTime || tx.cashPickup.schedulePickupTime) ? [{
-                    label: 'Pickup Time',
-                    value: tx.cashPickup.scheduledPickupTime || tx.cashPickup.schedulePickupTime,
+                },
+                {
+                    label: 'Scheduled Time',
+                    value: tx.cashPickup.scheduledPickupTime || tx.cashPickup.schedulePickupTime || tx.cashPickup.pickupTime || (tx as any).scheduledPickupTime || (tx as any).schedulePickupTime || (tx as any).pickupTime || 'N/A',
                     isRightAligned: true,
-                }] : []),
+                },
             ] : []),
         ];
     }, [tx]);
     const detailsDocuments = useMemo(() => {
         if (!tx) return [];
         const docs = getTransactionDocuments(tx);
-
-        const uploadedDocs = tx.requiredDocuments.filter(d => !!d.uploaded).map(d => ({
-            label: commonDocTypeLabels[d.type] || d.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
-            fileName: d.uploaded!.fileName,
-            fileUrl: d.uploaded!.fileUrl,
-        }));
+        const uploadedDocs = getTransactionUploadedDocs(tx);
         return [...docs, ...uploadedDocs];
     }, [tx]);
 
     const docsItems = useMemo(() => {
-        if (!tx) return [];
-        return tx.requiredDocuments.map((d) => ({
-            label: commonDocTypeLabels[d.type] || d.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
-            fileName: d.uploaded ? d.uploaded.fileName : null,
-            docStatus: d.uploaded?.status,
-            required: true,
-            onUpload: (!d.uploaded || d.uploaded.status === 'REQUIRES_MANUAL_REVIEW')
-                ? () => uploadFile(d.type, d.uploaded?.status === 'REQUIRES_MANUAL_REVIEW')
-                : undefined,
-        }));
+        return buildTransactionDocsItems(tx, uploadFile);
     }, [tx, uploadFile]);
-    const getMessage = () => {
-        if (!tx) return '';
-        if (status === 'approved' || status === 'awaiting_disbursement' || status === 'settled') return "Congratulations! Your application has been approved. Kindly proceed to make payment.";
-        if (status === 'rejected') return tx.rejection?.reason || "Your request has been declined.";
-        return `Your transaction is currently ${tx.status.replace(/_/g, ' ').toLowerCase()}. Please check back for updates.`;
-    };
+    const beneficiaryDetailsItems = useMemo(() => {
+        const details = tx?.beneficiaryDetails;
+        if (!tx || !details) return undefined;
+        const items: any[] = [];
+        if (details.bankName) items.push({ label: 'Bank Name', value: details.bankName });
+        if (details.accountName) items.push({ label: 'Account Name', value: details.accountName });
+        if (details.accountNumber) items.push({ label: 'Account Number', value: details.accountNumber });
+        if ('swiftCode' in details && details.swiftCode) items.push({ label: 'SWIFT Code', value: details.swiftCode });
+        if ('routingNumber' in details && details.routingNumber) items.push({ label: 'Routing Number', value: details.routingNumber });
+        if ('bankAddress' in details && details.bankAddress) items.push({ label: 'Bank Address', value: details.bankAddress });
+        return items.length > 0 ? items : undefined;
+    }, [tx]);
+
+    const bankAccountsItems = useMemo(() => {
+        const details = tx?.refundBankDetails;
+        if (!tx || !details) return undefined;
+        const items: any[] = [];
+        if (details.bankName) items.push({ label: 'Bank Name', value: details.bankName });
+        if (details.accountName) items.push({ label: 'Account Name', value: details.accountName });
+        if (details.accountNumber) items.push({ label: 'Account Number', value: details.accountNumber });
+        if ('swiftCode' in details && details.swiftCode) items.push({ label: 'SWIFT Code', value: details.swiftCode });
+        if ('routingNumber' in details && details.routingNumber) items.push({ label: 'Routing Number', value: details.routingNumber });
+        if ('bankAddress' in details && details.bankAddress) items.push({ label: 'Bank Address', value: details.bankAddress });
+        return items.length > 0 ? items : undefined;
+    }, [tx]);
+
+    const getMessage = () => getTransactionMessage(tx, 'application');
     if (isLoading) return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}><ActivityIndicator size="large" color="#FF6B2C" /></View>;
 
     return (
         <>
-        <LoadingBackdrop visible={isUploading} />
-        <TransactionViewLayout
-            title="Transaction"
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-            tabs={[{ key: 'overview', label: 'Overview' }, { key: 'details', label: 'Transaction Details' }, { key: 'docs', label: 'Documentation' }]}
-            onBack={handleBack}
-            showActionButton={status !== 'pending' && status !== 'rejected' && status !== 'settled'}
-            actionButtonTitle={status === 'approved' || status === 'awaiting_disbursement' ? "Proceed to Payment" : "Resubmit Transaction Request"}
-            onActionPress={handleProceed}
-        >
-            {activeTab === 'overview' && (<TransactionStatusView status={status} id={tx?.referenceNumber?.slice(-6) || ''} date={tx ? formatDate(tx.createdAt) : ''} time={tx ? formatTime(tx.createdAt) : ''} message={getMessage()} comments={tx?.comments} />)}
-            {activeTab === 'details' && (
-                <TransactionDetailsView
-                    details={detailsItems}
-                    documents={detailsDocuments}
-                    currentStep={tx?.currentStep}
-                />
-            )}
-            {activeTab === 'docs' && (<TransactionDocsView status={status} documents={docsItems} />)}
-        </TransactionViewLayout>
+            <LoadingBackdrop visible={isUploading} />
+            <TransactionViewLayout
+                title="Transaction"
+                activeTab={activeTab}
+                onTabChange={setActiveTab}
+                tabs={[{ key: 'overview', label: 'Overview' }, { key: 'details', label: 'Transaction Details' }, { key: 'docs', label: 'Documentation' }]}
+                onBack={handleBack}
+                showActionButton={isPaymentRequired(tx?.status) || status === 'more_info'}
+                actionButtonTitle={isPaymentRequired(tx?.status) ? "Proceed to Payment" : "Resubmit Transaction Request"}
+                onActionPress={handleProceed}
+            >
+                {activeTab === 'overview' && (<TransactionStatusView status={status} apiStatus={tx?.status} id={tx?.referenceNumber?.slice(-6) || ''} transactionId={tx?.transactionId || transactionId} date={tx ? formatDate(tx.createdAt) : ''} time={tx ? formatTime(tx.createdAt) : ''} message={getMessage()} comments={tx?.comments} />)}
+                {activeTab === 'details' && (
+                    <TransactionDetailsView
+                        details={detailsItems}
+                        documents={detailsDocuments}
+                        beneficiaryDetails={beneficiaryDetailsItems}
+                        bankAccountsDetails={bankAccountsItems}
+                        currentStep={tx?.currentStep}
+                    />
+                )}
+                {activeTab === 'docs' && (<TransactionDocsView status={status} documents={docsItems} />)}
+            </TransactionViewLayout>
         </>
     );
 }

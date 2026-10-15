@@ -6,7 +6,7 @@ import TransactionViewLayout from '@/components/transaction-flow/TransactionView
 import { useGetTransactionByIdQuery } from '@/hooks/queries/transactions/useGetTransactionByIdQuery';
 import { useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useToastStore } from '@/stores/useToastStore';
-import { commonDocTypeLabels, formatCurrency, formatDate, formatTime, formatTimeWithSeconds, getTransactionDocuments, mapApiStatusToViewStatus, truncateFileName } from '@/utils/helpers';
+import { commonDocTypeLabels, formatCurrency, formatDate, formatTime, formatTimeWithSeconds, formatPickupTime, getTransactionDocuments, getTransactionUploadedDocs, buildTransactionDocsItems, mapApiStatusToViewStatus, isPaymentRequired, getTransactionMessage, truncateFileName, getCurrencySymbol } from '@/utils/helpers';
 import { useLocalSearchParams, useRouter, useFocusEffect, useNavigation } from 'expo-router';
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import { ActivityIndicator, View, BackHandler } from 'react-native';
@@ -78,31 +78,32 @@ export default function ViewPtaScreen() {
         if (!tx) return [];
 
         const pickupLocation = tx.cashPickup ? (
-            tx.cashPickup.pickupLocation?.trim() || [tx.cashPickup.pickupCity, tx.cashPickup.pickupState].filter(Boolean).join(', ')
+            tx.cashPickup.pickupCity?.trim() || tx.cashPickup.pickupLocation?.trim() || [tx.cashPickup.pickupCity, tx.cashPickup.pickupState].filter(Boolean).join(', ')
         ) : null;
 
         return [
             { label: 'Transaction ID', value: tx.referenceNumber },
             { label: 'Status', value: tx.status.replace(/_/g, ' ') },
             { label: 'Amount (₦)', value: formatCurrency(Number(tx.nairaEquivalent), '₦') },
-            { label: 'Equivalent Amount (FX)', value: formatCurrency(tx.foreignAmount, tx.currency === 'USD' ? '$' : tx.currency === 'GBP' ? '£' : tx.currency === 'EUR' ? '€' : tx.currency) },
+            { label: 'Equivalent Amount (FX)', value: formatCurrency(tx.foreignAmount, getCurrencySymbol(tx.currency)) },
             { label: 'Date Initiated', value: `${formatDate(tx.createdAt)}\n${formatTimeWithSeconds(tx.createdAt)}` },
             ...(tx.cashPickup ? [
                 {
                     label: 'Pickup Cash Amount',
-                    value: formatCurrency(tx.cashPickup.amount, (tx.cashPickup.currency || tx.currency) === 'USD' ? '$' : (tx.cashPickup.currency || tx.currency) === 'GBP' ? '£' : (tx.cashPickup.currency || tx.currency) === 'EUR' ? '€' : (tx.cashPickup.currency || tx.currency)) || 'N/A',
-                },
-                {
-                    label: 'Pickup Status',
-                    value: tx.cashPickup.status?.replace(/_/g, ' ') || 'N/A',
+                    value: formatCurrency(tx?.pickupLocation?.amount || tx?.cashPickup?.amount , getCurrencySymbol(tx.cashPickup.currency || tx.currency)) || 'N/A',
                 },
                 {
                     label: 'Pickup Location',
                     value: pickupLocation || 'N/A',
                 },
+                 {
+                    label: 'Pickup Address',
+                    value: tx.cashPickup.pickupAddress || tx.pickupLocation?.address,
+                    isRightAligned: true,
+                },
                 {
-                    label: 'Pickup City',
-                    value: tx.cashPickup.pickupCity || 'N/A',
+                    label: 'Pickup Phone',
+                    value: tx.cashPickup.pickupPhone || "N/A",
                     isRightAligned: true,
                 },
                 {
@@ -119,16 +120,16 @@ export default function ViewPtaScreen() {
                     value: tx.cashPickup.recipientPhone,
                     isRightAligned: true,
                 }] : []),
-                ...((tx.cashPickup.scheduledPickupDate || tx.cashPickup.schedulePickupDate) ? [{
-                    label: 'Pickup Date',
-                    value: formatDate(tx.cashPickup.scheduledPickupDate || tx.cashPickup.schedulePickupDate),
+                {
+                    label: 'Scheduled Date',
+                    value: (tx.cashPickup.scheduledPickupDate || tx.cashPickup.schedulePickupDate || tx.cashPickup.pickupDate || (tx as any).scheduledPickupDate || (tx as any).schedulePickupDate || (tx as any).pickupDate) ? formatDate(tx.cashPickup.scheduledPickupDate || tx.cashPickup.schedulePickupDate || tx.cashPickup.pickupDate || (tx as any).scheduledPickupDate || (tx as any).schedulePickupDate || (tx as any).pickupDate) : 'N/A',
                     isRightAligned: true,
-                }] : []),
-                ...((tx.cashPickup.scheduledPickupTime || tx.cashPickup.schedulePickupTime) ? [{
-                    label: 'Pickup Time',
-                    value: tx.cashPickup.scheduledPickupTime || tx.cashPickup.schedulePickupTime,
+                },
+                {
+                    label: 'Scheduled Time',
+                    value: formatPickupTime(tx.cashPickup.scheduledPickupTime || tx.cashPickup.schedulePickupTime || tx.cashPickup.pickupTime || (tx as any).scheduledPickupTime || (tx as any).schedulePickupTime || (tx as any).pickupTime) || 'N/A',
                     isRightAligned: true,
-                }] : []),
+                },
                 ...(tx.cashPickup.expiryDate ? [{
                     label: 'Expiry Date',
                     value: formatDate(tx.cashPickup.expiryDate),
@@ -140,41 +141,23 @@ export default function ViewPtaScreen() {
 
     const detailsDocuments = useMemo(() => {
         if (!tx) return [];
-
         const docs = getTransactionDocuments(tx);
-
-        const uploadedDocs = tx.requiredDocuments
-            .filter((doc) => doc.uploaded)
-            .map((doc) => ({
-                label: commonDocTypeLabels[doc.type] || doc.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
-                fileName: doc.uploaded!.fileName,
-                fileUrl: doc.uploaded!.fileUrl,
-            }));
-
+        const uploadedDocs = getTransactionUploadedDocs(tx);
         return [...docs, ...uploadedDocs];
     }, [tx]);
 
     const docsItems = useMemo(() => {
-        if (!tx) return [];
-        return tx.requiredDocuments.map((doc) => ({
-            label: commonDocTypeLabels[doc.type] || doc.type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
-            fileName: doc.uploaded ? truncateFileName(doc.uploaded.fileName) : null,
-            docStatus: doc.uploaded?.status,
-            required: true,
-            onUpload: (!doc.uploaded || doc.uploaded.status === 'REQUIRES_MANUAL_REVIEW')
-                ? () => uploadFile(doc.type, doc.uploaded?.status === 'REQUIRES_MANUAL_REVIEW')
-                : undefined,
-        }));
+        return buildTransactionDocsItems(tx, uploadFile);
     }, [tx, uploadFile]);
 
-    const beneficiaryItems = useMemo(() => {
+    const domiciliaryItems = useMemo(() => {
         const details = tx?.beneficiaryDetails as any;
         if (!tx || !details) return undefined;
         return [
             ...(details.accountName || details.name ? [{ label: 'Account Name', value: details.accountName || details.name }] : []),
             ...(details.accountNumber ? [{ label: 'Account Number', value: details.accountNumber }] : []),
             ...(details.bankName ? [{ label: 'Bank Name', value: details.bankName }] : []),
-            ...(details.address ? [{ label: 'Address', value: details.address }] : []),
+            ...(details.address || details.bankAddress ? [{ label: 'Bank Address', value: details.address || details.bankAddress }] : []),
             ...(details.country ? [{ label: 'Country', value: details.country }] : []),
             ...(details.swiftCode ? [{ label: 'SWIFT Code', value: details.swiftCode }] : []),
             ...(details.iban ? [{ label: 'IBAN', value: details.iban }] : []),
@@ -182,6 +165,16 @@ export default function ViewPtaScreen() {
             ...(details.ifscCode ? [{ label: 'IFSC Code', value: details.ifscCode }] : []),
             ...(details.purposeCode ? [{ label: 'Purpose Code', value: details.purposeCode }] : []),
             ...(details.bsbCode ? [{ label: 'BSB Code', value: details.bsbCode }] : []),
+        ];
+    }, [tx]);
+
+    const refundBankItems = useMemo(() => {
+        const details = (tx?.refundBankDetails || tx?.paymentDetails) as any;
+        if (!tx || !details || Array.isArray(details)) return undefined;
+        return [
+            ...(details.bankName ? [{ label: 'Bank Name', value: details.bankName }] : []),
+            ...(details.accountNumber ? [{ label: 'Account Number', value: details.accountNumber }] : []),
+            ...(details.accountName ? [{ label: 'Account Name', value: details.accountName }] : []),
         ];
     }, [tx]);
 
@@ -228,20 +221,11 @@ export default function ViewPtaScreen() {
             if (ba.bankName) items.push({ label: `${prefix}Bank Name`, value: ba.bankName });
             if (ba.accountName) items.push({ label: `${prefix}Account Name`, value: ba.accountName });
             if (ba.accountNumber) items.push({ label: `${prefix}Account Number`, value: ba.accountNumber });
-            items.push({ label: `${prefix}Default`, value: ba.isDefault ? 'Yes' : 'No' });
-            items.push({ label: `${prefix}Verified`, value: ba.isVerified ? 'Yes' : 'No' });
         });
         return items;
     }, [tx]);
 
-    const getMessage = () => {
-        if (!tx) return '';
-        if (status === 'approved' || status === 'awaiting_disbursement' || status === 'settled')
-            return "Congratulations! Your application has been approved. Kindly proceed to make payment.";
-        if (status === 'rejected')
-            return tx.rejection?.reason || "Your application has been declined.";
-        return `Your transaction is currently ${tx.status.replace(/_/g, ' ').toLowerCase()}. Please check back for updates.`;
-    };
+    const getMessage = () => getTransactionMessage(tx, 'application');
 
     if (isLoading) {
         return (
@@ -260,8 +244,8 @@ export default function ViewPtaScreen() {
             onTabChange={setActiveTab}
             tabs={tabs}
             onBack={handleBack}
-            showActionButton={status !== 'pending' && status !== 'rejected' && status !== 'settled'}
-            actionButtonTitle={status === 'approved' || status === 'awaiting_disbursement' ? "Proceed to Payment" : "Resubmit Transaction Request"}
+            showActionButton={isPaymentRequired(tx?.status) || status === 'more_info'}
+            actionButtonTitle={isPaymentRequired(tx?.status) ? "Proceed to Payment" : "Resubmit Transaction Request"}
             onActionPress={handleProceed}
         >
             {activeTab === 'overview' && (
@@ -269,6 +253,7 @@ export default function ViewPtaScreen() {
                     status={status}
                     apiStatus={tx?.status}
                     id={tx?.referenceNumber?.slice(-6) || ''}
+                    transactionId={tx?.transactionId || transactionId}
                     date={tx ? formatDate(tx.createdAt) : ''}
                     time={tx ? formatTime(tx.createdAt) : ''}
                     message={getMessage()}
@@ -280,7 +265,8 @@ export default function ViewPtaScreen() {
                 <TransactionDetailsView
                     details={detailsItems}
                     documents={detailsDocuments}
-                    beneficiaryDetails={beneficiaryItems}
+                    domiciliaryDetails={domiciliaryItems}
+                    refundBankDetails={refundBankItems}
                     paymentDetails={paymentDetailsItems}
                     settlementDetails={settlementItems}
                     bankAccountsDetails={bankAccountsItems}

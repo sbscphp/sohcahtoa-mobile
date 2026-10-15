@@ -38,9 +38,19 @@ export default function SchoolBankDetailsStep({
     const beneficiaryCountry = watch('beneficiaryCountry');
     const [countrySheetVisible, setCountrySheetVisible] = React.useState(false);
 
+    const isUK = beneficiaryCountry?.toLowerCase().includes('united kingdom') || beneficiaryCountry?.toLowerCase() === 'uk';
+    const isUSA = beneficiaryCountry?.toLowerCase().includes('united states') || beneficiaryCountry?.toLowerCase() === 'usa';
+    const isCanada = beneficiaryCountry?.toLowerCase() === 'canada';
+    const isIndia = beneficiaryCountry?.toLowerCase() === 'india';
+    const isAustralia = beneficiaryCountry?.toLowerCase() === 'australia';
+    const isOthers = beneficiaryCountry?.toLowerCase() === 'others';
+
     return (
         <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-            <Text style={styles.title}>Bank details</Text>
+            <Text style={styles.title}>Where would you like to send the fund to?</Text>
+            <Text style={styles.description}>Enter the school and bank details for this payment.
+Please upload an invoice that contains the beneficiary details so we can verify them more easily.
+You may also upload an invoice below to use as confirmation during internet banking.</Text>
 
             <Controller
                 control={control}
@@ -80,77 +90,208 @@ export default function SchoolBankDetailsStep({
             />
 
             <Text style={styles.sectionTitle}>For the School (Beneficiary)</Text>
-            <ControlledInput
-                control={control}
-                name="bankAccountName"
-                label="Bank Account Name"
-                placeholder="Enter bank account name"
-                required
-            />
+            <View style={styles.sectionContainer}>
+                <ControlledInput
+                    control={control}
+                    name="schoolName"
+                    label="School Name"
+                    placeholder="Enter school name"
+                    required
+                />
+                <ControlledInput
+                    control={control}
+                    name="beneficiaryEmail"
+                    label="School Email Address"
+                    placeholder="Enter school email address"
+                    required
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                />
 
-            <ControlledInput
-                control={control}
-                name="bankAccountAddress"
-                label="Bank Account Address"
-                placeholder="Enter bank account address"
-                required
-            />
+                <ControlledInput
+                    control={control}
+                    name="beneficiaryPhone"
+                    label="School Phone Number"
+                    placeholder="Enter school phone number"
+                    required
+                    keyboardType="phone-pad"
+                />
 
-            <ControlledInput
-                control={control}
-                name="bankAccountIban"
-                label="Bank Account IBAN"
-                placeholder="Enter bank account IBAN (if applicable)"
-                maxLength={34}
-                filterType="alphanumeric"
-                autoCapitalize="characters"
-            />
+                <ControlledInput
+                    control={control}
+                    name="beneficiaryAddress"
+                    label="School Address"
+                    placeholder="Enter school address"
+                    required
+                />
 
-            <ControlledInput
-                control={control}
-                name="bankAccountSwiftCode"
-                label="Bank Account Swift Code"
-                placeholder="e.g ABCDUS33XXX"
-                required
-                maxLength={11}
-                filterType="alphanumeric"
-                autoCapitalize="characters"
-            />
+                <ControlledInput
+                    control={control}
+                    name="beneficiaryCity"
+                    label="School City"
+                    placeholder="Enter school city"
+                    required
+                />
 
-            <ControlledInput
-                control={control}
-                name="bankAccountNumber"
-                label="Bank Account Number"
-                placeholder="Enter bank account number"
-                required
-                keyboardType="numeric"
-                maxLength={34}
-                filterType="numeric"
-            />
+                <ControlledInput
+                    control={control}
+                    name="beneficiaryState"
+                    label="School State/Province"
+                    placeholder="Enter school state/province"
+                    required
+                />
+            </View>
 
-            <ControlledInput
-                control={control}
-                name="correspondenceBankName"
-                label="Correspondence Bank Name"
-                placeholder="Optional"
-            />
+            <Text style={styles.sectionTitle}>Beneficiary Bank details</Text>
+            <View style={styles.sectionContainer}>
+                <ControlledInput
+                    control={control}
+                    name="bankName"
+                    label="Bank Name"
+                    placeholder="Enter bank name"
+                    required
+                />
+                <ControlledInput
+                    control={control}
+                    name="bankAccountName"
+                    label="Account Name (For the School)"
+                    placeholder="Enter account name"
+                    required
+                />
 
-            <ControlledInput
-                control={control}
-                name="correspondenceBankAddress"
-                label="Correspondence Bank Address"
-                placeholder="Optional"
-            />
+                <ControlledInput
+                    control={control}
+                    name="bankAccountAddress"
+                    label="Bank Address"
+                    placeholder="Enter bank address"
+                    required
+                />
 
-            <ControlledInput
-                control={control}
-                name="correspondenceBankSwiftCode"
-                label="Correspondence Bank Swift Code"
-                placeholder="Optional"
-                maxLength={11}
-                filterType="alphanumeric"
-                autoCapitalize="characters"
-            />
+                <ControlledInput
+                    control={control}
+                    name="bankAccountSwiftCode"
+                    label="SWIFT/BIC"
+                    placeholder="e.g ABCDUS33XXX"
+                    required
+                    maxLength={11}
+                    filterType="alphanumeric"
+                    autoCapitalize="characters"
+                />
+
+                {(isUK || isOthers) && (
+                    <ControlledInput
+                        control={control}
+                        name="bankAccountIban"
+                        label="IBAN"
+                        placeholder="e.g GB29 NWBK 6016 13331 9268 19"
+                        required
+                        filterType="alphanumeric"
+                        autoCapitalize="characters"
+                    />
+                )}
+
+                {(isUSA || isCanada) && (
+                    <ControlledInput
+                        control={control}
+                        name="routingNumber"
+                        label="Routing Number"
+                        placeholder="e.g 026009593"
+                        required
+                        keyboardType="numeric"
+                        maxLength={9}
+                        filterType="numeric"
+                    />
+                )}
+
+                {isIndia && (
+                    <>
+                        <ControlledInput
+                            control={control}
+                            name="ifscCode"
+                            label="IFSC Number"
+                            placeholder="e.g SBIN0000001"
+                            required
+                            maxLength={11}
+                            filterType="alphanumeric"
+                            autoCapitalize="characters"
+                        />
+                        <ControlledInput
+                            control={control}
+                            name="purposeCode"
+                            label="Purpose Code"
+                            placeholder="e.g GFT/P1301"
+                            required
+                        />
+                    </>
+                )}
+
+                {isAustralia && (
+                    <ControlledInput
+                        control={control}
+                        name="bsbCode"
+                        label="BSB Code"
+                        placeholder="e.g 123 - 456"
+                        required
+                        maxLength={8}
+                    />
+                )}
+
+                {isOthers && (
+                    <ControlledInput
+                        control={control}
+                        name="otherBankDetails"
+                        label="Other bank details"
+                        placeholder="Any extra identifiers or instructions for this country (clearing codes, intermediary bank, etc.)"
+                        multiline={true}
+                        numberOfLines={4}
+                        style={{ height: moderateScale(80), textAlignVertical: 'top' }}
+                        wrapperStyle={{ height: moderateScale(90), borderRadius: moderateScale(12), alignItems: 'flex-start', paddingTop: moderateScale(8) }}
+                    />
+                )}
+
+                <ControlledInput
+                    control={control}
+                    name="bankAccountNumber"
+                    label="Bank Account Number"
+                    placeholder="Enter bank account number"
+                    required
+                    keyboardType="numeric"
+                    maxLength={34}
+                    filterType="numeric"
+                />
+
+                <ControlledInput
+                    control={control}
+                    name="paymentReference"
+                    label="Payment Reference / ID"
+                    placeholder="Enter payment reference / ID"
+                    required
+                />
+
+                <ControlledInput
+                    control={control}
+                    name="correspondenceBankName"
+                    label="Correspondence Bank Name"
+                    placeholder="Optional"
+                />
+
+                <ControlledInput
+                    control={control}
+                    name="correspondenceBankAddress"
+                    label="Correspondence Bank Address"
+                    placeholder="Optional"
+                />
+
+                <ControlledInput
+                    control={control}
+                    name="correspondenceBankSwiftCode"
+                    label="Correspondence Bank Swift Code"
+                    placeholder="Optional"
+                    maxLength={11}
+                    filterType="alphanumeric"
+                    autoCapitalize="characters"
+                />
+            </View>
 
             <GenericSelectionSheet
                 visible={countrySheetVisible}
@@ -161,6 +302,12 @@ export default function SchoolBankDetailsStep({
                 selectedItem={beneficiaryCountry}
                 onSelect={(item) => {
                     setValue('beneficiaryCountry', item.value);
+                    setValue('bankAccountIban', '');
+                    setValue('routingNumber', '');
+                    setValue('ifscCode', '');
+                    setValue('purposeCode', '');
+                    setValue('bsbCode', '');
+                    setValue('otherBankDetails', '');
                 }}
                 confirmButtonText="Select Country/Region"
             />
@@ -193,6 +340,13 @@ const styles = ScaledSheet.create({
         marginBottom: '8@vs',
         lineHeight: '24@ms',
     },
+    description: {
+        fontSize: '13@ms',
+        fontWeight: '500',
+        color: '#64748B',
+        marginBottom: '12@vs',
+        lineHeight: '20@ms',
+    },
     sectionTitle: {
         fontSize: '14@ms',
         fontWeight: '600',
@@ -200,6 +354,14 @@ const styles = ScaledSheet.create({
         marginTop: '16@vs',
         marginBottom: '8@vs',
         lineHeight: '20@ms',
+    },
+    sectionContainer: {
+        borderRadius: '12@ms',
+        padding: '16@ms',
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+        marginBottom: '16@vs',
+        gap: '12@vs',
     },
     dropdownContainer: {
         marginBottom: '16@vs',

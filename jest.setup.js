@@ -16,6 +16,7 @@ jest.mock('lucide-react-native', () => ({
     Check: 'Check',
     AlertCircle: 'AlertCircle',
     Clock: 'Clock',
+    FileText: 'FileText',
 }));
 
 jest.mock('react-native-size-matters', () => ({
@@ -42,6 +43,8 @@ jest.mock('iconsax-react-nativejs', () => ({
     Folder: 'Folder',
     Lock: 'Lock',
     Sms: 'Sms',
+    InfoCircle: 'InfoCircle',
+    ShieldSecurity: 'ShieldSecurity',
 }));
 
 jest.mock('@expo/vector-icons', () => ({
@@ -161,9 +164,22 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
     flushGetRequests: jest.fn(),
 }));
 
+jest.mock('expo-linking', () => ({
+    createURL: jest.fn((path) => `sohcahtoa://${path}`),
+    parse: jest.fn((url) => ({ queryParams: { code: 'test-code', state: 'test-state' } })),
+    addEventListener: jest.fn(() => ({ remove: jest.fn() })),
+}));
+
 jest.mock('expo-document-picker', () => ({
     getDocumentAsync: jest.fn(),
 }));
+
+jest.mock('react-native-webview', () => {
+    const { View } = require('react-native');
+    return {
+        WebView: (props) => <View testID="webview" {...props} />,
+    };
+});
 
 jest.mock('expo-router', () => ({
     router: {

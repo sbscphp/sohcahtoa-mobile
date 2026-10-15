@@ -23,7 +23,7 @@ export default function PaymentLayout({ transactionId, amount: initialAmount, on
     const showToast = useToastStore(s => s.showToast);
     const [timeLeft, setTimeLeft] = useState(1770); 
     const [isChecking, setIsChecking] = useState(false);
-    const intervalRef = useRef<NodeJS.Timeout | null>(null);
+    const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     useEffect(() => {
         return () => {

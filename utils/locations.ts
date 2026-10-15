@@ -2,6 +2,17 @@ export interface LocationItem {
     id: string;
     title: string;
     subtitle?: string;
+    metadata?: {
+        id?: string;
+        name?: string;
+        address?: string;
+        city?: string;
+        location?: string;
+        email?: string;
+        phoneNumber?: string;
+        branch?: string;
+        [key: string]: any;
+    };
 }
 
 export const STATES: LocationItem[] = [

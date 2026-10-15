@@ -11,6 +11,12 @@ import {
     View,
 } from 'react-native';
 import { moderateScale, ScaledSheet, verticalScale } from 'react-native-size-matters';
+import {
+    getEarliestPickupDate,
+    isPickupDateTimeAtLeastOneHourAhead,
+    PICKUP_BUFFER_MINUTES,
+    PICKUP_TOO_SOON_MESSAGE,
+} from '@/utils/pickupDateTime';
 import PrimaryButton from './PrimaryButton';
 
 const ITEM_HEIGHT = verticalScale(44);
@@ -190,6 +196,10 @@ interface TimePickerFieldProps {
     placeholder?: string;
     required?: boolean;
     error?: string;
+    /** Pickup date in "dd/mm/yyyy" — used to enforce the 1-hour minimum for today's slots. */
+    pickupDate?: string;
+    /** Minimum lead time in minutes from now. Defaults to 60. */
+    minimumMinutesFromNow?: number;
 }
 
 const TimePickerField: React.FC<TimePickerFieldProps> = ({
@@ -199,29 +209,69 @@ const TimePickerField: React.FC<TimePickerFieldProps> = ({
     placeholder = 'hh:mm',
     required = false,
     error,
+    pickupDate,
+    minimumMinutesFromNow = PICKUP_BUFFER_MINUTES,
 }) => {
     const [showPicker, setShowPicker] = useState(false);
+    const [pickerError, setPickerError] = useState('');
 
     const [tempHour12, setTempHour12] = useState(12);
     const [tempMinute, setTempMinute] = useState(0);
     const [tempPeriod, setTempPeriod] = useState<typeof PERIODS[number]>('AM');
 
     const handleOpen = () => {
+        // Default to the earliest selectable slot (now + buffer) when there is
+        // no value yet, or the stored value is already in the past / within
+        // the buffer for the selected date.
+        if (
+            !value ||
+            !isPickupDateTimeAtLeastOneHourAhead(pickupDate, value, minimumMinutesFromNow)
+        ) {
+            const earliest = getEarliestPickupDate(minimumMinutesFromNow);
+            const { hour12, period } = convert24To12(earliest.getHours());
+            // Only prefill the buffered time when a date is selected; without a
+            // date we cannot tell whether "today" applies, so keep prior value.
+            if (pickupDate) {
+                setTempHour12(hour12);
+                setTempMinute(earliest.getMinutes());
+                setTempPeriod(period);
+                setPickerError('');
+                setShowPicker(true);
+                return;
+            }
+        }
         const { hour, minute } = parseTime24(value);
         const { hour12, period } = convert24To12(hour);
         setTempHour12(hour12);
         setTempMinute(minute);
         setTempPeriod(period);
+        setPickerError('');
         setShowPicker(true);
     };
 
     const handleConfirm = () => {
         const h24 = convert12To24(tempHour12, tempPeriod);
-        onTimeChange(`${pad(h24)}:${pad(tempMinute)}`);
+        const candidate = `${pad(h24)}:${pad(tempMinute)}`;
+        if (
+            !isPickupDateTimeAtLeastOneHourAhead(pickupDate, candidate, minimumMinutesFromNow)
+        ) {
+            setPickerError(PICKUP_TOO_SOON_MESSAGE);
+            return;
+        }
+        setPickerError('');
+        onTimeChange(candidate);
         setShowPicker(false);
     };
 
-    const handleCancel = () => setShowPicker(false);
+    const handleCancel = () => {
+        setPickerError('');
+        setShowPicker(false);
+    };
+
+    const handleTempChange = (setter: () => void) => {
+        setter();
+        if (pickerError) setPickerError('');
+    };
 
     const displayString = useMemo(() => {
         if (!value) return '';
@@ -269,20 +319,20 @@ const TimePickerField: React.FC<TimePickerFieldProps> = ({
                                 width="30%"
                                 items={HOURS_12.map(pad)}
                                 selectedIndex={HOURS_12.indexOf(tempHour12)}
-                                onIndexChange={idx => setTempHour12(HOURS_12[idx])}
+                                onIndexChange={idx => handleTempChange(() => setTempHour12(HOURS_12[idx]))}
                             />
                             <Text style={styles.colon}>:</Text>
                             <DrumColumn
                                 width="30%"
                                 items={MINUTES.map(pad)}
                                 selectedIndex={MINUTES.indexOf(tempMinute)}
-                                onIndexChange={idx => setTempMinute(MINUTES[idx])}
+                                onIndexChange={idx => handleTempChange(() => setTempMinute(MINUTES[idx]))}
                             />
                             <DrumColumn
                                 width="25%"
                                 items={[...PERIODS]}
                                 selectedIndex={PERIODS.indexOf(tempPeriod)}
-                                onIndexChange={idx => setTempPeriod(PERIODS[idx])}
+                                onIndexChange={idx => handleTempChange(() => setTempPeriod(PERIODS[idx]))}
                             />
                         </View>
 
@@ -292,6 +342,10 @@ const TimePickerField: React.FC<TimePickerFieldProps> = ({
                                 <Text style={styles.previewAmPm}>{tempPeriod}</Text>
                             </Text>
                         </View>
+
+                        {pickerError ? (
+                            <Text style={styles.pickerErrorText}>{pickerError}</Text>
+                        ) : null}
 
                         <View style={styles.buttonContainer}>
                             <PrimaryButton title="Confirm" onPress={handleConfirm} />
@@ -408,6 +462,12 @@ const styles = ScaledSheet.create({
         fontSize: '16@ms',
         fontWeight: '500',
         color: '#FF6B2C',
+    },
+    pickerErrorText: {
+        fontSize: '12@ms',
+        color: '#EF4444',
+        textAlign: 'center',
+        marginBottom: '12@vs',
     },
     buttonContainer: {
         gap: '12@vs',

@@ -1,6 +1,7 @@
 import Header from '@/components/Header';
 import PrimaryButton from '@/components/PrimaryButton';
 import ProgressBar from '@/components/ProgressBar';
+import { useReceiveFxRate } from '@/hooks/useReceiveFxRate';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { InfoCircle } from 'iconsax-react-nativejs';
 import React from 'react';
@@ -16,6 +17,7 @@ const WesternUnionIcon = () => (
 
 export default function VerificationResultScreen() {
     const router = useRouter();
+    const { formattedLimitNaira } = useReceiveFxRate();
     const params = useLocalSearchParams();
 
     // Params
@@ -42,7 +44,7 @@ export default function VerificationResultScreen() {
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}
                 >
-                    <ProgressBar step={2} totalSteps={6} />
+                    <ProgressBar step={2} totalSteps={4} />
                     {isVerified ? (
                         <Text style={styles.sectionTitle}>Reference Details</Text>
                     ) : (
@@ -52,7 +54,7 @@ export default function VerificationResultScreen() {
                     <View style={styles.infoBanner}>
                         <InfoCircle size={moderateScale(20)} color="#F97316" variant="Bold" />
                         <Text style={styles.infoText}>
-                            Maximum USD cash pickup is <Text style={{ fontWeight: '700' }}>$500</Text>
+                            Maximum cash pickup is <Text style={{ fontWeight: '700' }}>{formattedLimitNaira}</Text>
                         </Text>
                     </View>
 

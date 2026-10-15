@@ -55,4 +55,11 @@ describe('CurrencyConverter', () => {
         fireEvent.changeText(getByDisplayValue('1,000'), '2000');
         expect(onAmountGetChange).toHaveBeenCalledWith('2000');
     });
+
+    it('renders Rate unavailable when rate is not available', () => {
+        const { getByText } = render(
+            <CurrencyConverter {...defaultProps} rate="Rate unavailable" />
+        );
+        expect(getByText('Rate unavailable')).toBeTruthy();
+    });
 });

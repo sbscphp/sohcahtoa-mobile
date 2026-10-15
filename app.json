@@ -4,30 +4,22 @@
     "slug": "sohcahtoa",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/s-logo.png",
+    "icon": "./assets/images/logo-centered-square.png",
     "scheme": "sohcahtoa",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/images/s-logo.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff",
-      "width": "100%",
-      "height": "100%"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.iamkennis.sohcahtoa",
       "infoPlist": {
-        "NSFaceIDUsageDescription": "Allows $(PRODUCT_NAME) to use Face ID for secure login."
+        "NSFaceIDUsageDescription": "Allows $(PRODUCT_NAME) to use Face ID for secure login.",
+        "UIViewControllerBasedStatusBarAppearance": false
       }
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#ffffff",
-        "foregroundImage": "./assets/images/s-logo.png"
+        "foregroundImage": "./assets/images/logo-centered-square.png"
       },
-      "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.iamkennis.sohcahtoa",
       "allowBackup": false
@@ -47,8 +39,12 @@
           "resizeMode": "contain"
         }
       ],
+      "expo-font",
+      "expo-secure-store",
+      "expo-web-browser",
       "@react-native-community/datetimepicker",
-      "expo-notifications"
+      "expo-notifications",
+      "expo-sharing"
     ],
     "experiments": {
       "typedRoutes": true,

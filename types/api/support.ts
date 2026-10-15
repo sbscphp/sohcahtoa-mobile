@@ -11,7 +11,7 @@ export type SupportTicketCategory =
 export interface CreateSupportTicketPayload {
     category: SupportTicketCategory | string;
     description: string;
-    file?: any;
+    attached?: any;
 }
 
 export interface SupportTicket {

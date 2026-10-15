@@ -9,7 +9,7 @@ const INACTIVITY_TIMEOUT = 5 * 60 * 1000;
 export default function InactiveSessionTracker({ children }: { children: React.ReactNode }) {
     const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
     const logout = useAuthStore((state) => state.logout);
-    const timerRef = useRef<NodeJS.Timeout | null>(null);
+    const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const lastBackgroundTimeRef = useRef<number | null>(null);
 
     const resetTimer = () => {

@@ -2,7 +2,8 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useRouter } from 'expo-router';
 import { Camera, ScanFaceIcon } from 'lucide-react-native';
 import React, { useRef, useState } from 'react';
-import { ActivityIndicator, Image, StatusBar, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Image, Text, TouchableOpacity, View } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import PrimaryButton from '../../components/PrimaryButton';
@@ -86,7 +87,7 @@ export default function FaceCaptureScreen() {
     if (capturedImage) {
         return (
             <View style={styles.container}>
-                <StatusBar barStyle="light-content" />
+                <StatusBar style="light" />
                 <Image source={{ uri: capturedImage }} style={styles.previewImage} />
 
                 <View style={[styles.overlay, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
@@ -115,7 +116,7 @@ export default function FaceCaptureScreen() {
     // Show camera view
     return (
         <View style={styles.container}>
-            <StatusBar barStyle="light-content" />
+            <StatusBar style="light" />
 
             <CameraView
                 ref={cameraRef}
