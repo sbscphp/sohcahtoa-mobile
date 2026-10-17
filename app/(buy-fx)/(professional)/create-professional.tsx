@@ -155,8 +155,8 @@ export default function ProfessionalScreen() {
         {
             customComponent: (
                 <View style={{ flexDirection: 'row', gap: 12 }}>
-                    <View style={{ flex: 1 }}><ControlledDatePicker control={control} name="passportIssueDate" label="Passport Issue Date (Optional)" maximumDate={new Date()} /></View>
-                    <View style={{ flex: 1 }}><ControlledDatePicker control={control} name="passportExpiryDate" label="Passport Expiry Date (Optional)" minimumDate={new Date()} /></View>
+                    <View style={{ flex: 1 }}><ControlledDatePicker control={control} name="passportIssueDate" label="Passport Issue Date" maximumDate={new Date()} /></View>
+                    <View style={{ flex: 1 }}><ControlledDatePicker control={control} name="passportExpiryDate" label="Passport Expiry Date" minimumDate={new Date()} /></View>
                 </View>
             ),
         },
