@@ -17,6 +17,7 @@ interface ProfessionalBankDetailsStepProps {
     isMedical?: boolean;
     isSchool?: boolean;
     invoiceFile?: any;
+    verificationFile?: any;
     onUploadInvoice?: () => void;
     isUploadingInvoice?: boolean;
 }
@@ -28,6 +29,7 @@ export default function ProfessionalBankDetailsStep({
     errors,
     isMedical,
     invoiceFile,
+    verificationFile,
     onUploadInvoice,
     isUploadingInvoice,
 }: ProfessionalBankDetailsStepProps) {
@@ -188,6 +190,7 @@ export default function ProfessionalBankDetailsStep({
 
                 <BankStepInvoiceUpload
                     invoiceFile={invoiceFile}
+                    verificationFile={verificationFile}
                     onUploadInvoice={onUploadInvoice}
                     isUploadingInvoice={isUploadingInvoice}
                 />

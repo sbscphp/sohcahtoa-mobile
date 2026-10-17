@@ -247,9 +247,8 @@ export default function SchoolFeesScreen() {
                         watch={watch}
                         setValue={setValue}
                         errors={errors}
-                        invoiceFile={docs.invoice.file ? { ...docs.invoice.file, fileUrl: docs.invoice.meta?.fileUrl } : null}
-                        verificationFile={docs.bank_verification.file}
-                        onUploadInvoice={() => uploadFile('INVOICE')}
+                        verificationFile={docs.bank_verification.file ? { ...docs.bank_verification.file, fileUrl: docs.bank_verification.meta?.fileUrl } : null}
+                        onUploadInvoice={() => uploadFile('BANK_VERIFICATION')}
                         isUploadingInvoice={isUploading}
                     />
                 )}
@@ -261,7 +260,7 @@ export default function SchoolFeesScreen() {
                         control={control} banks={banks} isResolving={resolveAccount.isPending}
                         selectedBankCode={watchedFields.customerBankCode}
                     />
-                )}
+                )}t
             </TransactionLayout>
 
             <InitiateTransactionSheet
