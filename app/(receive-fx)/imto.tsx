@@ -96,7 +96,7 @@ export default function ImtoScreen() {
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}
                 >
-                    <ProgressBar step={1} totalSteps={4} />
+                    <ProgressBar step={1} totalSteps={5} />
 
                     <Text style={styles.sectionTitle}>
                         How would you like to receive your funds?

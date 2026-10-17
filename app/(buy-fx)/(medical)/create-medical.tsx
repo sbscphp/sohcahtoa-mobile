@@ -105,7 +105,7 @@ export default function MedicalPaymentScreen() {
         passportExpiryDate: watchedFields.passportExpiryDate,
     });
 
-    const { docs, documentFields, isUploading, hasAllDocs } = useMedicalDocuments(control, showToast);
+    const { docs, documentFields, isUploading, hasAllDocs, uploadFile } = useMedicalDocuments(control, showToast);
     const { submitTransaction } = useSubmitBuyFxTransaction({
         createTransaction, attachBankAccountsMutation,
         selectedSavedAccountId, setInitiateSheetVisible,
@@ -205,7 +205,15 @@ export default function MedicalPaymentScreen() {
                     />
                 )}
                 {currentStep === 3 && (
-                    <HospitalBankDetailsStep control={control} watch={watch} setValue={setValue} errors={errors} />
+                    <HospitalBankDetailsStep
+                        control={control}
+                        watch={watch}
+                        setValue={setValue}
+                        errors={errors}
+                        invoiceFile={docs.invoice.file ? { ...docs.invoice.file, fileUrl: docs.invoice.meta?.fileUrl } : null}
+                        onUploadInvoice={() => uploadFile('INVOICE')}
+                        isUploadingInvoice={isUploading}
+                    />
                 )}
                 {currentStep === 4 && (
                     <BuyFxRefundStepSection

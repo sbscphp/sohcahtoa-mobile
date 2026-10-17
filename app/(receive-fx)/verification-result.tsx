@@ -44,7 +44,7 @@ export default function VerificationResultScreen() {
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}
                 >
-                    <ProgressBar step={2} totalSteps={4} />
+                    <ProgressBar step={2} totalSteps={5} />
                     {isVerified ? (
                         <Text style={styles.sectionTitle}>Reference Details</Text>
                     ) : (

@@ -59,7 +59,7 @@ export function useProfessionalDocuments(showToast: (msg: string, type: 'error')
 
     const hasRequiredDocs = !!(docs.membership.file && docs.invoice.file);
 
-    return { docs, documentFields, isUploading, hasRequiredDocs };
+    return { docs, documentFields, isUploading, hasRequiredDocs, uploadFile };
 }
 
 export function buildProfessionalPayload(data: any, docs: ProfessionalDocsState, currencyGet: any) {

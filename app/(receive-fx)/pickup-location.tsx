@@ -56,7 +56,7 @@ export default function PickupLocationScreen() {
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}
                 >
-                    <ProgressBar step={4} totalSteps={4} />
+                    <ProgressBar step={4} totalSteps={5} />
 
                     <LocationStep
                         title="Where would you like to pick up your cash?"

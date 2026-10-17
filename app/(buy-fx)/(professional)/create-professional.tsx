@@ -125,7 +125,7 @@ export default function ProfessionalScreen() {
         passportExpiryDate: watchedFields.passportExpiryDate,
     });
 
-    const { docs, documentFields, isUploading, hasRequiredDocs } = useProfessionalDocuments(showToast);
+    const { docs, documentFields, isUploading, hasRequiredDocs, uploadFile } = useProfessionalDocuments(showToast);
     const { submitTransaction } = useSubmitBuyFxTransaction({
         createTransaction, attachBankAccountsMutation,
         selectedSavedAccountId, setInitiateSheetVisible,
@@ -255,7 +255,15 @@ export default function ProfessionalScreen() {
                     />
                 )}
                 {currentStep === 3 && (
-                    <ProfessionalBankDetailsStep control={control} watch={watch} setValue={setValue} errors={errors} />
+                    <ProfessionalBankDetailsStep
+                        control={control}
+                        watch={watch}
+                        setValue={setValue}
+                        errors={errors}
+                        invoiceFile={docs.invoice.file ? { ...docs.invoice.file, fileUrl: docs.invoice.meta?.fileUrl } : null}
+                        onUploadInvoice={() => uploadFile('INVOICE')}
+                        isUploadingInvoice={isUploading}
+                    />
                 )}
                 {currentStep === 4 && (
                     <BuyFxRefundStepSection

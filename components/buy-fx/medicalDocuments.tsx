@@ -109,7 +109,7 @@ export function useMedicalDocuments(control: any, showToast: (msg: string, type:
         docs.invoice.file
     );
 
-    return { docs, documentFields, isUploading, hasAllDocs };
+    return { docs, documentFields, isUploading, hasAllDocs, uploadFile };
 }
 
 export function buildMedicalPayload(data: any, docs: MedicalDocsState, currencyGet: any) {
