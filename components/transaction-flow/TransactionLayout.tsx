@@ -34,7 +34,7 @@ export default function TransactionLayout({
             <Header title={title} onBackPress={onBack} />
 
             <View style={{ paddingHorizontal: moderateScale(20) }}>
-                <ProgressBar progress={(currentStep + 1) / totalSteps} totalSteps={totalSteps} />
+                <ProgressBar progress={(currentStep + 1) / totalSteps} step={currentStep + 1} totalSteps={totalSteps} />
             </View>
 
             <KeyboardAvoidingView

@@ -146,7 +146,7 @@ export function useSchoolDocuments(
             ? !!(docs.admission.file && docs.degree.file && docs.result.file && docs.studentPassport.file && docs.invoice.file)
             : !!(docs.admission.file && docs.studentPassport.file && docs.invoice.file);
 
-    return { docs, documentFields, isUploading, hasRequiredDocs, uploadTarget };
+    return { docs, documentFields, isUploading, hasRequiredDocs, uploadTarget, uploadFile };
 }
 
 export function buildSchoolPayload(data: any, docs: SchoolDocsState, currencyGet: any, isPostGrad: boolean) {

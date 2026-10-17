@@ -125,7 +125,7 @@ export default function ProfessionalScreen() {
         passportExpiryDate: watchedFields.passportExpiryDate,
     });
 
-    const { docs, documentFields, isUploading, hasRequiredDocs } = useProfessionalDocuments(showToast);
+    const { docs, documentFields, isUploading, hasRequiredDocs, uploadFile } = useProfessionalDocuments(showToast);
     const { submitTransaction } = useSubmitBuyFxTransaction({
         createTransaction, attachBankAccountsMutation,
         selectedSavedAccountId, setInitiateSheetVisible,
@@ -155,8 +155,8 @@ export default function ProfessionalScreen() {
         {
             customComponent: (
                 <View style={{ flexDirection: 'row', gap: 12 }}>
-                    <View style={{ flex: 1 }}><ControlledDatePicker control={control} name="passportIssueDate" label="Passport Issue Date (Optional)" maximumDate={new Date()} /></View>
-                    <View style={{ flex: 1 }}><ControlledDatePicker control={control} name="passportExpiryDate" label="Passport Expiry Date (Optional)" minimumDate={new Date()} /></View>
+                    <View style={{ flex: 1 }}><ControlledDatePicker control={control} name="passportIssueDate" label="Passport Issue Date" maximumDate={new Date()} /></View>
+                    <View style={{ flex: 1 }}><ControlledDatePicker control={control} name="passportExpiryDate" label="Passport Expiry Date" minimumDate={new Date()} /></View>
                 </View>
             ),
         },
@@ -255,7 +255,15 @@ export default function ProfessionalScreen() {
                     />
                 )}
                 {currentStep === 3 && (
-                    <ProfessionalBankDetailsStep control={control} watch={watch} setValue={setValue} errors={errors} />
+                    <ProfessionalBankDetailsStep
+                        control={control}
+                        watch={watch}
+                        setValue={setValue}
+                        errors={errors}
+                        verificationFile={docs.bank_verification.file ? { ...docs.bank_verification.file, fileUrl: docs.bank_verification.meta?.fileUrl } : null}
+                        onUploadInvoice={() => uploadFile('BANK_VERIFICATION')}
+                        isUploadingInvoice={isUploading}
+                    />
                 )}
                 {currentStep === 4 && (
                     <BuyFxRefundStepSection

@@ -5,6 +5,7 @@ export interface ProfessionalDocsState {
     membership: { file: UploadedFile | null; meta: UploadedMetadata | null };
     invoice: { file: UploadedFile | null; meta: UploadedMetadata | null };
     passport: { file: UploadedFile | null; meta: UploadedMetadata | null };
+    bank_verification: { file: UploadedFile | null; meta: UploadedMetadata | null };
 }
 
 export function useProfessionalDocuments(showToast: (msg: string, type: 'error') => void) {
@@ -12,6 +13,7 @@ export function useProfessionalDocuments(showToast: (msg: string, type: 'error')
         membership: { file: null, meta: null },
         invoice: { file: null, meta: null },
         passport: { file: null, meta: null },
+        bank_verification: { file: null, meta: null },
     });
 
     const updateDoc = (key: keyof ProfessionalDocsState, file: UploadedFile, metadata: UploadedMetadata) => {
@@ -23,6 +25,7 @@ export function useProfessionalDocuments(showToast: (msg: string, type: 'error')
             if (documentType === 'MEMBERSHIP_CARD') updateDoc('membership', file, metadata);
             else if (documentType === 'INVOICE') updateDoc('invoice', file, metadata);
             else if (documentType === 'PASSPORT') updateDoc('passport', file, metadata);
+            else if (documentType === 'BANK_VERIFICATION') updateDoc('bank_verification', file, metadata);
         },
         onError: () => showToast('Failed to upload document. Please try again.', 'error'),
     });
@@ -59,7 +62,7 @@ export function useProfessionalDocuments(showToast: (msg: string, type: 'error')
 
     const hasRequiredDocs = !!(docs.membership.file && docs.invoice.file);
 
-    return { docs, documentFields, isUploading, hasRequiredDocs };
+    return { docs, documentFields, isUploading, hasRequiredDocs, uploadFile };
 }
 
 export function buildProfessionalPayload(data: any, docs: ProfessionalDocsState, currencyGet: any) {
@@ -82,6 +85,7 @@ export function buildProfessionalPayload(data: any, docs: ProfessionalDocsState,
             ...(docs.membership.meta ? [docs.membership.meta] : []),
             ...(docs.invoice.meta ? [docs.invoice.meta] : []),
             ...(docs.passport.meta ? [docs.passport.meta] : []),
+            ...(docs.bank_verification.meta ? [docs.bank_verification.meta] : []),
         ],
         beneficiaryDetails: {
             organizationName: data.organizationName || '',

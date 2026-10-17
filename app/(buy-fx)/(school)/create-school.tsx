@@ -102,7 +102,7 @@ export default function SchoolFeesScreen() {
         passportExpiryDate: watchedFields.passportExpiryDate,
     });
 
-    const { docs, documentFields, isUploading, hasRequiredDocs } = useSchoolDocuments(
+    const { docs, documentFields, isUploading, hasRequiredDocs, uploadFile } = useSchoolDocuments(
         admissionType, isPostGrad, control, showToast
     );
 
@@ -243,9 +243,12 @@ export default function SchoolFeesScreen() {
                 )}
                 {currentStep === 3 && (
                     <SchoolBankDetailsStep
-                        control={control} watch={watch} setValue={setValue} errors={errors}
-                        verificationFile={docs.bank_verification.file}
-                        onUploadInvoice={() => {}}
+                        control={control}
+                        watch={watch}
+                        setValue={setValue}
+                        errors={errors}
+                        verificationFile={docs.bank_verification.file ? { ...docs.bank_verification.file, fileUrl: docs.bank_verification.meta?.fileUrl } : null}
+                        onUploadInvoice={() => uploadFile('BANK_VERIFICATION')}
                         isUploadingInvoice={isUploading}
                     />
                 )}
@@ -257,7 +260,7 @@ export default function SchoolFeesScreen() {
                         control={control} banks={banks} isResolving={resolveAccount.isPending}
                         selectedBankCode={watchedFields.customerBankCode}
                     />
-                )}
+                )}t
             </TransactionLayout>
 
             <InitiateTransactionSheet

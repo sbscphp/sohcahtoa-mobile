@@ -64,7 +64,7 @@ export const getActionSheetConfig = (
                     { id: '3', title: 'Pay School Fees', subtitle: 'Pay tuition for undergraduate & postgraduate studies.', icon: <Teacher size={moderateScale(20)} color="#FF6B2C" variant="Bulk" />, onPress: () => handleActionPress('school') },
                     { id: '4', title: 'Pay Medical Fees', subtitle: 'Pay for medical treatment or hospital bills abroad', icon: <Hospital size={moderateScale(20)} color="#FF6B2C" variant="Bulk" />, onPress: () => handleActionPress('medical') },
                     { id: '5', title: 'Pay a Professional Body', subtitle: 'E.g International membership fee', icon: <People size={moderateScale(24)} color="#FF6B2C" variant="Bulk" />, onPress: () => handleActionPress('professional') },
-                    { id: '6', title: 'Buy FX to cover your travel and accommodation', subtitle: 'Buy FX to cover your travel and accommodation', icon: <Passport width={moderateScale(20)} height={moderateScale(20)} color="#FF6B2C" />, onPress: () => handleActionPress('touring') },
+                   
                 ],
             };
         case 'sell':

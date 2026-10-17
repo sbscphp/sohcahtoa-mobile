@@ -11,6 +11,7 @@ export interface MedicalDocsState {
     referenceLetter: { file: UploadedFile | null; meta: UploadedMetadata | null };
     overseaDoctorLetter: { file: UploadedFile | null; meta: UploadedMetadata | null };
     invoice: { file: UploadedFile | null; meta: UploadedMetadata | null };
+    bank_verification: { file: UploadedFile | null; meta: UploadedMetadata | null };
 }
 
 export function useMedicalDocuments(control: any, showToast: (msg: string, type: 'error') => void) {
@@ -21,6 +22,7 @@ export function useMedicalDocuments(control: any, showToast: (msg: string, type:
         referenceLetter: { file: null, meta: null },
         overseaDoctorLetter: { file: null, meta: null },
         invoice: { file: null, meta: null },
+        bank_verification: { file: null, meta: null },
     });
 
     const updateDoc = (key: keyof MedicalDocsState, file: UploadedFile, metadata: UploadedMetadata) => {
@@ -35,6 +37,7 @@ export function useMedicalDocuments(control: any, showToast: (msg: string, type:
             else if (documentType === 'MEDICAL_LETTER') updateDoc('referenceLetter', file, metadata);
             else if (documentType === 'OVERSEAS_MEDICAL_LETTER') updateDoc('overseaDoctorLetter', file, metadata);
             else if (documentType === 'INVOICE') updateDoc('invoice', file, metadata);
+            else if (documentType === 'BANK_VERIFICATION') updateDoc('bank_verification', file, metadata);
         },
         onError: () => showToast('Failed to upload document. Please try again.', 'error'),
     });
@@ -109,7 +112,7 @@ export function useMedicalDocuments(control: any, showToast: (msg: string, type:
         docs.invoice.file
     );
 
-    return { docs, documentFields, isUploading, hasAllDocs };
+    return { docs, documentFields, isUploading, hasAllDocs, uploadFile };
 }
 
 export function buildMedicalPayload(data: any, docs: MedicalDocsState, currencyGet: any) {
@@ -133,6 +136,7 @@ export function buildMedicalPayload(data: any, docs: MedicalDocsState, currencyG
             ...(docs.referenceLetter.meta ? [docs.referenceLetter.meta] : []),
             ...(docs.overseaDoctorLetter.meta ? [docs.overseaDoctorLetter.meta] : []),
             ...(docs.invoice.meta ? [docs.invoice.meta] : []),
+            ...(docs.bank_verification.meta ? [docs.bank_verification.meta] : []),
         ],
         beneficiaryDetails: {
             organizationName: data.organizationName || '',

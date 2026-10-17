@@ -1,5 +1,4 @@
 import Header from '@/components/Header';
-import InputField from '@/components/InputField';
 import PrimaryButton from '@/components/PrimaryButton';
 import ProgressBar from '@/components/ProgressBar';
 import { useReceiveFxRate } from '@/hooks/useReceiveFxRate';
@@ -11,22 +10,14 @@ import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 
 export default function ReceivingOptionsScreen() {
     const router = useRouter();
-    const { rate, formattedLimitNaira } = useReceiveFxRate();
-    const [selectedOption, setSelectedOption] = useState<'convert' | 'pickup' | null>(null);
-    const [usdAmount, setUsdAmount] = useState('');
+    const { formattedLimitNaira } = useReceiveFxRate();
+    const [selectedOption, setSelectedOption] = useState<'convert' | null>('convert');
 
     const handleContinue = () => {
-        if (selectedOption === 'pickup') {
-            router.push({
-                pathname: '/(receive-fx)/pickup-location',
-                params: { option: 'pickup', usdAmount },
-            });
-        } else {
-            router.push({
-                pathname: '/(receive-fx)/split-payment',
-                params: { option: 'convert' },
-            });
-        }
+        router.push({
+            pathname: '/(receive-fx)/split-payment',
+            params: { option: 'convert' },
+        });
     };
 
     return (
@@ -42,7 +33,7 @@ export default function ReceivingOptionsScreen() {
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}
                 >
-                    <ProgressBar step={3} totalSteps={selectedOption === 'convert' ? 5 : 4} />
+                    <ProgressBar step={3} totalSteps={5} />
 
                     <Text style={styles.sectionTitle}>
                         How would you like to receive your funds?
@@ -69,41 +60,7 @@ export default function ReceivingOptionsScreen() {
                                 The full amount will be converted to naira equivalent and you can select how you want it.
                             </Text>
                         </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={[
-                                styles.optionCard,
-                                selectedOption === 'pickup' && styles.optionCardSelected
-                            ]}
-                            onPress={() => setSelectedOption('pickup')}
-                            activeOpacity={0.8}
-                        >
-                            <Text style={styles.optionTitle}>Request USD cash pick up</Text>
-                            <Text style={styles.optionDescription}>
-                                A portion of the amount will be able for cash pickup in USD, and the rest will be sent as a bank transfer.
-                            </Text>
-                        </TouchableOpacity>
                     </View>
-
-                    {selectedOption === 'pickup' && (
-                        <View style={styles.amountContainer}>
-                            <InputField
-                                label="Enter Amount"
-                                placeholder="Enter Amount"
-                                value={usdAmount}
-                                onChangeText={setUsdAmount}
-                                icon={() => <Text style={styles.currencySymbol}>$</Text>}
-                                keyboardType="numeric"
-                                required
-                            />
-                            <View style={styles.amountFooter}>
-                                <Text style={styles.amountLeftLabel}>Amount left (NGN)</Text>
-                                <Text style={styles.amountLeftValue}>
-                                    {`NGN ${(Math.max(0, 5000 - (parseFloat(usdAmount) || 0)) * rate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                                </Text>
-                            </View>
-                        </View>
-                    )}
 
                 </ScrollView>
             </KeyboardAvoidingView>
@@ -112,7 +69,7 @@ export default function ReceivingOptionsScreen() {
                 <PrimaryButton
                     title="Continue"
                     onPress={handleContinue}
-                    disabled={!selectedOption || (selectedOption === 'pickup' && !usdAmount)}
+                    disabled={!selectedOption}
                 />
             </View>
         </View>
@@ -162,13 +119,13 @@ const styles = ScaledSheet.create({
     optionCard: {
         padding: '16@ms',
         borderWidth: 1,
-        borderColor: '#F1F5F9', // Default border
+        borderColor: '#F1F5F9',
         borderRadius: '8@ms',
         backgroundColor: '#FCFCFC',
         gap: '4@vs',
     },
     optionCardSelected: {
-        borderColor: '#F97316', // Orange border
+        borderColor: '#F97316',
         borderWidth: 1.5,
         backgroundColor: '#FFFFFF',
     },
@@ -182,35 +139,6 @@ const styles = ScaledSheet.create({
         fontSize: '12@ms',
         color: '#94A3B8',
         lineHeight: '18@ms',
-    },
-    amountContainer: {
-        marginTop: '24@vs',
-        backgroundColor: '#FFFFFF',
-        borderWidth: 1,
-        borderColor: '#F1F5F9',
-        borderRadius: '16@ms',
-        padding: '16@ms',
-    },
-    currencySymbol: {
-        fontSize: '16@ms',
-        fontWeight: '600',
-        color: '#334155',
-        marginRight: '8@s',
-    },
-    amountFooter: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginTop: '12@vs',
-    },
-    amountLeftLabel: {
-        fontSize: '13@ms',
-        color: '#94A3B8',
-    },
-    amountLeftValue: {
-        fontSize: '13@ms',
-        color: '#F97316',
-        fontWeight: '600',
     },
     footer: {
         position: 'absolute',
