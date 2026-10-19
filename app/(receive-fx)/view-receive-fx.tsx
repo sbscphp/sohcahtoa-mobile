@@ -37,7 +37,10 @@ export default function ViewReceiveFxScreen() {
 
     const handleProceed = () => {
         // Navigate to payment or next step
-        router.push('/(receive-fx)/disbursement-options');
+        router.push({
+            pathname: '/(receive-fx)/imto',
+            params: { step: '3' },
+        });
     };
 
     const toggleState = () => {
