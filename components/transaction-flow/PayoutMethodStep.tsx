@@ -285,7 +285,6 @@ export default function PayoutMethodStep({
                         name="domiciliarySwiftCode"
                         label="SWIFT Code"
                         placeholder="Enter SWIFT code"
-                        required
                         maxLength={11}
                         filterType="alphanumeric"
                         autoCapitalize="characters"
@@ -295,7 +294,6 @@ export default function PayoutMethodStep({
                         name="domiciliaryRoutingNumber"
                         label="Routing Number"
                         placeholder="Enter routing number"
-                        required
                         keyboardType="numeric"
                         maxLength={9}
                         filterType="numeric"
@@ -305,7 +303,6 @@ export default function PayoutMethodStep({
                         name="domiciliaryBankAddress"
                         label="Bank Address"
                         placeholder="Enter bank address"
-                        required
                     />
                 </View>
             )}
