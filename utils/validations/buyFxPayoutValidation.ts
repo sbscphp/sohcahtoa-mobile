@@ -41,14 +41,29 @@ export const isBuyFxPayoutStepValid = (watchedFields: any) => {
     const isElectronic = watchedFields.payoutMethod.includes('Electronic');
     if (!isElectronic) return true;
     if (watchedFields.payoutMethod === 'Electronic Transfer (100%)' || watchedFields.payoutMethod === 'Cash (25%) + Electronic Transfer (75%)') {
-        return !!(
+        const hasRequired = !!(
             watchedFields.domiciliaryAccountNumber?.length === 10 &&
             watchedFields.domiciliaryBankName &&
-            watchedFields.domiciliaryAccountName &&
-            watchedFields.domiciliarySwiftCode &&
-            watchedFields.domiciliaryRoutingNumber &&
-            watchedFields.domiciliaryBankAddress
+            watchedFields.domiciliaryAccountName
         );
+        if (!hasRequired) return false;
+
+        const swift = watchedFields.domiciliarySwiftCode?.trim();
+        if (swift && !/^[A-Za-z]{4}[A-Za-z]{2}[A-Za-z0-9]{2}([A-Za-z0-9]{3})?$/.test(swift)) {
+            return false;
+        }
+
+        const routing = watchedFields.domiciliaryRoutingNumber?.trim();
+        if (routing && (routing.length !== 9 || !/^\d+$/.test(routing))) {
+            return false;
+        }
+
+        const address = watchedFields.domiciliaryBankAddress?.trim();
+        if (address && address.length < 5) {
+            return false;
+        }
+
+        return true;
     }
     return !!(
         watchedFields.customerBankName &&
@@ -171,13 +186,8 @@ export const refineBuyFxPayoutAndLocation = (data: any, ctx: z.RefinementCtx, cu
             }
         }
 
-        if (!data.domiciliarySwiftCode) {
-            ctx.addIssue({
-                code: 'custom',
-                message: 'Please enter SWIFT code',
-                path: ['domiciliarySwiftCode'],
-            });
-        } else if (!/^[A-Za-z]{4}[A-Za-z]{2}[A-Za-z0-9]{2}([A-Za-z0-9]{3})?$/.test(data.domiciliarySwiftCode)) {
+        const swift = data.domiciliarySwiftCode?.trim();
+        if (swift && !/^[A-Za-z]{4}[A-Za-z]{2}[A-Za-z0-9]{2}([A-Za-z0-9]{3})?$/.test(swift)) {
             ctx.addIssue({
                 code: 'custom',
                 message: 'Invalid SWIFT code format. Expected: 4 letters + 2 letters + 2 characters (+ optional 3 characters), e.g. CITIUS33 or CITIUS33XXX',
@@ -185,13 +195,8 @@ export const refineBuyFxPayoutAndLocation = (data: any, ctx: z.RefinementCtx, cu
             });
         }
 
-        if (!data.domiciliaryRoutingNumber) {
-            ctx.addIssue({
-                code: 'custom',
-                message: 'Please enter routing number',
-                path: ['domiciliaryRoutingNumber'],
-            });
-        } else if (data.domiciliaryRoutingNumber.length !== 9 || !/^\d+$/.test(data.domiciliaryRoutingNumber)) {
+        const routing = data.domiciliaryRoutingNumber?.trim();
+        if (routing && (routing.length !== 9 || !/^\d+$/.test(routing))) {
             ctx.addIssue({
                 code: 'custom',
                 message: 'Routing number must be exactly 9 digits',
@@ -199,13 +204,8 @@ export const refineBuyFxPayoutAndLocation = (data: any, ctx: z.RefinementCtx, cu
             });
         }
 
-        if (!data.domiciliaryBankAddress) {
-            ctx.addIssue({
-                code: 'custom',
-                message: 'Please enter bank address',
-                path: ['domiciliaryBankAddress'],
-            });
-        } else if (data.domiciliaryBankAddress.trim().length < 5) {
+        const address = data.domiciliaryBankAddress?.trim();
+        if (address && address.length < 5) {
             ctx.addIssue({
                 code: 'custom',
                 message: 'Bank address must be at least 5 characters',

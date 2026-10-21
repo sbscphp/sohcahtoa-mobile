@@ -70,9 +70,9 @@ export function buildBuyFxPayload(params: BuildBuyFxPayloadParams) {
             bankName: data.domiciliaryBankName,
             accountNumber: data.domiciliaryAccountNumber,
             accountName: data.domiciliaryAccountName,
-            swiftCode: data.domiciliarySwiftCode,
-            routingNumber: data.domiciliaryRoutingNumber,
-            bankAddress: data.domiciliaryBankAddress,
+            ...(data.domiciliarySwiftCode?.trim() ? { swiftCode: data.domiciliarySwiftCode.trim() } : {}),
+            ...(data.domiciliaryRoutingNumber?.trim() ? { routingNumber: data.domiciliaryRoutingNumber.trim() } : {}),
+            ...(data.domiciliaryBankAddress?.trim() ? { bankAddress: data.domiciliaryBankAddress.trim() } : {}),
         } : undefined,
         refundBankDetails: {
             bankName: data.customerBankName,
