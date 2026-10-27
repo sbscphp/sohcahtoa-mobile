@@ -1,6 +1,8 @@
+import AnimatedBottomSheet from '@/components/ui/AnimatedBottomSheet';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { InfoCircle } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
-import { Modal, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { Text, TouchableOpacity, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import PrimaryButton from './PrimaryButton';
 
@@ -12,6 +14,7 @@ interface OtpOptionSheetProps {
 }
 
 const OtpOptionSheet: React.FC<OtpOptionSheetProps> = ({ isVisible, onClose, onSelect, loading }) => {
+    const { colors, isDark } = useAppTheme();
     const [selectedOption, setSelectedOption] = useState<'phone' | 'email' | null>(null);
 
     const handleSelect = () => {
@@ -22,91 +25,94 @@ const OtpOptionSheet: React.FC<OtpOptionSheetProps> = ({ isVisible, onClose, onS
     };
 
     return (
-        <Modal
+        <AnimatedBottomSheet
             visible={isVisible}
-            transparent
-            animationType="fade"
-            onRequestClose={onClose}
+            onClose={onClose}
+            sheetStyle={[styles.sheetContainer, { backgroundColor: colors.surface }]}
         >
-            <TouchableWithoutFeedback onPress={onClose}>
-                <View style={styles.backdrop} />
-            </TouchableWithoutFeedback>
-
-            <View style={styles.mainContainer}>
-                <View style={styles.sheetContainer}>
-                    <View style={styles.headerIconContainer}>
-                        <View style={styles.iconCircle}>
-                            <InfoCircle size={moderateScale(28)} color="#FF6B2C" variant="Bold" />
-                        </View>
-                    </View>
-
-                    <Text style={styles.title}>Send OTP</Text>
-                    <Text style={styles.description}>
-                        We need you to verify your bvn. Kindly select where you want your Otp sent
-                    </Text>
-
-                    <View style={styles.optionsContainer}>
-                        <TouchableOpacity
-                            style={[styles.optionCard, selectedOption === 'phone' && styles.selectedCard]}
-                            onPress={() => setSelectedOption('phone')}
-                            activeOpacity={0.7}
-                        >
-                            <Text style={[styles.optionText, selectedOption === 'phone' && styles.selectedOptionText]}>
-                                Send to my Phone Number
-                            </Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={[styles.optionCard, selectedOption === 'email' && styles.selectedCard]}
-                            onPress={() => setSelectedOption('email')}
-                            activeOpacity={0.7}
-                        >
-                            <Text style={[styles.optionText, selectedOption === 'email' && styles.selectedOptionText]}>
-                                Send to my Email Address
-                            </Text>
-                        </TouchableOpacity>
-                    </View>
-
-                    <View style={styles.buttonContainer}>
-                        <PrimaryButton
-                            title="Select option"
-                            onPress={handleSelect}
-                            disabled={!selectedOption}
-                            style={styles.primaryButton}
-                            loading={loading}
-                        />
-
-                        <TouchableOpacity
-                            style={styles.closeButton}
-                            onPress={onClose}
-                            activeOpacity={0.7}
-                        >
-                            <Text style={styles.closeButtonText}>No, Close</Text>
-                        </TouchableOpacity>
-                    </View>
+            <View style={styles.headerIconContainer}>
+                <View style={[styles.iconCircle, { backgroundColor: isDark ? 'rgba(255, 107, 44, 0.18)' : '#F8F9FA' }]}>
+                    <InfoCircle size={moderateScale(28)} color="#FF6B2C" variant="Bold" />
                 </View>
             </View>
-        </Modal>
+
+            <Text style={[styles.title, { color: colors.text }]}>Send OTP</Text>
+            <Text style={[styles.description, { color: colors.textMuted }]}>
+                We need you to verify your bvn. Kindly select where you want your Otp sent
+            </Text>
+
+            <View style={styles.optionsContainer}>
+                <TouchableOpacity
+                    style={[
+                        styles.optionCard,
+                        { backgroundColor: colors.card, borderColor: colors.border },
+                        selectedOption === 'phone' && [
+                            styles.selectedCard,
+                            {
+                                borderColor: colors.primary,
+                                backgroundColor: isDark ? 'rgba(255, 107, 44, 0.12)' : '#FFF7F5',
+                            },
+                        ],
+                    ]}
+                    onPress={() => setSelectedOption('phone')}
+                    activeOpacity={0.7}
+                >
+                    <Text style={[styles.optionText, { color: colors.text }, selectedOption === 'phone' && [styles.selectedOptionText, { color: colors.text }]]}>
+                        Send to my Phone Number
+                    </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    style={[
+                        styles.optionCard,
+                        { backgroundColor: colors.card, borderColor: colors.border },
+                        selectedOption === 'email' && [
+                            styles.selectedCard,
+                            {
+                                borderColor: colors.primary,
+                                backgroundColor: isDark ? 'rgba(255, 107, 44, 0.12)' : '#FFF7F5',
+                            },
+                        ],
+                    ]}
+                    onPress={() => setSelectedOption('email')}
+                    activeOpacity={0.7}
+                >
+                    <Text style={[styles.optionText, { color: colors.text }, selectedOption === 'email' && [styles.selectedOptionText, { color: colors.text }]]}>
+                        Send to my Email Address
+                    </Text>
+                </TouchableOpacity>
+            </View>
+
+            <View style={styles.buttonContainer}>
+                <PrimaryButton
+                    title="Select option"
+                    onPress={handleSelect}
+                    disabled={!selectedOption}
+                    style={styles.primaryButton}
+                    loading={loading}
+                />
+
+                <TouchableOpacity
+                    style={[styles.closeButton, { backgroundColor: isDark ? colors.surfaceHighlight : '#F3F4F6' }]}
+                    onPress={onClose}
+                    activeOpacity={0.7}
+                >
+                    <Text style={[styles.closeButtonText, { color: colors.text }]}>No, Close</Text>
+                </TouchableOpacity>
+            </View>
+        </AnimatedBottomSheet>
     );
 };
 
 const styles = ScaledSheet.create({
-    backdrop: {
-        flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    },
-    mainContainer: {
-        flex: 1,
-        justifyContent: 'flex-end',
-        backgroundColor: 'transparent',
-    },
     sheetContainer: {
         backgroundColor: '#FFFFFF',
-        borderTopLeftRadius: '32@ms',
-        borderTopRightRadius: '32@ms',
+        borderRadius: '30@ms',
         paddingHorizontal: '24@s',
-        paddingTop: '20@vs',
+        paddingTop: '14@vs',
         paddingBottom: '32@vs',
+        marginBottom: '28@vs',
+        marginHorizontal: '12@s',
     },
     headerIconContainer: {
         marginBottom: '16@vs',

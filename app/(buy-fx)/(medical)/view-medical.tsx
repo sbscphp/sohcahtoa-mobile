@@ -10,8 +10,10 @@ import { commonDocTypeLabels, formatCurrency, formatDate, formatTime, formatTime
 import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, BackHandler, View } from 'react-native';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 export default function ViewMedicalPaymentScreen() {
+    const { colors } = useAppTheme();
     const router = useRouter();
     const { transactionId, fromSuccess } = useLocalSearchParams<{ transactionId: string, fromSuccess?: string }>();
     const [activeTab, setActiveTab] = useState('overview');
@@ -238,7 +240,7 @@ export default function ViewMedicalPaymentScreen() {
 
     if (isLoading) {
         return (
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
                 <ActivityIndicator size="large" color="#FF6B2C" />
             </View>
         );

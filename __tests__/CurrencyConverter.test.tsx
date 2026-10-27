@@ -62,4 +62,17 @@ describe('CurrencyConverter', () => {
         );
         expect(getByText('Rate unavailable')).toBeTruthy();
     });
+
+    it('renders Buy FX and Sell FX tabs with tab accessibility roles', () => {
+        const { getByLabelText } = render(<CurrencyConverter {...defaultProps} />);
+        const buyTab = getByLabelText('Buy FX tab');
+        const sellTab = getByLabelText('Sell FX tab');
+
+        expect(buyTab).toBeTruthy();
+        expect(sellTab).toBeTruthy();
+        expect(buyTab.props.accessibilityRole).toBe('tab');
+        expect(sellTab.props.accessibilityRole).toBe('tab');
+        expect(buyTab.props.accessibilityState).toEqual({ selected: true });
+        expect(sellTab.props.accessibilityState).toEqual({ selected: false });
+    });
 });

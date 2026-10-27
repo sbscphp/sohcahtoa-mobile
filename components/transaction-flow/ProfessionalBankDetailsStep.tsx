@@ -1,6 +1,7 @@
 import ControlledInput from '@/components/ControlledInput';
 import React from 'react';
 import { ScrollView, Text, View } from 'react-native';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import {
     bankStepStyles as styles,
     BankStepInvoiceUpload,
@@ -33,13 +34,14 @@ export default function ProfessionalBankDetailsStep({
     onUploadInvoice,
     isUploadingInvoice,
 }: ProfessionalBankDetailsStepProps) {
+    const { colors } = useAppTheme();
     const beneficiaryCountry = watch('beneficiaryCountry');
     const isUK = beneficiaryCountry?.toLowerCase().includes('united kingdom') || beneficiaryCountry?.toLowerCase() === 'uk';
 
     return (
         <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-            <Text style={styles.title}>Where would you like to send the fund to?</Text>
-            <Text style={styles.description}>
+            <Text style={[styles.title, { color: colors.text }]}>Where would you like to send the fund to?</Text>
+            <Text style={[styles.description, { color: colors.textMuted }]}>
                 Enter the professional body and bank details for this payment. Please upload an invoice that contains the beneficiary details so we can verify them more easily.{"\n\n"}
                 You may also upload an invoice below to use as confirmation during internet banking.
             </Text>
@@ -50,7 +52,7 @@ export default function ProfessionalBankDetailsStep({
                 beneficiaryCountry={beneficiaryCountry}
             />
 
-            <Text style={styles.sectionTitle}>Beneficiary details</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Beneficiary details</Text>
             <View style={styles.sectionContainer}>
                 {!isMedical && (
                     <>
@@ -135,7 +137,7 @@ export default function ProfessionalBankDetailsStep({
                 />
             </View>
 
-            <Text style={styles.sectionTitle}>Beneficiary Bank details</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Beneficiary Bank details</Text>
             <View style={styles.sectionContainer}>
                 <ControlledInput
                     control={control}

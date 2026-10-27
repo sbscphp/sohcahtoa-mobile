@@ -14,9 +14,14 @@ if (typeof global.structuredClone !== 'function') {
 jest.mock('lucide-react-native', () => ({
     Download: 'Download',
     Check: 'Check',
+    X: 'X',
+    Info: 'Info',
     AlertCircle: 'AlertCircle',
     Clock: 'Clock',
     FileText: 'FileText',
+    Sun: 'Sun',
+    Moon: 'Moon',
+    Smartphone: 'Smartphone',
 }));
 
 jest.mock('react-native-size-matters', () => ({
@@ -45,10 +50,27 @@ jest.mock('iconsax-react-nativejs', () => ({
     Sms: 'Sms',
     InfoCircle: 'InfoCircle',
     ShieldSecurity: 'ShieldSecurity',
+    SearchNormal1: 'SearchNormal1',
 }));
 
 jest.mock('@expo/vector-icons', () => ({
     Ionicons: 'Ionicons',
+}));
+
+jest.mock('expo-haptics', () => ({
+    selectionAsync: jest.fn(() => Promise.resolve()),
+    notificationAsync: jest.fn(() => Promise.resolve()),
+    impactAsync: jest.fn(() => Promise.resolve()),
+    NotificationFeedbackType: {
+        Success: 'success',
+        Warning: 'warning',
+        Error: 'error',
+    },
+    ImpactFeedbackStyle: {
+        Light: 'light',
+        Medium: 'medium',
+        Heavy: 'heavy',
+    },
 }));
 
 jest.mock('@react-native-community/datetimepicker', () => {
@@ -200,5 +222,132 @@ jest.mock('expo-router', () => ({
     Stack: 'Stack',
     Tabs: 'Tabs',
 }));
+
+jest.mock('react-native-gesture-handler', () => {
+    const { View, ScrollView, FlatList, TouchableOpacity } = require('react-native');
+    const panBuilder = {
+        activeOffsetY: () => panBuilder,
+        failOffsetX: () => panBuilder,
+        onUpdate: () => panBuilder,
+        onEnd: () => panBuilder,
+        onStart: () => panBuilder,
+    };
+    return {
+        GestureHandlerRootView: View,
+        GestureDetector: ({ children }) => children,
+        Gesture: {
+            Pan: () => panBuilder,
+            Tap: () => panBuilder,
+            Simultaneous: () => panBuilder,
+            Race: () => panBuilder,
+            Exclusive: () => panBuilder,
+        },
+        ScrollView,
+        FlatList,
+        RectButton: TouchableOpacity,
+        BorderlessButton: TouchableOpacity,
+    };
+});
+
+jest.mock('react-native-worklets', () => ({
+    scheduleOnRN: (fn, ...args) => fn?.(...args),
+    scheduleOnUI: (fn, ...args) => fn?.(...args),
+}));
+
+jest.mock('react-native-reanimated', () => {
+    const React = require('react');
+    const { View, Text, Image, ScrollView, FlatList } = require('react-native');
+    const chainableAnim = () => {
+        const obj = {
+            duration: () => obj,
+            delay: () => obj,
+            springify: () => obj,
+            damping: () => obj,
+            stiffness: () => obj,
+            mass: () => obj,
+            easing: () => obj,
+        };
+        return obj;
+    };
+    const Animated = {
+        View,
+        Text,
+        Image,
+        ScrollView,
+        FlatList,
+        createAnimatedComponent: (Component) => Component,
+    };
+    return {
+        __esModule: true,
+        default: Animated,
+        ...Animated,
+        useSharedValue: (init) => ({ value: init }),
+        useAnimatedStyle: (fn) => fn(),
+        useAnimatedScrollHandler: () => jest.fn(),
+        useReducedMotion: () => false,
+        withTiming: (toValue, _config, cb) => {
+            if (cb) cb(true);
+            return toValue;
+        },
+        withSpring: (toValue, _config, cb) => {
+            if (cb) cb(true);
+            return toValue;
+        },
+        interpolate: (val) => val,
+        Extrapolation: {
+            CLAMP: 'clamp',
+            EXTEND: 'extend',
+            IDENTITY: 'identity',
+        },
+        interpolateColor: (val, inputRange, outputRange) =>
+            val >= inputRange[inputRange.length - 1]
+                ? outputRange[outputRange.length - 1]
+                : outputRange[0],
+        Easing: {
+            out: (fn) => fn,
+            in: (fn) => fn,
+            inOut: (fn) => fn,
+            quad: (t) => t,
+            cubic: (t) => t,
+        },
+        FadeIn: chainableAnim(),
+        FadeOut: chainableAnim(),
+        FadeInUp: chainableAnim(),
+        FadeOutUp: chainableAnim(),
+        FadeInDown: chainableAnim(),
+        FadeOutDown: chainableAnim(),
+        LinearTransition: chainableAnim(),
+        ZoomIn: chainableAnim(),
+        ZoomOut: chainableAnim(),
+    };
+});
+
+jest.mock('expo-local-authentication', () => ({
+    hasHardwareAsync: jest.fn(() => Promise.resolve(true)),
+    isEnrolledAsync: jest.fn(() => Promise.resolve(true)),
+    supportedAuthenticationTypesAsync: jest.fn(() => Promise.resolve([1, 2])),
+    authenticateAsync: jest.fn(() => Promise.resolve({ success: true })),
+    AuthenticationType: {
+        FINGERPRINT: 1,
+        FACIAL_RECOGNITION: 2,
+        IRIS: 3,
+    },
+}));
+
+jest.mock('expo-secure-store', () => {
+    const store = new Map();
+    return {
+        setItemAsync: jest.fn((key, value) => {
+            store.set(key, String(value));
+            return Promise.resolve();
+        }),
+        getItemAsync: jest.fn((key) => Promise.resolve(store.get(key) ?? null)),
+        deleteItemAsync: jest.fn((key) => {
+            store.delete(key);
+            return Promise.resolve();
+        }),
+        isAvailableAsync: jest.fn(() => Promise.resolve(true)),
+    };
+});
 
 // Mocking finished

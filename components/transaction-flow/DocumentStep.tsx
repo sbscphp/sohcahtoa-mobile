@@ -2,6 +2,7 @@ import FileUpload from '@/components/FileUpload';
 import React from 'react';
 import { Text, View } from 'react-native';
 import { ScaledSheet } from 'react-native-size-matters';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 interface DocumentField {
     label: string;
@@ -21,13 +22,14 @@ interface DocumentStepProps {
 }
 
 export default function DocumentStep({ title = "Upload Relevant Documents", documents }: DocumentStepProps) {
+    const { colors } = useAppTheme();
     return (
         <View style={styles.container}>
-            <Text style={styles.sectionTitle}>{title}</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>{title}</Text>
 
             {documents.map((doc, index) => (
                 <View key={index} style={styles.docSection}>
-                    <Text style={styles.label}>
+                    <Text style={[styles.label, { color: colors.textMuted }]}>
                         {doc.label} {doc.required && <Text style={styles.required}>*</Text>}
                     </Text>
 

@@ -2,7 +2,14 @@ import { Stack } from "expo-router";
 
 export default function MoreLayout() {
     return (
-        <Stack>
+        <Stack
+            screenOptions={{
+                headerShown: false,
+                animation: 'ios_from_right',
+                gestureEnabled: true,
+                fullScreenGestureEnabled: true,
+            }}
+        >
             <Stack.Screen name="profile" options={{ headerShown: false }} />
             <Stack.Screen name="support" options={{ headerShown: false }} />
             <Stack.Screen name="support-history" options={{ headerShown: false }} />

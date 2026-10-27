@@ -1,13 +1,13 @@
+import { useAppTheme } from '@/context/ThemeContext';
 import { Image } from 'expo-image';
 import React from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 import { moderateScale, ScaledSheet } from 'react-native-size-matters';
-import { Colors } from '../constants/theme';
 
 interface SelectionCardProps {
     title: string;
     description: string;
-    iconSource: any; // Changed to any to support both assets and SVG components
+    iconSource: any;
     selected: boolean;
     onPress: () => void;
 }
@@ -19,10 +19,11 @@ const SelectionCard: React.FC<SelectionCardProps> = ({
     selected,
     onPress,
 }) => {
+    const { colors, isDark } = useAppTheme();
+
     const renderIcon = () => {
         if (!iconSource) return null;
 
-        // Check if iconSource is a component (from react-native-svg-transformer)
         if (typeof iconSource === 'function' || (typeof iconSource === 'object' && (iconSource as any).$$typeof)) {
             const IconComponent = iconSource as React.ComponentType<any>;
             return (
@@ -41,7 +42,14 @@ const SelectionCard: React.FC<SelectionCardProps> = ({
         <TouchableOpacity
             activeOpacity={0.7}
             onPress={onPress}
-            style={[styles.card, selected && styles.selectedCard]}
+            style={[
+                styles.card,
+                {
+                    backgroundColor: selected ? colors.primarySoft : colors.surface,
+                    borderColor: selected ? colors.primary : colors.border,
+                },
+                selected && styles.selectedCard
+            ]}
             accessible={true}
             accessibilityLabel={`${title}: ${description}`}
             accessibilityRole="button"
@@ -51,8 +59,8 @@ const SelectionCard: React.FC<SelectionCardProps> = ({
                 {renderIcon()}
             </View>
             <View style={styles.content}>
-                <Text style={styles.title}>{title}</Text>
-                <Text style={styles.description}>{description}</Text>
+                <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
+                <Text style={[styles.description, { color: colors.textMuted }]}>{description}</Text>
             </View>
         </TouchableOpacity>
     );
@@ -71,7 +79,7 @@ const styles = ScaledSheet.create({
         borderColor: '#F1F5F9',
     },
     selectedCard: {
-        borderColor: Colors.light.primary,
+        borderColor: 'rgba(255, 104, 19, 1)',
         backgroundColor: '#FFF7F4',
     },
     iconContainer: {

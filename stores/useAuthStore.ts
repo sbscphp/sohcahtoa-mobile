@@ -23,6 +23,7 @@ interface AuthState {
     hasCredentials: boolean;
     setHasCredentials: (has: boolean) => void;
     checkCredentials: () => Promise<void>;
+    disableBiometrics: () => Promise<void>;
     hasSeenNotificationPrompt: boolean;
     setHasSeenNotificationPrompt: (seen: boolean) => void;
     logout: () => void;
@@ -47,6 +48,11 @@ export const useAuthStore = create<AuthState>()(
                 const { getStoredCredentials } = await import('@/utils/biometrics');
                 const credentials = await getStoredCredentials();
                 set({ hasCredentials: !!credentials });
+            },
+            disableBiometrics: async () => {
+                const { clearStoredCredentials } = await import('@/utils/biometrics');
+                await clearStoredCredentials();
+                set({ isBiometricEnabled: false, biometricType: null, hasCredentials: false });
             },
             setBiometricEnabled: (isBiometricEnabled) => set({ isBiometricEnabled }),
             setBiometricType: (biometricType) => set({ biometricType }),

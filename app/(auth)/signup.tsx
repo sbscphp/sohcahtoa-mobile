@@ -1,3 +1,4 @@
+import { useAppTheme } from '@/context/ThemeContext';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
@@ -12,6 +13,7 @@ type UserType = 'citizen' | 'tourist' | 'expatriate' | null;
 export default function SignupScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
+    const { colors } = useAppTheme();
     const [selectedType, setSelectedType] = useState<UserType>(null);
 
     const handleContinue = () => {
@@ -29,7 +31,7 @@ export default function SignupScreen() {
     };
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+        <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom, backgroundColor: colors.background }]}>
             <AuthHeader title="Sign up" />
 
             <ScrollView
@@ -37,8 +39,8 @@ export default function SignupScreen() {
                 showsVerticalScrollIndicator={false}
             >
                 <View style={styles.welcomeSection}>
-                    <Text style={styles.welcomeTitle}>Welcome to SohCahToa</Text>
-                    <Text style={styles.welcomeSubtitle}>Sign Up as?</Text>
+                    <Text style={[styles.welcomeTitle, { color: colors.text }]}>Welcome to SohCahToa</Text>
+                    <Text style={[styles.welcomeSubtitle, { color: colors.textMuted }]}>Sign Up as?</Text>
                 </View>
 
                 <View style={styles.selectionList}>
@@ -68,7 +70,7 @@ export default function SignupScreen() {
                 </View>
             </ScrollView>
 
-            <View style={styles.footer}>
+            <View style={[styles.footer, { backgroundColor: colors.background }]}>
                 <PrimaryButton
                     title="Continue"
                     onPress={handleContinue}

@@ -3,6 +3,7 @@ import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { Add } from 'iconsax-react-nativejs';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import VirtualCard from '@/components/VirtualCard';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 interface HomeCardsSectionProps {
     userName: string;
@@ -11,12 +12,14 @@ interface HomeCardsSectionProps {
 }
 
 export default function HomeCardsSection({ userName, onManageCards, onAddCard }: HomeCardsSectionProps) {
+    const { colors } = useAppTheme();
+
     return (
         <View style={styles.cardsSection}>
             <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Cards</Text>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>Cards</Text>
                 <TouchableOpacity onPress={onManageCards}>
-                    <Text style={styles.seeAllBtn}>Manage Cards</Text>
+                    <Text style={[styles.seeAllBtn, { color: colors.text, borderColor: colors.border }]}>Manage Cards</Text>
                 </TouchableOpacity>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.cardsScroll}>
@@ -28,8 +31,11 @@ export default function HomeCardsSection({ userName, onManageCards, onAddCard }:
                     />
                 </View>
 
-                <TouchableOpacity style={styles.addCardButton} onPress={onAddCard}>
-                    <Add size={moderateScale(26)} color="#1E293B" />
+                <TouchableOpacity
+                    style={[styles.addCardButton, { backgroundColor: colors.card, borderColor: colors.border }]}
+                    onPress={onAddCard}
+                >
+                    <Add size={moderateScale(26)} color={colors.icon} />
                 </TouchableOpacity>
             </ScrollView>
         </View>

@@ -13,6 +13,8 @@ import { getStatusLabel, formatListDate, formatListTime, formatAmount } from '@/
 import SearchEmpty from '../../assets/icons/empty-state.svg';
 import Header from '../../components/Header';
 import { useGetUnreadCountQuery } from '@/hooks/queries/notifications/useGetUnreadCountQuery';
+import AnimatedTabScreen from '@/components/ui/AnimatedTabScreen';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 const FILTER_TO_GROUP: Record<string, string | undefined> = {
     'All': undefined,
@@ -41,6 +43,7 @@ const getTransactionRoute = (type: string): string => {
 };
 
 export default function TransactionScreen() {
+    const { colors, isDark } = useAppTheme();
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const [activeFilter, setActiveFilter] = useState('All');
@@ -92,20 +95,20 @@ export default function TransactionScreen() {
             <View style={styles.emptyIconContainer}>
                 <SearchEmpty width={moderateScale(150)} height={moderateScale(120)} />
             </View>
-            <Text style={styles.emptyTitle}>No Transaction Yet</Text>
-            <Text style={styles.emptyDesc}>
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>No Transaction Yet</Text>
+            <Text style={[styles.emptyDesc, { color: colors.textMuted }]}>
                 No transaction available. Check back later
             </Text>
         </View>
     );
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top }]}>
+        <AnimatedTabScreen style={[styles.container, { paddingTop: insets.top }]}>
             <Header
                 title="Transaction"
                 rightIcon={
                     <TouchableOpacity onPress={() => router.push('/notifications')}>
-                        <Notification size={moderateScale(24)} color="#1E293B" variant="Linear" />
+                        <Notification size={moderateScale(24)} color={colors.icon} variant="Linear" />
                         {unreadCount > 0 && (
                             <View style={styles.unreadBadge}>
                                 <Text style={styles.unreadText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
@@ -118,31 +121,29 @@ export default function TransactionScreen() {
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
                 <View style={styles.totalSection}>
-                    <Text style={styles.totalLabel}>Total Transactions</Text>
-                    <Text style={styles.totalCount}>{totalCount}</Text>
+                    <Text style={[styles.totalLabel, { color: colors.textMuted }]}>Total Transactions</Text>
+                    <Text style={[styles.totalCount, { color: colors.text }]}>{totalCount}</Text>
                 </View>
 
-
                 <View style={styles.statusCardsContainer}>
-                    <View style={[styles.statusCard, styles.cardCompleted]}>
-                        <Text style={styles.cardLabel}>Completed</Text>
+                    <View style={[styles.statusCard, { borderColor: colors.border, backgroundColor: colors.card }]}>
+                        <Text style={[styles.cardLabel, { color: colors.textMuted }]}>Completed</Text>
                         <Text style={[styles.cardCount, styles.textCompleted]}>{statusCounts?.completed}</Text>
                     </View>
-                    <View style={[styles.statusCard, styles.cardDeclined]}>
-                        <Text style={styles.cardLabel}>Rejected</Text>
+                    <View style={[styles.statusCard, { borderColor: colors.border, backgroundColor: colors.card }]}>
+                        <Text style={[styles.cardLabel, { color: colors.textMuted }]}>Rejected</Text>
                         <Text style={[styles.cardCount, styles.textDeclined]}>{statusCounts?.declined}</Text>
                     </View>
-                    <View style={[styles.statusCard, styles.cardPending]}>
-                        <Text style={styles.cardLabel}>Pending</Text>
+                    <View style={[styles.statusCard, { borderColor: colors.border, backgroundColor: colors.card }]}>
+                        <Text style={[styles.cardLabel, { color: colors.textMuted }]}>Pending</Text>
                         <Text style={[styles.cardCount, styles.textPending]}>{statusCounts?.pending}</Text>
                     </View>
                 </View>
 
-
                 <View style={styles.sectionHeader}>
-                    <Text style={styles.sectionTitle}>Recent Transactions</Text>
+                    <Text style={[styles.sectionTitle, { color: colors.text }]}>Recent Transactions</Text>
                     <TouchableOpacity onPress={() => router.push('/all-transactions')}>
-                        <Text style={styles.seeAllButton}>See all</Text>
+                        <Text style={[styles.seeAllButton, { color: isDark ? colors.primaryLight : colors.text, backgroundColor: isDark ? 'rgba(255, 255, 255, 0.06)' : '#F1F5F9' }]}>See all</Text>
                     </TouchableOpacity>
                 </View>
 
@@ -157,13 +158,21 @@ export default function TransactionScreen() {
                             key={filter}
                             style={[
                                 styles.filterChip,
-                                activeFilter === filter && styles.activeFilterChip
+                                { backgroundColor: colors.card, borderColor: colors.border },
+                                activeFilter === filter && [
+                                    styles.activeFilterChip,
+                                    {
+                                        backgroundColor: isDark ? colors.primarySoft : 'rgba(248, 220, 205, 1)',
+                                        borderColor: isDark ? colors.tabIconSelected : 'rgba(255, 107, 44, 0.4)',
+                                    },
+                                ]
                             ]}
                             onPress={() => setActiveFilter(filter)}
                         >
                             <Text style={[
                                 styles.filterText,
-                                activeFilter === filter && styles.activeFilterText
+                                { color: colors.textMuted },
+                                activeFilter === filter && [styles.activeFilterText, { color: colors.tabIconSelected }]
                             ]}>
                                 {filter}
                             </Text>
@@ -176,20 +185,20 @@ export default function TransactionScreen() {
                         <ActivityIndicator size="large" color="#FF6B2C" />
                     </View>
                 ) : transactions.length > 0 ? (
-                    <View style={styles.transactionListContainer}>
+                    <View style={[styles.transactionListContainer, { backgroundColor: colors.card }]}>
                         {transactions.map((item) => {
                             const statusLabel = getStatusLabel(item.status);
                             return (
                                 <TouchableOpacity key={item.id} style={styles.transactionItem} onPress={() => router.push({ pathname: getTransactionRoute(item.type) as any, params: { transactionId: item.id } })}>
-                                    <View style={styles.iconContainer}>
-                                        <Refresh size={moderateScale(18)} color="#94A3B8" />
+                                    <View style={[styles.iconContainer, { backgroundColor: colors.surface }]}>
+                                        <Refresh size={moderateScale(18)} color={colors.icon} />
                                     </View>
                                     <View style={styles.itemContent}>
-                                        <Text style={styles.itemTitle} numberOfLines={1}>{item.purpose || item.type}</Text>
-                                        <Text style={styles.itemDate}>{formatListDate(item.createdAt)} • {formatListTime(item.createdAt)}</Text>
+                                        <Text style={[styles.itemTitle, { color: colors.text }]} numberOfLines={1}>{item.purpose || item.type}</Text>
+                                        <Text style={[styles.itemDate, { color: colors.textMuted }]}>{formatListDate(item.createdAt)} • {formatListTime(item.createdAt)}</Text>
                                     </View>
                                     <View style={styles.itemRight}>
-                                        <Text style={styles.itemAmount}>{formatAmount(item.foreignAmount, item.currency)}</Text>
+                                        <Text style={[styles.itemAmount, { color: colors.text }]}>{formatAmount(item.foreignAmount, item.currency)}</Text>
                                         <View style={[
                                             styles.statusBadge,
                                             ['Pending', 'Awaiting Verification', 'Awaiting Deposit', 'Deposit Pending', 'Admin Approval Pending', 'Awaiting Disbursement'].includes(statusLabel) && styles.badgePending,
@@ -222,14 +231,13 @@ export default function TransactionScreen() {
                     </View>
                 )}
             </ScrollView>
-        </View>
+        </AnimatedTabScreen>
     );
 }
 
 const styles = ScaledSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#FFFFFF',
     },
     scrollContent: {
         paddingBottom: '20@vs',
@@ -336,7 +344,7 @@ const styles = ScaledSheet.create({
         color: '#64748B',
     },
     activeFilterText: {
-        color: 'rgba(255, 104, 19, 1)',
+        color: '#FF6B2C',
         fontWeight: '500',
     },
     transactionListContainer: {

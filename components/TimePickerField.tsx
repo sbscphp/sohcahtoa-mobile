@@ -5,6 +5,7 @@ import {
     Modal,
     NativeScrollEvent,
     NativeSyntheticEvent,
+    Platform,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -18,6 +19,7 @@ import {
     PICKUP_TOO_SOON_MESSAGE,
 } from '@/utils/pickupDateTime';
 import PrimaryButton from './PrimaryButton';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 const ITEM_HEIGHT = verticalScale(44);
 const VISIBLE_ITEMS = 5;
@@ -62,9 +64,15 @@ function convert12To24(h12: number, period: typeof PERIODS[number]): number {
     return h24;
 }
 
-const DrumItem = React.memo(({ item, isSelected }: { item: string, isSelected: boolean }) => (
+const DrumItem = React.memo(({ item, isSelected, textColor, selectedColor }: { item: string, isSelected: boolean, textColor: string, selectedColor: string }) => (
     <View style={[drumStyles.item, { height: ITEM_HEIGHT }]}>
-        <Text style={[drumStyles.itemText, isSelected && drumStyles.itemTextSelected]}>
+        <Text
+            style={[
+                drumStyles.itemText,
+                { color: textColor },
+                isSelected && [drumStyles.itemTextSelected, { color: selectedColor }],
+            ]}
+        >
             {item}
         </Text>
     </View>
@@ -76,9 +84,22 @@ interface DrumColumnProps {
     selectedIndex: number;
     onIndexChange: (index: number) => void;
     width: number | string;
+    selectionBg: string;
+    selectionBorder: string;
+    textColor: string;
+    selectedColor: string;
 }
 
-function DrumColumn({ items, selectedIndex, onIndexChange, width }: DrumColumnProps) {
+function DrumColumn({
+    items,
+    selectedIndex,
+    onIndexChange,
+    width,
+    selectionBg,
+    selectionBorder,
+    textColor,
+    selectedColor,
+}: DrumColumnProps) {
     const listRef = useRef<FlatList>(null);
     const isScrolling = useRef(false);
 
@@ -122,14 +143,23 @@ function DrumColumn({ items, selectedIndex, onIndexChange, width }: DrumColumnPr
                 pointerEvents="none"
                 style={[
                     drumStyles.selectionHighlight,
-                    { top: ITEM_HEIGHT * Math.floor(VISIBLE_ITEMS / 2) },
+                    {
+                        top: ITEM_HEIGHT * Math.floor(VISIBLE_ITEMS / 2),
+                        backgroundColor: selectionBg,
+                        borderColor: selectionBorder,
+                    },
                 ]}
             />
             <FlatList
                 ref={listRef}
                 data={items}
                 renderItem={({ item, index }) => (
-                    <DrumItem item={item} isSelected={index === selectedIndex} />
+                    <DrumItem
+                        item={item}
+                        isSelected={index === selectedIndex}
+                        textColor={textColor}
+                        selectedColor={selectedColor}
+                    />
                 )}
                 keyExtractor={(_, i) => i.toString()}
                 showsVerticalScrollIndicator={false}
@@ -164,11 +194,9 @@ const drumStyles = StyleSheet.create({
         left: 0,
         right: 0,
         height: ITEM_HEIGHT,
-        backgroundColor: '#FFF7ED',
         zIndex: 0,
         borderTopWidth: 1,
         borderBottomWidth: 1,
-        borderColor: '#FF6B2C33',
     },
     item: {
         justifyContent: 'center',
@@ -177,11 +205,9 @@ const drumStyles = StyleSheet.create({
     },
     itemText: {
         fontSize: moderateScale(15),
-        color: '#94A3B8',
         fontWeight: '400',
     },
     itemTextSelected: {
-        color: '#0F172A',
         fontWeight: '700',
         fontSize: moderateScale(17),
     },
@@ -212,6 +238,7 @@ const TimePickerField: React.FC<TimePickerFieldProps> = ({
     pickupDate,
     minimumMinutesFromNow = PICKUP_BUFFER_MINUTES,
 }) => {
+    const { colors, isDark } = useAppTheme();
     const [showPicker, setShowPicker] = useState(false);
     const [pickerError, setPickerError] = useState('');
 
@@ -220,17 +247,12 @@ const TimePickerField: React.FC<TimePickerFieldProps> = ({
     const [tempPeriod, setTempPeriod] = useState<typeof PERIODS[number]>('AM');
 
     const handleOpen = () => {
-        // Default to the earliest selectable slot (now + buffer) when there is
-        // no value yet, or the stored value is already in the past / within
-        // the buffer for the selected date.
         if (
             !value ||
             !isPickupDateTimeAtLeastOneHourAhead(pickupDate, value, minimumMinutesFromNow)
         ) {
             const earliest = getEarliestPickupDate(minimumMinutesFromNow);
             const { hour12, period } = convert24To12(earliest.getHours());
-            // Only prefill the buffered time when a date is selected; without a
-            // date we cannot tell whether "today" applies, so keep prior value.
             if (pickupDate) {
                 setTempHour12(hour12);
                 setTempMinute(earliest.getMinutes());
@@ -280,21 +302,33 @@ const TimePickerField: React.FC<TimePickerFieldProps> = ({
         return `${pad(hour12)}:${pad(minute)} ${period}`;
     }, [value]);
 
+    const selectionBg = isDark ? 'rgba(255, 107, 44, 0.15)' : '#FFF7ED';
+    const selectionBorder = isDark ? 'rgba(255, 107, 44, 0.4)' : '#FF6B2C33';
+
     return (
         <View style={styles.container}>
-            <Text style={styles.label}>
+            <Text style={[styles.label, { color: colors.label }]} numberOfLines={1}>
                 {label}{required && <Text style={styles.required}> *</Text>}
             </Text>
 
             <TouchableOpacity
-                style={[styles.inputWrapper, error ? styles.inputError : undefined]}
+                style={[
+                    styles.inputWrapper,
+                    { borderColor: colors.border, backgroundColor: colors.inputBackground },
+                    error ? styles.inputError : undefined,
+                ]}
                 onPress={handleOpen}
                 activeOpacity={0.7}
             >
-                <Text style={[styles.input, !value && styles.placeholder, !!value && { color: '#0F172A' }]}>
+                <Text
+                    style={[
+                        styles.input,
+                        { color: displayString ? colors.text : colors.placeholder },
+                    ]}
+                >
                     {displayString || placeholder}
                 </Text>
-                <Clock size={moderateScale(20)} color="#64748B" />
+                <Clock size={moderateScale(20)} color={colors.icon} />
             </TouchableOpacity>
 
             {error && <Text style={styles.errorText}>{typeof error === 'string' ? error : (error as any).message || String(error)}</Text>}
@@ -305,13 +339,13 @@ const TimePickerField: React.FC<TimePickerFieldProps> = ({
                 visible={showPicker}
                 onRequestClose={handleCancel}
             >
-                <View style={styles.overlay}>
+                <View style={[styles.overlay, { backgroundColor: colors.overlay }]}>
                     <TouchableOpacity style={styles.backdrop} onPress={handleCancel} activeOpacity={1} />
 
-                    <View style={styles.sheetContent}>
+                    <View style={[styles.sheetContent, { backgroundColor: colors.surface }]}>
                         <View style={styles.sheetHeader}>
-                            <View style={styles.sheetHandle} />
-                            <Text style={styles.sheetTitle}>{label}</Text>
+                            <View style={[styles.sheetHandle, { backgroundColor: colors.handleBar }]} />
+                            <Text style={[styles.sheetTitle, { color: colors.text }]}>{label}</Text>
                         </View>
 
                         <View style={styles.drumRow}>
@@ -320,24 +354,36 @@ const TimePickerField: React.FC<TimePickerFieldProps> = ({
                                 items={HOURS_12.map(pad)}
                                 selectedIndex={HOURS_12.indexOf(tempHour12)}
                                 onIndexChange={idx => handleTempChange(() => setTempHour12(HOURS_12[idx]))}
+                                selectionBg={selectionBg}
+                                selectionBorder={selectionBorder}
+                                textColor={colors.textMuted}
+                                selectedColor={colors.text}
                             />
-                            <Text style={styles.colon}>:</Text>
+                            <Text style={[styles.colon, { color: colors.text }]}>:</Text>
                             <DrumColumn
                                 width="30%"
                                 items={MINUTES.map(pad)}
                                 selectedIndex={MINUTES.indexOf(tempMinute)}
                                 onIndexChange={idx => handleTempChange(() => setTempMinute(MINUTES[idx]))}
+                                selectionBg={selectionBg}
+                                selectionBorder={selectionBorder}
+                                textColor={colors.textMuted}
+                                selectedColor={colors.text}
                             />
                             <DrumColumn
                                 width="25%"
                                 items={[...PERIODS]}
                                 selectedIndex={PERIODS.indexOf(tempPeriod)}
                                 onIndexChange={idx => handleTempChange(() => setTempPeriod(PERIODS[idx]))}
+                                selectionBg={selectionBg}
+                                selectionBorder={selectionBorder}
+                                textColor={colors.textMuted}
+                                selectedColor={colors.text}
                             />
                         </View>
 
-                        <View style={styles.previewRow}>
-                            <Text style={styles.previewText}>
+                        <View style={[styles.previewRow, { backgroundColor: colors.card }]}>
+                            <Text style={[styles.previewText, { color: colors.text }]}>
                                 {pad(tempHour12)}:{pad(tempMinute)}{' '}
                                 <Text style={styles.previewAmPm}>{tempPeriod}</Text>
                             </Text>
@@ -350,7 +396,7 @@ const TimePickerField: React.FC<TimePickerFieldProps> = ({
                         <View style={styles.buttonContainer}>
                             <PrimaryButton title="Confirm" onPress={handleConfirm} />
                             <TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
-                                <Text style={styles.cancelButtonText}>Cancel</Text>
+                                <Text style={[styles.cancelButtonText, { color: colors.textMuted }]}>Cancel</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -365,8 +411,8 @@ const styles = ScaledSheet.create({
         marginBottom: '4@vs',
     },
     label: {
-        fontSize: '13@ms',
-        fontWeight: '500',
+        fontSize: '12.5@ms',
+        fontWeight: '400',
         color: '#475569',
         marginBottom: '8@vs',
     },
@@ -377,12 +423,12 @@ const styles = ScaledSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        height: '48@vs',
+        height: Platform.OS === 'android' ? '49@vs' : '40@vs',
         borderWidth: 1,
-        borderColor: '#E2E8F0',
-        borderRadius: '30@ms',
-        paddingHorizontal: '16@s',
-        backgroundColor: '#FFFFFF',
+        borderColor: 'rgba(143, 139, 139, 1)',
+        borderRadius: '28@ms',
+        paddingHorizontal: '14@s',
+        backgroundColor: 'transparent',
     },
     input: {
         flex: 1,

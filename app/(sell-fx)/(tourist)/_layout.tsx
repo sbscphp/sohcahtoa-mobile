@@ -4,7 +4,14 @@ import { StyleSheet } from 'react-native';
 
 export default function TouristLayout() {
     return (
-        <Stack>
+        <Stack
+            screenOptions={{
+                headerShown: false,
+                animation: 'ios_from_right',
+                gestureEnabled: true,
+                fullScreenGestureEnabled: true,
+            }}
+        >
             <Stack.Screen name="create-tourist" options={{ headerShown: false }} />
             <Stack.Screen name="success" options={{ headerShown: false }} />
             <Stack.Screen name="view-tourist" options={{ headerShown: false }} />

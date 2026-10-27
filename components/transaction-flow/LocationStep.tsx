@@ -4,9 +4,10 @@ import { LocationItem } from '@/utils/locations';
 import TimePickerField from '@/components/TimePickerField';
 import { ArrowDown2, Edit2 } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
-import { Text, TouchableOpacity, View } from 'react-native';
+import { Platform, Text, TouchableOpacity, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import LocationIcon from '../../assets/icons/location-08.svg';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 interface LocationStepProps {
     states: LocationItem[];
@@ -55,6 +56,7 @@ export default function LocationStep({
     errors,
     title = "Where would you like to pick up your card and cash?"
 }: LocationStepProps) {
+    const { colors, isDark } = useAppTheme();
     const [stateSheetVisible, setStateSheetVisible] = useState(false);
     const [citySheetVisible, setCitySheetVisible] = useState(false);
     const [locationSheetVisible, setLocationSheetVisible] = useState(false);
@@ -74,30 +76,30 @@ export default function LocationStep({
 
     return (
         <View style={styles.container}>
-            <Text style={styles.sectionTitle}>{title}</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>{title}</Text>
 
             <View style={styles.inputGroup}>
-                <Text style={styles.label}>State <Text style={styles.required}>*</Text></Text>
-                <TouchableOpacity style={[styles.dropdownInput, errors?.state ? styles.dropdownError : undefined]} onPress={() => setStateSheetVisible(true)}>
-                    <Text style={[styles.dropdownPlaceholder, selectedState && styles.dropdownSelectedText]}>
+                <Text style={[styles.label, { color: colors.textMuted }]}>State <Text style={styles.required}>*</Text></Text>
+                <TouchableOpacity style={[styles.dropdownInput, { borderColor: isDark ? colors.border : 'rgba(143, 139, 139, 1)' }, errors?.state ? styles.dropdownError : undefined]} onPress={() => setStateSheetVisible(true)}>
+                    <Text style={[styles.dropdownPlaceholder, { color: colors.textMuted }, selectedState && [styles.dropdownSelectedText, { color: colors.text }]]}>
                         {selectedState ? selectedState.title : 'Select an Option'}
                     </Text>
-                    <ArrowDown2 size={moderateScale(20)} color="#64748B" />
+                    <ArrowDown2 size={moderateScale(20)} color={colors.icon} />
                 </TouchableOpacity>
                 {errors?.state && <Text style={styles.errorText}>{errors.state}</Text>}
             </View>
 
             <View style={styles.inputGroup}>
-                <Text style={styles.label}>Select a City <Text style={styles.required}>*</Text></Text>
+                <Text style={[styles.label, { color: colors.textMuted }]}>Select a City <Text style={styles.required}>*</Text></Text>
                 <TouchableOpacity
-                    style={[styles.dropdownInput, !selectedState && { backgroundColor: '#F1F5F9' }, errors?.city ? styles.dropdownError : undefined]}
+                    style={[styles.dropdownInput, { borderColor: isDark ? colors.border : 'rgba(143, 139, 139, 1)' }, !selectedState && { backgroundColor: isDark ? colors.surfaceHighlight : '#F1F5F9' }, errors?.city ? styles.dropdownError : undefined]}
                     disabled={!selectedState}
                     onPress={() => setCitySheetVisible(true)}
                 >
-                    <Text style={[styles.dropdownPlaceholder, selectedCity && styles.dropdownSelectedText]}>
+                    <Text style={[styles.dropdownPlaceholder, { color: colors.textMuted }, selectedCity && [styles.dropdownSelectedText, { color: colors.text }]]}>
                         {selectedCity ? selectedCity.title : 'Select an Option'}
                     </Text>
-                    <ArrowDown2 size={moderateScale(20)} color="#64748B" />
+                    <ArrowDown2 size={moderateScale(20)} color={colors.icon} />
                 </TouchableOpacity>
                 {errors?.city && <Text style={styles.errorText}>{errors.city}</Text>}
             </View>
@@ -128,47 +130,78 @@ export default function LocationStep({
             {!selectedLocation ? (
                 hasSelectedStateAndCity ? (
                     <TouchableOpacity
-                        style={[styles.emptyStateBox, { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: moderateScale(16), alignItems: 'center' }, errors?.location ? styles.dropdownError : undefined]}
+                        style={[
+                            styles.emptyStateBox,
+                            {
+                                flexDirection: 'row',
+                                justifyContent: 'space-between',
+                                paddingHorizontal: moderateScale(16),
+                                alignItems: 'center',
+                                backgroundColor: isDark ? colors.surface : '#F8FAFC',
+                                borderColor: colors.border,
+                                borderWidth: isDark ? 1 : 0,
+                            },
+                            errors?.location ? styles.dropdownError : undefined
+                        ]}
                         onPress={() => setLocationSheetVisible(true)}
                     >
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: moderateScale(12) }}>
-                            <View style={styles.iconCircle}>
-                                <LocationIcon color="#64748B" width={moderateScale(24)} height={moderateScale(24)} />
+                            <View style={[styles.iconCircle, { backgroundColor: isDark ? colors.card : '#FFFFFF' }]}>
+                                <LocationIcon color={colors.textMuted} width={moderateScale(24)} height={moderateScale(24)} />
                             </View>
                             <View>
-                                <Text style={styles.emptyStateTitle}>{locations.length} Pickup Points Available</Text>
-                                <Text style={styles.emptyStateText}>Select an option</Text>
+                                <Text style={[styles.emptyStateTitle, { color: colors.text }]}>{locations.length} Pickup Points Available</Text>
+                                <Text style={[styles.emptyStateText, { color: colors.textMuted }]}>Select an option</Text>
                             </View>
                         </View>
-                        <ArrowDown2 size={moderateScale(20)} color="#64748B" />
+                        <ArrowDown2 size={moderateScale(20)} color={colors.icon} />
                     </TouchableOpacity>
                 ) : (
                     <TouchableOpacity
-                        style={[styles.emptyStateBox, { justifyContent: 'center' }]}
+                        style={[
+                            styles.emptyStateBox,
+                            {
+                                justifyContent: 'center',
+                                backgroundColor: isDark ? colors.surface : '#F8FAFC',
+                                borderColor: colors.border,
+                                borderWidth: isDark ? 1 : 0,
+                            }
+                        ]}
                         activeOpacity={1}
                     >
-                        <View style={styles.iconCircle}>
-                            <LocationIcon color="#64748B" width={moderateScale(26)} height={moderateScale(26)} />
+                        <View style={[styles.iconCircle, { backgroundColor: isDark ? colors.card : '#FFFFFF' }]}>
+                            <LocationIcon color={colors.textMuted} width={moderateScale(26)} height={moderateScale(26)} />
                         </View>
-                        <Text style={styles.emptyStateTitle}>No Option Available</Text>
-                        <Text style={styles.emptyStateText}>Select a State & City to see available option(s)</Text>
+                        <Text style={[styles.emptyStateTitle, { color: colors.text }]}>No Option Available</Text>
+                        <Text style={[styles.emptyStateText, { color: colors.textMuted }]}>Select a State & City to see available option(s)</Text>
                     </TouchableOpacity>
                 )
             ) : (
                 <TouchableOpacity
-                    style={[styles.emptyStateBox, { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: moderateScale(16), alignItems: 'center' }]}
+                    style={[
+                        styles.emptyStateBox,
+                        {
+                            flexDirection: 'row',
+                            justifyContent: 'space-between',
+                            paddingHorizontal: moderateScale(16),
+                            alignItems: 'center',
+                            backgroundColor: isDark ? colors.surface : '#F8FAFC',
+                            borderColor: colors.border,
+                            borderWidth: isDark ? 1 : 0,
+                        }
+                    ]}
                     onPress={() => setLocationSheetVisible(true)}
                 >
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: moderateScale(12) }}>
-                        <View style={[styles.iconCircle, { backgroundColor: '#FFF7ED' }]}>
+                        <View style={[styles.iconCircle, { backgroundColor: isDark ? 'rgba(255, 107, 44, 0.15)' : '#FFF7ED' }]}>
                             <LocationIcon color="#FF6B2C" width={moderateScale(24)} height={moderateScale(24)} />
                         </View>
                         <View>
-                            <Text style={styles.emptyStateTitle}>{selectedLocation.title}</Text>
-                            <Text style={styles.emptyStateText}>Pickup & Card Pickup from</Text>
+                            <Text style={[styles.emptyStateTitle, { color: colors.text }]}>{selectedLocation.title}</Text>
+                            <Text style={[styles.emptyStateText, { color: colors.textMuted }]}>Pickup & Card Pickup from</Text>
                         </View>
                     </View>
-                    <Edit2 size={moderateScale(20)} color="#64748B" />
+                    <Edit2 size={moderateScale(20)} color={colors.icon} />
                 </TouchableOpacity>
             )}
             {errors?.location && <Text style={styles.errorText}>{errors.location}</Text>}
@@ -224,12 +257,12 @@ const styles = ScaledSheet.create({
     },
     inputGroup: {
         marginBottom: '16@vs',
-        gap: '6@vs',
     },
     label: {
-        fontSize: '13@ms',
+        fontSize: '12.5@ms',
+        fontWeight: '400',
         color: '#475569',
-        marginBottom: '6@vs',
+        marginBottom: '8@vs',
     },
     required: {
         color: '#EF4444',
@@ -240,10 +273,10 @@ const styles = ScaledSheet.create({
         alignItems: 'center',
         borderWidth: 1,
         borderColor: 'rgba(143, 139, 139, 1)',
-        borderRadius: '30@ms',
-        paddingHorizontal: '16@s',
-        paddingVertical: '12@vs',
-        backgroundColor: '#FFFFFF',
+        borderRadius: '28@ms',
+        paddingHorizontal: '14@s',
+        height: Platform.OS === 'android' ? '49@vs' : '40@vs',
+        backgroundColor: 'transparent',
     },
     dropdownPlaceholder: {
         fontSize: '14@ms',

@@ -1,3 +1,4 @@
+import { useAppTheme } from '@/context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { DocumentUpload, Folder } from 'iconsax-react-nativejs';
 import React from 'react';
@@ -27,6 +28,8 @@ const FileUpload: React.FC<FileUploadProps> = ({
     status = 'default',
     error,
 }) => {
+    const { colors, isDark } = useAppTheme();
+
     const getContainerBorderColor = () => {
         switch (status) {
             case 'approved': return '#86EFAC';
@@ -34,39 +37,48 @@ const FileUpload: React.FC<FileUploadProps> = ({
             case 'error': return '#FCA5A5';
             case 'pending': return '#FDBA74';
             case 'review': return '#FDBA74';
-            default: return error ? '#EF4444' : '#E2E8F0';
+            default: return error ? '#EF4444' : (isDark ? colors.border : 'rgba(228, 228, 231, 1)');
         }
     };
 
     const getPreviewBorderColor = () => {
         switch (status) {
             case 'approved': return '#86EFAC';
-            case 'pending': return '#7c807eff';
-            case 'review': return '#7c807eff';
+            case 'pending': return colors.borderStrong;
+            case 'review': return colors.borderStrong;
             case 'rejected':
             case 'error': return '#FCA5A5';
-            default: return '#7c807eff';
+            default: return colors.borderStrong;
         }
     };
 
     if (!fileName) {
         return (
             <View>
-                <TouchableOpacity style={[styles.uploadContainer, { borderColor: getContainerBorderColor() }]} onPress={onUpload}>
+                <TouchableOpacity
+                    style={[
+                        styles.uploadContainer,
+                        {
+                            backgroundColor: colors.surfaceMuted,
+                            borderColor: getContainerBorderColor(),
+                        }
+                    ]}
+                    onPress={onUpload}
+                >
                     <View style={styles.uploadTextContainer}>
                         <View style={styles.uploadTitleRow}>
-                            <View style={styles.uploadIconContainer}>
-                                <DocumentUpload size={moderateScale(20)} color="#64748B" />
+                            <View style={[styles.uploadIconContainer, { backgroundColor: colors.surface }]}>
+                                <DocumentUpload size={moderateScale(20)} color={colors.iconMuted} />
                             </View>
                             <View>
-                                <Text style={styles.uploadTitle}>{title}</Text>
-                                <Text style={styles.uploadSubtitle}>{subtitle}</Text>
+                                <Text style={[styles.uploadTitle, { color: colors.text }]}>{title}</Text>
+                                <Text style={[styles.uploadSubtitle, { color: colors.textMuted }]}>{subtitle}</Text>
                             </View>
                         </View>
                     </View>
-                    <View style={styles.browseButton}>
-                        <Folder size={moderateScale(16)} color="#0F172A" style={{ gap: 4 }} />
-                        <Text style={styles.browseText}>Browse</Text>
+                    <View style={[styles.browseButton, { backgroundColor: colors.surface }]}>
+                        <Folder size={moderateScale(16)} color={colors.text} style={{ gap: 4 }} />
+                        <Text style={[styles.browseText, { color: colors.text }]}>Browse</Text>
                     </View>
                 </TouchableOpacity>
                 {error && <Text style={styles.errorText}>{error}</Text>}
@@ -81,21 +93,21 @@ const FileUpload: React.FC<FileUploadProps> = ({
 
     return (
         <View>
-            <View style={[styles.previewContainer, { borderColor: getPreviewBorderColor() }]}>
+            <View style={[styles.previewContainer, { backgroundColor: colors.surface, borderColor: getPreviewBorderColor() }]}>
                 {isImage ? (
-                    <View style={styles.previewImagePlaceholder}>
+                    <View style={[styles.previewImagePlaceholder, { backgroundColor: colors.surface }]}>
                         <Image source={{ uri: displayUri || undefined }} style={{ width: '100%', height: '100%', borderRadius: 16 }} resizeMode="cover" />
                     </View>
                 ) : (
-                    <View style={styles.previewImagePlaceholder}>
-                        <Ionicons name="document-text-outline" size={moderateScale(48)} color="#898d8bff" />
-                        <Text style={styles.fileNameText} numberOfLines={1}>{fileName}</Text>
+                    <View style={[styles.previewImagePlaceholder, { backgroundColor: colors.surface }]}>
+                        <Ionicons name="document-text-outline" size={moderateScale(48)} color={colors.iconMuted} />
+                        <Text style={[styles.fileNameText, { color: colors.text }]} numberOfLines={1}>{fileName}</Text>
                     </View>
                 )}
 
                 {showChangeButton && (
-                    <TouchableOpacity style={styles.changeButton} onPress={onUpload}>
-                        <Text style={styles.changeButtonText}>Change</Text>
+                    <TouchableOpacity style={[styles.changeButton, { backgroundColor: colors.surfaceElevated }]} onPress={onUpload}>
+                        <Text style={[styles.changeButtonText, { color: colors.text }]}>Change</Text>
                     </TouchableOpacity>
                 )}
             </View>

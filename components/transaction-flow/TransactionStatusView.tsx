@@ -8,6 +8,7 @@ import { useToastStore } from '@/stores/useToastStore';
 import { useGetTransactionReceiptMutation } from '@/hooks/queries/transactions/useGetTransactionReceiptMutation';
 import { downloadAndSaveFile } from '@/utils/fileDownload';
 import EmptyState from '../../assets/icons/no-search-found.svg';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 export const extractReceiptUrl = (res: any): string | undefined => {
     if (!res) return undefined;
@@ -99,6 +100,7 @@ export default function TransactionStatusView({
     comments,
     onDownloadReceipt,
 }: TransactionStatusViewProps) {
+    const { colors, isDark } = useAppTheme();
     const receiptMutation = useGetTransactionReceiptMutation();
     const [isDownloadingLocal, setIsDownloadingLocal] = useState(false);
     const isDownloading = receiptMutation.isPending || isDownloadingLocal;
@@ -208,8 +210,8 @@ export default function TransactionStatusView({
                                             {new Date(comment.createdAt).toLocaleDateString()} • {new Date(comment.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                         </Text>
                                     </View> */}
-                                    <View style={styles.commentBubble}>
-                                        <Text style={styles.commentMessage}>{comment.message}</Text>
+                                    <View style={[styles.commentBubble, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: isDark ? 1 : 0 }]}>
+                                        <Text style={[styles.commentMessage, { color: colors.text }]}>{comment.message}</Text>
                                     </View>
                                 </View>
                             </View>
@@ -227,8 +229,8 @@ export default function TransactionStatusView({
                     <View style={styles.pendingIconContainer}>
                         <EmptyState width={moderateScale(100)} height={moderateScale(120)} />
                     </View>
-                    <Text style={styles.pendingTitle}>Application is Under Review</Text>
-                    <Text style={styles.pendingDesc}>
+                    <Text style={[styles.pendingTitle, { color: colors.text }]}>Application is Under Review</Text>
+                    <Text style={[styles.pendingDesc, { color: colors.textMuted }]}>
                         Your application is currently undergoing approval. You will be notified once it is approved.
                     </Text>
                 </View>
@@ -246,10 +248,24 @@ export default function TransactionStatusView({
                 status === 'more_info' && styles.statusCardMoreInfo,
                 status === 'rejected' && styles.statusCardRejected,
                 isRefunded && styles.statusCardRefunded,
+                isDark && {
+                    backgroundColor: (status === 'rejected' || isRefunded)
+                        ? 'rgba(239, 68, 68, 0.15)'
+                        : status === 'more_info'
+                            ? 'rgba(124, 58, 237, 0.15)'
+                            : 'rgba(34, 197, 94, 0.15)',
+                    borderWidth: 1,
+                    borderColor: (status === 'rejected' || isRefunded)
+                        ? 'rgba(239, 68, 68, 0.3)'
+                        : status === 'more_info'
+                            ? 'rgba(124, 58, 237, 0.3)'
+                            : 'rgba(34, 197, 94, 0.3)',
+                }
             ]}>
                 <View style={styles.statusHeader}>
                     <Text style={[
                         styles.statusTitle,
+                        { color: colors.text },
                         status === 'rejected' && styles.statusTitleRejected,
                         isRefunded && styles.statusTitleRefunded,
                     ]}>
@@ -263,6 +279,7 @@ export default function TransactionStatusView({
                 </View>
                 <Text style={[
                     styles.statusId,
+                    { color: colors.textMuted },
                     status === 'more_info' && styles.statusIdMoreInfo,
                     status === 'rejected' && styles.statusIdRejected,
                     isRefunded && styles.statusIdRefunded,
@@ -299,15 +316,15 @@ export default function TransactionStatusView({
                     </View>
                 </View>
 
-                <View style={styles.messageBox}>
-                    <Text style={styles.messageText}>
+                <View style={[styles.messageBox, { backgroundColor: isDark ? colors.surface : '#FFFFFF', borderColor: colors.border, borderWidth: isDark ? 1 : 0 }]}>
+                    <Text style={[styles.messageText, { color: colors.text }]}>
                         {message}
                     </Text>
                 </View>
             </View>
 
-            <View style={styles.txStatusContainer}>
-                <Text style={styles.txStatusLabel}>Transaction Status</Text>
+            <View style={[styles.txStatusContainer, { backgroundColor: isDark ? colors.surface : 'rgba(241, 241, 241, 1)', borderColor: colors.border, borderWidth: isDark ? 1 : 0 }]}>
+                <Text style={[styles.txStatusLabel, { color: colors.text }]}>Transaction Status</Text>
                 <View style={[
                     styles.txStatusBadge,
                     !apiStatus && status === 'more_info' && styles.txStatusBadgeMoreInfo,

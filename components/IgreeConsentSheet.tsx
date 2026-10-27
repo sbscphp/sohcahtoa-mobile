@@ -1,6 +1,7 @@
+import AnimatedBottomSheet from '@/components/ui/AnimatedBottomSheet';
 import { InfoCircle } from 'iconsax-react-nativejs';
 import React from 'react';
-import { Modal, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { Text, TouchableOpacity, View } from 'react-native';
 import { moderateScale, ScaledSheet } from 'react-native-size-matters';
 import PrimaryButton from './PrimaryButton';
 
@@ -20,77 +21,61 @@ const IgreeConsentSheet: React.FC<IgreeConsentSheetProps> = ({
     checkingStatus,
 }) => {
     return (
-        <Modal
+        <AnimatedBottomSheet
             visible={isVisible}
-            transparent
-            animationType="fade"
-            onRequestClose={onClose}
+            onClose={onClose}
+            sheetStyle={styles.sheetContainer}
         >
-            <TouchableWithoutFeedback onPress={onClose}>
-                <View style={styles.backdrop} />
-            </TouchableWithoutFeedback>
-
-            <View style={styles.mainContainer}>
-                <View style={styles.sheetContainer}>
-                    <View style={styles.headerIconContainer}>
-                        <View style={styles.iconCircle}>
-                            <InfoCircle size={moderateScale(28)} color="#FF6B2C" variant="Bold" />
-                        </View>
-                    </View>
-
-                    <Text style={styles.title}>Consent Verification</Text>
-                    <Text style={styles.description}>
-                        Please confirm your authentication on the NIBSS iGree portal to complete your BVN verification.
-                    </Text>
-
-                    <View style={styles.buttonContainer}>
-                        <PrimaryButton
-                            title="Check Verification Status"
-                            onPress={onCheckStatus}
-                            loading={checkingStatus}
-                            disabled={checkingStatus}
-                        />
-
-                        <TouchableOpacity
-                            style={styles.reopenButton}
-                            onPress={onReopenBrowser}
-                            disabled={checkingStatus}
-                            activeOpacity={0.7}
-                        >
-                            <Text style={styles.reopenButtonText}>Re-open Consent Portal</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={styles.cancelButton}
-                            onPress={onClose}
-                            disabled={checkingStatus}
-                            activeOpacity={0.7}
-                        >
-                            <Text style={styles.cancelButtonText}>Cancel</Text>
-                        </TouchableOpacity>
-                    </View>
+            <View style={styles.headerIconContainer}>
+                <View style={styles.iconCircle}>
+                    <InfoCircle size={moderateScale(28)} color="#FF6B2C" variant="Bold" />
                 </View>
             </View>
-        </Modal>
+
+            <Text style={styles.title}>Consent Verification</Text>
+            <Text style={styles.description}>
+                Please confirm your authentication on the NIBSS iGree portal to complete your BVN verification.
+            </Text>
+
+            <View style={styles.buttonContainer}>
+                <PrimaryButton
+                    title="Check Verification Status"
+                    onPress={onCheckStatus}
+                    loading={checkingStatus}
+                    disabled={checkingStatus}
+                />
+
+                <TouchableOpacity
+                    style={styles.reopenButton}
+                    onPress={onReopenBrowser}
+                    disabled={checkingStatus}
+                    activeOpacity={0.7}
+                >
+                    <Text style={styles.reopenButtonText}>Re-open Consent Portal</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    style={styles.cancelButton}
+                    onPress={onClose}
+                    disabled={checkingStatus}
+                    activeOpacity={0.7}
+                >
+                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+            </View>
+        </AnimatedBottomSheet>
     );
 };
 
 const styles = ScaledSheet.create({
-    backdrop: {
-        ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    },
-    mainContainer: {
-        flex: 1,
-        justifyContent: 'flex-end',
-    },
     sheetContainer: {
         backgroundColor: '#FFFFFF',
-        borderTopLeftRadius: '24@ms',
-        borderTopRightRadius: '24@ms',
+        borderRadius: '28@ms',
         paddingHorizontal: '24@s',
-        paddingTop: '24@vs',
-        paddingBottom: '36@vs',
+        paddingTop: '14@vs',
+        paddingBottom: '32@vs',
+        marginBottom: '28@vs',
+        marginHorizontal: '12@s',
         alignItems: 'center',
     },
     headerIconContainer: {

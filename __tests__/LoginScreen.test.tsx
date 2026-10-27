@@ -20,6 +20,7 @@ jest.mock('react-native-safe-area-context', () => ({
 // Mock icons to avoid rendering issues in tests
 jest.mock('lucide-react-native', () => ({
     ScanFaceIcon: () => null,
+    Fingerprint: () => null,
 }));
 jest.mock('../../assets/icons/user-sharing.svg', () => 'UserSharing');
 
@@ -35,10 +36,11 @@ describe('LoginScreen', () => {
     const mockReplace = jest.fn();
     const mockPush = jest.fn();
     const mockMutate = jest.fn();
+    let mockAuthState: any;
 
     beforeEach(() => {
         jest.clearAllMocks();
-        
+
         (useRouter as jest.Mock).mockReturnValue({
             replace: mockReplace,
             push: mockPush,
@@ -49,9 +51,26 @@ describe('LoginScreen', () => {
             isPending: false,
         });
 
-        (useAuthStore as unknown as jest.Mock).mockImplementation((selector: any) => selector({
-            user: null
-        }));
+        mockAuthState = {
+            user: null,
+            isBiometricEnabled: false,
+            biometricType: null,
+            setBiometricType: jest.fn(),
+            isAuthenticated: false,
+            hasCredentials: false,
+            checkCredentials: jest.fn().mockResolvedValue(undefined),
+            setBiometricEnabled: jest.fn(),
+            disableBiometrics: jest.fn().mockResolvedValue(undefined),
+        };
+
+        (useAuthStore as unknown as jest.Mock).mockImplementation((selector: any) => {
+            if (typeof selector === 'function') {
+                return selector(mockAuthState);
+            }
+            return mockAuthState;
+        });
+
+        (useAuthStore as any).getState = jest.fn(() => mockAuthState);
     });
 
     it('should render the login form correctly', () => {
@@ -67,11 +86,11 @@ describe('LoginScreen', () => {
         const { getByPlaceholderText, findByText } = render(<LoginScreen />, { wrapper });
 
         const emailInput = getByPlaceholderText('Enter your email address');
-        
+
         fireEvent.changeText(emailInput, 'invalid-email');
         fireEvent(emailInput, 'blur');
 
-        expect(await findByText('Invalid email address')).toBeTruthy();
+        expect(await findByText('Please enter a valid email address')).toBeTruthy();
     });
 
     it('should call login mutation on valid form submission', async () => {
@@ -79,18 +98,15 @@ describe('LoginScreen', () => {
 
         fireEvent.changeText(getByPlaceholderText('Enter your email address'), 'test@example.com');
         fireEvent.changeText(getByPlaceholderText('Enter your password'), 'Password123!');
-        
+
         const loginButton = getByRole('button', { name: 'Login' });
         fireEvent.press(loginButton);
 
         await waitFor(() => {
-            expect(mockMutate).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    email: 'test@example.com',
-                    password: 'Password123!',
-                }),
-                expect.any(Object)
-            );
+            expect(mockMutate).toHaveBeenCalledWith({
+                email: 'test@example.com',
+                password: 'Password123!',
+            });
         });
     });
 
@@ -106,9 +122,50 @@ describe('LoginScreen', () => {
     it('should navigate to forgot password screen', () => {
         const { getByText } = render(<LoginScreen />, { wrapper });
 
-        const forgotPasswordButton = getByText('Forget Password ?');
+        const forgotPasswordButton = getByText('Forgot Password ?');
         fireEvent.press(forgotPasswordButton);
 
         expect(mockPush).toHaveBeenCalledWith('/(auth)/forget-password');
+    });
+
+    it('should render the biometric login button', () => {
+        const { getByTestId } = render(<LoginScreen />, { wrapper });
+
+        const biometricButton = getByTestId('biometric-login-button');
+        expect(biometricButton).toBeTruthy();
+    });
+
+    it('should trigger biometric login when credentials exist and user presses biometric button', async () => {
+        const biometricsUtil = require('../utils/biometrics');
+        jest.spyOn(biometricsUtil, 'getBiometricCapabilities').mockResolvedValue({
+            hasHardware: true,
+            isEnrolled: true,
+            supportedTypes: [2],
+            primaryType: 'face',
+        });
+        jest.spyOn(biometricsUtil, 'authenticateWithBiometrics').mockResolvedValue(true);
+        jest.spyOn(biometricsUtil, 'getStoredCredentials').mockResolvedValue({
+            email: 'bio@test.com',
+            password: 'BioPassword123!',
+        });
+
+        mockAuthState.hasCredentials = true;
+
+        const { getByTestId } = render(<LoginScreen />, { wrapper });
+        const biometricButton = getByTestId('biometric-login-button');
+
+        await waitFor(() => {
+            expect(biometricButton.props.accessibilityState?.disabled).toBe(false);
+        });
+
+        fireEvent.press(biometricButton);
+
+        await waitFor(() => {
+            expect(biometricsUtil.authenticateWithBiometrics).toHaveBeenCalled();
+            expect(mockMutate).toHaveBeenCalledWith({
+                email: 'bio@test.com',
+                password: 'BioPassword123!',
+            });
+        });
     });
 });

@@ -1,6 +1,8 @@
+import AnimatedBottomSheet from '@/components/ui/AnimatedBottomSheet';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { InfoCircle, Verify } from 'iconsax-react-nativejs';
 import React, { useState, useEffect } from 'react';
-import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import { Ionicons } from '@expo/vector-icons';
@@ -43,6 +45,7 @@ const InitiateTransactionSheet: React.FC<InitiateTransactionSheetProps> = ({
         }
     ]
 }) => {
+    const { colors, isDark } = useAppTheme();
     const insets = useSafeAreaInsets();
     const { data: ledgerData } = useGetWalletLedgerQuery({ page: 1, limit: 1 });
     const firstPage = ledgerData?.pages?.[0];
@@ -62,110 +65,99 @@ const InitiateTransactionSheet: React.FC<InitiateTransactionSheetProps> = ({
 
         if (item.iconType === 'verify') {
             return (
-                <View style={styles.infoIconCircle}>
-                    <Verify size={moderateScale(20)} color="#0F172A"  />
+                <View style={[styles.infoIconCircle, { backgroundColor: colors.surface }]}>
+                    <Verify size={moderateScale(20)} color={colors.text}  />
                 </View>
             );
         }
 
         if (item.iconType === 'limit') {
             return (
-                <View style={styles.infoIconCircle}>
-                    <Text style={{ fontSize: moderateScale(16), fontWeight: '600', color: '#0F172A' }}>{limitCurrencySymbol}</Text>
+                <View style={[styles.infoIconCircle, { backgroundColor: colors.surface }]}>
+                    <Text style={{ fontSize: moderateScale(16), fontWeight: '600', color: colors.text }}>{limitCurrencySymbol}</Text>
                 </View>
             );
         }
 
         return (
-            <View style={styles.infoIconCircle}>
-                <InfoCircle size={moderateScale(20)} color="#0F172A" variant="Outline" />
+            <View style={[styles.infoIconCircle, { backgroundColor: colors.surface }]}>
+                <InfoCircle size={moderateScale(20)} color={colors.text} variant="Outline" />
             </View>
         );
     }
 
     return (
-        <Modal
-            animationType="slide"
-            transparent={true}
+        <AnimatedBottomSheet
             visible={visible}
-            onRequestClose={onClose}
+            onClose={onClose}
+            sheetStyle={[
+                styles.sheetContent,
+                { backgroundColor: colors.surface },
+                { paddingBottom: insets.bottom + moderateScale(12) },
+            ]}
         >
-            <View style={styles.overlay}>
-                <TouchableOpacity style={styles.backdrop} onPress={onClose} activeOpacity={1} />
-
-                <View style={[styles.sheetContent, { paddingBottom: insets.bottom + moderateScale(4) }]}>
-
-                
-                    <View style={styles.headerIconContainer}>
-                        <View style={styles.iconCircle}>
-                            <InfoCircle size={moderateScale(24)} color="#FF6B2C" variant="Bold" />
-                        </View>
-                    </View>
-
-                    <Text style={styles.title}>{title}</Text>
-                    <Text style={styles.subtitle}>{subtitle}</Text>
-
-                  
-                    <View style={styles.infoBox}>
-                        {items.map((item, index) => (
-                            <View key={index} style={styles.infoItem}>
-                                {renderIcon(item)}
-                                <View style={styles.infoTextContainer}>
-                                    {item.title ? <Text style={styles.infoTitle}>{item.title}</Text> : null}
-                                    <Text style={styles.infoDescription}>{item.description}</Text>
-                                </View>
-                            </View>
-                        ))}
-                    </View>
-
-                    <TouchableOpacity
-                        style={styles.checkboxContainer}
-                        activeOpacity={0.8}
-                        onPress={() => setIsChecked(!isChecked)}
-                    >
-                        <View style={styles.checkbox}>
-                            {isChecked ? (
-                                <Ionicons name="checkbox" size={moderateScale(20)} color="#FF6B2C" />
-                            ) : (
-                                <Ionicons name="square-outline" size={moderateScale(20)} color="#64748B" />
-                            )}
-                        </View>
-                        <Text style={styles.checkboxLabel}>
-                            I confirm that the information I have provided is correct.
-                        </Text>
-                    </TouchableOpacity>
-
-                    <View style={styles.footerActions}>
-                        <PrimaryButton
-                            title={confirmText}
-                            onPress={onConfirm}
-                            loading={loading}
-                            disabled={!isChecked}
-                        />
-                        <TouchableOpacity style={styles.secondaryBtn} onPress={onClose}>
-                            <Text style={styles.secondaryBtnText}>No, Close</Text>
-                        </TouchableOpacity>
-                    </View>
+            <View style={styles.headerIconContainer}>
+                <View style={[styles.iconCircle, { backgroundColor: isDark ? 'rgba(255, 107, 44, 0.18)' : '#FFF7ED' }]}>
+                    <InfoCircle size={moderateScale(24)} color="#FF6B2C" variant="Bold" />
                 </View>
             </View>
-        </Modal>
+
+            <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
+            <Text style={[styles.subtitle, { color: colors.textMuted }]}>{subtitle}</Text>
+
+            <View style={[styles.infoBox, { backgroundColor: colors.card }]}>
+                {items.map((item, index) => (
+                    <View key={index} style={styles.infoItem}>
+                        {renderIcon(item)}
+                        <View style={styles.infoTextContainer}>
+                            {item.title ? <Text style={[styles.infoTitle, { color: colors.text }]}>{item.title}</Text> : null}
+                            <Text style={[styles.infoDescription, { color: colors.textMuted }]}>{item.description}</Text>
+                        </View>
+                    </View>
+                ))}
+            </View>
+
+            <TouchableOpacity
+                style={styles.checkboxContainer}
+                activeOpacity={0.8}
+                onPress={() => setIsChecked(!isChecked)}
+            >
+                <View style={styles.checkbox}>
+                    {isChecked ? (
+                        <Ionicons name="checkbox" size={moderateScale(20)} color="#FF6B2C" />
+                    ) : (
+                        <Ionicons name="square-outline" size={moderateScale(20)} color={colors.icon} />
+                    )}
+                </View>
+                <Text style={[styles.checkboxLabel, { color: colors.text }]}>
+                    I confirm that the information I have provided is correct.
+                </Text>
+            </TouchableOpacity>
+
+            <View style={styles.footerActions}>
+                <PrimaryButton
+                    title={confirmText}
+                    onPress={onConfirm}
+                    loading={loading}
+                    disabled={!isChecked}
+                />
+                <TouchableOpacity
+                    style={[styles.secondaryBtn, { backgroundColor: isDark ? colors.surfaceHighlight : '#F1F5F9' }]}
+                    onPress={onClose}
+                >
+                    <Text style={[styles.secondaryBtnText, { color: colors.text }]}>No, Close</Text>
+                </TouchableOpacity>
+            </View>
+        </AnimatedBottomSheet>
     );
 };
 
 const styles = ScaledSheet.create({
-    overlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        justifyContent: 'flex-end',
-    },
-    backdrop: {
-        ...StyleSheet.absoluteFillObject,
-    },
     sheetContent: {
         backgroundColor: '#FFFFFF',
         borderRadius: '24@ms',
         paddingHorizontal: '16@s',
-        paddingTop: '22@vs',
+        paddingTop: '14@vs',
         marginBottom: '40@vs',
         marginHorizontal: '12@s',
     },

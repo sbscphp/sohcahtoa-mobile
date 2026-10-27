@@ -1,7 +1,10 @@
 import PrimaryButton from '@/components/PrimaryButton';
+import AnimatedBottomSheet from '@/components/ui/AnimatedBottomSheet';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { CloseCircle, Icon, SearchNormal1 } from 'iconsax-react-nativejs';
 import React, { useEffect, useState } from 'react';
-import { Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ScrollView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 
@@ -44,6 +47,7 @@ const GenericSelectionSheet: React.FC<GenericSelectionSheetProps> = ({
     searchable = false,
     searchPlaceholder = "Search..."
 }) => {
+    const { colors, isDark } = useAppTheme();
     const insets = useSafeAreaInsets();
     const [tempSelected, setTempSelected] = useState(selectedItem);
     const [searchQuery, setSearchQuery] = useState('');
@@ -68,97 +72,106 @@ const GenericSelectionSheet: React.FC<GenericSelectionSheetProps> = ({
     );
 
     return (
-        <Modal
-            animationType="slide"
-            transparent={true}
+        <AnimatedBottomSheet
             visible={visible}
-            onRequestClose={onClose}
+            onClose={onClose}
+            sheetStyle={[
+                styles.sheetContent,
+                { backgroundColor: colors.surface },
+                { paddingBottom: insets.bottom + moderateScale(20) },
+            ]}
         >
-            <View style={styles.overlay}>
-                <TouchableOpacity style={styles.backdrop} onPress={onClose} activeOpacity={1} />
-
-                <View style={[styles.sheetContent, { paddingBottom: insets.bottom + moderateScale(20) }]}>
-
-                    {/* Header Row */}
-                    <View style={styles.headerRow}>
-                        {HeaderIcon ? (
-                            <View style={[styles.iconCircle, { backgroundColor: headerIconBg }]}>
-                                <HeaderIcon size={moderateScale(24)} color={headerIconColor} variant="Linear" />
-                            </View>
-                        ) : (
-                            <View style={{ width: moderateScale(48), height: moderateScale(48) }} />
-                        )}
-
-                        <TouchableOpacity onPress={onClose}>
-                            <CloseCircle size={moderateScale(24)} color="rgba(178, 175, 175, 1)" variant="Bold" />
-                        </TouchableOpacity>
+            {/* Header Row */}
+            <View style={styles.headerRow}>
+                {HeaderIcon ? (
+                    <View style={[styles.iconCircle, { backgroundColor: isDark ? 'rgba(255, 107, 44, 0.18)' : headerIconBg }]}>
+                        <HeaderIcon size={moderateScale(24)} color={headerIconColor} variant="Linear" />
                     </View>
+                ) : (
+                    <View style={{ width: moderateScale(48), height: moderateScale(48) }} />
+                )}
 
-                    <Text style={styles.title}>{title}</Text>
-                    <Text style={styles.subtitle}>{subtitle}</Text>
-
-                    {searchable && (
-                        <View style={styles.searchContainer}>
-                            <SearchNormal1 size={moderateScale(20)} color="#94A3B8" />
-                            <TextInput
-                                style={styles.searchInput}
-                                placeholder={searchPlaceholder}
-                                placeholderTextColor="#94A3B8"
-                                value={searchQuery}
-                                onChangeText={setSearchQuery}
-                            />
-                        </View>
-                    )}
-
-                    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.listContainer}>
-                        {filteredItems.map((item) => {
-                            const isSelected = tempSelected === item.value || tempSelected === item.label || tempSelected === item.id;
-                            const ItemIcon = item.icon;
-
-                            return (
-                                <TouchableOpacity
-                                    key={item.id}
-                                    style={[styles.item, isSelected && styles.selectedItem]}
-                                    onPress={() => setTempSelected(item.value)}
-                                >
-                                    <View style={styles.itemContent}>
-                                        {ItemIcon && (
-                                            <ItemIcon
-                                                size={moderateScale(20)}
-                                                color={isSelected ? "rgba(221, 79, 5, 1)" : "#64748B"}
-                                                variant={isSelected ? "Linear" : "Linear"}
-                                                style={styles.itemIcon}
-                                            />
-                                        )}
-                                        <View style={{ flex: 1 }}>
-                                            <Text style={[styles.itemLabel, isSelected && styles.selectedItemLabel]}>
-                                                {item.label}
-                                            </Text>
-                                            {item.description && (
-                                                <Text style={styles.itemDescription}>
-                                                    {item.description}
-                                                </Text>
-                                            )}
-                                        </View>
-                                    </View>
-                                </TouchableOpacity>
-                            );
-                        })}
-                    </ScrollView>
-
-                    <View style={styles.footer}>
-                        <PrimaryButton
-                            title={confirmButtonText}
-                            onPress={handleConfirm}
-                            disabled={!tempSelected}
-                        />
-                        <TouchableOpacity style={styles.secondaryBtn} onPress={onClose}>
-                            <Text style={styles.secondaryBtnText}>No, Close</Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
+                <TouchableOpacity onPress={onClose}>
+                    <CloseCircle size={moderateScale(24)} color={colors.icon} variant="Bold" />
+                </TouchableOpacity>
             </View>
-        </Modal>
+
+            <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
+            <Text style={[styles.subtitle, { color: colors.textMuted }]}>{subtitle}</Text>
+
+            {searchable && (
+                <View style={[styles.searchContainer, { borderColor: colors.border, backgroundColor: colors.inputBackground }]}>
+                    <SearchNormal1 size={moderateScale(20)} color={colors.icon} />
+                    <TextInput
+                        style={[styles.searchInput, { color: colors.text }]}
+                        placeholder={searchPlaceholder}
+                        placeholderTextColor={colors.placeholder}
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                    />
+                </View>
+            )}
+
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.listContainer}>
+                {filteredItems.map((item) => {
+                    const isSelected = tempSelected === item.value || tempSelected === item.label || tempSelected === item.id;
+                    const ItemIcon = item.icon;
+
+                    return (
+                        <TouchableOpacity
+                            key={item.id}
+                            style={[
+                                styles.item,
+                                { backgroundColor: colors.surface, borderColor: colors.border },
+                                isSelected && [
+                                    styles.selectedItem,
+                                    {
+                                        borderColor: colors.primary,
+                                        backgroundColor: isDark ? 'rgba(255, 107, 44, 0.12)' : '#FFF7ED',
+                                    },
+                                ],
+                            ]}
+                            onPress={() => setTempSelected(item.value)}
+                        >
+                            <View style={styles.itemContent}>
+                                {ItemIcon && (
+                                    <ItemIcon
+                                        size={moderateScale(20)}
+                                        color={isSelected ? colors.primary : colors.icon}
+                                        variant={isSelected ? "Linear" : "Linear"}
+                                        style={styles.itemIcon}
+                                    />
+                                )}
+                                <View style={{ flex: 1 }}>
+                                    <Text style={[styles.itemLabel, { color: colors.textMuted }, isSelected && [styles.selectedItemLabel, { color: colors.text }]]}>
+                                        {item.label}
+                                    </Text>
+                                    {item.description && (
+                                        <Text style={[styles.itemDescription, { color: colors.textMuted }]}>
+                                            {item.description}
+                                        </Text>
+                                    )}
+                                </View>
+                            </View>
+                        </TouchableOpacity>
+                    );
+                })}
+            </ScrollView>
+
+            <View style={styles.footer}>
+                <PrimaryButton
+                    title={confirmButtonText}
+                    onPress={handleConfirm}
+                    disabled={!tempSelected}
+                />
+                <TouchableOpacity
+                    style={[styles.secondaryBtn, { backgroundColor: isDark ? colors.surfaceHighlight : 'rgba(243, 243, 243, 1)' }]}
+                    onPress={onClose}
+                >
+                    <Text style={[styles.secondaryBtnText, { color: colors.text }]}>No, Close</Text>
+                </TouchableOpacity>
+            </View>
+        </AnimatedBottomSheet>
     );
 };
 
@@ -208,10 +221,10 @@ const styles = ScaledSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: '#E2E8F0',
-        borderRadius: '12@ms',
-        paddingHorizontal: '16@s',
-        paddingVertical: '12@vs',
+        borderColor: 'rgba(143, 139, 139, 1)',
+        borderRadius: '28@ms',
+        paddingHorizontal: '14@s',
+        height: Platform.OS === 'android' ? '49@vs' : '40@vs',
         marginBottom: '16@vs',
     },
     searchInput: {
@@ -219,6 +232,9 @@ const styles = ScaledSheet.create({
         marginLeft: '10@s',
         fontSize: '14@ms',
         color: '#0F172A',
+        height: '100%',
+        paddingVertical: 0,
+        textAlignVertical: 'center',
     },
     listContainer: {
         gap: '12@vs',

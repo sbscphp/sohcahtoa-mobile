@@ -1,6 +1,7 @@
 import ControlledInput from '@/components/ControlledInput';
 import React from 'react';
 import { ScrollView, Text, View } from 'react-native';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import {
     bankStepStyles as styles,
     BankStepInvoiceUpload,
@@ -30,12 +31,13 @@ export default function HospitalBankDetailsStep({
     onUploadInvoice,
     isUploadingInvoice,
 }: HospitalBankDetailsStepProps) {
+    const { colors } = useAppTheme();
     const beneficiaryCountry = watch('beneficiaryCountry');
 
     return (
         <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-            <Text style={styles.title}>Where would you like to send the fund to?</Text>
-            <Text style={styles.description}>Enter the medical provider and bank details for this payment.</Text>
+            <Text style={[styles.title, { color: colors.text }]}>Where would you like to send the fund to?</Text>
+            <Text style={[styles.description, { color: colors.textMuted }]}>Enter the medical provider and bank details for this payment.</Text>
 
             <CountrySelectionField
                 control={control}
@@ -43,7 +45,7 @@ export default function HospitalBankDetailsStep({
                 beneficiaryCountry={beneficiaryCountry}
             />
 
-            <Text style={styles.sectionTitle}>Hospital details</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Hospital details</Text>
             <View style={styles.sectionContainer}>
                 <ControlledInput
                     control={control}
@@ -96,7 +98,7 @@ export default function HospitalBankDetailsStep({
                 />
             </View>
 
-            <Text style={styles.sectionTitle}>Beneficiary Bank details</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Beneficiary Bank details</Text>
             <View style={styles.sectionContainer}>
                 <ControlledInput
                     control={control}

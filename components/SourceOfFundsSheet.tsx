@@ -1,22 +1,28 @@
 import { InfoCircle } from 'iconsax-react-nativejs';
 import React from 'react';
-import { Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView } from 'react-native-gesture-handler';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import FileUpload from './FileUpload';
 import PrimaryButton from './PrimaryButton';
 import InputField from './InputField';
 import LoadingBackdrop from '@/components/LoadingBackdrop';
+import AnimatedBottomSheet from '@/components/ui/AnimatedBottomSheet';
 import { getInitials } from '@/utils/helpers';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 interface InfoRowProps {
     label: string;
     value: string;
+    labelColor?: string;
+    valueColor?: string;
+    dividerColor?: string;
 }
 
-const InfoRow = ({ label, value }: InfoRowProps) => (
-    <View style={styles.infoRow}>
-        <Text style={styles.infoLabel}>{label}</Text>
-        <Text style={styles.infoValue}>{value}</Text>
+const InfoRow = ({ label, value, labelColor, valueColor, dividerColor }: InfoRowProps) => (
+    <View style={[styles.infoRow, dividerColor ? { borderBottomColor: dividerColor } : undefined]}>
+        <Text style={[styles.infoLabel, labelColor ? { color: labelColor } : undefined]}>{label}</Text>
+        <Text style={[styles.infoValue, valueColor ? { color: valueColor } : undefined]}>{value}</Text>
     </View>
 );
 
@@ -57,7 +63,7 @@ export default function SourceOfFundsSheet({
     initials,
     onChangeInitials,
 }: SourceOfFundsSheetProps) {
-
+    const { colors, isDark } = useAppTheme();
     const [declarationMethod, setDeclarationMethod] = React.useState<'initials' | 'signature'>('initials');
 
     React.useEffect(() => {
@@ -77,107 +83,107 @@ export default function SourceOfFundsSheet({
     }, [visible, customerInfo?.fullName, initials, onChangeInitials, signatureFile]);
 
     return (
-        <Modal
+        <AnimatedBottomSheet
             visible={visible}
-            transparent
-            animationType="slide"
-            onRequestClose={onClose}
+            onClose={onClose}
+            sheetStyle={[styles.sheetContainer, { backgroundColor: colors.surface }]}
         >
-            <View style={styles.overlay}>
-                <LoadingBackdrop visible={!!isUploadingSignature} />
-                <TouchableOpacity style={styles.backdrop} onPress={onClose} activeOpacity={1} />
-
-                <View style={styles.sheetContainer}>
-                    <ScrollView
-                        showsVerticalScrollIndicator={false}
-                        contentContainerStyle={styles.scrollContent}
-                    >
-                        <View style={styles.header}>
-                            <View style={styles.headerIconContainer}>
-                                <View style={styles.iconCircle}>
-                                    <InfoCircle size={moderateScale(24)} color="#FF6B2C" variant="Bold" />
-                                </View>
-                            </View>
-                            <Text style={styles.title}>Source of Funds Exchange Declaration  Form</Text>
-                            <Text style={styles.subtitle}>Kindly note the following</Text>
+            <LoadingBackdrop visible={!!isUploadingSignature} />
+            <ScrollView
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.scrollContent}
+            >
+                <View style={styles.header}>
+                    <View style={styles.headerIconContainer}>
+                        <View style={[styles.iconCircle, { backgroundColor: isDark ? 'rgba(255, 107, 44, 0.18)' : '#FFF7ED' }]}>
+                            <InfoCircle size={moderateScale(24)} color="#FF6B2C" variant="Bold" />
                         </View>
-
-                        <View style={styles.section}>
-                            <Text style={styles.sectionTitle}>Customer information</Text>
-                            <InfoRow label="Full Name" value={customerInfo.fullName} />
-                            <InfoRow label="Phone Number" value={customerInfo.phoneNumber} />
-                            <InfoRow label="Email Address" value={customerInfo.email} />
-                            <InfoRow label="BVN" value={customerInfo.bvn} />
-                            <InfoRow label="Resident Address" value={customerInfo.address} />
-                            <InfoRow label="Passport Number" value={customerInfo.passportDocumentNumber} />
-                        </View>
-
-
-
-                        <View style={styles.section}>
-                            <Text style={styles.sectionTitle}>Transaction Details</Text>
-                            <InfoRow label="Transaction Type" value={transactionDetails.type} />
-                            <InfoRow label="Currency" value={transactionDetails.currency} />
-                            <InfoRow label="Amount" value={transactionDetails.amount} />
-                            <InfoRow label="Purpose of Transaction" value={transactionDetails.purpose} />
-                        </View>
-
-                        <View style={styles.selectorContainer}>
-                            <Text style={styles.selectorLabel}>Choose Declaration Method <Text style={{ color: '#EF4444' }}>*</Text></Text>
-                            <View style={styles.methodSelector}>
-                                <TouchableOpacity 
-                                    style={[styles.methodTab, declarationMethod === 'initials' && styles.methodTabActive]} 
-                                    onPress={() => setDeclarationMethod('initials')}
-                                >
-                                    <Text style={[styles.methodTabText, declarationMethod === 'initials' && styles.methodTabTextActive]}>
-                                        Use Initials
-                                    </Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity 
-                                    style={[styles.methodTab, declarationMethod === 'signature' && styles.methodTabActive]} 
-                                    onPress={() => setDeclarationMethod('signature')}
-                                >
-                                    <Text style={[styles.methodTabText, declarationMethod === 'signature' && styles.methodTabTextActive]}>
-                                        Upload Signature
-                                    </Text>
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-
-                        {declarationMethod === 'initials' ? (
-                            <InputField
-                                label="Initials"
-                                placeholder="Enter your initials"
-                                value={initials}
-                                onChangeText={onChangeInitials}
-                                disabled
-                                required
-                            />
-                        ) : (
-                            <View style={styles.uploadSection}>
-                                <FileUpload
-                                    title="Upload Signature"
-                                    fileName={signatureFile}
-                                    onUpload={onUploadSignature}
-                                    status={isUploadingSignature ? 'pending' : 'default'}
-                                />
-                            </View>
-                        )}
-
-                        <View style={styles.buttonContainer}>
-                            <PrimaryButton
-                                title="Submit"
-                                onPress={() => onSubmit(declarationMethod)}
-                                disabled={declarationMethod === 'initials' ? !initials?.trim() : !signatureFile}
-                            />
-                            <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-                                <Text style={styles.closeButtonText}>No, Close</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </ScrollView>
+                    </View>
+                    <Text style={[styles.title, { color: colors.text }]}>Source of Funds Exchange Declaration  Form</Text>
+                    <Text style={[styles.subtitle, { color: colors.textMuted }]}>Kindly note the following</Text>
                 </View>
-            </View>
-        </Modal>
+
+                <View style={styles.section}>
+                    <Text style={[styles.sectionTitle, { color: colors.text }]}>Customer information</Text>
+                    <InfoRow label="Full Name" value={customerInfo.fullName} labelColor={colors.text} valueColor={colors.textMuted} dividerColor={colors.divider} />
+                    <InfoRow label="Phone Number" value={customerInfo.phoneNumber} labelColor={colors.text} valueColor={colors.textMuted} dividerColor={colors.divider} />
+                    <InfoRow label="Email Address" value={customerInfo.email} labelColor={colors.text} valueColor={colors.textMuted} dividerColor={colors.divider} />
+                    <InfoRow label="BVN" value={customerInfo.bvn} labelColor={colors.text} valueColor={colors.textMuted} dividerColor={colors.divider} />
+                    <InfoRow label="Resident Address" value={customerInfo.address} labelColor={colors.text} valueColor={colors.textMuted} dividerColor={colors.divider} />
+                    <InfoRow label="Passport Number" value={customerInfo.passportDocumentNumber} labelColor={colors.text} valueColor={colors.textMuted} dividerColor={colors.divider} />
+                </View>
+
+                <View style={styles.section}>
+                    <Text style={[styles.sectionTitle, { color: colors.text }]}>Transaction Details</Text>
+                    <InfoRow label="Transaction Type" value={transactionDetails.type} labelColor={colors.text} valueColor={colors.textMuted} dividerColor={colors.divider} />
+                    <InfoRow label="Currency" value={transactionDetails.currency} labelColor={colors.text} valueColor={colors.textMuted} dividerColor={colors.divider} />
+                    <InfoRow label="Amount" value={transactionDetails.amount} labelColor={colors.text} valueColor={colors.textMuted} dividerColor={colors.divider} />
+                    <InfoRow label="Purpose of Transaction" value={transactionDetails.purpose} labelColor={colors.text} valueColor={colors.textMuted} dividerColor={colors.divider} />
+                </View>
+
+                <View style={styles.selectorContainer}>
+                    <Text style={[styles.selectorLabel, { color: colors.label }]}>Choose Declaration Method <Text style={{ color: '#EF4444' }}>*</Text></Text>
+                    <View style={[styles.methodSelector, { backgroundColor: isDark ? colors.card : '#F1F5F9' }]}>
+                        <TouchableOpacity 
+                            style={[
+                                styles.methodTab,
+                                declarationMethod === 'initials' && [styles.methodTabActive, { backgroundColor: colors.surface }],
+                            ]} 
+                            onPress={() => setDeclarationMethod('initials')}
+                        >
+                            <Text style={[styles.methodTabText, { color: colors.textMuted }, declarationMethod === 'initials' && styles.methodTabTextActive]}>
+                                Use Initials
+                            </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity 
+                            style={[
+                                styles.methodTab,
+                                declarationMethod === 'signature' && [styles.methodTabActive, { backgroundColor: colors.surface }],
+                            ]} 
+                            onPress={() => setDeclarationMethod('signature')}
+                        >
+                            <Text style={[styles.methodTabText, { color: colors.textMuted }, declarationMethod === 'signature' && styles.methodTabTextActive]}>
+                                Upload Signature
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+
+                {declarationMethod === 'initials' ? (
+                    <InputField
+                        label="Initials"
+                        placeholder="Enter your initials"
+                        value={initials}
+                        onChangeText={onChangeInitials}
+                        disabled
+                        required
+                    />
+                ) : (
+                    <View style={styles.uploadSection}>
+                        <FileUpload
+                            title="Upload Signature"
+                            fileName={signatureFile}
+                            onUpload={onUploadSignature}
+                            status={isUploadingSignature ? 'pending' : 'default'}
+                        />
+                    </View>
+                )}
+
+                <View style={styles.buttonContainer}>
+                    <PrimaryButton
+                        title="Submit"
+                        onPress={() => onSubmit(declarationMethod)}
+                        disabled={declarationMethod === 'initials' ? !initials?.trim() : !signatureFile}
+                    />
+                    <TouchableOpacity
+                        style={[styles.closeButton, { backgroundColor: isDark ? colors.surfaceHighlight : '#F1F5F9' }]}
+                        onPress={onClose}
+                    >
+                        <Text style={[styles.closeButtonText, { color: colors.text }]}>No, Close</Text>
+                    </TouchableOpacity>
+                </View>
+            </ScrollView>
+        </AnimatedBottomSheet>
     );
 }
 

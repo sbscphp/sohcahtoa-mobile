@@ -12,6 +12,7 @@ import { useGetBanksQuery } from '@/hooks/queries/banks/useGetBanksQuery';
 
 import { SavedAccount, PayoutMethodStepProps } from '@/types/transaction-flow';
 import { findBank, isNigerianAccount } from '@/utils/banks';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 export { SavedAccount };
 
@@ -31,6 +32,7 @@ export default function PayoutMethodStep({
     isSellFx = false,
     banks,
 }: PayoutMethodStepProps) {
+    const { colors, isDark } = useAppTheme();
     const attachBankAccountsMutation = useAttachBankAccountsMutation();
     const { data: savedAccountsResponse } = useGetSavedAccountsQuery();
     const [bankSheetVisible, setBankSheetVisible] = React.useState(false);
@@ -120,14 +122,14 @@ export default function PayoutMethodStep({
 
     return (
         <View style={{ gap: moderateScale(14) }}>
-            <Text style={{ fontSize: moderateScale(16), fontWeight: '700', color: '#0F172A', marginBottom: moderateScale(4) }}>
+            <Text style={{ fontSize: moderateScale(16), fontWeight: '700', color: colors.text, marginBottom: moderateScale(4) }}>
                 Choose your payout method
             </Text>
-           {!isSellFx &&  <Text style={{ fontSize: moderateScale(13), color: '#64748B', marginTop: moderateScale(-8), marginBottom: moderateScale(4) }}>
+           {!isSellFx &&  <Text style={{ fontSize: moderateScale(13), color: colors.textMuted, marginTop: moderateScale(-8), marginBottom: moderateScale(4) }}>
                 Note that 25% cash payout is subject to a maximum amount of $500
             </Text>}
             {isSellFx && (
-                <Text style={{ fontSize: moderateScale(13), color: '#040404ff', fontWeight: '400', marginBottom: moderateScale(-4) }}>
+                <Text style={{ fontSize: moderateScale(13), color: colors.textMuted, fontWeight: '400', marginBottom: moderateScale(-4) }}>
                   Note: No cash pickup is allowed
                 </Text>
             )}
@@ -161,8 +163,8 @@ export default function PayoutMethodStep({
                                 onPress={() => handleAccountSelect(account, isSelected)}
                                 style={{
                                     borderWidth: isSelected ? 1.5 : 1,
-                                    borderColor: isSelected ? '#FF6B2C' : '#E2E8F0',
-                                    backgroundColor: isSelected ? '#FFF7ED' : '#FFFFFF',
+                                    borderColor: isSelected ? colors.primary : colors.border,
+                                    backgroundColor: isSelected ? (isDark ? 'rgba(255, 107, 44, 0.15)' : '#FFF7ED') : colors.card,
                                     borderRadius: moderateScale(12),
                                     paddingVertical: moderateScale(16),
                                     paddingHorizontal: moderateScale(16),
@@ -173,17 +175,17 @@ export default function PayoutMethodStep({
                                         <Text style={{
                                             fontSize: moderateScale(14),
                                             fontWeight: '700',
-                                            color: '#0F172A',
+                                            color: colors.text,
                                             marginBottom: moderateScale(4)
                                         }}>
                                             {account.bankName}
                                         </Text>
                                         <Text style={{
                                             fontSize: moderateScale(13),
-                                            color: '#64748B',
+                                            color: colors.textMuted,
                                             fontWeight: '500'
                                         }}>
-                                            {account.accountNumber} <Text style={{ color: '#E2E8F0' }}>|</Text> {account.accountName}
+                                            {account.accountNumber} <Text style={{ color: colors.divider }}>|</Text> {account.accountName}
                                         </Text>
                                     </View>
                                     <Ionicons
@@ -192,7 +194,7 @@ export default function PayoutMethodStep({
                                             : (isMultiSelect ? "square-outline" : "ellipse-outline")
                                         }
                                         size={moderateScale(20)}
-                                        color={isSelected ? "#FF6B2C" : "#64748B"}
+                                        color={isSelected ? colors.primary : colors.textMuted}
                                         style={{ marginLeft: moderateScale(12) }}
                                     />
                                 </View>
@@ -206,10 +208,10 @@ export default function PayoutMethodStep({
             {isElectronic && !isDomiciliary && (!localSavedAccounts || localSavedAccounts.length === 0) && (
                 <View style={{
                     padding: moderateScale(16),
-                    backgroundColor: '#F8F9FA',
+                    backgroundColor: isDark ? colors.surface : '#F8F9FA',
                     borderRadius: moderateScale(12),
                     borderWidth: 1,
-                    borderColor: '#E2E8F0',
+                    borderColor: colors.border,
                     borderStyle: 'dashed',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -217,7 +219,7 @@ export default function PayoutMethodStep({
                 }}>
                     <Text style={{
                         fontSize: moderateScale(13),
-                        color: '#64748B',
+                        color: colors.textMuted,
                         textAlign: 'center',
                         fontWeight: '500'
                     }}>
@@ -247,7 +249,7 @@ export default function PayoutMethodStep({
 
             {isDomiciliaryFieldShown && (
                 <View style={{ gap: moderateScale(16), marginTop: moderateScale(8) }}>
-                    <Text style={{ fontSize: moderateScale(16), fontWeight: '700', color: '#0F172A', marginBottom: moderateScale(4) }}>
+                    <Text style={{ fontSize: moderateScale(16), fontWeight: '700', color: colors.text, marginBottom: moderateScale(4) }}>
                         Domiciliary Account Details
                     </Text>
                     <ControlledInput

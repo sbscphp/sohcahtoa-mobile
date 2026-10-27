@@ -1,17 +1,12 @@
 import Header from '@/components/Header';
 import InputField from '@/components/InputField';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { useRouter } from 'expo-router';
 import { AddCircle, MinusCirlce, SearchNormal1 } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
-import { LayoutAnimation, Platform, ScrollView, Text, TouchableOpacity, UIManager, View } from 'react-native';
+import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import Animated, { FadeInDown, FadeOutUp, LinearTransition } from 'react-native-reanimated';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
-
-if (
-    Platform.OS === 'android' &&
-    UIManager.setLayoutAnimationEnabledExperimental
-) {
-    UIManager.setLayoutAnimationEnabledExperimental(true);
-}
 
 interface FAQ {
     id: string;
@@ -47,39 +42,47 @@ const faqs: FAQ[] = [
     },
 ];
 
-const FAQItem = ({ item }: { item: FAQ }) => {
+const FAQ_LAYOUT_TRANSITION = LinearTransition.springify().damping(20).stiffness(220);
+const FAQ_ANSWER_ENTER = FadeInDown.duration(180);
+const FAQ_ANSWER_EXIT = FadeOutUp.duration(140);
 
+const FAQItem = ({ item }: { item: FAQ }) => {
+    const { colors } = useAppTheme();
     const [expanded, setExpanded] = useState(false);
 
     const toggleExpand = () => {
-        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
         setExpanded(!expanded);
     };
 
     return (
-        <View style={styles.faqItem}>
+        <Animated.View layout={FAQ_LAYOUT_TRANSITION} collapsable={false} style={[styles.faqItem, { borderBottomColor: colors.divider }]}>
             <TouchableOpacity
                 style={styles.faqHeader}
                 onPress={toggleExpand}
                 activeOpacity={0.7}
             >
-                <Text style={styles.question}>{item.question}</Text>
+                <Text style={[styles.question, { color: colors.text }]}>{item.question}</Text>
                 {expanded ? (
-                    <MinusCirlce size={moderateScale(20)} color="#94A3B8" variant='Bold' />
+                    <MinusCirlce size={moderateScale(20)} color={colors.icon} variant='Bold' />
                 ) : (
-                    <AddCircle size={moderateScale(20)} color="#94A3B8" variant='Bold' />
+                    <AddCircle size={moderateScale(20)} color={colors.icon} variant='Bold' />
                 )}
             </TouchableOpacity>
             {expanded && (
-                <View style={styles.answerContainer}>
-                    <Text style={styles.answer}>{item.answer}</Text>
-                </View>
+                <Animated.View
+                    entering={FAQ_ANSWER_ENTER}
+                    exiting={FAQ_ANSWER_EXIT}
+                    style={styles.answerContainer}
+                >
+                    <Text style={[styles.answer, { color: colors.textMuted }]}>{item.answer}</Text>
+                </Animated.View>
             )}
-        </View>
+        </Animated.View>
     );
 };
 
 export default function FAQsScreen() {
+    const { colors } = useAppTheme();
     const router = useRouter();
     const [searchQuery, setSearchQuery] = useState('');
 
@@ -89,7 +92,7 @@ export default function FAQsScreen() {
     );
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: colors.background }]}>
             <Header title="Support" />
 
             <ScrollView
@@ -98,13 +101,13 @@ export default function FAQsScreen() {
                 showsVerticalScrollIndicator={false}
             >
                 <View style={styles.introContainer}>
-                    <Text style={styles.introTitle}>
+                    <Text style={[styles.introTitle, { color: colors.text }]}>
                         Everything you need to know about sohcahtoa.
                     </Text>
-                    <Text style={styles.introSubtitle}>
+                    <Text style={[styles.introSubtitle, { color: colors.textMuted }]}>
                         {"Can't find the answers you are looking for?"}
                     </Text>
-                    <Text onPress={() => router.push('/(more)/support')} style={styles.linkText}> Chat Support</Text>
+                    <Text onPress={() => router.push('/(more)/support')} style={[styles.linkText, { color: colors.primary }]}> Chat Support</Text>
                 </View>
 
                 <InputField
@@ -113,7 +116,7 @@ export default function FAQsScreen() {
                     value={searchQuery}
                     onChangeText={setSearchQuery}
                     icon={SearchNormal1}
-                    wrapperStyle={styles.searchWrapper}
+                    wrapperStyle={[styles.searchWrapper, { backgroundColor: colors.inputBackground, borderColor: colors.border }]}
                 />
 
                 <View style={styles.listContainer}>
@@ -122,7 +125,7 @@ export default function FAQsScreen() {
                     ))}
 
                     {filteredFAQs.length === 0 && (
-                        <Text style={styles.emptyText}>No results found</Text>
+                        <Text style={[styles.emptyText, { color: colors.textMuted }]}>No results found</Text>
                     )}
                 </View>
 
@@ -167,7 +170,6 @@ const styles = ScaledSheet.create({
     searchWrapper: {
         backgroundColor: '#FFFFFF',
         borderColor: '#E2E8F0',
-        height: '48@vs',
         marginBottom: '24@vs',
     },
     listContainer: {

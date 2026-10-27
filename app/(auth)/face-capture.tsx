@@ -8,8 +8,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import PrimaryButton from '../../components/PrimaryButton';
 import { Colors } from '../../constants/theme';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 export default function FaceCaptureScreen() {
+    const { colors } = useAppTheme();
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const cameraRef = useRef<CameraView>(null);
@@ -63,11 +65,11 @@ export default function FaceCaptureScreen() {
     // Permission denied
     if (!permission.granted) {
         return (
-            <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-                <View style={styles.permissionContainer}>
-                    <Camera size={moderateScale(64)} color={Colors.light.primary} />
-                    <Text style={styles.permissionTitle}>Camera Permission Required</Text>
-                    <Text style={styles.permissionText}>
+            <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom, backgroundColor: colors.background }]}>
+                <View style={[styles.permissionContainer, { backgroundColor: colors.background }]}>
+                    <Camera size={moderateScale(64)} color={colors.primary} />
+                    <Text style={[styles.permissionTitle, { color: colors.text }]}>Camera Permission Required</Text>
+                    <Text style={[styles.permissionText, { color: colors.textMuted }]}>
                         We need access to your camera to capture your face for biometric authentication.
                     </Text>
                     <PrimaryButton
@@ -76,7 +78,7 @@ export default function FaceCaptureScreen() {
                         style={styles.permissionButton}
                     />
                     <TouchableOpacity onPress={handleCancel}>
-                        <Text style={styles.cancelLinkText}>Cancel</Text>
+                        <Text style={[styles.cancelLinkText, { color: colors.primary }]}>Cancel</Text>
                     </TouchableOpacity>
                 </View>
             </View>

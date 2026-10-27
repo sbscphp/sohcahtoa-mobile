@@ -1,7 +1,7 @@
+import { useAppTheme } from '@/context/ThemeContext';
 import React from 'react';
 import { ActivityIndicator, Platform, Pressable, StyleProp, Text, TextStyle, ViewStyle } from 'react-native';
 import { ScaledSheet } from 'react-native-size-matters';
-import { Colors } from '../constants/theme';
 
 interface PrimaryButtonProps {
     title: string;
@@ -24,13 +24,16 @@ const PrimaryButton: React.FC<PrimaryButtonProps> = ({
     accessible = true,
     accessibilityLabel,
 }) => {
+    const { colors } = useAppTheme();
+
     return (
         <Pressable
             onPress={onPress}
             disabled={disabled || loading}
             style={({ pressed }) => [
                 styles.button,
-                (disabled || loading) && styles.disabledButton,
+                { backgroundColor: colors.primary },
+                (disabled || loading) && [styles.disabledButton, { backgroundColor: colors.buttonDisabledBackground }],
                 pressed && { opacity: 0.8 },
                 style
             ]}
@@ -47,10 +50,8 @@ const PrimaryButton: React.FC<PrimaryButtonProps> = ({
     );
 };
 
-
 const styles = ScaledSheet.create({
     button: {
-        backgroundColor: Colors.light.primary,
         height: Platform.OS === 'android' ? '50@vs' : '42@vs',
         borderRadius: '28@ms',
         justifyContent: 'center',

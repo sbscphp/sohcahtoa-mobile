@@ -1,19 +1,24 @@
-import * as LocalAuthentication from 'expo-local-authentication';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ScanFaceIcon } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { Alert, Text, View } from 'react-native';
 import { useAuthStore } from '@/stores/useAuthStore';
-import { saveCredentials } from '../../utils/biometrics';
+import {
+    authenticateWithBiometrics,
+    getBiometricCapabilities,
+    saveCredentials,
+} from '../../utils/biometrics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import AuthHeader from '../../components/AuthHeader';
 import PrimaryButton from '../../components/PrimaryButton';
 import { Colors } from '../../constants/theme';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 type Status = 'idle' | 'scanning' | 'success' | 'failure' | 'unsupported';
 
 export default function BiometricsSetupScreen() {
+    const { colors } = useAppTheme();
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const { email, password } = useLocalSearchParams<{ email: string; password: string }>();
@@ -35,39 +40,33 @@ export default function BiometricsSetupScreen() {
                 return;
             }
 
-            const compatible = await LocalAuthentication.hasHardwareAsync();
-            if (!compatible) {
-                Alert.alert('Not Supported', 'Your device does not support Face ID.');
+            const capabilities = await getBiometricCapabilities();
+            if (!capabilities.hasHardware) {
+                Alert.alert('Not Supported', 'Your device does not support biometric authentication.');
                 setLoading(false);
                 return;
             }
 
-            const enrolled = await LocalAuthentication.isEnrolledAsync();
-            if (!enrolled) {
-                Alert.alert('Not Enrolled', 'Please enroll your face in device settings.');
+            if (!capabilities.isEnrolled) {
+                Alert.alert('Not Enrolled', 'Please enroll your face or biometric in device settings.');
                 setLoading(false);
                 return;
             }
 
-            const result = await LocalAuthentication.authenticateAsync({
-                promptMessage: 'Authenticate with Face ID',
-            });
+            const success = await authenticateWithBiometrics('Authenticate with Face ID');
 
-            if (result.success) {
-                if (email && password) {
-                    const saved = await saveCredentials(email, password);
-                    if (saved) {
-                        setBiometricEnabled(true);
-                        setBiometricType('face');
+            if (success) {
+                const saved = await saveCredentials(email, password);
+                if (saved) {
+                    setBiometricEnabled(true);
+                    setBiometricType('face');
+                    if (typeof checkCredentials === 'function') {
                         await checkCredentials();
-                        setStatus('success');
-                    } else {
-                        Alert.alert('Save Error', 'Failed to securely store credentials. Please try again.');
-                        setStatus('failure');
                     }
+                    setStatus('success');
                 } else {
-                    Alert.alert('Setup Error', 'Email and password are required. Please go back and ensure both are filled.');
-                    setStatus('idle');
+                    Alert.alert('Save Error', 'Failed to securely store credentials. Please try again.');
+                    setStatus('failure');
                 }
             } else {
                 setStatus('idle');
@@ -86,22 +85,22 @@ export default function BiometricsSetupScreen() {
     };
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+        <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom, backgroundColor: colors.background }]}>
             <AuthHeader title="Biometrics Setup" />
 
             <View style={styles.content}>
                 <View style={styles.textSection}>
-                    <Text style={styles.title}>Face Recognition</Text>
-                    <Text style={styles.description}>
+                    <Text style={[styles.title, { color: colors.text }]}>Face Recognition</Text>
+                    <Text style={[styles.description, { color: colors.textMuted }]}>
                         Add a face recognition to make your account more secure.
                     </Text>
                 </View>
 
                 <View style={styles.graphicContainer}>
-                    <View style={styles.circleOuter} />
-                    <View style={styles.circleMiddle} />
+                    <View style={[styles.circleOuter, { backgroundColor: colors.primary }]} />
+                    <View style={[styles.circleMiddle, { backgroundColor: colors.primary }]} />
                     {status !== 'scanning' && status !== 'success' && (
-                        <View style={styles.circleInner}>
+                        <View style={[styles.circleInner, { backgroundColor: colors.primary }]}>
                             <ScanFaceIcon size={moderateScale(64)} color="#FFFFFF" />
                         </View>
                     )}

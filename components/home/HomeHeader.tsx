@@ -1,5 +1,7 @@
+import { LiquidGlassView, useLiquidGlassAvailable } from '@/components/ui/LiquidGlassView';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import React from 'react';
-import { Text, TouchableOpacity, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { Notification } from 'iconsax-react-nativejs';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import { getGreeting } from './homeConfig';
@@ -16,6 +18,8 @@ interface HomeHeaderProps {
 }
 
 export default function HomeHeader({ user, unreadCount, onNotificationPress }: HomeHeaderProps) {
+    const { colors, isDark } = useAppTheme();
+    const canUseGlass = useLiquidGlassAvailable();
     const initials = user?.profile
         ? `${user.profile.firstName?.[0] ?? ''}${user.profile.lastName?.[0] ?? ''}`.toUpperCase()
         : 'U';
@@ -26,22 +30,37 @@ export default function HomeHeader({ user, unreadCount, onNotificationPress }: H
     return (
         <View style={styles.header}>
             <View style={styles.headerLeft}>
-                <View style={styles.avatar}>
+                <View style={[styles.avatar, { backgroundColor: isDark ? 'rgba(255, 107, 44, 0.18)' : '#FFF7ED' }]}>
                     <Text style={styles.avatarText}>{initials}</Text>
                 </View>
                 <View>
-                    <Text style={styles.greeting}>{getGreeting()}</Text>
-                    <Text style={styles.username}>{fullName}</Text>
+                    <Text style={[styles.greeting, { color: colors.textMuted }]}>{getGreeting()}</Text>
+                    <Text style={[styles.username, { color: colors.text }]}>{fullName}</Text>
                 </View>
             </View>
-            <TouchableOpacity onPress={onNotificationPress}>
-                <Notification size={moderateScale(24)} color="#1E293B" variant="Linear" />
-                {unreadCount > 0 && (
-                    <View style={styles.unreadBadge}>
-                        <Text style={styles.unreadText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
-                    </View>
-                )}
-            </TouchableOpacity>
+            <LiquidGlassView
+                variant="clear"
+                interactive
+                borderRadius={moderateScale(20)}
+                glassStyle={styles.notificationGlass}
+            >
+                <Pressable
+                    onPress={onNotificationPress}
+                    style={({ pressed }) => [
+                        canUseGlass && styles.notificationPressableGlass,
+                        !canUseGlass && pressed && { opacity: 0.7 },
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityLabel="Notifications"
+                >
+                    <Notification size={moderateScale(24)} color={colors.icon} variant="Linear" />
+                    {unreadCount > 0 && (
+                        <View style={styles.unreadBadge}>
+                            <Text style={styles.unreadText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                        </View>
+                    )}
+                </Pressable>
+            </LiquidGlassView>
         </View>
     );
 }
@@ -99,5 +118,17 @@ const styles = ScaledSheet.create({
         color: '#FFFFFF',
         fontSize: moderateScale(9),
         fontWeight: 'bold',
+    },
+    notificationGlass: {
+        width: '40@ms',
+        height: '40@ms',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    notificationPressableGlass: {
+        width: '100%',
+        height: '100%',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
 });

@@ -2,6 +2,7 @@ import ControlledInput from '@/components/ControlledInput';
 import React from 'react';
 import { Text, View } from 'react-native';
 import { moderateScale } from 'react-native-size-matters';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 interface AddDomiciliaryAccountStepProps {
     control: any;
@@ -11,9 +12,10 @@ interface AddDomiciliaryAccountStepProps {
 export default function AddDomiciliaryAccountStep({
     control,
 }: AddDomiciliaryAccountStepProps) {
+    const { colors } = useAppTheme();
     return (
         <View style={{ gap: moderateScale(16) }}>
-            <Text style={{ fontSize: moderateScale(18), fontWeight: '700', color: '#0F172A', marginBottom: moderateScale(8) }}>
+            <Text style={{ fontSize: moderateScale(18), fontWeight: '700', color: colors.text, marginBottom: moderateScale(8) }}>
                 Add Domiciliary Account
             </Text>
 

@@ -1,4 +1,5 @@
 import ProgressBar from '@/components/ProgressBar';
+import { useAppTheme } from '@/context/ThemeContext';
 import { useSendExpatriateOtpMutation } from '@/hooks/queries/auth/useSendExpatriateOtpMutation';
 import { useSendOtpMutation } from '@/hooks/queries/auth/useSendOtpMutation';
 import { useSendTouristOtpMutation } from '@/hooks/queries/auth/useSendTouristOtpMutation';
@@ -15,6 +16,7 @@ import PrimaryButton from '../../components/PrimaryButton';
 export default function BvnConfirmationScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
+    const { colors, isDark } = useAppTheme();
     const tempUserInfo = useAuthStore((state) => state.tempUserInfo);
 
     const {
@@ -91,13 +93,13 @@ export default function BvnConfirmationScreen() {
 
     const InfoRow = ({ label, value }: { label: string; value: any }) => (
         <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>{label}</Text>
-            <Text style={styles.infoValue}>{value}</Text>
+            <Text style={[styles.infoLabel, { color: colors.textMuted }]}>{label}</Text>
+            <Text style={[styles.infoValue, { color: colors.text }]}>{value}</Text>
         </View>
     );
 
     return (
-        <SafeAreaView style={styles.container} >
+        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} >
             <AuthHeader title="Sign up" />
 
             <ScrollView
@@ -107,12 +109,12 @@ export default function BvnConfirmationScreen() {
                 {userType === 'citizen' && <ProgressBar step={1} totalSteps={3} />}
 
                 <View style={styles.content}>
-                    <Text style={styles.title}>Final Step Ahead</Text>
-                    <Text style={styles.subtitle}>
+                    <Text style={[styles.title, { color: colors.text }]}>Final Step Ahead</Text>
+                    <Text style={[styles.subtitle, { color: colors.textMuted }]}>
                         {"We'll send an OTP to your email to complete this step."}
                     </Text>
 
-                    <View style={styles.card}>
+                    <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
                         <InfoRow label="Full Name" value={`${firstName} ${lastName}`.trim()} />
                         <InfoRow label="Phone Number" value={phoneNumber} />
                         <InfoRow label="Email Address" value={email} />
@@ -120,11 +122,11 @@ export default function BvnConfirmationScreen() {
                         <InfoRow label="Address" value={address} />
                     </View>
 
-                    <View style={styles.infoBox}>
+                    <View style={[styles.infoBox, { backgroundColor: isDark ? 'rgba(255, 104, 19, 0.12)' : 'rgba(255, 237, 229, 0.5)' }]}>
                         <View style={styles.infoIconContainer}>
-                            <InfoCircle size={24} color="#FF7A45" variant="Bold" />
+                            <InfoCircle size={24} color={isDark ? colors.primaryLight : '#FF7A45'} variant="Bold" />
                         </View>
-                        <Text style={styles.infoBoxText}>
+                        <Text style={[styles.infoBoxText, { color: isDark ? colors.text : '#475569' }]}>
                             {userType === 'citizen' || !userType
                                 ? "Details above can't be changed because they are pulled directly from your BVN."
                                 : "The details above are sourced from your passport and are therefore uneditable."}
@@ -133,7 +135,7 @@ export default function BvnConfirmationScreen() {
                 </View>
             </ScrollView>
 
-            <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
+            <View style={[styles.footer, { paddingBottom: insets.bottom + 20, backgroundColor: colors.background }]}>
                 <PrimaryButton
                     title="Continue"
                     onPress={handleSendOtp}

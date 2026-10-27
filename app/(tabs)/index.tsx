@@ -15,6 +15,7 @@ import HomeQuickActions from '@/components/home/HomeQuickActions';
 import HomeCardsSection from '@/components/home/HomeCardsSection';
 import HomeTransactionsSection from '@/components/home/HomeTransactionsSection';
 import { getActionSheetConfig, getTransactionRoute } from '@/components/home/homeConfig';
+import AnimatedTabScreen from '@/components/ui/AnimatedTabScreen';
 
 export default function HomeScreen() {
     const router = useRouter();
@@ -153,7 +154,7 @@ export default function HomeScreen() {
     );
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top }]}>
+        <AnimatedTabScreen style={[styles.container, { paddingTop: insets.top }]}>
             <HomeHeader
                 user={user}
                 unreadCount={unreadCount}
@@ -206,17 +207,16 @@ export default function HomeScreen() {
                     actions={activeConfig.actions}
                 />
             )}
-        </View>
+        </AnimatedTabScreen>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#FFFFFF',
     },
     scrollContent: {
-        paddingBottom: 10,
+        paddingBottom: 100,
     },
 });
  

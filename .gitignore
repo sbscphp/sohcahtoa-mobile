@@ -8,6 +8,13 @@ node_modules/
 dist/
 web-build/
 expo-env.d.ts
+.agents
+.codex
+.claude
+.gemini
+.vscode
+.pnpm-store
+
 
 # Native
 .kotlin/
@@ -42,6 +49,7 @@ app-example
 # generated native folders
 /ios
 /android
+**/.rnrepo-cache
 
 # Firebase configuration (provided via EAS secrets or kept local)
 google-services.json

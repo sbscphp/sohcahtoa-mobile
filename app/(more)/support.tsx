@@ -4,6 +4,7 @@ import InputField from '@/components/InputField';
 import PrimaryButton from '@/components/PrimaryButton';
 import SelectField from '@/components/SelectField';
 import SupportSuccessDialog from '@/components/SupportSuccessDialog';
+import { useAppTheme } from '@/context/ThemeContext';
 import { useCreateSupportTicketMutation } from '@/hooks/queries/support/useCreateSupportTicketMutation';
 import * as DocumentPicker from 'expo-document-picker';
 import { useRouter } from 'expo-router';
@@ -16,6 +17,7 @@ import SupportFileUpload from '@/components/more/SupportFileUpload';
 
 export default function SupportScreen() {
     const router = useRouter();
+    const { colors, isDark } = useAppTheme();
     const [category, setCategory] = useState<SelectionItem | null>(null);
     const [description, setDescription] = useState('');
     const [attachment, setAttachment] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
@@ -94,7 +96,7 @@ export default function SupportScreen() {
     };
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: colors.background }]}>
             <Header title="Support" />
 
             <KeyboardAvoidingView
@@ -106,7 +108,7 @@ export default function SupportScreen() {
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}
                 >
-                    <Text style={styles.instructionText}>
+                    <Text style={[styles.instructionText, { color: colors.text }]}>
                         Need help? Fill out this form to contact support for assistance
                     </Text>
 
@@ -116,7 +118,7 @@ export default function SupportScreen() {
                         value={category?.label}
                         onPress={() => setCategorySheetVisible(true)}
                         required
-                        rightIcon={<ChevronDown size={moderateScale(20)} color="#0F172A" />}
+                        rightIcon={<ChevronDown size={moderateScale(20)} color={colors.icon} />}
                         error={errors.category}
                     />
 
@@ -138,7 +140,7 @@ export default function SupportScreen() {
                     />
 
                     <View style={styles.attachmentContainer}>
-                        <Text style={styles.label}>
+                        <Text style={[styles.label, { color: colors.textSecondary }]}>
                             Attachment (optional)
                         </Text>
                         <SupportFileUpload
@@ -148,7 +150,7 @@ export default function SupportScreen() {
                         />
                     </View>
 
-                    <Text style={styles.noteText}>
+                    <Text style={[styles.noteText, { color: colors.textMuted }]}>
                         Note: Once submitted, you can track it in support history
                     </Text>
 

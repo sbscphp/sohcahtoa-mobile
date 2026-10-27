@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 import { ScaledSheet } from 'react-native-size-matters';
 import { ArrowDown2, Bank } from 'iconsax-react-nativejs';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 interface CustomerBankDetailsStepProps {
     control: any;
@@ -20,13 +21,14 @@ export default function CustomerBankDetailsStep({
     resolvedAccountName,
     isResolving 
 }: CustomerBankDetailsStepProps) {
+    const { colors, isDark } = useAppTheme();
     const [bankSheetVisible, setBankSheetVisible] = useState(false);
     const [selectedBank, setSelectedBank] = useState<SelectionItem | null>(null);
 
     return (
         <View style={styles.container}>
-            <Text style={styles.title}>Confirm Your Bank Details</Text>
-            <Text style={styles.subtitle}>Enter the account details from which the funds will be debited.</Text>
+            <Text style={[styles.title, { color: colors.text }]}>Confirm Your Bank Details</Text>
+            <Text style={[styles.subtitle, { color: colors.textMuted }]}>Enter the account details from which the funds will be debited.</Text>
 
             <TouchableOpacity onPress={() => setBankSheetVisible(true)} activeOpacity={0.8}>
                 <View pointerEvents="none">
@@ -53,9 +55,9 @@ export default function CustomerBankDetailsStep({
             />
 
             {resolvedAccountName ? (
-                <View style={styles.accountNameContainer}>
-                    <Text style={styles.accountNameLabel}>Account Name</Text>
-                    <Text style={styles.accountNameValue}>{resolvedAccountName}</Text>
+                <View style={[styles.accountNameContainer, { backgroundColor: isDark ? colors.surface : '#F8FAFC', borderColor: colors.border }]}>
+                    <Text style={[styles.accountNameLabel, { color: colors.textMuted }]}>Account Name</Text>
+                    <Text style={[styles.accountNameValue, { color: colors.text }]}>{resolvedAccountName}</Text>
                 </View>
             ) : isResolving ? (
                 <Text style={styles.resolvingText}>Resolving account name...</Text>

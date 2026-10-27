@@ -1,3 +1,4 @@
+import { useAppTheme } from '@/context/ThemeContext';
 import { useRouter } from 'expo-router';
 import { ArrowCircleLeft2 } from 'iconsax-react-nativejs';
 import React from 'react';
@@ -12,9 +13,10 @@ interface AuthHeaderProps {
 
 const AuthHeader: React.FC<AuthHeaderProps> = ({ title, showBackButton = true, disableBackButton = false }) => {
     const router = useRouter();
+    const { colors } = useAppTheme();
 
     return (
-        <View style={styles.header}>
+        <View style={[styles.header, { backgroundColor: colors.background, borderBottomColor: colors.divider }]}>
             {showBackButton ? (
                 <TouchableOpacity
                     onPress={() => router.back()}
@@ -24,18 +26,16 @@ const AuthHeader: React.FC<AuthHeaderProps> = ({ title, showBackButton = true, d
                     accessibilityRole="button"
                     disabled={disableBackButton}
                 >
-                    <ArrowCircleLeft2 size={moderateScale(28)} color="#94A3B8" />
+                    <ArrowCircleLeft2 size={moderateScale(28)} color={colors.iconMuted} />
                 </TouchableOpacity>
             ) : (
                 <View style={{ width: moderateScale(28) }} />
             )}
-            <Text style={styles.headerTitle}>{title}</Text>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>{title}</Text>
             <View style={{ width: moderateScale(28) }} />
         </View>
     );
 };
-
-
 
 const styles = ScaledSheet.create({
     header: {

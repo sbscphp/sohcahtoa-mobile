@@ -1,8 +1,33 @@
 import Header from '@/components/Header';
 import PrimaryButton from '@/components/PrimaryButton';
-import { Bookmark, Cards, Headphone, InfoCircle, Judge, LogoutCurve, MessageQuestion, Notification, ProfileTick, ShieldSecurity } from 'iconsax-react-nativejs';
+import ThemeSelectionSheet, { THEME_OPTIONS } from '@/components/ThemeSelectionSheet';
+import AnimatedTabScreen from '@/components/ui/AnimatedTabScreen';
+import { useAppTheme } from '@/context/ThemeContext';
+import { useLogoutMutation } from '@/hooks/queries/auth/useLogoutMutation';
+import { useGetUnreadCountQuery } from '@/hooks/queries/notifications/useGetUnreadCountQuery';
+import { useRouter } from 'expo-router';
+import {
+    Bookmark,
+    Headphone,
+    InfoCircle,
+    Judge,
+    LogoutCurve,
+    MessageQuestion,
+    Notification,
+    ProfileTick,
+    ShieldSecurity,
+} from 'iconsax-react-nativejs';
+import { Moon, Sun } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { Modal, Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import {
+    Modal,
+    Pressable,
+    ScrollView,
+    Text,
+    TouchableOpacity,
+    View,
+} from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { moderateScale, ScaledSheet } from 'react-native-size-matters';
 
 interface MenuItem {
@@ -11,65 +36,86 @@ interface MenuItem {
     subtitle: string;
     onPress?: () => void;
     isLogout?: boolean;
+    rightElement?: React.ReactNode;
 }
-
-import { useLogoutMutation } from '@/hooks/queries/auth/useLogoutMutation';
-import { useRouter } from 'expo-router';
-import { useGetUnreadCountQuery } from '@/hooks/queries/notifications/useGetUnreadCountQuery';
 
 export default function MoreScreen() {
     const router = useRouter();
+    const { colors, themeMode, setThemeMode, isDark } = useAppTheme();
     const [logoutModalVisible, setLogoutModalVisible] = useState(false);
+    const [themeSheetVisible, setThemeSheetVisible] = useState(false);
     const { mutate: logout, isPending } = useLogoutMutation();
 
     const { data: unreadData } = useGetUnreadCountQuery();
     const unreadCount = unreadData?.data?.count || 0;
 
+    const currentThemeLabel =
+        THEME_OPTIONS.find((opt) => opt.mode === themeMode)?.label || 'System Default';
+
     const menuItems: MenuItem[] = [
         {
-            icon: <ProfileTick size={moderateScale(18)} color="rgba(255, 104, 19, 1)" variant="Linear" />,
+            icon: <ProfileTick size={moderateScale(18)} color={colors.primary} variant="Linear" />,
             title: 'My Profile',
             subtitle: 'Manage your profile and account details',
             onPress: () => router.push('/profile'),
         },
         {
-            icon: <ShieldSecurity size={moderateScale(18)} color="rgba(255, 104, 19, 1)" variant="Linear" />,
+            icon: <ShieldSecurity size={moderateScale(18)} color={colors.primary} variant="Linear" />,
             title: 'Security',
             subtitle: 'Update password, keep your account secure.',
             onPress: () => router.push('/security/change-password'),
         },
-        // {
-        //     icon: <Cards size={moderateScale(18)} color="rgba(255, 104, 19, 1)" variant="Linear" />,
-        //     title: 'Manage Cards',
-        //     subtitle: 'Update or remove your payment cards',
-        //     onPress: () => router.push('/security/change-password'),
-        // },
         {
-            icon: <Headphone size={moderateScale(18)} color="rgba(255, 104, 19, 1)" variant="Linear" />,
+            icon: isDark ? (
+                <Moon size={moderateScale(18)} color={colors.primaryLight} />
+            ) : (
+                <Sun size={moderateScale(18)} color={colors.primary} />
+            ),
+            title: 'Appearance',
+            subtitle: 'Switch between Light, Dark, and System Default',
+            onPress: () => setThemeSheetVisible(true),
+            rightElement: (
+                <View
+                    style={[
+                        styles.themeBadge,
+                        {
+                            backgroundColor: isDark ? 'rgba(255, 104, 19, 0.12)' : colors.primarySoft,
+                            borderColor: isDark ? 'rgba(255, 104, 19, 0.25)' : colors.primaryBorder,
+                        },
+                    ]}
+                >
+                    <Text style={[styles.themeBadgeText, { color: isDark ? colors.primaryLight : colors.primary }]}>
+                        {currentThemeLabel}
+                    </Text>
+                </View>
+            ),
+        },
+        {
+            icon: <Headphone size={moderateScale(18)} color={colors.primary} variant="Linear" />,
             title: 'Support',
             subtitle: 'Get help with app issues',
             onPress: () => router.push('/support'),
         },
         {
-            icon: <Judge size={moderateScale(18)} color="rgba(255, 104, 19, 1)" variant="Linear" />,
+            icon: <Judge size={moderateScale(18)} color={colors.primary} variant="Linear" />,
             title: 'Legals',
             subtitle: 'View terms, policies and compliance',
             onPress: () => router.push('https://www.sohcahtoapayoutbdc.com/terms-of-use-customer'),
         },
         {
-            icon: <Bookmark size={moderateScale(18)} color="rgba(255, 104, 19, 1)" variant="Linear" />,
+            icon: <Bookmark size={moderateScale(18)} color={colors.primary} variant="Linear" />,
             title: 'Payment history',
             subtitle: 'View and manege your payment history',
             onPress: () => router.push('/(more)/transient-history'),
         },
         {
-            icon: <MessageQuestion size={moderateScale(18)} color="rgba(255, 104, 19, 1)" variant="Linear" />,
+            icon: <MessageQuestion size={moderateScale(18)} color={colors.primary} variant="Linear" />,
             title: 'FAQs',
             subtitle: 'Get quick app answers about App',
             onPress: () => router.push('/faqs'),
         },
         {
-            icon: <LogoutCurve size={moderateScale(18)} color="rgba(255, 104, 19, 1)" variant="Linear" />,
+            icon: <LogoutCurve size={moderateScale(18)} color={colors.primary} variant="Linear" />,
             title: 'Log Out',
             subtitle: 'Log out of your account',
             isLogout: true,
@@ -78,40 +124,65 @@ export default function MoreScreen() {
     ];
 
     return (
-        <View style={styles.container}>
-            <Header title="More" rightIcon={
-                <TouchableOpacity onPress={() => router.push('/notifications')}>
-                    <Notification size={moderateScale(24)} color="#1E293B" variant="Linear" />
-                    {unreadCount > 0 && (
-                        <View style={styles.unreadBadge}>
-                            <Text style={styles.unreadText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
-                        </View>
-                    )}
-                </TouchableOpacity>
-            }
-                onRightPress={() => router.push('/notifications')} />
+        <AnimatedTabScreen style={[styles.container, { backgroundColor: colors.background }]}>
+            <Header
+                title="More"
+                rightIcon={
+                    <TouchableOpacity onPress={() => router.push('/notifications')}>
+                        <Notification size={moderateScale(24)} color={colors.icon} variant="Linear" />
+                        {unreadCount > 0 && (
+                            <View style={[styles.unreadBadge, { borderColor: colors.surface }]}>
+                                <Text style={styles.unreadText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                            </View>
+                        )}
+                    </TouchableOpacity>
+                }
+                onRightPress={() => router.push('/notifications')}
+            />
             <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent}>
                 {menuItems.map((item, index) => (
                     <Pressable
                         key={index}
                         style={({ pressed }) => [
                             styles.menuItem,
-                            pressed && styles.menuItemPressed
+                            { borderBottomColor: colors.divider },
+                            pressed && styles.menuItemPressed,
                         ]}
                         onPress={item.onPress}
                     >
-                        <View style={styles.iconContainer}>
+                        <View
+                            style={[
+                                styles.iconContainer,
+                                {
+                                    backgroundColor: isDark
+                                        ? 'rgba(255, 255, 255, 0.05)'
+                                        : colors.primarySoft,
+                                    borderColor: isDark
+                                        ? 'rgba(255, 255, 255, 0.08)'
+                                        : 'transparent',
+                                    borderWidth: isDark ? 1 : 0,
+                                },
+                            ]}
+                        >
                             {item.icon}
                         </View>
                         <View style={styles.textContainer}>
-                            <Text style={styles.itemTitle}>{item.title}</Text>
-                            <Text style={styles.itemSubtitle}>{item.subtitle}</Text>
+                            <Text style={[styles.itemTitle, { color: colors.text }]}>{item.title}</Text>
+                            <Text style={[styles.itemSubtitle, { color: colors.textMuted }]}>
+                                {item.subtitle}
+                            </Text>
                         </View>
+                        {item.rightElement}
                     </Pressable>
                 ))}
 
-                <Text style={styles.versionText}>App Version 1.0</Text>
+                <Text style={[styles.versionText, { color: colors.textMuted }]}>App Version 1.0</Text>
             </ScrollView>
+
+            <ThemeSelectionSheet
+                visible={themeSheetVisible}
+                onClose={() => setThemeSheetVisible(false)}
+            />
 
             <Modal
                 transparent
@@ -119,42 +190,49 @@ export default function MoreScreen() {
                 animationType="fade"
                 onRequestClose={() => setLogoutModalVisible(false)}
             >
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
-                        <View style={styles.warningIconContainer}>
-                            <InfoCircle size={moderateScale(24)} color="rgba(255, 104, 19, 1)" variant="Bold" />
+                <View style={[styles.modalOverlay, { backgroundColor: colors.overlay }]}>
+                    <Animated.View
+                        entering={FadeInDown.duration(200).springify().damping(24).stiffness(280)}
+                        style={styles.modalWrapper}
+                    >
+                        <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
+                            <View style={[styles.warningIconContainer, { backgroundColor: colors.primarySoft }]}>
+                                <InfoCircle size={moderateScale(24)} color={colors.primary} variant="Bold" />
+                            </View>
+
+                            <Text style={[styles.modalTitle, { color: colors.text }]}>Log Out</Text>
+                            <Text style={[styles.modalMessage, { color: colors.textMuted }]}>
+                                Are you sure you want to log out?
+                            </Text>
+
+                            <PrimaryButton
+                                title="Yes, Log out"
+                                loading={isPending}
+                                onPress={() => {
+                                    logout(undefined, {
+                                        onSuccess: () => {
+                                            setLogoutModalVisible(false);
+                                            router.replace('/(auth)/login');
+                                        },
+                                        onError: () => {
+                                            setLogoutModalVisible(false);
+                                        },
+                                    });
+                                }}
+                                style={{ marginBottom: moderateScale(12) }}
+                            />
+
+                            <PrimaryButton
+                                title="No, Cancel"
+                                onPress={() => setLogoutModalVisible(false)}
+                                style={{ backgroundColor: colors.buttonSecondaryBackground }}
+                                textStyle={{ color: colors.buttonSecondaryText }}
+                            />
                         </View>
-
-                        <Text style={styles.modalTitle}>Log Out</Text>
-                        <Text style={styles.modalMessage}>Are you sure you want to log out?</Text>
-
-                        <PrimaryButton
-                            title="Yes, Log out"
-                            loading={isPending}
-                            onPress={() => {
-                                logout(undefined, {
-                                    onSuccess: () => {
-                                        setLogoutModalVisible(false);
-                                        router.replace('/(auth)/login');
-                                    },
-                                    onError: () => {
-                                        setLogoutModalVisible(false);
-                                    }
-                                });
-                            }}
-                            style={{ marginBottom: moderateScale(12) }}
-                        />
-
-                        <PrimaryButton
-                            title="No, Cancel"
-                            onPress={() => setLogoutModalVisible(false)}
-                            style={{ backgroundColor: '#F1F5F9' }}
-                            textStyle={{ color: '#0F172A' }}
-                        />
-                    </View>
+                    </Animated.View>
                 </View>
             </Modal>
-        </View>
+        </AnimatedTabScreen>
     );
 }
 
@@ -171,6 +249,16 @@ const styles = ScaledSheet.create({
         padding: '20@ms',
         gap: '6@vs',
     },
+    themeBadge: {
+        paddingHorizontal: '10@s',
+        paddingVertical: '4@vs',
+        borderRadius: '12@ms',
+        borderWidth: 1,
+    },
+    themeBadgeText: {
+        fontSize: '11@ms',
+        fontWeight: '600',
+    },
     menuItem: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -178,7 +266,7 @@ const styles = ScaledSheet.create({
         paddingVertical: '8@vs',
         borderBottomWidth: 1,
         borderBottomColor: 'rgba(243, 244, 246, 1)',
-        paddingBottom: '6@vs'
+        paddingBottom: '6@vs',
     },
     menuItemPressed: {
         opacity: 0.7,
@@ -210,23 +298,15 @@ const styles = ScaledSheet.create({
         color: '#94A3B8',
         fontSize: '13@ms',
     },
-    notificationDot: {
-        position: 'absolute',
-        top: 0,
-        right: 0,
-        width: moderateScale(8),
-        height: moderateScale(8),
-        borderRadius: moderateScale(4),
-        backgroundColor: '#EF4444',
-        borderWidth: moderateScale(1.5),
-        borderColor: '#FFFFFF',
-    },
     modalOverlay: {
         flex: 1,
         backgroundColor: 'rgba(0, 0, 0, 0.5)',
         justifyContent: 'center',
         alignItems: 'center',
         padding: '20@ms',
+    },
+    modalWrapper: {
+        width: '100%',
     },
     modalContent: {
         backgroundColor: '#FFFFFF',
@@ -243,26 +323,21 @@ const styles = ScaledSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: '16@vs',
-        alignSelf: 'flex-start'
-    },
-    warningIcon: {
-        fontSize: '24@ms',
-        color: '#F97316',
-        fontWeight: 'bold',
+        alignSelf: 'flex-start',
     },
     modalTitle: {
         fontSize: '20@ms',
         fontWeight: '700',
         color: '#0F172A',
         marginBottom: '8@vs',
-        alignSelf: 'flex-start'
+        alignSelf: 'flex-start',
     },
     modalMessage: {
         fontSize: '16@ms',
         color: '#64748B',
         textAlign: 'left',
         marginBottom: '32@vs',
-        alignSelf: 'flex-start'
+        alignSelf: 'flex-start',
     },
     unreadBadge: {
         position: 'absolute',

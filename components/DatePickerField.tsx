@@ -5,6 +5,7 @@ import {
     Modal,
     NativeScrollEvent,
     NativeSyntheticEvent,
+    Platform,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -12,6 +13,7 @@ import {
 } from 'react-native';
 import { moderateScale, ScaledSheet, verticalScale } from 'react-native-size-matters';
 import PrimaryButton from './PrimaryButton';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -58,9 +60,15 @@ function parseDate(s: string): { day: number; month: number; year: number } | nu
 
 // ─── Memoized Item ───────────────────────────────────────────────────────────
 
-const DrumItem = React.memo(({ item, index, isSelected }: { item: string, index: number, isSelected: boolean }) => (
+const DrumItem = React.memo(({ item, isSelected, textColor, selectedColor }: { item: string, isSelected: boolean, textColor: string, selectedColor: string }) => (
     <View style={[drumStyles.item, { height: ITEM_HEIGHT }]}>
-        <Text style={[drumStyles.itemText, isSelected && drumStyles.itemTextSelected]}>
+        <Text
+            style={[
+                drumStyles.itemText,
+                { color: textColor },
+                isSelected && [drumStyles.itemTextSelected, { color: selectedColor }],
+            ]}
+        >
             {item}
         </Text>
     </View>
@@ -74,9 +82,22 @@ interface DrumColumnProps {
     selectedIndex: number;
     onIndexChange: (index: number) => void;
     width: number | string;
+    selectionBg: string;
+    selectionBorder: string;
+    textColor: string;
+    selectedColor: string;
 }
 
-function DrumColumn({ items, selectedIndex, onIndexChange, width }: DrumColumnProps) {
+function DrumColumn({
+    items,
+    selectedIndex,
+    onIndexChange,
+    width,
+    selectionBg,
+    selectionBorder,
+    textColor,
+    selectedColor,
+}: DrumColumnProps) {
     const listRef = useRef<FlatList>(null);
     const isScrolling = useRef(false);
 
@@ -122,14 +143,23 @@ function DrumColumn({ items, selectedIndex, onIndexChange, width }: DrumColumnPr
                 pointerEvents="none"
                 style={[
                     drumStyles.selectionHighlight,
-                    { top: ITEM_HEIGHT * Math.floor(VISIBLE_ITEMS / 2) },
+                    {
+                        top: ITEM_HEIGHT * Math.floor(VISIBLE_ITEMS / 2),
+                        backgroundColor: selectionBg,
+                        borderColor: selectionBorder,
+                    },
                 ]}
             />
             <FlatList
                 ref={listRef}
                 data={items}
                 renderItem={({ item, index }) => (
-                    <DrumItem item={item} index={index} isSelected={index === selectedIndex} />
+                    <DrumItem
+                        item={item}
+                        isSelected={index === selectedIndex}
+                        textColor={textColor}
+                        selectedColor={selectedColor}
+                    />
                 )}
                 keyExtractor={(_, i) => i.toString()}
                 showsVerticalScrollIndicator={false}
@@ -165,11 +195,9 @@ const drumStyles = StyleSheet.create({
         left: 0,
         right: 0,
         height: ITEM_HEIGHT,
-        backgroundColor: '#FFF7ED',
         zIndex: 0,
         borderTopWidth: 1,
         borderBottomWidth: 1,
-        borderColor: '#FF6B2C33',
     },
     item: {
         justifyContent: 'center',
@@ -178,11 +206,9 @@ const drumStyles = StyleSheet.create({
     },
     itemText: {
         fontSize: moderateScale(15),
-        color: '#94A3B8',
         fontWeight: '400',
     },
     itemTextSelected: {
-        color: '#0F172A',
         fontWeight: '700',
         fontSize: moderateScale(17),
     },
@@ -213,6 +239,7 @@ const DatePickerField: React.FC<DatePickerFieldProps> = ({
     maximumDate,
     error,
 }) => {
+    const { colors, isDark } = useAppTheme();
     const [showPicker, setShowPicker] = useState(false);
 
     const [tempDay, setTempDay] = useState(1);
@@ -252,21 +279,33 @@ const DatePickerField: React.FC<DatePickerFieldProps> = ({
         if (tempDay > max) setTempDay(max);
     }, [tempMonth, tempYear, tempDay]);
 
+    const selectionBg = isDark ? 'rgba(255, 107, 44, 0.15)' : '#FFF7ED';
+    const selectionBorder = isDark ? 'rgba(255, 107, 44, 0.4)' : '#FF6B2C33';
+
     return (
         <View style={styles.container}>
-            <Text style={styles.label}>
+            <Text style={[styles.label, { color: colors.label }]} numberOfLines={1}>
                 {label}{required && <Text style={styles.required}> *</Text>}
             </Text>
 
             <TouchableOpacity
-                style={[styles.inputWrapper, error ? styles.inputError : undefined]}
+                style={[
+                    styles.inputWrapper,
+                    { borderColor: colors.border, backgroundColor: colors.inputBackground },
+                    error ? styles.inputError : undefined,
+                ]}
                 onPress={handleOpen}
                 activeOpacity={0.7}
             >
-                <Text style={[styles.input, !value && styles.placeholder, !!value && { color: '#0F172A' }]}>
+                <Text
+                    style={[
+                        styles.input,
+                        { color: value ? colors.text : colors.placeholder },
+                    ]}
+                >
                     {value || placeholder}
                 </Text>
-                <Calendar size={moderateScale(20)} color="#64748B" />
+                <Calendar size={moderateScale(20)} color={colors.icon} />
             </TouchableOpacity>
 
             {error && <Text style={styles.errorText}>{typeof error === 'string' ? error : (error as any).message || String(error)}</Text>}
@@ -277,13 +316,13 @@ const DatePickerField: React.FC<DatePickerFieldProps> = ({
                 visible={showPicker}
                 onRequestClose={handleCancel}
             >
-                <View style={styles.overlay}>
+                <View style={[styles.overlay, { backgroundColor: colors.overlay }]}>
                     <TouchableOpacity style={styles.backdrop} onPress={handleCancel} activeOpacity={1} />
 
-                    <View style={styles.sheetContent}>
+                    <View style={[styles.sheetContent, { backgroundColor: colors.surface }]}>
                         <View style={styles.sheetHeader}>
-                            <View style={styles.sheetHandle} />
-                            <Text style={styles.sheetTitle}>{label}</Text>
+                            <View style={[styles.sheetHandle, { backgroundColor: colors.handleBar }]} />
+                            <Text style={[styles.sheetTitle, { color: colors.text }]}>{label}</Text>
                         </View>
 
                         <View style={styles.drumRow}>
@@ -292,23 +331,35 @@ const DatePickerField: React.FC<DatePickerFieldProps> = ({
                                 items={days.map(d => pad(d))}
                                 selectedIndex={days.indexOf(tempDay)}
                                 onIndexChange={idx => setTempDay(days[idx])}
+                                selectionBg={selectionBg}
+                                selectionBorder={selectionBorder}
+                                textColor={colors.textMuted}
+                                selectedColor={colors.text}
                             />
                             <DrumColumn
                                 width="40%"
                                 items={MONTH_LABELS_SHORT}
                                 selectedIndex={tempMonth - 1}
                                 onIndexChange={idx => setTempMonth(idx + 1)}
+                                selectionBg={selectionBg}
+                                selectionBorder={selectionBorder}
+                                textColor={colors.textMuted}
+                                selectedColor={colors.text}
                             />
                             <DrumColumn
                                 width="30%"
                                 items={years.map(String)}
                                 selectedIndex={years.indexOf(tempYear)}
                                 onIndexChange={idx => setTempYear(years[idx])}
+                                selectionBg={selectionBg}
+                                selectionBorder={selectionBorder}
+                                textColor={colors.textMuted}
+                                selectedColor={colors.text}
                             />
                         </View>
 
-                        <View style={styles.previewRow}>
-                            <Text style={styles.previewText}>
+                        <View style={[styles.previewRow, { backgroundColor: colors.card }]}>
+                            <Text style={[styles.previewText, { color: colors.text }]}>
                                 {MONTHS[tempMonth - 1]} {tempDay}, {tempYear}
                             </Text>
                         </View>
@@ -316,7 +367,7 @@ const DatePickerField: React.FC<DatePickerFieldProps> = ({
                         <View style={styles.buttonContainer}>
                             <PrimaryButton title="Confirm" onPress={handleConfirm} />
                             <TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
-                                <Text style={styles.cancelButtonText}>Cancel</Text>
+                                <Text style={[styles.cancelButtonText, { color: colors.textMuted }]}>Cancel</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -331,8 +382,8 @@ const styles = ScaledSheet.create({
         marginBottom: '4@vs',
     },
     label: {
-        fontSize: '13@ms',
-        fontWeight: '500',
+        fontSize: '12.5@ms',
+        fontWeight: '400',
         color: '#475569',
         marginBottom: '8@vs',
     },
@@ -343,12 +394,12 @@ const styles = ScaledSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        height: '48@vs',
+        height: Platform.OS === 'android' ? '49@vs' : '40@vs',
         borderWidth: 1,
-        borderColor: '#E2E8F0',
-        borderRadius: '30@ms',
-        paddingHorizontal: '16@s',
-        backgroundColor: '#FFFFFF',
+        borderColor: 'rgba(143, 139, 139, 1)',
+        borderRadius: '28@ms',
+        paddingHorizontal: '14@s',
+        backgroundColor: 'transparent',
     },
     input: {
         flex: 1,

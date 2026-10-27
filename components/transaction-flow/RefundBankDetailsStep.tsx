@@ -5,6 +5,7 @@ import { moderateScale } from 'react-native-size-matters';
 import { useGetSavedAccountsQuery } from '@/hooks/queries/banks/useGetSavedAccountsQuery';
 
 import { SavedAccount, DomiciliaryAccount, RefundBankDetailsStepProps } from '@/types/transaction-flow';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 export { SavedAccount, DomiciliaryAccount };
 
@@ -19,6 +20,7 @@ export default function RefundBankDetailsStep({
     isDomiciliary = false,
     domiciliaryAccount,
 }: RefundBankDetailsStepProps) {
+    const { colors, isDark } = useAppTheme();
     const { data: savedAccountsResponse, isLoading } = useGetSavedAccountsQuery();
 
     // console.log(JSON.stringify(savedAccountsResponse?.data, null, 2), "REFUND BANK DETAILS")
@@ -96,10 +98,10 @@ export default function RefundBankDetailsStep({
 
         return (
             <View style={{ gap: moderateScale(14) }}>
-                <Text style={{ fontSize: moderateScale(15), fontWeight: '700', color: '#0F172A', marginBottom: moderateScale(4) }}>
+                <Text style={{ fontSize: moderateScale(15), fontWeight: '700', color: colors.text, marginBottom: moderateScale(4) }}>
                     {title}
                 </Text>
-                <Text style={{ fontSize: moderateScale(13), color: '#64748B', fontWeight: '500', marginBottom: moderateScale(8) }}>
+                <Text style={{ fontSize: moderateScale(13), color: colors.textMuted, fontWeight: '500', marginBottom: moderateScale(8) }}>
                     Enter your domiciliary account details for refunds if your transaction cannot be processed.
                 </Text>
 
@@ -123,8 +125,8 @@ export default function RefundBankDetailsStep({
                             }}
                             style={{
                                 borderWidth: isSelected ? 1.5 : 1,
-                                borderColor: isSelected ? '#FF6B2C' : '#E2E8F0',
-                                backgroundColor: isSelected ? '#FFF7ED' : '#FFFFFF',
+                                borderColor: isSelected ? colors.primary : colors.border,
+                                backgroundColor: isSelected ? (isDark ? 'rgba(255, 107, 44, 0.15)' : '#FFF7ED') : colors.card,
                                 borderRadius: moderateScale(12),
                                 paddingVertical: moderateScale(16),
                                 paddingHorizontal: moderateScale(16),
@@ -132,17 +134,17 @@ export default function RefundBankDetailsStep({
                         >
                             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                                 <View style={{ flex: 1 }}>
-                                    <Text style={{ fontSize: moderateScale(14), fontWeight: '700', color: '#0F172A', marginBottom: moderateScale(4) }}>
+                                    <Text style={{ fontSize: moderateScale(14), fontWeight: '700', color: colors.text, marginBottom: moderateScale(4) }}>
                                         {account.bankName}
                                     </Text>
-                                    <Text style={{ fontSize: moderateScale(13), color: '#64748B', fontWeight: '500' }}>
-                                        {account.accountNumber} <Text style={{ color: '#E2E8F0' }}>|</Text> {account.accountName}
+                                    <Text style={{ fontSize: moderateScale(13), color: colors.textMuted, fontWeight: '500' }}>
+                                        {account.accountNumber} <Text style={{ color: colors.divider }}>|</Text> {account.accountName}
                                     </Text>
                                 </View>
                                 <Ionicons
                                     name={isSelected ? "checkmark-circle" : "ellipse-outline"}
                                     size={moderateScale(20)}
-                                    color={isSelected ? "#FF6B2C" : "#64748B"}
+                                    color={isSelected ? colors.primary : colors.textMuted}
                                 />
                             </View>
                         </TouchableOpacity>
@@ -152,15 +154,15 @@ export default function RefundBankDetailsStep({
                 {domiciliaryAccounts.length === 0 && (
                     <View style={{
                         padding: moderateScale(16),
-                        backgroundColor: '#F8F9FA',
+                        backgroundColor: isDark ? colors.surface : '#F8F9FA',
                         borderRadius: moderateScale(12),
                         borderWidth: 1,
-                        borderColor: '#E2E8F0',
+                        borderColor: colors.border,
                         borderStyle: 'dashed',
                         alignItems: 'center',
                         justifyContent: 'center',
                     }}>
-                        <Text style={{ fontSize: moderateScale(13), color: '#64748B', textAlign: 'center', fontWeight: '500' }}>
+                        <Text style={{ fontSize: moderateScale(13), color: colors.textMuted, textAlign: 'center', fontWeight: '500' }}>
                             No domiciliary account added yet. Please add one to proceed.
                         </Text>
                     </View>
@@ -196,10 +198,10 @@ export default function RefundBankDetailsStep({
 
     return (
         <View style={{ gap: moderateScale(14) }}>
-            <Text style={{ fontSize: moderateScale(13), fontWeight: '700', color: '#0F172A', marginBottom: moderateScale(4) }}>
+            <Text style={{ fontSize: moderateScale(13), fontWeight: '700', color: colors.text, marginBottom: moderateScale(4) }}>
                 {title}
             </Text>
-            <Text style={{ fontSize: moderateScale(13), color: '#64748B', fontWeight: '500', marginBottom: moderateScale(8) }}>
+            <Text style={{ fontSize: moderateScale(13), color: colors.textMuted, fontWeight: '500', marginBottom: moderateScale(8) }}>
                 {description}
             </Text>
             
@@ -219,8 +221,8 @@ export default function RefundBankDetailsStep({
                         }}
                         style={{
                             borderWidth: isSelected ? 1.5 : 1,
-                            borderColor: isSelected ? '#FF6B2C' : '#E2E8F0',
-                            backgroundColor: isSelected ? '#FFF7ED' : '#FFFFFF',
+                            borderColor: isSelected ? colors.primary : colors.border,
+                            backgroundColor: isSelected ? (isDark ? 'rgba(255, 107, 44, 0.15)' : '#FFF7ED') : colors.card,
                             borderRadius: moderateScale(12),
                             paddingVertical: moderateScale(16),
                             paddingHorizontal: moderateScale(16),
@@ -228,17 +230,17 @@ export default function RefundBankDetailsStep({
                     >
                         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                             <View style={{ flex: 1 }}>
-                                <Text style={{ fontSize: moderateScale(14), fontWeight: '700', color: '#0F172A', marginBottom: moderateScale(4) }}>
+                                <Text style={{ fontSize: moderateScale(14), fontWeight: '700', color: colors.text, marginBottom: moderateScale(4) }}>
                                     {account.bankName}
                                 </Text>
-                                <Text style={{ fontSize: moderateScale(13), color: '#64748B', fontWeight: '500' }}>
-                                    {account.accountNumber} <Text style={{ color: '#E2E8F0' }}>|</Text> {account.accountName}
+                                <Text style={{ fontSize: moderateScale(13), color: colors.textMuted, fontWeight: '500' }}>
+                                    {account.accountNumber} <Text style={{ color: colors.divider }}>|</Text> {account.accountName}
                                 </Text>
                             </View>
                             <Ionicons
                                 name={isSelected ? "checkmark-circle" : "ellipse-outline"}
                                 size={moderateScale(20)}
-                                color={isSelected ? "#FF6B2C" : "#64748B"}
+                                color={isSelected ? colors.primary : colors.textMuted}
                             />
                         </View>
                     </TouchableOpacity>
@@ -248,15 +250,15 @@ export default function RefundBankDetailsStep({
             {(!displayLocalAccounts || displayLocalAccounts.length === 0) && (
                 <View style={{
                     padding: moderateScale(16),
-                    backgroundColor: '#F8F9FA',
+                    backgroundColor: isDark ? colors.surface : '#F8F9FA',
                     borderRadius: moderateScale(12),
                     borderWidth: 1,
-                    borderColor: '#E2E8F0',
+                    borderColor: colors.border,
                     borderStyle: 'dashed',
                     alignItems: 'center',
                     justifyContent: 'center',
                 }}>
-                    <Text style={{ fontSize: moderateScale(13), color: '#64748B', textAlign: 'center', fontWeight: '500' }}>
+                    <Text style={{ fontSize: moderateScale(13), color: colors.textMuted, textAlign: 'center', fontWeight: '500' }}>
                         No saved accounts found. Please add one to proceed.
                     </Text>
                 </View>

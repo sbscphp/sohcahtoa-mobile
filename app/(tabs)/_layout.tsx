@@ -1,35 +1,90 @@
 import MoneyExchange from '@/assets/images/money-exchange-03.svg';
-import { useAuthStore } from '@/stores/useAuthStore';
+import { useLiquidGlassAvailable } from '@/components/ui/LiquidGlassView';
+import { useAppTheme } from '@/context/ThemeContext';
+import * as Haptics from 'expo-haptics';
 import { Tabs } from 'expo-router';
+import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import { Home, More } from 'iconsax-react-nativejs';
 import { TrendingUp } from 'lucide-react-native';
 import React from 'react';
-import { Text, useColorScheme, View } from 'react-native';
-import { Colors } from '../../constants/theme';
+import { Platform } from 'react-native';
+
+const TAB_HOME_ICON = require('@/assets/icons/tabs/tab-home.png');
+const TAB_TRANSACTION_ICON = require('@/assets/icons/tabs/tab-transaction.png');
+const TAB_FX_RATE_ICON = require('@/assets/icons/tabs/tab-fx-rate.png');
+const TAB_MORE_ICON = require('@/assets/icons/tabs/tab-more.png');
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-  const theme = colorScheme === 'dark' ? 'dark' : 'light';
-  const tintColor = Colors[theme].tint;
-  const user = useAuthStore((state) => state.user);
+  const { colors } = useAppTheme();
+  const tintColor = colors.tabIconSelected;
+  const inactiveTintColor = colors.tabIconDefault;
+  const canUseLiquidGlass = useLiquidGlassAvailable();
 
-  const getInitials = () => {
-    if (!user?.profile) return 'U';
-    const first = user.profile.firstName ? user.profile.firstName.charAt(0) : '';
-    const last = user.profile.lastName ? user.profile.lastName.charAt(0) : '';
-    return `${first}${last}`.toUpperCase() || 'U';
+  const triggerTabHaptic = () => {
+    if (Platform.OS !== 'web') {
+      Haptics.selectionAsync().catch(() => {});
+    }
   };
+
+  if (canUseLiquidGlass) {
+    return (
+      <NativeTabs
+        minimizeBehavior="onScrollDown"
+        tintColor={tintColor}
+        iconColor={{
+          default: inactiveTintColor,
+          selected: tintColor,
+        }}
+        labelStyle={{
+          default: {
+            fontSize: 11,
+            fontWeight: '500',
+            color: inactiveTintColor,
+          },
+          selected: {
+            fontSize: 11,
+            fontWeight: '600',
+            color: tintColor,
+          },
+        }}
+        screenListeners={{
+          tabPress: triggerTabHaptic,
+        }}
+      >
+        <NativeTabs.Trigger name="index">
+          <NativeTabs.Trigger.Icon src={TAB_HOME_ICON} renderingMode="template" />
+          <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
+        </NativeTabs.Trigger>
+        <NativeTabs.Trigger name="transaction">
+          <NativeTabs.Trigger.Icon src={TAB_TRANSACTION_ICON} renderingMode="template" />
+          <NativeTabs.Trigger.Label>Transaction</NativeTabs.Trigger.Label>
+        </NativeTabs.Trigger>
+        <NativeTabs.Trigger name="fx-rate">
+          <NativeTabs.Trigger.Icon src={TAB_FX_RATE_ICON} renderingMode="template" />
+          <NativeTabs.Trigger.Label>FX Rate</NativeTabs.Trigger.Label>
+        </NativeTabs.Trigger>
+        <NativeTabs.Trigger name="more">
+          <NativeTabs.Trigger.Icon src={TAB_MORE_ICON} renderingMode="template" />
+          <NativeTabs.Trigger.Label>More</NativeTabs.Trigger.Label>
+        </NativeTabs.Trigger>
+      </NativeTabs>
+    );
+  }
 
   return (
     <Tabs
+      screenListeners={{
+        tabPress: triggerTabHaptic,
+      }}
       screenOptions={{
+        animation: 'fade',
         tabBarActiveTintColor: tintColor,
-        tabBarInactiveTintColor: '#94A3B8',
+        tabBarInactiveTintColor: inactiveTintColor,
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: '#FFFFFF',
+          backgroundColor: colors.tabBarBackground,
           borderTopWidth: 1,
-          borderTopColor: '#F1F5F9',
+          borderTopColor: colors.tabBarBorder,
           height: 90,
           paddingTop: 10,
         },
@@ -37,15 +92,14 @@ export default function TabLayout() {
           fontSize: 12,
           fontWeight: '500',
           marginBottom: 10,
-        }
-      }}>
+        },
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color }) => (
-            <Home size={24} color={color} />
-          ),
+          tabBarIcon: ({ color }) => <Home size={24} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -66,24 +120,7 @@ export default function TabLayout() {
         name="more"
         options={{
           title: 'More',
-          tabBarIcon: ({ color, focused }) => (focused ?
-            <View
-              style={{
-                width: 28,
-                height: 28,
-                borderRadius: 14,
-                backgroundColor: '#F3F4F6',
-                borderWidth: focused ? 2 : 0,
-                borderColor: color,
-                justifyContent: 'center',
-                alignItems: 'center'
-              }}
-            >
-              <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#1F2937' }}>
-                {getInitials()}
-              </Text>
-            </View>
-            : <More size={24} color={color} />),
+          tabBarIcon: ({ color }) => <More size={24} color={color} />,
         }}
       />
     </Tabs>

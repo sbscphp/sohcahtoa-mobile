@@ -4,6 +4,7 @@ import React from 'react';
 import { Text, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import { TransactionStatus } from './TransactionStatusView';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 export interface DocUploadItem {
     id?: string;
@@ -31,6 +32,7 @@ export interface TransactionDocsViewProps {
 }
 
 export default function TransactionDocsView({ status, documents }: TransactionDocsViewProps) {
+    const { colors } = useAppTheme();
 
     const getDocStatus = (docStatus?: string): 'approved' | 'rejected' | 'review' | 'pending' => {
         if (docStatus === 'VERIFIED' || docStatus === 'APPROVED') return 'approved';
@@ -83,9 +85,9 @@ export default function TransactionDocsView({ status, documents }: TransactionDo
                 if (isInitialsDoc && displayValue) {
                     return (
                         <View key={index} style={styles.docCardContainer}>
-                            <View style={styles.valueRow}>
-                                <Text style={styles.detailLabel}>{doc.label}</Text>
-                                <Text style={styles.detailValue}>{displayValue}</Text>
+                            <View style={[styles.valueRow, { borderBottomColor: colors.border }]}>
+                                <Text style={[styles.detailLabel, { color: colors.textMuted }]}>{doc.label}</Text>
+                                <Text style={[styles.detailValue, { color: colors.text }]}>{displayValue}</Text>
                             </View>
                         </View>
                     );
@@ -95,7 +97,7 @@ export default function TransactionDocsView({ status, documents }: TransactionDo
                     return (
                         <View key={index} style={styles.docCardContainer}>
                             <View style={styles.docHeaderRow}>
-                                <Text style={styles.docTitle}>
+                                <Text style={[styles.docTitle, { color: colors.text }]}>
                                     {doc.label} {doc.required && <Text style={styles.required}>*</Text>}
                                 </Text>
                             </View>
@@ -134,7 +136,7 @@ export default function TransactionDocsView({ status, documents }: TransactionDo
                 return (
                     <View key={index} style={styles.docCardContainer}>
                         <View style={styles.docHeaderRow}>
-                            <Text style={styles.docTitle}>{doc.label} {doc.required && <Text style={styles.required}>*</Text>}</Text>
+                            <Text style={[styles.docTitle, { color: colors.text }]}>{doc.label} {doc.required && <Text style={styles.required}>*</Text>}</Text>
                         </View>
                         <FileUpload
                             onUpload={onUpload || (() => { })}

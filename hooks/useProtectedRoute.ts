@@ -9,10 +9,10 @@ export function useProtectedRoute() {
 
     useEffect(() => {
         const inAuthGroup = segments[0] === '(auth)';
-        const hasSeenPrompt = useAuthStore.getState().hasSeenNotificationPrompt;
+        const hasSeenPrompt = useAuthStore.getState?.()?.hasSeenNotificationPrompt ?? true;
 
         if (!isAuthenticated && !inAuthGroup && segments[0] !== undefined) {
-            router.replace('/');
+            router.replace('/(auth)/login');
         } else if (isAuthenticated) {
             if (!hasSeenPrompt) {
                 if (segments[1] !== 'allow-notifications') {
@@ -22,5 +22,5 @@ export function useProtectedRoute() {
                 router.replace('/(tabs)');
             }
         }
-    }, [isAuthenticated, segments]);
+    }, [isAuthenticated, segments, router]);
 }

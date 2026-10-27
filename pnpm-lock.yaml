@@ -164,6 +164,12 @@ importers:
         specifier: ^5.0.11
         version: 5.0.15(@types/react@19.2.18)(react@19.2.0)(use-sync-external-store@1.7.0(react@19.2.0))
     devDependencies:
+      '@rnrepo/build-tools':
+        specifier: ^0.2.2
+        version: 0.2.2
+      '@rnrepo/expo-config-plugin':
+        specifier: ^0.3.6
+        version: 0.3.6(expo@55.0.31)(react-native@0.83.10(@babel/core@7.29.7)(@types/react@19.2.18)(react@19.2.0))(react@19.2.0)
       '@testing-library/react-native':
         specifier: ^13.3.3
         version: 13.3.3(jest@29.7.0(@types/node@26.5.1))(react-native@0.83.10(@babel/core@7.29.7)(@types/react@19.2.18)(react@19.2.0))(react-test-renderer@19.3.0(react@19.2.0))(react@19.2.0)
@@ -1551,6 +1557,16 @@ packages:
 
   '@react-navigation/routers@7.6.4':
     resolution: {integrity: sha512-GI7eJm8/KsZUQaYcXvEExikKurRZRgEsSzyZ7faENfi65yqJBCXjDMwyN1pF6pNW1MoLH1ErDwDivFxY6BzD3w==}
+
+  '@rnrepo/build-tools@0.2.2':
+    resolution: {integrity: sha512-bdFYCVO7y9cIVEWzabY0ozCYuTkgHZ3rVhFvRHCL1xIfv0ecBL2e66fdYVmrxMJhQtQWLdSSowGmtwcobFnqIg==}
+
+  '@rnrepo/expo-config-plugin@0.3.6':
+    resolution: {integrity: sha512-0MeRTgNwfCq9yvpt2/L130KClz2+WsiBDVCKSLuS29m4/XJElEkJPf2y8AP8BrbMOFhMUcolg3fGGkJFloO70Q==}
+    peerDependencies:
+      expo: '*'
+      react: '*'
+      react-native: '*'
 
   '@rtsao/scc@1.1.0':
     resolution: {integrity: sha512-zt6OdqaDoOnJ1ZYsCYGt9YmWzDXl4vQdKTyJev62gFhRGKdx7mcT54V9KIjg+d2wi9EXsPvAPKe7i7WjfVWB8g==}
@@ -7058,6 +7074,19 @@ snapshots:
   '@react-navigation/routers@7.6.4':
     dependencies:
       nanoid: 3.3.19
+
+  '@rnrepo/build-tools@0.2.2': {}
+
+  '@rnrepo/expo-config-plugin@0.3.6(expo@55.0.31)(react-native@0.83.10(@babel/core@7.29.7)(@types/react@19.2.18)(react@19.2.0))(react@19.2.0)':
+    dependencies:
+      '@expo/config-plugins': 55.0.11
+      '@expo/config-types': 55.0.6
+      '@rnrepo/build-tools': 0.2.2
+      expo: 55.0.31(@babel/core@7.29.7)(@expo/dom-webview@55.0.6)(@expo/metro-runtime@55.0.12)(expo-router@55.0.18)(react-dom@19.2.0(react@19.2.0))(react-native-webview@14.0.1(react-native@0.83.10(@babel/core@7.29.7)(@types/react@19.2.18)(react@19.2.0))(react@19.2.0))(react-native-worklets@0.7.4(@babel/core@7.29.7)(react-native@0.83.10(@babel/core@7.29.7)(@types/react@19.2.18)(react@19.2.0))(react@19.2.0))(react-native@0.83.10(@babel/core@7.29.7)(@types/react@19.2.18)(react@19.2.0))(react@19.2.0)(typescript@5.9.3)
+      react: 19.2.0
+      react-native: 0.83.10(@babel/core@7.29.7)(@types/react@19.2.18)(react@19.2.0)
+    transitivePeerDependencies:
+      - supports-color
 
   '@rtsao/scc@1.1.0': {}
 

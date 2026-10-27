@@ -1,20 +1,28 @@
 import { GlobalToast } from '@/components/GlobalToast';
+import InactiveSessionTracker from '@/components/InactiveSessionTracker';
 import { QueryProvider } from '@/components/QueryProvider';
-import { Inter_300Light, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, useFonts } from '@expo-google-fonts/inter';
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { AppThemeProvider, useAppTheme } from '@/context/ThemeContext';
+import { useProtectedRoute } from '@/hooks/useProtectedRoute';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
+import { useAuthStore } from '@/stores/useAuthStore';
+import { useThemeStore } from '@/stores/useThemeStore';
+import { clearStoredCredentials } from '@/utils/biometrics';
+import {
+  Inter_300Light,
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+  useFonts,
+} from '@expo-google-fonts/inter';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { clearStoredCredentials } from '@/utils/biometrics';
-import { useAuthStore } from '@/stores/useAuthStore';
-import InactiveSessionTracker from '@/components/InactiveSessionTracker';
-
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useProtectedRoute } from '@/hooks/useProtectedRoute';
-import { usePushNotifications } from '@/hooks/usePushNotifications';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -26,12 +34,21 @@ export const unstable_settings = {
 function InitialLayout() {
   useProtectedRoute();
   usePushNotifications();
+  const { colors } = useAppTheme();
 
   return (
-    <Stack>
-      <Stack.Screen name="index" options={{ headerShown: false }} />
-      <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        animation: 'ios_from_right',
+        gestureEnabled: true,
+        fullScreenGestureEnabled: true,
+        contentStyle: { backgroundColor: colors.background },
+      }}
+    >
+      <Stack.Screen name="index" options={{ headerShown: false, animation: 'fade' }} />
+      <Stack.Screen name="(auth)" options={{ headerShown: false, animation: 'fade' }} />
+      <Stack.Screen name="(tabs)" options={{ headerShown: false, animation: 'fade' }} />
       <Stack.Screen name="(buy-fx)" options={{ headerShown: false }} />
       <Stack.Screen name="(sell-fx)" options={{ headerShown: false }} />
       <Stack.Screen name="all-transactions" options={{ headerShown: false }} />
@@ -44,8 +61,23 @@ function InitialLayout() {
   );
 }
 
+function ThemedRootContent() {
+  const { navigationTheme, isDark, colors } = useAppTheme();
+
+  return (
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.background }}>
+      <ThemeProvider value={navigationTheme}>
+        <InactiveSessionTracker>
+          <InitialLayout />
+          <GlobalToast />
+          <StatusBar style={isDark ? 'light' : 'dark'} />
+        </InactiveSessionTracker>
+      </ThemeProvider>
+    </GestureHandlerRootView>
+  );
+}
+
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
   const [loaded, error] = useFonts({
     Inter_300Light,
     Inter_400Regular,
@@ -69,17 +101,28 @@ export default function RootLayout() {
   useEffect(() => {
     const initApp = async () => {
       try {
-       
-        await new Promise<void>((resolve) => {
-          if (useAuthStore.persist.hasHydrated()) {
-            resolve();
-          } else {
-            const unsub = useAuthStore.persist.onFinishHydration(() => {
-              unsub();
+        await Promise.all([
+          new Promise<void>((resolve) => {
+            if (useAuthStore.persist.hasHydrated()) {
               resolve();
-            });
-          }
-        });
+            } else {
+              const unsub = useAuthStore.persist.onFinishHydration(() => {
+                unsub();
+                resolve();
+              });
+            }
+          }),
+          new Promise<void>((resolve) => {
+            if (useThemeStore.persist.hasHydrated()) {
+              resolve();
+            } else {
+              const unsub = useThemeStore.persist.onFinishHydration(() => {
+                unsub();
+                resolve();
+              });
+            }
+          }),
+        ]);
 
         // Perform first run check
         const hasRunBefore = await AsyncStorage.getItem('has_run_before');
@@ -108,13 +151,9 @@ export default function RootLayout() {
 
   return (
     <QueryProvider>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <InactiveSessionTracker>
-          <InitialLayout />
-          <GlobalToast />
-          <StatusBar style="auto" />
-        </InactiveSessionTracker>
-      </ThemeProvider>
+      <AppThemeProvider>
+        <ThemedRootContent />
+      </AppThemeProvider>
     </QueryProvider>
   );
 }

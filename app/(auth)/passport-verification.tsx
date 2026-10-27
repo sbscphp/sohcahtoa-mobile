@@ -1,4 +1,5 @@
 import ProgressBar from '@/components/ProgressBar';
+import { useAppTheme } from '@/context/ThemeContext';
 import { useUploadPassportMutation } from '@/hooks/queries/auth/useUploadPassportMutation';
 import { useVerifyExpatriatePassportMutation } from '@/hooks/queries/auth/useVerifyExpatriatePassportMutation';
 import { useVerifyPassportMutation } from '@/hooks/queries/auth/useVerifyPassportMutation';
@@ -22,6 +23,7 @@ import PrimaryButton from '../../components/PrimaryButton';
 export default function PassportVerificationScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
+    const { colors } = useAppTheme();
     const { userType } = useLocalSearchParams<{ userType?: string }>();
     const isExpatriate = userType === 'expatriate';
     const showToast = useToastStore((state) => state.showToast);
@@ -203,19 +205,19 @@ export default function PassportVerificationScreen() {
     };
 
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
             <LoadingBackdrop visible={isUploadingDoc} />
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                style={styles.container}
+                style={[styles.container, { backgroundColor: colors.background }]}
             >
                 <AuthHeader title="Upload Passport." />
                 <ScrollView contentContainerStyle={[styles.contentContainer, { paddingBottom: insets.bottom + 100 }]} showsVerticalScrollIndicator={false}>
                     <ProgressBar step={1} totalSteps={3} />
 
                     <View style={styles.headerSection}>
-                        <Text style={styles.title}>Verify Your Identity</Text>
-                        <Text style={styles.subtitle}>
+                        <Text style={[styles.title, { color: colors.text }]}>Verify Your Identity</Text>
+                        <Text style={[styles.subtitle, { color: colors.textMuted }]}>
                             {isExpatriate
                                 ? 'We require your international passport to confirm your identity as an expatriate'
                                 : 'We require your international passport to confirm your identity as a tourist'}
@@ -250,7 +252,7 @@ export default function PassportVerificationScreen() {
                             />
                         </View>
                         <View style={styles.uploadSection}>
-                            <Text style={styles.label}>
+                            <Text style={[styles.label, { color: colors.textSecondary }]}>
                                 Upload International Passport <Text style={styles.required}>*</Text>
                             </Text>
                             <FileUpload
@@ -268,7 +270,7 @@ export default function PassportVerificationScreen() {
                     </View>
                 </ScrollView>
 
-                <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
+                <View style={[styles.footer, { paddingBottom: insets.bottom + 20, backgroundColor: colors.background, borderTopColor: colors.divider }]}>
                     <PrimaryButton
                         title="Verify Passport"
                         onPress={handleSubmit(onSubmit)}

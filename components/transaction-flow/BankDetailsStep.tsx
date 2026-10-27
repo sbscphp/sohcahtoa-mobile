@@ -2,15 +2,17 @@ import ControlledInput from '@/components/ControlledInput';
 import React from 'react';
 import { Text, View } from 'react-native';
 import { ScaledSheet } from 'react-native-size-matters';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 interface BankDetailsStepProps {
     control: any;
 }
 
 export default function BankDetailsStep({ control }: BankDetailsStepProps) {
+    const { colors } = useAppTheme();
     return (
         <View style={styles.container}>
-            <Text style={styles.title}>Where would you like to send the fund to?</Text>
+            <Text style={[styles.title, { color: colors.text }]}>Where would you like to send the fund to?</Text>
 
             <ControlledInput
                 control={control}

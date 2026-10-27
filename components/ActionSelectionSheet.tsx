@@ -1,5 +1,8 @@
+import AnimatedBottomSheet from '@/components/ui/AnimatedBottomSheet';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import React from 'react';
-import { FlatList, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
+import { FlatList } from 'react-native-gesture-handler';
 import { ScaledSheet } from 'react-native-size-matters';
 
 export interface ActionItem {
@@ -27,65 +30,58 @@ const ActionSelectionSheet: React.FC<ActionSelectionSheetProps> = ({
     headerIcon,
     actions,
 }) => {
+    const { colors, isDark } = useAppTheme();
+
     const renderItem = ({ item }: { item: ActionItem }) => (
-        <TouchableOpacity style={styles.actionItem} onPress={item.onPress} activeOpacity={0.7}>
-            <View style={styles.itemIconContainer}>
+        <Pressable
+            style={({ pressed }) => [
+                styles.actionItem,
+                pressed && { opacity: 0.7 }
+            ]}
+            onPress={item.onPress}
+            accessibilityRole="button"
+        >
+            <View style={[styles.itemIconContainer, { backgroundColor: colors.surface }]}>
                 {item.icon}
             </View>
             <View style={styles.itemTextContainer}>
-                <Text style={styles.itemTitle}>{item.title}</Text>
-                <Text style={styles.itemSubtitle}>{item.subtitle}</Text>
+                <Text style={[styles.itemTitle, { color: colors.text }]}>{item.title}</Text>
+                <Text style={[styles.itemSubtitle, { color: colors.textMuted }]}>{item.subtitle}</Text>
             </View>
-        </TouchableOpacity>
+        </Pressable>
     );
 
     return (
-        <Modal
-            animationType="slide"
-            transparent={true}
+        <AnimatedBottomSheet
             visible={visible}
-            onRequestClose={onClose}
+            onClose={onClose}
+            sheetStyle={[styles.sheetContent, { backgroundColor: colors.surface }]}
         >
-            <View style={styles.overlay}>
-                {/* Close on backdrop press */}
-                <TouchableOpacity style={styles.backdrop} onPress={onClose} activeOpacity={1} />
-
-                <View style={styles.sheetContent}>
-                    <View style={styles.header}>
-                        {headerIcon && (
-                            <View style={styles.headerIconContainer}>
-                                {headerIcon}
-                            </View>
-                        )}
-                        <Text style={styles.title}>{title}</Text>
-                        <Text style={styles.description}>{description}</Text>
+            <View style={styles.header}>
+                {headerIcon && (
+                    <View style={[styles.headerIconContainer, { backgroundColor: isDark ? 'rgba(255, 107, 44, 0.18)' : '#FFF7ED' }]}>
+                        {headerIcon}
                     </View>
-
-                    <View style={styles.listContainer}>
-                        <FlatList
-                            data={actions}
-                            renderItem={renderItem}
-                            keyExtractor={(item) => item.id}
-                            showsVerticalScrollIndicator={false}
-                            contentContainerStyle={styles.listContent}
-                            ItemSeparatorComponent={() => <View style={styles.separator} />}
-                        />
-                    </View>
-                </View>
+                )}
+                <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
+                <Text style={[styles.description, { color: colors.textMuted }]}>{description}</Text>
             </View>
-        </Modal>
+
+            <View style={[styles.listContainer, { backgroundColor: colors.card }]}>
+                <FlatList
+                    data={actions}
+                    renderItem={renderItem}
+                    keyExtractor={(item) => item.id}
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={styles.listContent}
+                    ItemSeparatorComponent={() => <View style={[styles.separator, { backgroundColor: colors.divider }]} />}
+                />
+            </View>
+        </AnimatedBottomSheet>
     );
 };
 
 const styles = ScaledSheet.create({
-    overlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        justifyContent: 'flex-end',
-    },
-    backdrop: {
-        ...StyleSheet.absoluteFillObject,
-    },
     sheetContent: {
         backgroundColor: '#FFFFFF',
         borderRadius: '30@ms',

@@ -2,6 +2,7 @@ import { Download, FileText } from 'lucide-react-native';
 import React from 'react';
 import { Linking, Text, TouchableOpacity, View } from 'react-native';
 import { ScaledSheet, moderateScale, verticalScale } from 'react-native-size-matters';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 interface DetailItem {
     label: string;
@@ -76,6 +77,7 @@ export default function TransactionDetailsView({
     bankAccountsDetails,
     currentStep
 }: TransactionDetailsViewProps) {
+    const { colors: themeColors, isDark } = useAppTheme();
     const mainDetails = details.filter(item => 
         !item.label.toLowerCase().includes('pickup') && 
         !item.label.toLowerCase().includes('scheduled')
@@ -88,16 +90,16 @@ export default function TransactionDetailsView({
 
     const renderDetailRow = (item: DetailItem, index: number, totalLength: number) => {
         const isStatusOrStep = item.label.toLowerCase().includes('status') || item.label.toLowerCase().includes('step');
-        const colors = isStatusOrStep ? getStatusColors(item.value) : null;
+        const statusColors = isStatusOrStep ? getStatusColors(item.value) : null;
 
         return (
             <View key={index}>
                 <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>{item.label}</Text>
+                    <Text style={[styles.detailLabel, { color: themeColors.textMuted }]}>{item.label}</Text>
                     <View style={{ flex: 1, alignItems: 'flex-end' }}>
-                        {isStatusOrStep && colors ? (
-                            <View style={[styles.statusBadge, { backgroundColor: colors.bg }]}>
-                                <Text style={[styles.statusText, { color: colors.text }]}>
+                        {isStatusOrStep && statusColors ? (
+                            <View style={[styles.statusBadge, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : statusColors.bg }]}>
+                                <Text style={[styles.statusText, { color: statusColors.text }]}>
                                     {item.value}
                                 </Text>
                             </View>
@@ -105,20 +107,20 @@ export default function TransactionDetailsView({
                             <Text
                                 style={[
                                     styles.detailValue,
-                                    { textAlign: 'right' }
+                                    { textAlign: 'right', color: themeColors.text }
                                 ]}
                             >
                                 {item.value}
                             </Text>
                         )}
                         {item.secondaryValue && (
-                            <Text style={styles.secondaryValue}>
+                            <Text style={[styles.secondaryValue, { color: themeColors.textMuted }]}>
                                 {item.secondaryValue}
                             </Text>
                         )}
                     </View>
                 </View>
-                {index < totalLength - 1 && <View style={[styles.separator, { marginTop: verticalScale(12) }]} />}
+                {index < totalLength - 1 && <View style={[styles.separator, { marginTop: verticalScale(12), backgroundColor: themeColors.divider }]} />}
             </View>
         );
     };
@@ -127,62 +129,62 @@ export default function TransactionDetailsView({
 
     return (
         <View style={styles.container}>
-            <Text style={styles.sectionHeader}>Transaction Details</Text>
+            <Text style={[styles.sectionHeader, { color: themeColors.text }]}>Transaction Details</Text>
             {mainDetails.map((item, index) => renderDetailRow(item, index, mainDetails.length))}
 
             {pickupDetails.length > 0 && (
                 <>
-                    <Text style={[styles.sectionHeader, { marginTop: moderateScale(62) }]}>Cash Pickup Details</Text>
+                    <Text style={[styles.sectionHeader, { marginTop: moderateScale(62), color: themeColors.text }]}>Cash Pickup Details</Text>
                     {pickupDetails.map((item, index) => renderDetailRow(item, index, pickupDetails.length))}
                 </>
             )}
 
             {beneficiaryDetails && beneficiaryDetails.length > 0 && (
                 <>
-                    <Text style={[styles.sectionHeader, { marginTop: moderateScale(62) }]}>{resolvedBeneficiaryTitle}</Text>
+                    <Text style={[styles.sectionHeader, { marginTop: moderateScale(62), color: themeColors.text }]}>{resolvedBeneficiaryTitle}</Text>
                     {beneficiaryDetails.map((item, index) => renderDetailRow(item, index, beneficiaryDetails.length))}
                 </>
             )}
 
             {domiciliaryDetails && domiciliaryDetails.length > 0 && (
                 <>
-                    <Text style={[styles.sectionHeader, { marginTop: moderateScale(62) }]}>Domiciliary Bank Details</Text>
+                    <Text style={[styles.sectionHeader, { marginTop: moderateScale(62), color: themeColors.text }]}>Domiciliary Bank Details</Text>
                     {domiciliaryDetails.map((item, index) => renderDetailRow(item, index, domiciliaryDetails.length))}
                 </>
             )}
 
             {refundBankDetails && refundBankDetails.length > 0 && !(bankAccountsDetails && bankAccountsDetails.length > 0) && (
                 <>
-                    <Text style={[styles.sectionHeader, { marginTop: moderateScale(62) }]}>Refund Bank Details</Text>
+                    <Text style={[styles.sectionHeader, { marginTop: moderateScale(62), color: themeColors.text }]}>Refund Bank Details</Text>
                     {refundBankDetails.map((item, index) => renderDetailRow(item, index, refundBankDetails.length))}
                 </>
             )}
 
             {paymentDetails && paymentDetails.length > 0 && (
                 <>
-                    <Text style={[styles.sectionHeader, { marginTop: moderateScale(62) }]}>Payment Details</Text>
+                    <Text style={[styles.sectionHeader, { marginTop: moderateScale(62), color: themeColors.text }]}>Payment Details</Text>
                     {paymentDetails.map((item, index) => renderDetailRow(item, index, paymentDetails.length))}
                 </>
             )}
 
             {bankAccountsDetails && bankAccountsDetails.length > 0 && (
                 <>
-                    <Text style={[styles.sectionHeader, { marginTop: moderateScale(62) }]}>Refund Bank Details</Text>
+                    <Text style={[styles.sectionHeader, { marginTop: moderateScale(62), color: themeColors.text }]}>Refund Bank Details</Text>
                     {bankAccountsDetails.map((item, index) => renderDetailRow(item, index, bankAccountsDetails.length))}
                 </>
             )}
 
             {disbursementDetails && (
                 <>
-                    <Text style={[styles.sectionHeader, { marginTop: moderateScale(62) }]}>Disbursement Details</Text>
+                    <Text style={[styles.sectionHeader, { marginTop: moderateScale(62), color: themeColors.text }]}>Disbursement Details</Text>
 
                     {disbursementDetails.paymentInfo.map((item, index) => renderDetailRow(item, index, disbursementDetails.paymentInfo.length))}
 
 
-                    {disbursementDetails.paymentInfo.length > 0 && <View style={[styles.separator, { marginTop: verticalScale(12) }]} />}
+                    {disbursementDetails.paymentInfo.length > 0 && <View style={[styles.separator, { marginTop: verticalScale(12), backgroundColor: themeColors.divider }]} />}
                     <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Disbursement Status</Text>
-                        <View style={[styles.statusBadge, { backgroundColor: getStatusColors(disbursementDetails.status).bg }]}>
+                        <Text style={[styles.detailLabel, { color: themeColors.textMuted }]}>Disbursement Status</Text>
+                        <View style={[styles.statusBadge, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : getStatusColors(disbursementDetails.status).bg }]}>
                             <Text style={[styles.statusText, { color: getStatusColors(disbursementDetails.status).text }]}>{disbursementDetails.status}</Text>
                         </View>
                     </View>
@@ -192,8 +194,8 @@ export default function TransactionDetailsView({
             {
                 documents.length > 0 && (
                     <>
-                        <View style={styles.separator} />
-                        <Text style={[styles.sectionHeader, { marginTop: moderateScale(62) }]}>{documentSectionTitle}</Text>
+                        <View style={[styles.separator, { backgroundColor: themeColors.divider }]} />
+                        <Text style={[styles.sectionHeader, { marginTop: moderateScale(62), color: themeColors.text }]}>{documentSectionTitle}</Text>
 
                         {(() => {
                             const truncateFileName = (name: string | undefined, maxLength = 18) => {
@@ -216,12 +218,12 @@ export default function TransactionDetailsView({
                                     <View key={index}>
                                         {isInitialsDoc ? (
                                             <View style={styles.detailRow}>
-                                                <Text style={styles.detailLabel}>{doc.label}</Text>
-                                                <Text style={styles.detailValue}>{displayValue}</Text>
+                                                <Text style={[styles.detailLabel, { color: themeColors.textMuted }]}>{doc.label}</Text>
+                                                <Text style={[styles.detailValue, { color: themeColors.text }]}>{displayValue}</Text>
                                             </View>
                                         ) : (
                                             <View style={styles.docRow}>
-                                                <Text style={styles.detailLabel}>{doc.label}</Text>
+                                                <Text style={[styles.detailLabel, { color: themeColors.textMuted }]}>{doc.label}</Text>
                                                 <TouchableOpacity
                                                     style={styles.downloadContainer}
                                                     onPress={() => {
@@ -231,17 +233,17 @@ export default function TransactionDetailsView({
                                                     }}
                                                     disabled={!doc.fileUrl}
                                                 >
-                                                    <Text style={styles.docName} numberOfLines={1}>{truncateFileName(doc.fileName)}</Text>
+                                                    <Text style={[styles.docName, { color: themeColors.text }]} numberOfLines={1}>{truncateFileName(doc.fileName)}</Text>
                                                     <FileText size={moderateScale(16)} color={doc.fileUrl ? "#FF6813" : "rgba(152, 162, 179, 1)"} />
                                                 </TouchableOpacity>
                                             </View>
                                         )}
-                                        {index < documents.length - 1 && <View style={[styles.separator, { marginTop: verticalScale(12) }]} />}
+                                        {index < documents.length - 1 && <View style={[styles.separator, { marginTop: verticalScale(12), backgroundColor: themeColors.divider }]} />}
                                     </View>
                                 );
                             });
                         })()}
-                        <View style={styles.separator} />
+                        <View style={[styles.separator, { backgroundColor: themeColors.divider }]} />
                     </>
                 )
             }

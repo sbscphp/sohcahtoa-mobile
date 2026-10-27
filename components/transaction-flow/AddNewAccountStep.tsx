@@ -4,6 +4,7 @@ import { ArrowDown2, Bank } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 import { moderateScale } from 'react-native-size-matters';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 interface AddNewAccountStepProps {
     control: any;
@@ -20,11 +21,12 @@ export default function AddNewAccountStep({
     isResolving,
     selectedBankCode,
 }: AddNewAccountStepProps) {
+    const { colors } = useAppTheme();
     const [bankSheetVisible, setBankSheetVisible] = useState(false);
 
     return (
         <View style={{ gap: moderateScale(16) }}>
-            <Text style={{ fontSize: moderateScale(18), fontWeight: '700', color: '#0F172A', marginBottom: moderateScale(8) }}>
+            <Text style={{ fontSize: moderateScale(18), fontWeight: '700', color: colors.text, marginBottom: moderateScale(8) }}>
                 Add New Bank Account
             </Text>
 

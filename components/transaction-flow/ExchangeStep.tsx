@@ -1,6 +1,7 @@
 import CurrencyConverter from '@/components/CurrencyConverter';
 import { Text, View } from 'react-native';
 import { ScaledSheet } from 'react-native-size-matters';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 interface Currency {
     code: string;
@@ -60,11 +61,11 @@ export default function ExchangeStep({
     labelGet,
     labelSend,
 }: ExchangeStepProps) {
-
+    const { colors } = useAppTheme();
 
     return (
         <View style={styles.container}>
-            <Text style={styles.sectionTitle}>How much do you want exchange?</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>How much do you want exchange?</Text>
 
             <CurrencyConverter
                 transactionType={transactionType}

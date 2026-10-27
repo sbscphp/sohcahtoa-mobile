@@ -34,8 +34,7 @@ describe('DatePickerField', () => {
         const { getByText } = render(<DatePickerField {...defaultProps} />);
         fireEvent.press(getByText('01/01/1990'));
 
-        // DateTimePicker mock has a "Change Date" button that triggers onChange
-        fireEvent.press(getByText('Change Date'));
+        fireEvent.press(getByText('Confirm'));
         expect(defaultProps.onDateChange).toHaveBeenCalled();
         Platform.OS = 'ios'; // Reset
     });

@@ -2,6 +2,7 @@ import React from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import { Bank, TickCircle, Trash } from 'iconsax-react-nativejs';
+import { useAppTheme } from '@/context/ThemeContext';
 
 interface BankAccountCardProps {
     account: {
@@ -20,17 +21,23 @@ export default function BankAccountCard({
     onMakeDefault,
     onDelete,
 }: BankAccountCardProps) {
+    const { colors, isDark } = useAppTheme();
+
     return (
-        <View style={[styles.accountCard, account.isDefault && styles.defaultCard]}>
-            <View style={styles.cardHeader}>
+        <View style={[
+            styles.accountCard,
+            { backgroundColor: colors.card, borderColor: colors.border },
+            account.isDefault && (isDark ? { borderColor: 'rgba(255, 104, 19, 0.35)', backgroundColor: 'rgba(255, 104, 19, 0.05)' } : styles.defaultCard),
+        ]}>
+            <View style={[styles.cardHeader, { borderBottomColor: colors.divider }]}>
                 <View style={styles.bankNameWrapper}>
-                    <View style={styles.bankIconContainer}>
-                        <Bank size={moderateScale(20)} color="#FF6813" variant="Bold" />
+                    <View style={[styles.bankIconContainer, { backgroundColor: isDark ? 'rgba(255, 104, 19, 0.12)' : '#FFF5F1' }]}>
+                        <Bank size={moderateScale(20)} color={isDark ? colors.primaryLight : '#FF6813'} variant="Bold" />
                     </View>
-                    <Text style={styles.bankName} numberOfLines={1}>{account.bankName}</Text>
+                    <Text style={[styles.bankName, { color: colors.text }]} numberOfLines={1}>{account.bankName}</Text>
                 </View>
                 {account.isDefault ? (
-                    <View style={styles.defaultBadge}>
+                    <View style={[styles.defaultBadge, isDark && { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
                         <TickCircle size={moderateScale(12)} color="#10B981" variant="Bold" />
                         <Text style={styles.defaultText}>Default</Text>
                     </View>
@@ -39,19 +46,19 @@ export default function BankAccountCard({
                         style={styles.makeDefaultBtn}
                         onPress={() => onMakeDefault(account.id)}
                     >
-                        <Text style={styles.makeDefaultText}>Set Default</Text>
+                        <Text style={[styles.makeDefaultText, { color: isDark ? colors.primaryLight : '#FF6813' }]}>Set Default</Text>
                     </TouchableOpacity>
                 )}
             </View>
 
             <View style={styles.cardDetails}>
                 <View style={styles.detailItem}>
-                    <Text style={styles.detailLabel}>Account Number</Text>
-                    <Text style={styles.detailValue}>{account.accountNumber}</Text>
+                    <Text style={[styles.detailLabel, { color: colors.textMuted }]}>Account Number</Text>
+                    <Text style={[styles.detailValue, { color: colors.text }]}>{account.accountNumber}</Text>
                 </View>
                 <View style={styles.detailItem}>
-                    <Text style={styles.detailLabel}>Account Name</Text>
-                    <Text style={styles.detailValue} numberOfLines={1}>{account.accountName}</Text>
+                    <Text style={[styles.detailLabel, { color: colors.textMuted }]}>Account Name</Text>
+                    <Text style={[styles.detailValue, { color: colors.text }]} numberOfLines={1}>{account.accountName}</Text>
                 </View>
             </View>
 

@@ -1,11 +1,14 @@
 import { CloseCircle, SearchNormal1 } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
-import { FlatList, Image, KeyboardAvoidingView, Modal, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, KeyboardAvoidingView, Platform, StyleProp, StyleSheet, Text, TouchableOpacity, View, ViewStyle } from 'react-native';
+import { FlatList } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import Money from '../assets/icons/money-02.svg';
 import InputField from './InputField';
 import PrimaryButton from './PrimaryButton';
+import AnimatedBottomSheet from './ui/AnimatedBottomSheet';
+import { useAppTheme } from '@/hooks/useAppTheme';
 interface Currency {
     code: string;
     country: string;
@@ -18,6 +21,7 @@ interface CurrencySelectionSheetProps {
     onClose: () => void;
     onSelect: (currency: Currency) => void;
     selectedCurrency?: string;
+    sheetStyle?: StyleProp<ViewStyle>;
 }
 
 const POPULAR_CURRENCIES: Currency[] = [
@@ -31,8 +35,10 @@ const CurrencySelectionSheet: React.FC<CurrencySelectionSheetProps> = ({
     visible,
     onClose,
     onSelect,
-    selectedCurrency
+    selectedCurrency,
+    sheetStyle
 }) => {
+    const { colors, isDark } = useAppTheme();
     const insets = useSafeAreaInsets();
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedCode, setSelectedCode] = useState<string | undefined>(selectedCurrency);
@@ -64,11 +70,21 @@ const CurrencySelectionSheet: React.FC<CurrencySelectionSheetProps> = ({
         const isSelected = selectedCode === item.code;
         return (
             <TouchableOpacity
-                style={[styles.itemContainer, isSelected && styles.itemContainerSelected]}
+                style={[
+                    styles.itemContainer,
+                    { backgroundColor: colors.surface, borderColor: colors.border },
+                    isSelected && [
+                        styles.itemContainerSelected,
+                        {
+                            borderColor: colors.primary,
+                            backgroundColor: isDark ? 'rgba(255, 107, 44, 0.15)' : '#FFF7ED',
+                        },
+                    ],
+                ]}
                 onPress={() => setSelectedCode(item.code)}
             >
                 <Image source={{ uri: item.flagUrl }} style={styles.flag} />
-                <Text style={styles.itemText}>
+                <Text style={[styles.itemText, { color: colors.text }]}>
                     {item.country} • {item.currencyName}
                 </Text>
             </TouchableOpacity>
@@ -76,72 +92,69 @@ const CurrencySelectionSheet: React.FC<CurrencySelectionSheetProps> = ({
     };
 
     return (
-        <Modal
-            animationType="slide"
-            transparent={true}
+        <AnimatedBottomSheet
             visible={visible}
-            onRequestClose={onClose}
+            onClose={onClose}
+            sheetStyle={[
+                styles.sheetContent,
+                { backgroundColor: colors.surface },
+                sheetStyle,
+                { paddingBottom: insets.bottom + moderateScale(20) },
+            ]}
         >
-            <View style={styles.overlay}>
-                <TouchableOpacity style={styles.backdrop} onPress={onClose} activeOpacity={1} />
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                style={styles.keyboardAvoidingView}
+            >
+                <View style={styles.headerIconContainer}>
+                    <SearchNormal1 size={24} color="#FF6B2C" variant="Bold" />
+                </View>
 
-                <KeyboardAvoidingView
-                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                    style={[styles.sheetContent, { paddingBottom: insets.bottom + moderateScale(20) }]}
-                >
-
-                    <View style={styles.headerIconContainer}>
-                        <SearchNormal1 size={24} color="#FF6B2C" variant="Bold" />
+                <View style={styles.headerRow}>
+                    <View style={[styles.iconCircle, { backgroundColor: isDark ? 'rgba(255, 107, 44, 0.18)' : '#FFF7ED' }]}>
+                        <Money />
                     </View>
+                    <TouchableOpacity onPress={onClose}>
+                        <CloseCircle size={24} color={colors.icon} variant="Bold" />
+                    </TouchableOpacity>
+                </View>
 
-                    <View style={styles.headerRow}>
-                        <View style={styles.iconCircle}>
-                            <Money />
-                        </View>
-                        <TouchableOpacity onPress={onClose}>
-                            <CloseCircle size={24} color="#94A3B8" variant="Bold" />
-                        </TouchableOpacity>
-                    </View>
+                <Text style={[styles.title, { color: colors.text }]}>Select Currency</Text>
+                <Text style={[styles.subtitle, { color: colors.textMuted }]}>Select an option below</Text>
 
+                <InputField
+                    label=''
+                    placeholder="Enter key word"
+                    placeholderTextColor={colors.placeholder}
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                    icon={<SearchNormal1 size={moderateScale(20)} color={colors.icon} />}
+                />
 
-                    <Text style={styles.title}>Select Currency</Text>
-                    <Text style={styles.subtitle}>Select an option below</Text>
+                <FlatList
+                    data={filteredCurrencies}
+                    renderItem={renderItem}
+                    keyExtractor={(item) => item.code}
+                    contentContainerStyle={styles.listContent}
+                    showsVerticalScrollIndicator={false}
+                    style={styles.flatList}
+                />
 
-
-                    <InputField
-                        label=''
-                        placeholder="Enter key word"
-                        placeholderTextColor="#94A3B8"
-                        value={searchQuery}
-                        onChangeText={setSearchQuery}
-                        icon={<SearchNormal1 size={moderateScale(20)} color="#94A3B8" />}
+                <View style={styles.footerActions}>
+                    <PrimaryButton
+                        title="Select Currency"
+                        onPress={handleConfirm}
+                        disabled={!selectedCode}
                     />
-
-                    <FlatList
-                        data={filteredCurrencies}
-                        renderItem={renderItem}
-                        keyExtractor={(item) => item.code}
-                        contentContainerStyle={styles.listContent}
-                        showsVerticalScrollIndicator={false}
-                        style={{ maxHeight: moderateScale(400) }}
+                    <PrimaryButton
+                        title="No, Close"
+                        onPress={onClose}
+                        style={[styles.secondaryBtn, { backgroundColor: isDark ? colors.surfaceHighlight : '#F1F5F9' }]}
+                        textStyle={[styles.secondaryBtnText, { color: colors.text }]}
                     />
-
-                    <View style={styles.footerActions}>
-                        <PrimaryButton
-                            title="Select Currency"
-                            onPress={handleConfirm}
-                            disabled={!selectedCode}
-                        />
-                        <PrimaryButton
-                            title="No, Close"
-                            onPress={onClose}
-                            style={styles.secondaryBtn}
-                            textStyle={styles.secondaryBtnText}
-                        />
-                    </View>
-                </KeyboardAvoidingView>
-            </View>
-        </Modal>
+                </View>
+            </KeyboardAvoidingView>
+        </AnimatedBottomSheet>
     );
 };
 
@@ -158,10 +171,17 @@ const styles = ScaledSheet.create({
         backgroundColor: '#FFFFFF',
         borderRadius: '24@ms',
         paddingHorizontal: '20@s',
-        paddingTop: '24@vs',
-        maxHeight: '80%',
-        marginBottom: '40@vs',
+        paddingTop: '16@vs',
+        height: '82%',
+        maxHeight: '90%',
+        marginBottom: '20@vs',
         marginHorizontal: '12@s',
+    },
+    keyboardAvoidingView: {
+        flex: 1,
+    },
+    flatList: {
+        flex: 1,
     },
     headerRow: {
         flexDirection: 'row',

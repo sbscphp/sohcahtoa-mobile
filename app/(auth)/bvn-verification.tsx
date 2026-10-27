@@ -12,6 +12,7 @@ import OtpOptionSheet from '../../components/OtpOptionSheet';
 import IgreeConsentSheet from '../../components/IgreeConsentSheet';
 import NibssIgreeWebViewModal from '../../components/NibssIgreeWebViewModal';
 import BvnFormInputs from '@/components/auth/BvnFormInputs';
+import { useAppTheme } from '@/context/ThemeContext';
 import { useIgreeVerification } from '@/hooks/auth/useIgreeVerification';
 import { BVNFormData, bvnSchema } from '@/lib/validations/auth';
 import { useAuthStore } from '@/stores/useAuthStore';
@@ -41,6 +42,7 @@ const formatPhoneNumberForApi = (phone: string): string => {
 export default function BvnVerificationScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
+    const { colors } = useAppTheme();
     const { userType } = useLocalSearchParams<{ userType?: string }>();
 
     const [bvn, setBvn] = useState('');
@@ -177,10 +179,10 @@ export default function BvnVerificationScreen() {
     };
 
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                style={styles.container}
+                style={[styles.container, { backgroundColor: colors.background }]}
             >
                 <AuthHeader title="Sign up" />
 
@@ -207,7 +209,7 @@ export default function BvnVerificationScreen() {
                     />
                 </ScrollView>
 
-                <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
+                <View style={[styles.footer, { paddingBottom: insets.bottom + 20, backgroundColor: colors.background }]}>
                     <PrimaryButton
                         title="Continue"
                         onPress={handleContinue}

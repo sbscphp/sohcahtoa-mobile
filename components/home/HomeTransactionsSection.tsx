@@ -3,7 +3,8 @@ import { Refresh } from 'iconsax-react-nativejs';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import { Transaction } from '@/types/api/transactions';
 import { formatCurrency, formatDate, formatTime, getStatusLabel, getStatusStyle, getCurrencySymbol } from '@/utils/helpers';
-import { Colors } from '../../constants/theme';
+import { Colors } from '@/constants/theme';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 interface HomeTransactionsSectionProps {
     transactionFilters: string[];
@@ -24,12 +25,14 @@ export default function HomeTransactionsSection({
     onSeeAll,
     onTransactionPress,
 }: HomeTransactionsSectionProps) {
+    const { colors, isDark } = useAppTheme();
+
     return (
         <View style={styles.transactionsSection}>
             <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Recent Transactions</Text>
-                <TouchableOpacity style={styles.seeAllBtn} onPress={onSeeAll}>
-                    <Text style={styles.seeAllText}>See all</Text>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>Recent Transactions</Text>
+                <TouchableOpacity style={[styles.seeAllBtn, { borderColor: colors.border }]} onPress={onSeeAll}>
+                    <Text style={[styles.seeAllText, { color: colors.text }]}>See all</Text>
                 </TouchableOpacity>
             </View>
 
@@ -41,10 +44,20 @@ export default function HomeTransactionsSection({
                 {transactionFilters.map((filter) => (
                     <TouchableOpacity
                         key={filter}
-                        style={[styles.filterChip, selectedTxFilter === filter && styles.filterChipActive]}
+                        style={[
+                            styles.filterChip,
+                            { borderColor: colors.border, backgroundColor: colors.card },
+                            selectedTxFilter === filter && [
+                                styles.filterChipActive,
+                                {
+                                    backgroundColor: isDark ? colors.primarySoft : '#FFF7ED',
+                                    borderColor: colors.tabIconSelected,
+                                },
+                            ],
+                        ]}
                         onPress={() => onSelectTxFilter(filter)}
                     >
-                        <Text style={[styles.filterText, selectedTxFilter === filter && styles.filterTextActive]}>
+                        <Text style={[styles.filterText, { color: colors.textMuted }, selectedTxFilter === filter && [styles.filterTextActive, { color: colors.tabIconSelected }]]}>
                             {filter}
                         </Text>
                     </TouchableOpacity>
@@ -57,7 +70,7 @@ export default function HomeTransactionsSection({
                 </View>
             )}
 
-            <View style={styles.transactionList}>
+            <View style={[styles.transactionList, { backgroundColor: colors.card }]}>
                 {transactions.length > 0 ? (
                     transactions.map((tx: Transaction) => {
                         const statusLabel = getStatusLabel(tx.status);
@@ -68,15 +81,15 @@ export default function HomeTransactionsSection({
                                 style={styles.transactionItem}
                                 onPress={() => onTransactionPress(tx)}
                             >
-                                <View style={[styles.transactionIcon, { backgroundColor: '#F8FAFC' }]}>
-                                    <Refresh size={moderateScale(16)} color="#64748B" />
+                                <View style={[styles.transactionIcon, { backgroundColor: colors.surface }]}>
+                                    <Refresh size={moderateScale(16)} color={colors.icon} />
                                 </View>
                                 <View style={styles.transactionInfo}>
-                                    <Text style={styles.transactionTitle} numberOfLines={3}>{tx.purpose || tx.type}</Text>
-                                    <Text style={styles.transactionDate}>{formatDate(tx.createdAt)} • {formatTime(tx.createdAt)}</Text>
+                                    <Text style={[styles.transactionTitle, { color: colors.text }]} numberOfLines={3}>{tx.purpose || tx.type}</Text>
+                                    <Text style={[styles.transactionDate, { color: colors.textMuted }]}>{formatDate(tx.createdAt)} • {formatTime(tx.createdAt)}</Text>
                                 </View>
                                 <View style={styles.transactionAmountContainer}>
-                                    <Text style={styles.transactionAmount}>{formatCurrency(tx.foreignAmount, getCurrencySymbol(tx.currency))}</Text>
+                                    <Text style={[styles.transactionAmount, { color: colors.text }]}>{formatCurrency(tx.foreignAmount, getCurrencySymbol(tx.currency))}</Text>
                                     <View style={[styles.transactionStatus, { backgroundColor: statusStyle.backgroundColor }]}>
                                         <Text style={[styles.transactionStatusText, { color: statusStyle.color }]}>
                                             {statusLabel}
@@ -88,7 +101,7 @@ export default function HomeTransactionsSection({
                     })
                 ) : !isLoadingTransactions && (
                     <View style={{ padding: moderateScale(30), alignItems: 'center' }}>
-                        <Text style={{ color: '#64748B', fontSize: moderateScale(14) }}>No transactions found</Text>
+                        <Text style={{ color: colors.textMuted, fontSize: moderateScale(14) }}>No transactions found</Text>
                     </View>
                 )}
             </View>

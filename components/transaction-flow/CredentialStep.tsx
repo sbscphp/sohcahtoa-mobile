@@ -3,6 +3,7 @@ import SelectField from '@/components/SelectField';
 import React from 'react';
 import { Text, View } from 'react-native';
 import { ScaledSheet } from 'react-native-size-matters';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 interface CredentialField {
     label?: string;
@@ -25,9 +26,10 @@ interface CredentialStepProps {
 }
 
 export default function CredentialStep({ title = "Enter all required credentials to proceed", fields }: CredentialStepProps) {
+    const { colors } = useAppTheme();
     return (
         <View style={styles.container}>
-            <Text style={styles.sectionTitle}>{title}</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>{title}</Text>
 
             {fields.map((field, index) => {
                 if (field.customComponent) {

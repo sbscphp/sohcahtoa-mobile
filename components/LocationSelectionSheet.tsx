@@ -1,11 +1,14 @@
 import { CloseCircle, SearchNormal1 } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
-import { FlatList, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Platform, StyleProp, StyleSheet, Text, TextInput, TouchableOpacity, View, ViewStyle } from 'react-native';
+import { FlatList } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import { LocationItem } from '@/utils/locations';
 import LocationIcon from '../assets/icons/location-08.svg';
 import PrimaryButton from './PrimaryButton';
+import AnimatedBottomSheet from './ui/AnimatedBottomSheet';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 interface LocationSelectionSheetProps {
     visible: boolean;
@@ -18,6 +21,7 @@ interface LocationSelectionSheetProps {
     icon?: React.ReactNode;
     iconSize?: number;
     iconColor?: string;
+    sheetStyle?: StyleProp<ViewStyle>;
 }
 
 const LocationSelectionSheet: React.FC<LocationSelectionSheetProps> = ({
@@ -30,8 +34,10 @@ const LocationSelectionSheet: React.FC<LocationSelectionSheetProps> = ({
     selectedId,
     icon,
     iconSize,
-    iconColor
+    iconColor,
+    sheetStyle
 }) => {
+    const { colors, isDark } = useAppTheme();
     const insets = useSafeAreaInsets();
     const [searchQuery, setSearchQuery] = useState('');
 
@@ -44,74 +50,84 @@ const LocationSelectionSheet: React.FC<LocationSelectionSheetProps> = ({
         const isSelected = selectedId === item.id;
         return (
             <TouchableOpacity
-                style={[styles.itemContainer, isSelected && styles.itemContainerSelected]}
+                style={[
+                    styles.itemContainer,
+                    { backgroundColor: colors.surface, borderColor: colors.border },
+                    isSelected && [
+                        styles.itemContainerSelected,
+                        {
+                            borderColor: colors.primary,
+                            backgroundColor: isDark ? 'rgba(255, 107, 44, 0.12)' : '#FFF7ED',
+                        },
+                    ],
+                ]}
                 onPress={() => onSelect(item)}
             >
                 <View style={{ flex: 1 }}>
-                    <Text style={styles.itemTitle}>{item.title}</Text>
-                    {item.subtitle && <Text style={styles.itemSubtitle}>{item.subtitle}</Text>}
+                    <Text style={[styles.itemTitle, { color: colors.text }]}>{item.title}</Text>
+                    {item.subtitle && <Text style={[styles.itemSubtitle, { color: colors.textMuted }]}>{item.subtitle}</Text>}
                 </View>
             </TouchableOpacity>
         );
     };
 
     return (
-        <Modal
-            animationType="slide"
-            transparent={true}
+        <AnimatedBottomSheet
             visible={visible}
-            onRequestClose={onClose}
+            onClose={onClose}
+            sheetStyle={[
+                styles.sheetContent,
+                { backgroundColor: colors.surface },
+                sheetStyle,
+                { paddingBottom: insets.bottom + moderateScale(20) },
+            ]}
         >
-            <View style={styles.overlay}>
-                <TouchableOpacity style={styles.backdrop} onPress={onClose} activeOpacity={1} />
-
-                <View style={[styles.sheetContent, { paddingBottom: insets.bottom + moderateScale(20) }]}>
-
-                    <View style={styles.headerRow}>
-                        <View style={styles.iconCircle}>
-                            {icon || <LocationIcon width={iconSize || moderateScale(24)} height={iconSize || moderateScale(24)} color={iconColor || '#FF6B2C'} />}
-                        </View>
-                        <TouchableOpacity onPress={onClose}>
-                            <CloseCircle size={24} color="#94A3B8" variant="Bold" />
-                        </TouchableOpacity>
-                    </View>
-
-                    <Text style={styles.title}>{title}</Text>
-                    <Text style={styles.subtitle}>Select an option below</Text>
-
-                    <View style={styles.searchContainer}>
-                        <SearchNormal1 size={moderateScale(20)} color="#94A3B8" />
-                        <TextInput
-                            style={styles.searchInput}
-                            placeholder={placeholder}
-                            placeholderTextColor="#94A3B8"
-                            value={searchQuery}
-                            onChangeText={setSearchQuery}
-                        />
-                    </View>
-
-                    <FlatList
-                        data={filteredData}
-                        renderItem={renderItem}
-                        keyExtractor={(item) => item.id}
-                        contentContainerStyle={styles.listContent}
-                        showsVerticalScrollIndicator={false}
-                        style={{ maxHeight: moderateScale(400) }}
-                    />
-
-                    <View style={styles.footerActions}>
-                        <PrimaryButton
-                            title={title.includes('State') ? 'Select a State' : title.includes('City') ? 'Select a City' : 'Select a Pickup Location'}
-                            onPress={onClose}
-                            disabled={!selectedId}
-                        />
-                        <TouchableOpacity style={styles.secondaryBtn} onPress={onClose}>
-                            <Text style={styles.secondaryBtnText}>No, Close</Text>
-                        </TouchableOpacity>
-                    </View>
+            <View style={styles.headerRow}>
+                <View style={[styles.iconCircle, { backgroundColor: isDark ? 'rgba(255, 107, 44, 0.18)' : '#FFF7ED' }]}>
+                    {icon || <LocationIcon width={iconSize || moderateScale(24)} height={iconSize || moderateScale(24)} color={iconColor || '#FF6B2C'} />}
                 </View>
+                <TouchableOpacity onPress={onClose}>
+                    <CloseCircle size={24} color={colors.icon} variant="Bold" />
+                </TouchableOpacity>
             </View>
-        </Modal>
+
+            <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
+            <Text style={[styles.subtitle, { color: colors.textMuted }]}>Select an option below</Text>
+
+            <View style={[styles.searchContainer, { borderColor: colors.border, backgroundColor: colors.inputBackground }]}>
+                <SearchNormal1 size={moderateScale(20)} color={colors.icon} />
+                <TextInput
+                    style={[styles.searchInput, { color: colors.text }]}
+                    placeholder={placeholder}
+                    placeholderTextColor={colors.placeholder}
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                />
+            </View>
+
+            <FlatList
+                data={filteredData}
+                renderItem={renderItem}
+                keyExtractor={(item) => item.id}
+                contentContainerStyle={styles.listContent}
+                showsVerticalScrollIndicator={false}
+                style={styles.flatList}
+            />
+
+            <View style={styles.footerActions}>
+                <PrimaryButton
+                    title={title.includes('State') ? 'Select a State' : title.includes('City') ? 'Select a City' : 'Select a Pickup Location'}
+                    onPress={onClose}
+                    disabled={!selectedId}
+                />
+                <TouchableOpacity
+                    style={[styles.secondaryBtn, { backgroundColor: isDark ? colors.surfaceHighlight : '#F1F5F9' }]}
+                    onPress={onClose}
+                >
+                    <Text style={[styles.secondaryBtnText, { color: colors.text }]}>No, Close</Text>
+                </TouchableOpacity>
+            </View>
+        </AnimatedBottomSheet>
     );
 };
 
@@ -129,9 +145,13 @@ const styles = ScaledSheet.create({
         borderRadius: '24@ms',
         paddingHorizontal: '20@s',
         paddingTop: '14@vs',
-        maxHeight: '80%',
-        marginBottom: '40@vs',
+        height: '82%',
+        maxHeight: '90%',
+        marginBottom: '20@vs',
         marginHorizontal: '12@s',
+    },
+    flatList: {
+        flex: 1,
     },
     headerRow: {
         flexDirection: 'row',
@@ -162,10 +182,10 @@ const styles = ScaledSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: '#E2E8F0',
-        borderRadius: '12@ms',
-        paddingHorizontal: '16@s',
-        paddingVertical: '12@vs',
+        borderColor: 'rgba(143, 139, 139, 1)',
+        borderRadius: '28@ms',
+        paddingHorizontal: '14@s',
+        height: Platform.OS === 'android' ? '49@vs' : '40@vs',
         marginBottom: '16@vs',
     },
     searchInput: {
@@ -173,6 +193,9 @@ const styles = ScaledSheet.create({
         marginLeft: '10@s',
         fontSize: '14@ms',
         color: '#0F172A',
+        height: '100%',
+        paddingVertical: 0,
+        textAlignVertical: 'center',
     },
     listContent: {
         paddingBottom: '20@vs',

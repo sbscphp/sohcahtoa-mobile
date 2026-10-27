@@ -1,4 +1,5 @@
 import Header from '@/components/Header';
+import { useAppTheme } from '@/context/ThemeContext';
 import { useRouter } from 'expo-router';
 import { DocumentText, EmptyWallet, Export } from 'iconsax-react-nativejs';
 import React, { useMemo, useState } from 'react';
@@ -25,6 +26,7 @@ const groupEntriesByDate = (entries: WalletLedgerEntry[]) => {
 export default function TransientHistoryScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
+    const { colors, isDark } = useAppTheme();
     const LIMIT = 30;
 
     const {
@@ -51,14 +53,14 @@ export default function TransientHistoryScreen() {
 
     const renderEmptyState = () => (
         <View style={styles.emptyContainer}>
-            <EmptyWallet size={moderateScale(64)} color="#94A3B8" variant="Linear" />
-            <Text style={styles.emptyTitle}>No Ledger Entries</Text>
-            <Text style={styles.emptyDesc}>There are no transactions recorded in your wallet yet.</Text>
+            <EmptyWallet size={moderateScale(64)} color={colors.iconMuted} variant="Linear" />
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>No Ledger Entries</Text>
+            <Text style={[styles.emptyDesc, { color: colors.textMuted }]}>There are no transactions recorded in your wallet yet.</Text>
         </View>
     );
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top }]}>
+        <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
             <Header
                 title="Payment History"
             />
@@ -71,7 +73,7 @@ export default function TransientHistoryScreen() {
                 ) : (
                     <>
                         {/* Wallet Balance Card */}
-                        <View style={styles.balanceCard}>
+                        <View style={[styles.balanceCard, isDark && { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }]}>
                             <Text style={styles.balanceLabel}>Wallet Balance</Text>
                             <Text style={styles.balanceAmount}>
                                 {formatCurrency(currentBalance ?? 0, getCurrencySymbol(currentCurrency))}
@@ -85,14 +87,22 @@ export default function TransientHistoryScreen() {
                                     key={type}
                                     style={[
                                         styles.filterChip,
-                                        activeFilter === type && styles.filterChipActive
+                                        { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.06)' : '#F1F5F9', borderColor: colors.border },
+                                        activeFilter === type && [
+                                            styles.filterChipActive,
+                                            isDark && { backgroundColor: colors.primarySoft, borderColor: colors.tabIconSelected },
+                                        ]
                                     ]}
                                     onPress={() => setActiveFilter(type)}
                                 >
                                     <Text
                                         style={[
                                             styles.filterChipText,
-                                            activeFilter === type && styles.filterChipTextActive
+                                            { color: colors.textMuted },
+                                            activeFilter === type && [
+                                                styles.filterChipTextActive,
+                                                isDark && { color: colors.tabIconSelected },
+                                            ]
                                         ]}
                                     >
                                         {type === 'ALL' ? 'All' : type === 'CREDIT' ? 'Credit' : 'Debit'}
@@ -107,8 +117,8 @@ export default function TransientHistoryScreen() {
                             <>
                                 {groups.map((group, groupIdx) => (
                                     <View key={groupIdx} style={styles.groupContainer}>
-                                        <Text style={styles.sectionHeader}>{group.title}</Text>
-                                        <View style={styles.listContainer}>
+                                        <Text style={[styles.sectionHeader, { color: colors.text }]}>{group.title}</Text>
+                                        <View style={[styles.listContainer, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 1 : 0 }]}>
                                             {group.data.map((item, index) => {
                                                 const isLast = index === group.data.length - 1;
                                                 const isCredit = item.type === 'CREDIT';
@@ -121,7 +131,7 @@ export default function TransientHistoryScreen() {
                                                             style={styles.transactionItem}
                                                             activeOpacity={0.8}
                                                         >
-                                                            <View style={styles.iconContainer}>
+                                                            <View style={[styles.iconContainer, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#FFFFFF', borderColor: colors.border }]}>
                                                                 <EmptyWallet 
                                                                     size={moderateScale(18)} 
                                                                     color={isCredit ? '#16A34A' : '#EF4444'} 
@@ -129,8 +139,8 @@ export default function TransientHistoryScreen() {
                                                                 />
                                                             </View>
                                                             <View style={styles.itemContent}>
-                                                                <Text style={styles.itemTitle}>{item.description}</Text>
-                                                                <Text style={styles.itemDate}>
+                                                                <Text style={[styles.itemTitle, { color: colors.text }]}>{item.description}</Text>
+                                                                <Text style={[styles.itemDate, { color: colors.textMuted }]}>
                                                                     {formatListDate(item.createdAt)} • {formatListTime(item.createdAt)}
                                                                 </Text>
                                                             </View>
@@ -138,10 +148,10 @@ export default function TransientHistoryScreen() {
                                                                 <Text style={[styles.itemAmount, { color: isCredit ? '#16A34A' : '#EF4444' }]}>
                                                                     {amountText}
                                                                 </Text>
-                                                                <Text style={styles.itemStatus}>{item.status}</Text>
+                                                                <Text style={[styles.itemStatus, { color: colors.textMuted }]}>{item.status}</Text>
                                                             </View>
                                                         </TouchableOpacity>
-                                                        {!isLast && <View style={styles.divider} />}
+                                                        {!isLast && <View style={[styles.divider, { backgroundColor: colors.divider }]} />}
                                                     </View>
                                                 );
                                             })}
@@ -328,7 +338,7 @@ const styles = ScaledSheet.create({
         color: '#64748B',
     },
     filterChipTextActive: {
-        color: 'rgba(255, 104, 19, 1)',
+        color: '#FF6B2C',
         fontWeight: '500',
     },
 });

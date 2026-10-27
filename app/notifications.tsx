@@ -13,6 +13,7 @@ import { useGetTransactionsQuery } from '@/hooks/queries/transactions/useGetTran
 import { ActivityIndicator } from 'react-native';
 import { formatDate, formatTime, getNotificationRoute } from '@/utils/helpers';
 import { getTransactionById } from '@/services/transactions';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 type FilterTab = 'all' | 'unread' | 'transactions';
  
@@ -60,6 +61,7 @@ const groupByDate = (notifications: Notification[]): Section[] => {
 };
 
 export default function NotificationsScreen() {
+    const { colors, isDark } = useAppTheme();
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
@@ -106,12 +108,12 @@ export default function NotificationsScreen() {
     ];
 
     const renderSectionHeader = ({ section }: { section: Section }) => (
-        <Text style={styles.sectionHeader}>{section.title}</Text>
+        <Text style={[styles.sectionHeader, { color: colors.text }]}>{section.title}</Text>
     );
 
     const renderItem = ({ item }: { item: Notification }) => (
         <TouchableOpacity 
-            style={styles.card} 
+            style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]} 
             activeOpacity={0.7}
             onPress={async () => {
                 if (!item.isRead) {
@@ -169,25 +171,32 @@ export default function NotificationsScreen() {
             }}
         >
             <View style={styles.cardContent}>
-                <Text style={styles.cardTitle}>{item.title}</Text>
-                <Text style={styles.cardMessage}>{item.body}</Text>
+                <Text style={[styles.cardTitle, { color: colors.text }]}>{item.title}</Text>
+                <Text style={[styles.cardMessage, { color: colors.textMuted }]}>{item.body}</Text>
                 <View style={styles.cardMeta}>
-                    <Calendar1 size={moderateScale(14)} color="#94A3B8" />
-                    <Text style={styles.cardMetaText}>{formatDate(item.createdAt)}</Text>
-                    <Clock size={moderateScale(14)} color="#94A3B8" />
-                    <Text style={styles.cardMetaText}>{formatTime(item.createdAt)}</Text>
+                    <Calendar1 size={moderateScale(14)} color={colors.textMuted} />
+                    <Text style={[styles.cardMetaText, { color: colors.textMuted }]}>{formatDate(item.createdAt)}</Text>
+                    <Clock size={moderateScale(14)} color={colors.textMuted} />
+                    <Text style={[styles.cardMetaText, { color: colors.textMuted }]}>{formatTime(item.createdAt)}</Text>
                 </View>
             </View>
             <View style={styles.cardRight}>
                 <Text
                     style={[
                         styles.statusBadge,
-                        item.isRead ? styles.statusRead : styles.statusUnread,
+                        item.isRead
+                            ? [styles.statusRead, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.06)' : '#F1F5F9', color: colors.textMuted }]
+                            : [styles.statusUnread, {
+                                backgroundColor: isDark ? 'rgba(255, 104, 19, 0.12)' : '#FFF7ED',
+                                color: isDark ? colors.primaryLight : colors.primary,
+                                borderColor: isDark ? 'rgba(255, 104, 19, 0.20)' : 'transparent',
+                                borderWidth: isDark ? 1 : 0,
+                            }],
                     ]}
                 >
                     {item.isRead ? 'Read' : 'Unread'}
                 </Text>
-                <ArrowRight2 size={moderateScale(16)} color="#94A3B8" />
+                <ArrowRight2 size={moderateScale(16)} color={colors.icon} />
             </View>
         </TouchableOpacity>
     );
@@ -199,14 +208,14 @@ export default function NotificationsScreen() {
     );
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top }]}>
+        <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
             <Header 
                 title="Notifications" 
                 rightIcon={unreadCount > 0 ? MarkAllReadIcon : undefined}
                 onRightPress={() => markAllRead()}
             />
 
-            <View style={styles.tabRow}>
+            <View style={[styles.tabRow, { borderBottomColor: colors.border }]}>
                 {tabs.map((tab) => (
                     <TouchableOpacity
                         key={tab.key}
@@ -216,6 +225,7 @@ export default function NotificationsScreen() {
                         <Text
                             style={[
                                 styles.tabText,
+                                { color: colors.textMuted },
                                 activeFilter === tab.key && styles.tabTextActive,
                             ]}
                         >
@@ -241,7 +251,7 @@ export default function NotificationsScreen() {
                     stickySectionHeadersEnabled={false}
                     ListEmptyComponent={
                         <View style={styles.emptyState}>
-                            <Text style={styles.emptyStateText}>No notifications</Text>
+                            <Text style={[styles.emptyStateText, { color: colors.textMuted }]}>No notifications</Text>
                         </View>
                     }
                 />

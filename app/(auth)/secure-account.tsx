@@ -1,5 +1,6 @@
 import PasswordStrengthValidator, { validatePassword } from '@/components/PasswordStrengthValidator';
 import ProgressBar from '@/components/ProgressBar';
+import { useAppTheme } from '@/context/ThemeContext';
 import { useCreateAccountMutation } from '@/hooks/queries/auth/useCreateAccountMutation';
 import { useCreateExpatriateAccountMutation } from '@/hooks/queries/auth/useCreateExpatriateAccountMutation';
 import { useCreateTouristAccountMutation } from '@/hooks/queries/auth/useCreateTouristAccountMutation';
@@ -20,6 +21,7 @@ export default function SecureAccountScreen() {
     const router = useRouter();
     const { type, userType, resetToken } = useLocalSearchParams<{ type?: string; userType?: string; resetToken?: string }>();
     const insets = useSafeAreaInsets();
+    const { colors } = useAppTheme();
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
 
@@ -83,7 +85,7 @@ export default function SecureAccountScreen() {
     const title = type === 'reset-password' ? 'Create New Password' : 'Secure Account';
 
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
             <AuthHeader title={title} />
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -99,7 +101,7 @@ export default function SecureAccountScreen() {
 
                     {type === 'reset-password' ? null : userType === 'citizen' && <ProgressBar step={3} totalSteps={3} />}
                     <View style={styles.content}>
-                        <Text style={styles.title}>Create a Password to Secure your Account</Text>
+                        <Text style={[styles.title, { color: colors.text }]}>Create a Password to Secure your Account</Text>
 
                         <InputField
                             label="New Password"
@@ -127,7 +129,7 @@ export default function SecureAccountScreen() {
                     </View>
                 </ScrollView>
 
-                <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
+                <View style={[styles.footer, { paddingBottom: insets.bottom + 20, backgroundColor: colors.background }]}>
                     <PrimaryButton
                         title="Create Password"
                         onPress={handleCreatePassword}
