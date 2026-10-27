@@ -40,7 +40,7 @@ interface TransactionDetailsViewProps {
     currentStep?: string;
 }
 
-const getStatusColors = (status: string) => {
+const getStatusColors = (status: string, isDark?: boolean) => {
     const normalized = (status || '').toUpperCase().replace(/_/g, ' ');
     if (
         normalized.includes('SUCCESS') ||
@@ -50,7 +50,9 @@ const getStatusColors = (status: string) => {
         normalized.includes('SETTLED') ||
         normalized.includes('DISBURSED')
     ) {
-        return { bg: '#ECFDF5', text: '#059669' };
+        return isDark
+            ? { bg: 'rgba(16, 185, 129, 0.16)', text: '#34D399', border: 'rgba(16, 185, 129, 0.28)' }
+            : { bg: '#ECFDF5', text: '#059669', border: 'transparent' };
     }
     if (
         normalized.includes('FAILED') ||
@@ -58,9 +60,13 @@ const getStatusColors = (status: string) => {
         normalized.includes('DECLINED') ||
         normalized.includes('CANCELLED')
     ) {
-        return { bg: '#FEF2F2', text: '#DC2626' };
+        return isDark
+            ? { bg: 'rgba(239, 68, 68, 0.16)', text: '#F87171', border: 'rgba(239, 68, 68, 0.28)' }
+            : { bg: '#FEF2F2', text: '#DC2626', border: 'transparent' };
     }
-    return { bg: '#FFFBEB', text: '#D97706' };
+    return isDark
+        ? { bg: 'rgba(245, 158, 11, 0.16)', text: '#FBBF24', border: 'rgba(245, 158, 11, 0.28)' }
+        : { bg: '#FFFBEB', text: '#D97706', border: 'transparent' };
 };
 
 export default function TransactionDetailsView({
@@ -90,7 +96,7 @@ export default function TransactionDetailsView({
 
     const renderDetailRow = (item: DetailItem, index: number, totalLength: number) => {
         const isStatusOrStep = item.label.toLowerCase().includes('status') || item.label.toLowerCase().includes('step');
-        const statusColors = isStatusOrStep ? getStatusColors(item.value) : null;
+        const statusColors = isStatusOrStep ? getStatusColors(item.value, isDark) : null;
 
         return (
             <View key={index}>
@@ -98,7 +104,11 @@ export default function TransactionDetailsView({
                     <Text style={[styles.detailLabel, { color: themeColors.textMuted }]}>{item.label}</Text>
                     <View style={{ flex: 1, alignItems: 'flex-end' }}>
                         {isStatusOrStep && statusColors ? (
-                            <View style={[styles.statusBadge, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : statusColors.bg }]}>
+                            <View style={[styles.statusBadge, {
+                                backgroundColor: statusColors.bg,
+                                borderColor: statusColors.border,
+                                borderWidth: isDark ? 1 : 0,
+                            }]}>
                                 <Text style={[styles.statusText, { color: statusColors.text }]}>
                                     {item.value}
                                 </Text>
@@ -184,9 +194,18 @@ export default function TransactionDetailsView({
                     {disbursementDetails.paymentInfo.length > 0 && <View style={[styles.separator, { marginTop: verticalScale(12), backgroundColor: themeColors.divider }]} />}
                     <View style={styles.detailRow}>
                         <Text style={[styles.detailLabel, { color: themeColors.textMuted }]}>Disbursement Status</Text>
-                        <View style={[styles.statusBadge, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : getStatusColors(disbursementDetails.status).bg }]}>
-                            <Text style={[styles.statusText, { color: getStatusColors(disbursementDetails.status).text }]}>{disbursementDetails.status}</Text>
-                        </View>
+                        {(() => {
+                            const disbColors = getStatusColors(disbursementDetails.status, isDark);
+                            return (
+                                <View style={[styles.statusBadge, {
+                                    backgroundColor: disbColors.bg,
+                                    borderColor: disbColors.border,
+                                    borderWidth: isDark ? 1 : 0,
+                                }]}>
+                                    <Text style={[styles.statusText, { color: disbColors.text }]}>{disbursementDetails.status}</Text>
+                                </View>
+                            );
+                        })()}
                     </View>
                 </>
             )}
@@ -326,12 +345,12 @@ const styles = ScaledSheet.create({
         fontWeight: '400',
     },
     statusBadge: {
-        paddingHorizontal: '12@s',
-        paddingVertical: '4@vs',
-        borderRadius: '16@ms',
+        paddingHorizontal: '10@s',
+        paddingVertical: '3@vs',
+        borderRadius: '14@ms',
     },
     statusText: {
-        fontSize: '13@ms',
+        fontSize: '11@ms',
         color: 'rgba(180, 83, 9, 1)',
         fontWeight: '500',
     },

@@ -453,7 +453,7 @@ const styles = ScaledSheet.create({
         justifyContent: 'flex-end',
     },
     backdrop: {
-        ...StyleSheet.absoluteFillObject,
+        ...StyleSheet.absoluteFill,
     },
     sheetContent: {
         backgroundColor: '#FFFFFF',

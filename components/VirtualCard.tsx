@@ -18,7 +18,7 @@ const VisaLogo = () => (
 );
 
 const CardBackground = () => (
-    <Svg style={StyleSheet.absoluteFillObject}>
+    <Svg style={StyleSheet.absoluteFill}>
         <Defs>
             <LinearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
                 <Stop offset="0%" stopColor="#bd7145ff" stopOpacity="1" />

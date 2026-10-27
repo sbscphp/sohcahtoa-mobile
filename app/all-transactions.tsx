@@ -89,7 +89,7 @@ export default function AllTransactionsScreen() {
 
     const renderItem = ({ item, index, section }: { item: Transaction; index: number; section: any }) => {
         const statusLabel = getStatusLabel(item.status);
-        const style = getStatusStyle(statusLabel);
+        const style = getStatusStyle(statusLabel, isDark);
         const isFirst = index === 0;
         const isLast = index === section.data.length - 1;
 
@@ -119,7 +119,11 @@ export default function AllTransactionsScreen() {
                         </View>
                         <View style={styles.itemBottomRow}>
                             <Text style={[styles.itemDate, { color: colors.textMuted }]}>{formatListDate(item.createdAt)} • {formatListTime(item.createdAt)}</Text>
-                            <View style={[styles.statusBadge, { backgroundColor: style.bg }]}>
+                            <View style={[styles.statusBadge, {
+                                backgroundColor: style.backgroundColor,
+                                borderColor: style.borderColor,
+                                borderWidth: isDark ? 1 : 0,
+                            }]}>
                                 <Text style={[styles.statusText, { color: style.color }]}>{statusLabel}</Text>
                             </View>
                         </View>
@@ -265,12 +269,12 @@ const styles = ScaledSheet.create({
         color: '#64748B',
     },
     statusBadge: {
-        paddingHorizontal: '8@s',
+        paddingHorizontal: '7@s',
         paddingVertical: '2@vs',
         borderRadius: '12@ms',
     },
     statusText: {
-        fontSize: '10.5@ms',
+        fontSize: '9.5@ms',
         fontWeight: '500',
     },
     emptyContainer: {

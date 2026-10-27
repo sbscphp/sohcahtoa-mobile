@@ -8,8 +8,8 @@ const PODFILE_FIX_SNIPPET = `    ${PODFILE_FIX_MARKER}
     installer.pods_project.targets.each do |target|
       target.build_configurations.each do |build_config|
         deployment_target = build_config.build_settings['IPHONEOS_DEPLOYMENT_TARGET']
-        if deployment_target && Gem::Version.new(deployment_target) < Gem::Version.new('15.1')
-          build_config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.1'
+        if deployment_target && Gem::Version.new(deployment_target) < Gem::Version.new('16.4')
+          build_config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '16.4'
         end
       end
     end`;

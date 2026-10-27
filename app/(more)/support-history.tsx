@@ -186,7 +186,7 @@ const styles = ScaledSheet.create({
         backgroundColor: '#FEF3C7',
     },
     badgeText: {
-        fontSize: '12@ms',
+        fontSize: '10@ms',
         fontWeight: '500',
     },
     approvedText: {

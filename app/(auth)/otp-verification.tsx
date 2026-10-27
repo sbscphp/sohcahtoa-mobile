@@ -31,7 +31,7 @@ export default function OtpVerificationScreen() {
     }>();
     const insets = useSafeAreaInsets();
     const [otp, setOtp] = useState(['', '', '', '', '', '']);
-    const inputs = useRef<TextInput[]>([]);
+    const inputs = useRef<(React.ElementRef<typeof TextInput> | null)[]>([]);
     const [timer, setTimer] = useState(180);
 
     const { mutate: validateOtp, isPending: isValidatingNigerian } = useValidateOtpMutation();
@@ -214,7 +214,7 @@ export default function OtpVerificationScreen() {
                                 <TextInput
                                     key={index}
                                     ref={(ref) => {
-                                        inputs.current[index] = ref as TextInput;
+                                        inputs.current[index] = ref;
                                     }}
                                     style={[
                                         styles.otpInput,

@@ -72,21 +72,31 @@ const formatApiStatus = (rawStatus?: string) => rawStatus
     ? rawStatus.replace(/_/g, ' ')
     : 'Unknown';
 
-const getApiStatusColors = (rawStatus: string) => {
+const getApiStatusColors = (rawStatus: string, isDark?: boolean) => {
     const status = rawStatus.toUpperCase();
     if (['APPROVED', 'COMPLETED', 'SETTLED'].includes(status)) {
-        return { background: '#DCFCE7', text: '#166534' };
+        return isDark
+            ? { background: 'rgba(16, 185, 129, 0.16)', text: '#34D399', border: 'rgba(16, 185, 129, 0.28)' }
+            : { background: '#DCFCE7', text: '#166534', border: 'transparent' };
     }
     if (['REJECTED', 'CANCELLED', 'REFUNDED'].includes(status)) {
-        return { background: '#FECACA', text: '#991B1B' };
+        return isDark
+            ? { background: 'rgba(239, 68, 68, 0.16)', text: '#F87171', border: 'rgba(239, 68, 68, 0.28)' }
+            : { background: '#FECACA', text: '#991B1B', border: 'transparent' };
     }
     if (['AWAITING_DEPOSIT', 'DEPOSIT_PENDING', 'DEPOSIT_CONFIRMED', 'DISBURSEMENT_IN_PROGRESS', 'AWAITING_DISBURSEMENT', 'AWAITING_REFUND_VERIFICATION'].includes(status)) {
-        return { background: '#DBEAFE', text: '#1E3A8A' };
+        return isDark
+            ? { background: 'rgba(59, 130, 246, 0.16)', text: '#60A5FA', border: 'rgba(59, 130, 246, 0.28)' }
+            : { background: '#DBEAFE', text: '#1E3A8A', border: 'transparent' };
     }
     if (['PENDING', 'AWAITING_VERIFICATION', 'VERIFICATION_IN_PROGRESS', 'COMPLIANCE_REVIEW', 'ADMIN_APPROVAL_PENDING'].includes(status)) {
-        return { background: '#FEF3C7', text: '#92400E' };
+        return isDark
+            ? { background: 'rgba(245, 158, 11, 0.16)', text: '#FBBF24', border: 'rgba(245, 158, 11, 0.28)' }
+            : { background: '#FEF3C7', text: '#92400E', border: 'transparent' };
     }
-    return { background: '#E2E8F0', text: '#475569' };
+    return isDark
+        ? { background: 'rgba(148, 163, 184, 0.14)', text: '#94A3B8', border: 'rgba(148, 163, 184, 0.22)' }
+        : { background: '#E2E8F0', text: '#475569', border: 'transparent' };
 };
 
 export default function TransactionStatusView({
@@ -154,7 +164,7 @@ export default function TransactionStatusView({
 
     const isRefunded = status === 'refunded' || apiStatus?.toUpperCase() === 'REFUNDED';
     const apiStatusLabel = apiStatus ? formatApiStatus(apiStatus) : undefined;
-    const apiStatusColors = apiStatus ? getApiStatusColors(apiStatus) : undefined;
+    const apiStatusColors = apiStatus ? getApiStatusColors(apiStatus, isDark) : undefined;
     const statusLabel = apiStatusLabel || (status === 'approved' ? 'Approved' :
         status === 'awaiting_disbursement' ? 'Awaiting Disbursement' :
             status === 'rejected' ? 'Rejected' :
@@ -331,7 +341,28 @@ export default function TransactionStatusView({
                     !apiStatus && status === 'awaiting_disbursement' && styles.txStatusBadgeAwaiting,
                     !apiStatus && status === 'rejected' && styles.txStatusBadgeRejected,
                     !apiStatus && isRefunded && styles.txStatusBadgeRefunded,
-                    apiStatus && apiStatusColors && { backgroundColor: apiStatusColors.background }
+                    apiStatus && apiStatusColors && {
+                        backgroundColor: apiStatusColors.background,
+                        borderColor: apiStatusColors.border,
+                        borderWidth: isDark ? 1 : 0,
+                    },
+                    !apiStatus && isDark && {
+                        backgroundColor: (status === 'rejected' || isRefunded)
+                            ? 'rgba(239, 68, 68, 0.16)'
+                            : status === 'more_info'
+                                ? 'rgba(168, 85, 247, 0.16)'
+                                : status === 'awaiting_disbursement'
+                                    ? 'rgba(59, 130, 246, 0.16)'
+                                    : 'rgba(16, 185, 129, 0.16)',
+                        borderColor: (status === 'rejected' || isRefunded)
+                            ? 'rgba(239, 68, 68, 0.28)'
+                            : status === 'more_info'
+                                ? 'rgba(168, 85, 247, 0.28)'
+                                : status === 'awaiting_disbursement'
+                                    ? 'rgba(59, 130, 246, 0.28)'
+                                    : 'rgba(16, 185, 129, 0.28)',
+                        borderWidth: 1,
+                    }
                 ]}>
                     <Text style={[
                         styles.txStatusText,
@@ -339,7 +370,16 @@ export default function TransactionStatusView({
                         !apiStatus && status === 'awaiting_disbursement' && styles.txStatusTextAwaiting,
                         !apiStatus && status === 'rejected' && styles.txStatusTextRejected,
                         !apiStatus && isRefunded && styles.txStatusTextRefunded,
-                        apiStatus && apiStatusColors && { color: apiStatusColors.text }
+                        apiStatus && apiStatusColors && { color: apiStatusColors.text },
+                        !apiStatus && isDark && {
+                            color: (status === 'rejected' || isRefunded)
+                                ? '#F87171'
+                                : status === 'more_info'
+                                    ? '#C084FC'
+                                    : status === 'awaiting_disbursement'
+                                        ? '#60A5FA'
+                                        : '#34D399',
+                        }
                     ]}>
                         {statusLabel}
                     </Text>
@@ -467,12 +507,12 @@ const styles = ScaledSheet.create({
     },
     txStatusBadge: {
         backgroundColor: '#86EFAC',
-        paddingHorizontal: '8@s',
-        paddingVertical: '4@vs',
-        borderRadius: '20@ms',
+        paddingHorizontal: '7@s',
+        paddingVertical: '3@vs',
+        borderRadius: '16@ms',
     },
     txStatusText: {
-        fontSize: '12@ms',
+        fontSize: '10.5@ms',
         color: '#14532D',
         fontWeight: '500',
     },

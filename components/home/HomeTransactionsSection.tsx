@@ -74,7 +74,7 @@ export default function HomeTransactionsSection({
                 {transactions.length > 0 ? (
                     transactions.map((tx: Transaction) => {
                         const statusLabel = getStatusLabel(tx.status);
-                        const statusStyle = getStatusStyle(tx.status);
+                        const statusStyle = getStatusStyle(tx.status, isDark);
                         return (
                             <TouchableOpacity
                                 key={tx.id}
@@ -90,7 +90,11 @@ export default function HomeTransactionsSection({
                                 </View>
                                 <View style={styles.transactionAmountContainer}>
                                     <Text style={[styles.transactionAmount, { color: colors.text }]}>{formatCurrency(tx.foreignAmount, getCurrencySymbol(tx.currency))}</Text>
-                                    <View style={[styles.transactionStatus, { backgroundColor: statusStyle.backgroundColor }]}>
+                                    <View style={[styles.transactionStatus, {
+                                        backgroundColor: statusStyle.backgroundColor,
+                                        borderColor: statusStyle.borderColor,
+                                        borderWidth: isDark ? 1 : 0,
+                                    }]}>
                                         <Text style={[styles.transactionStatusText, { color: statusStyle.color }]}>
                                             {statusLabel}
                                         </Text>
@@ -205,12 +209,12 @@ const styles = ScaledSheet.create({
     },
     transactionStatus: {
         paddingHorizontal: '6@s',
-        paddingVertical: '4@vs',
+        paddingVertical: '2@vs',
         borderRadius: '12@ms',
         overflow: 'hidden',
     },
     transactionStatusText: {
-        fontSize: '11@ms',
+        fontSize: '9.5@ms',
         fontWeight: '600',
     },
 });

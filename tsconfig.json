@@ -2,7 +2,7 @@
   "extends": "expo/tsconfig.base.json",
   "compilerOptions": {
     "strict": true,
-    "baseUrl": ".",
+    "types": ["jest"],
     "module": "preserve",
     "moduleResolution": "bundler",
     "jsx": "react-jsx",
@@ -14,7 +14,7 @@
     "skipLibCheck": true,
     "paths": {
       "@/*": [
-        "*"
+        "./*"
       ]
     }
   },

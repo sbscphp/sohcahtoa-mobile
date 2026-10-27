@@ -46,7 +46,7 @@ export default function TransactionViewLayout({
     const { colors } = useAppTheme();
     const insets = useSafeAreaInsets();
     const reducedMotion = useReducedMotion();
-    const scrollViewRef = useRef<ScrollView>(null);
+    const scrollViewRef = useRef<React.ElementRef<typeof ScrollView>>(null);
     const [tabBarWidth, setTabBarWidth] = useState(0);
 
     const activeIndex = Math.max(0, tabs.findIndex((t) => t.key === activeTab));

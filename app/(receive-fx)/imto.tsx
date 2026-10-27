@@ -203,8 +203,22 @@ export default function ImtoScreen() {
                             ))}
                             <View style={styles.detailRow}>
                                 <Text style={[styles.detailLabel, { color: colors.textMuted }]}>Status</Text>
-                                <View style={[styles.statusBadge, isVerified ? styles.badgeVerified : styles.badgeNotVerified]}>
-                                    <Text style={[styles.statusText, isVerified ? styles.textVerified : styles.textNotVerified]}>
+                                <View style={[
+                                    styles.statusBadge,
+                                    isVerified ? styles.badgeVerified : styles.badgeNotVerified,
+                                    isDark && {
+                                        backgroundColor: isVerified ? 'rgba(16, 185, 129, 0.16)' : 'rgba(239, 68, 68, 0.16)',
+                                        borderColor: isVerified ? 'rgba(16, 185, 129, 0.28)' : 'rgba(239, 68, 68, 0.28)',
+                                        borderWidth: 1,
+                                    }
+                                ]}>
+                                    <Text style={[
+                                        styles.statusText,
+                                        isVerified ? styles.textVerified : styles.textNotVerified,
+                                        isDark && {
+                                            color: isVerified ? '#34D399' : '#F87171',
+                                        }
+                                    ]}>
                                         {isVerified ? 'Verified' : 'Not Verified'}
                                     </Text>
                                 </View>
@@ -328,10 +342,10 @@ const styles = ScaledSheet.create({
     detailLabel: { fontSize: '14@ms', color: '#64748B' },
     detailValue: { fontSize: '14@ms', color: '#334155', fontWeight: '500' },
     divider: { height: 1, backgroundColor: '#F1F5F9', marginVertical: '8@vs' },
-    statusBadge: { paddingHorizontal: '12@s', paddingVertical: '4@vs', borderRadius: '12@ms' },
+    statusBadge: { paddingHorizontal: '10@s', paddingVertical: '3@vs', borderRadius: '12@ms' },
     badgeVerified: { backgroundColor: '#DCFCE7' },
     badgeNotVerified: { backgroundColor: '#FEE2E2' },
-    statusText: { fontSize: '12@ms', fontWeight: '600' },
+    statusText: { fontSize: '10@ms', fontWeight: '600' },
     textVerified: { color: '#166534' },
     textNotVerified: { color: '#991B1B' },
     rateInfoBanner: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#FFF7ED', borderRadius: '12@ms', padding: '16@ms', gap: '12@s', marginTop: '24@vs' },

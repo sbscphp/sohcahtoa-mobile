@@ -247,6 +247,7 @@ const styles = ScaledSheet.create({
     },
     scrollContent: {
         padding: '20@ms',
+        paddingBottom: '120@vs',
         gap: '6@vs',
     },
     themeBadge: {

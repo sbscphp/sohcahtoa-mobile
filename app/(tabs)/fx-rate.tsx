@@ -145,7 +145,7 @@ const styles = ScaledSheet.create({
     },
     scrollContent: {
         paddingHorizontal: '10@ms',
-        paddingBottom: '40@vs',
+        paddingBottom: '120@vs',
         gap: '24@vs',
         marginTop: '20@vs',
     },

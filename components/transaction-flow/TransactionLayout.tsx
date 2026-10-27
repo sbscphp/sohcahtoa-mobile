@@ -40,7 +40,7 @@ export default function TransactionLayout({
     const { colors } = useAppTheme();
     const insets = useSafeAreaInsets();
     const reducedMotion = useReducedMotion();
-    const scrollViewRef = useRef<ScrollView>(null);
+    const scrollViewRef = useRef<React.ElementRef<typeof ScrollView>>(null);
     const prevStepRef = useRef(currentStep);
 
     const stepOpacity = useSharedValue(1);

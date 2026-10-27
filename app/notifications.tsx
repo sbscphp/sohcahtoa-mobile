@@ -342,10 +342,10 @@ const styles = ScaledSheet.create({
         gap: '8@s',
     },
     statusBadge: {
-        fontSize: '12@ms',
+        fontSize: '10@ms',
         fontWeight: '500',
-        paddingHorizontal: '8@s',
-        paddingVertical: '3@vs',
+        paddingHorizontal: '7@s',
+        paddingVertical: '2@vs',
         borderRadius: '10@ms',
         overflow: 'hidden',
     },

@@ -9,7 +9,7 @@ import React, { useMemo, useState, useCallback } from 'react';
 import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
-import { getStatusLabel, formatListDate, formatListTime, formatAmount } from '@/utils/helpers';
+import { getStatusLabel, getStatusStyle, formatListDate, formatListTime, formatAmount } from '@/utils/helpers';
 import SearchEmpty from '../../assets/icons/empty-state.svg';
 import Header from '../../components/Header';
 import { useGetUnreadCountQuery } from '@/hooks/queries/notifications/useGetUnreadCountQuery';
@@ -188,6 +188,7 @@ export default function TransactionScreen() {
                     <View style={[styles.transactionListContainer, { backgroundColor: colors.card }]}>
                         {transactions.map((item) => {
                             const statusLabel = getStatusLabel(item.status);
+                            const statusStyle = getStatusStyle(statusLabel, isDark);
                             return (
                                 <TouchableOpacity key={item.id} style={styles.transactionItem} onPress={() => router.push({ pathname: getTransactionRoute(item.type) as any, params: { transactionId: item.id } })}>
                                     <View style={[styles.iconContainer, { backgroundColor: colors.surface }]}>
@@ -201,22 +202,13 @@ export default function TransactionScreen() {
                                         <Text style={[styles.itemAmount, { color: colors.text }]}>{formatAmount(item.foreignAmount, item.currency)}</Text>
                                         <View style={[
                                             styles.statusBadge,
-                                            ['Pending', 'Awaiting Verification', 'Awaiting Deposit', 'Deposit Pending', 'Admin Approval Pending', 'Awaiting Disbursement'].includes(statusLabel) && styles.badgePending,
-                                            statusLabel === 'More Info' && styles.badgeMoreInfo,
-                                            ['Declined', 'Rejected', 'Cancelled'].includes(statusLabel) && styles.badgeDeclined,
-                                            statusLabel === 'Approved' && styles.badgeApproved,
-                                            ['Settled', 'Completed'].includes(statusLabel) && styles.badgeSettled,
-                                            ['In Progress', 'Verification In Progress', 'Verification Completed', 'Deposit Confirmed', 'Compliance Review', 'Disbursement In Progress'].includes(statusLabel) && styles.badgeInProgress,
+                                            {
+                                                backgroundColor: statusStyle.backgroundColor,
+                                                borderColor: statusStyle.borderColor,
+                                                borderWidth: isDark ? 1 : 0,
+                                            },
                                         ]}>
-                                            <Text style={[
-                                                styles.statusText,
-                                                ['Pending', 'Awaiting Verification', 'Awaiting Deposit', 'Deposit Pending', 'Admin Approval Pending', 'Awaiting Disbursement'].includes(statusLabel) && styles.textStatusPending,
-                                                statusLabel === 'More Info' && styles.textStatusMoreInfo,
-                                                ['Declined', 'Rejected', 'Cancelled'].includes(statusLabel) && styles.textStatusDeclined,
-                                                statusLabel === 'Approved' && styles.textStatusApproved,
-                                                ['Settled', 'Completed'].includes(statusLabel) && styles.textStatusSettled,
-                                                ['In Progress', 'Verification In Progress', 'Verification Completed', 'Deposit Confirmed', 'Compliance Review', 'Disbursement In Progress'].includes(statusLabel) && styles.textStatusInProgress,
-                                            ]}>
+                                            <Text style={[styles.statusText, { color: statusStyle.color }]}>
                                                 {statusLabel}
                                             </Text>
                                         </View>
@@ -240,7 +232,7 @@ const styles = ScaledSheet.create({
         flex: 1,
     },
     scrollContent: {
-        paddingBottom: '20@vs',
+        paddingBottom: '120@vs',
     },
     totalSection: {
         paddingHorizontal: '13@s',
@@ -392,7 +384,7 @@ const styles = ScaledSheet.create({
         marginBottom: '4@vs',
     },
     statusBadge: {
-        paddingHorizontal: '8@s',
+        paddingHorizontal: '7@s',
         paddingVertical: '2@vs',
         borderRadius: '12@ms',
     },
@@ -415,7 +407,7 @@ const styles = ScaledSheet.create({
         backgroundColor: '#EEF4FF',
     },
     statusText: {
-        fontSize: '11@ms',
+        fontSize: '9.5@ms',
         fontWeight: '500',
     },
     textStatusPending: {
