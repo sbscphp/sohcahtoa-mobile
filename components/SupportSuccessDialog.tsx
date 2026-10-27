@@ -38,7 +38,7 @@ const SupportSuccessDialog: React.FC<SupportSuccessDialogProps> = ({
                     <LiquidGlassView
                         variant="regular"
                         colorScheme={isDark ? 'dark' : 'light'}
-                        tintColor={isDark ? 'rgba(15, 23, 42, 0.75)' : 'rgba(255, 255, 255, 0.88)'}
+                        tintColor={colors.glassTint}
                         style={styles.dialogContainer}
                     >
                         <View style={styles.iconContainer}>

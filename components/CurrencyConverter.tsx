@@ -111,15 +111,15 @@ export default function CurrencyConverter({
                     variant="regular"
                     colorScheme={isDark ? 'dark' : 'light'}
                     borderRadius={moderateScale(30)}
-                    tintColor={isDark ? 'rgba(15, 23, 42, 0.55)' : 'rgba(255, 255, 255, 0.85)'}
-                    style={[styles.toggleContainer, { backgroundColor: isDark ? 'rgba(30, 41, 59, 0.65)' : colors.surface, borderColor: colors.border }]}
+                    tintColor={colors.glassTint}
+                    style={[styles.toggleContainer, { backgroundColor: isDark ? colors.surfaceElevated : colors.surface, borderColor: colors.border }]}
                     glassStyle={styles.toggleContainerGlass}
                 >
                     {allowedModes.includes('buy') && (
                         <Pressable
                             style={({ pressed }) => [
                                 styles.toggleBtn,
-                                isBuy && [styles.toggleBtnActive, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.12)' : '#0F172A' }],
+                                isBuy && [styles.toggleBtnActive, { backgroundColor: isDark ? colors.tabIconSelected : '#0F172A' }],
                                 pressed && { opacity: 0.8 },
                             ]}
                             onPress={() => handleTransactionTypeChange('buy')}
@@ -134,7 +134,7 @@ export default function CurrencyConverter({
                         <Pressable
                             style={({ pressed }) => [
                                 styles.toggleBtn,
-                                !isBuy && [styles.toggleBtnActive, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.12)' : '#0F172A' }],
+                                !isBuy && [styles.toggleBtnActive, { backgroundColor: isDark ? colors.tabIconSelected : '#0F172A' }],
                                 pressed && { opacity: 0.8 },
                             ]}
                             onPress={() => handleTransactionTypeChange('sell')}

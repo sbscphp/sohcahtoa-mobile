@@ -15,7 +15,7 @@ const TAB_FX_RATE_ICON = require('@/assets/icons/tabs/tab-fx-rate.png');
 const TAB_MORE_ICON = require('@/assets/icons/tabs/tab-more.png');
 
 export default function TabLayout() {
-  const { colors } = useAppTheme();
+  const { colors, isDark } = useAppTheme();
   const tintColor = colors.tabIconSelected;
   const inactiveTintColor = colors.tabIconDefault;
   const canUseLiquidGlass = useLiquidGlassAvailable();
@@ -31,6 +31,9 @@ export default function TabLayout() {
       <NativeTabs
         minimizeBehavior="onScrollDown"
         tintColor={tintColor}
+        backgroundColor={colors.tabBarBackground}
+        blurEffect={isDark ? 'systemChromeMaterialDark' : 'systemChromeMaterialLight'}
+        shadowColor={isDark ? 'rgba(0,0,0,0.8)' : colors.shadow}
         iconColor={{
           default: inactiveTintColor,
           selected: tintColor,
@@ -52,19 +55,35 @@ export default function TabLayout() {
         }}
       >
         <NativeTabs.Trigger name="index">
-          <NativeTabs.Trigger.Icon src={TAB_HOME_ICON} renderingMode="template" />
+          <NativeTabs.Trigger.Icon
+            src={{ default: TAB_HOME_ICON, selected: TAB_HOME_ICON }}
+            renderingMode="template"
+            selectedColor={tintColor}
+          />
           <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="transaction">
-          <NativeTabs.Trigger.Icon src={TAB_TRANSACTION_ICON} renderingMode="template" />
+          <NativeTabs.Trigger.Icon
+            src={{ default: TAB_TRANSACTION_ICON, selected: TAB_TRANSACTION_ICON }}
+            renderingMode="template"
+            selectedColor={tintColor}
+          />
           <NativeTabs.Trigger.Label>Transaction</NativeTabs.Trigger.Label>
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="fx-rate">
-          <NativeTabs.Trigger.Icon src={TAB_FX_RATE_ICON} renderingMode="template" />
+          <NativeTabs.Trigger.Icon
+            src={{ default: TAB_FX_RATE_ICON, selected: TAB_FX_RATE_ICON }}
+            renderingMode="template"
+            selectedColor={tintColor}
+          />
           <NativeTabs.Trigger.Label>FX Rate</NativeTabs.Trigger.Label>
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="more">
-          <NativeTabs.Trigger.Icon src={TAB_MORE_ICON} renderingMode="template" />
+          <NativeTabs.Trigger.Icon
+            src={{ default: TAB_MORE_ICON, selected: TAB_MORE_ICON }}
+            renderingMode="template"
+            selectedColor={tintColor}
+          />
           <NativeTabs.Trigger.Label>More</NativeTabs.Trigger.Label>
         </NativeTabs.Trigger>
       </NativeTabs>
