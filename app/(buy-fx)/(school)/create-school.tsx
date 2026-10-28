@@ -260,7 +260,7 @@ export default function SchoolFeesScreen() {
                         control={control} banks={banks} isResolving={resolveAccount.isPending}
                         selectedBankCode={watchedFields.customerBankCode}
                     />
-                )}t
+                )}
             </TransactionLayout>
 
             <InitiateTransactionSheet

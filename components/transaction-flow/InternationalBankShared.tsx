@@ -6,6 +6,8 @@ import React, { useState } from 'react';
 import { Controller } from 'react-hook-form';
 import { Platform, Text, TouchableOpacity, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
+import { useAppTheme } from '@/hooks/useAppTheme';
+import { useResponsiveInputHeight } from '@/hooks/useDevicePose';
 
 export const BENEFICIARY_COUNTRIES: SelectionItem[] = [
     { id: '1', label: '🇬🇧 United Kingdom', value: 'United Kingdom' },
@@ -25,6 +27,8 @@ export function CountrySelectionField({
     setValue: any;
     beneficiaryCountry?: string;
 }) {
+    const { colors, isDark } = useAppTheme();
+    const inputHeight = useResponsiveInputHeight(40, 50, 49);
     const [countrySheetVisible, setCountrySheetVisible] = useState(false);
 
     return (
@@ -34,17 +38,17 @@ export function CountrySelectionField({
                 name="beneficiaryCountry"
                 render={({ field: { value }, fieldState: { error } }) => (
                     <View style={bankStepStyles.dropdownContainer}>
-                        <Text style={bankStepStyles.dropdownLabel}>
+                        <Text style={[bankStepStyles.dropdownLabel, { color: colors.textMuted }]}>
                             Country/Region <Text style={bankStepStyles.required}>*</Text>
                         </Text>
                         <TouchableOpacity
-                            style={[bankStepStyles.dropdownInput, error ? bankStepStyles.dropdownError : undefined]}
+                            style={[bankStepStyles.dropdownInput, { height: inputHeight, borderColor: isDark ? colors.border : 'rgba(143, 139, 139, 1)' }, error ? bankStepStyles.dropdownError : undefined]}
                             onPress={() => setCountrySheetVisible(true)}
                         >
-                            <Text style={[bankStepStyles.dropdownPlaceholder, value ? bankStepStyles.dropdownSelectedText : undefined]}>
+                            <Text style={[bankStepStyles.dropdownPlaceholder, { color: colors.textMuted }, value ? [bankStepStyles.dropdownSelectedText, { color: colors.text }] : undefined]}>
                                 {value ? (BENEFICIARY_COUNTRIES.find(c => c.value === value)?.label || value) : 'Select an Option'}
                             </Text>
-                            <ArrowDown2 size={moderateScale(20)} color="#64748B" />
+                            <ArrowDown2 size={moderateScale(20)} color={colors.icon} />
                         </TouchableOpacity>
                         {error && <Text style={bankStepStyles.errorText}>{error.message}</Text>}
                     </View>
@@ -168,9 +172,10 @@ export function CorrespondenceBankSection({
 }: {
     control: any;
 }) {
+    const { colors } = useAppTheme();
     return (
         <>
-            <Text style={bankStepStyles.sectionTitle}>Correspondence Bank details</Text>
+            <Text style={[bankStepStyles.sectionTitle, { color: colors.text }]}>Correspondence Bank details</Text>
             <View style={bankStepStyles.sectionContainer}>
                 <ControlledInput
                     control={control}
@@ -209,10 +214,11 @@ export function BankStepInvoiceUpload({
     onUploadInvoice?: () => void;
     isUploadingInvoice?: boolean;
 }) {
+    const { colors } = useAppTheme();
     const file = invoiceFile || verificationFile;
     return (
         <View style={{ marginTop: moderateScale(14), gap: moderateScale(6) }}>
-            <Text style={{ fontSize: moderateScale(12.5), color: '#475569' }}>
+            <Text style={{ fontSize: moderateScale(12.5), color: colors.textMuted }}>
                 Upload invoice (optional – with beneficiary details for verification)
             </Text>
             <FileUpload
@@ -266,7 +272,6 @@ export const bankStepStyles = ScaledSheet.create({
         borderColor: 'rgba(143, 139, 139, 1)',
         borderRadius: '28@ms',
         paddingHorizontal: '14@s',
-        height: Platform.OS === 'android' ? '49@vs' : '40@vs',
         backgroundColor: 'transparent',
     },
     dropdownPlaceholder: {

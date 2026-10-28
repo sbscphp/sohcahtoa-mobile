@@ -2,6 +2,7 @@ import SearchEmpty from '@/assets/icons/empty-state.svg';
 import FilterMailSquare from '@/assets/images/filter-mail-square.svg';
 import FilterBottomSheet from '@/components/FilterBottomSheet';
 import Header from '@/components/Header';
+import { useAppTheme } from '@/context/ThemeContext';
 import { useGetTransactionsQuery } from '@/hooks/queries/transactions/useGetTransactionsQuery';
 import { Transaction } from '@/types/api/transactions';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -37,6 +38,7 @@ const getTransactionRoute = (type: string): string => {
 export default function AllTransactionsScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
+    const { colors, isDark } = useAppTheme();
     const [filterVisible, setFilterVisible] = useState(false);
     const [queryParams, setQueryParams] = useState<Record<string, string | undefined>>({});
     const LIMIT = 40;
@@ -59,7 +61,7 @@ export default function AllTransactionsScreen() {
         }, [refetch])
     );
 
-    const transactions: Transaction[] = transactionsData?.pages?.flatMap(p => p.data) || [];
+    const transactions: Transaction[] = useMemo(() => transactionsData?.pages?.flatMap(p => p.data) || [], [transactionsData]);
     const sections = useMemo(() => groupTransactionsByDate(transactions), [transactions]);
 
     const handleFilter = (filters: { startDate: string; endDate: string; status: string; type: string; group: string; currency: string }) => {
@@ -87,7 +89,7 @@ export default function AllTransactionsScreen() {
 
     const renderItem = ({ item, index, section }: { item: Transaction; index: number; section: any }) => {
         const statusLabel = getStatusLabel(item.status);
-        const style = getStatusStyle(statusLabel);
+        const style = getStatusStyle(statusLabel, isDark);
         const isFirst = index === 0;
         const isLast = index === section.data.length - 1;
 
@@ -96,23 +98,30 @@ export default function AllTransactionsScreen() {
                 onPress={() => router.push({ pathname: getTransactionRoute(item.type) as any, params: { transactionId: item.id } })}
                 style={[
                     styles.transactionWrapper,
+                    {
+                        backgroundColor: colors.card,
+                        borderColor: colors.border,
+                        borderWidth: isDark ? 1 : 0,
+                    },
                     isFirst && styles.topRadius,
                     isLast && styles.bottomRadius,
                     isLast && { marginBottom: moderateScale(20) },
                     !isLast && { marginBottom: 0 }
                 ]}>
                 <View style={styles.itemContainer}>
-                    <View style={styles.iconContainer}>
-                        <Refresh size={moderateScale(16)} color="#64748B" />
+                    <View style={[styles.iconContainer, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#FFFFFF', borderColor: colors.border }]}>
+                        <Refresh size={moderateScale(16)} color={colors.iconMuted} />
                     </View>
                     <View style={styles.itemContent}>
                         <View style={styles.itemTopRow}>
-                            <Text style={styles.itemTitle} numberOfLines={2}>{item.purpose || item.type}</Text>
-                            <Text style={styles.itemAmount}>{formatAmount(item.foreignAmount, item.currency)}</Text>
+                            <Text style={[styles.itemTitle, { color: colors.text }]} numberOfLines={2}>{item.purpose || item.type}</Text>
+                            <Text style={[styles.itemAmount, { color: colors.text }]}>{formatAmount(item.foreignAmount, item.currency)}</Text>
                         </View>
                         <View style={styles.itemBottomRow}>
-                            <Text style={styles.itemDate}>{formatListDate(item.createdAt)} • {formatListTime(item.createdAt)}</Text>
-                            <View style={[styles.statusBadge, { backgroundColor: style.bg }]}>
+                            <Text style={[styles.itemDate, { color: colors.textMuted }]}>{formatListDate(item.createdAt)} • {formatListTime(item.createdAt)}</Text>
+                            <View style={[styles.statusBadge, {
+                                backgroundColor: style.backgroundColor,
+                            }]}>
                                 <Text style={[styles.statusText, { color: style.color }]}>{statusLabel}</Text>
                             </View>
                         </View>
@@ -132,7 +141,9 @@ export default function AllTransactionsScreen() {
     };
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top }]}>
+        <View
+            style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}
+        >
             <Header
                 title="All Transactions"
                 rightIcon={<FilterMailSquare color="rgba(152, 162, 179, 1)" />}
@@ -149,9 +160,12 @@ export default function AllTransactionsScreen() {
                     keyExtractor={(item) => item.id}
                     renderItem={renderItem}
                     renderSectionHeader={({ section: { title } }) => (
-                        <Text style={styles.sectionHeader}>{title}</Text>
+                        <Text style={[styles.sectionHeader, { color: colors.text }]}>{title}</Text>
                     )}
-                    contentContainerStyle={styles.listContent}
+                    contentContainerStyle={[
+                        styles.listContent,
+                        { paddingBottom: Math.max(insets.bottom, 24) },
+                    ]}
                     stickySectionHeadersEnabled={false}
                     showsVerticalScrollIndicator={false}
                     ListFooterComponent={renderFooter}
@@ -167,8 +181,8 @@ export default function AllTransactionsScreen() {
                     <View style={styles.emptyIconContainer}>
                         <SearchEmpty width={moderateScale(150)} height={moderateScale(120)} />
                     </View>
-                    <Text style={styles.emptyTitle}>No Transaction Yet</Text>
-                    <Text style={styles.emptyDesc}>
+                    <Text style={[styles.emptyTitle, { color: colors.text }]}>No Transaction Yet</Text>
+                    <Text style={[styles.emptyDesc, { color: colors.textMuted }]}>
                         No transaction available. Check back later
                     </Text>
                 </View>
@@ -205,7 +219,7 @@ const styles = ScaledSheet.create({
     },
     transactionWrapper: {
         backgroundColor: 'rgba(247, 247, 247, 1)',
-        marginHorizontal: '4@s',
+        marginHorizontal: 0,
         padding: '12@ms',
     },
     topRadius: {
@@ -258,12 +272,12 @@ const styles = ScaledSheet.create({
         color: '#64748B',
     },
     statusBadge: {
-        paddingHorizontal: '8@s',
+        paddingHorizontal: '7@s',
         paddingVertical: '2@vs',
         borderRadius: '12@ms',
     },
     statusText: {
-        fontSize: '10.5@ms',
+        fontSize: '9.5@ms',
         fontWeight: '500',
     },
     emptyContainer: {

@@ -1,6 +1,8 @@
+import { useAppTheme } from '@/context/ThemeContext';
+import { useResponsiveInputHeight } from '@/hooks/useDevicePose';
 import { Eye, EyeSlash, Icon } from 'iconsax-react-nativejs';
 import React, { ReactNode, useState } from 'react';
-import { Platform, Text, TextInput, TextInputProps, TouchableOpacity, View } from 'react-native';
+import { Text, TextInput, TextInputProps, TouchableOpacity, View } from 'react-native';
 import { moderateScale, ScaledSheet } from 'react-native-size-matters';
 
 interface InputFieldProps extends TextInputProps {
@@ -28,16 +30,27 @@ const InputField: React.FC<InputFieldProps> = ({
     ...props
 }) => {
     const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+    const { colors, isDark } = useAppTheme();
+    const defaultHeight = useResponsiveInputHeight(40, 50, 49);
+
+    const iconColor = isDark ? colors.iconMuted : 'rgba(77, 75, 75, 1)';
+    const placeholderColor = props.placeholderTextColor || colors.placeholder;
 
     return (
         <View style={styles.container}>
-            <Text style={styles.label}>
-                {label} {required && <Text style={styles.required}>*</Text>}
-            </Text>
+            {Boolean(label) && (
+                <Text style={[styles.label, { color: colors.textSecondary }]}>
+                    {label} {required && <Text style={styles.required}>*</Text>}
+                </Text>
+            )}
             <View style={[
                 disabled ? styles.inputDisabledWrapper : styles.inputWrapper,
+                {
+                    backgroundColor: disabled ? colors.inputDisabledBackground : colors.inputBackground,
+                    borderColor: disabled ? colors.inputDisabledBorder : colors.inputBorder,
+                    height: height ?? defaultHeight,
+                },
                 wrapperStyle,
-                height ? { height } : undefined,
                 error ? styles.inputError : undefined
             ]}>
                 {icon && (
@@ -46,14 +59,14 @@ const InputField: React.FC<InputFieldProps> = ({
                     ) : (
                         (() => {
                             const IconComponent = icon as Icon;
-                            return <IconComponent size={moderateScale(20)} color="rgba(77, 75, 75, 1)" style={styles.leftIcon} />;
+                            return <IconComponent size={moderateScale(20)} color={iconColor} style={styles.leftIcon} />;
                         })()
                     )
                 )}
                 <TextInput
-                    style={[styles.input, props.style]}
+                    style={[styles.input, { color: colors.text }, props.style]}
                     secureTextEntry={isPassword && !isPasswordVisible}
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor={placeholderColor}
                     testID="input-field"
                     editable={!disabled && (props.editable !== undefined ? props.editable : true)}
                     {...props}
@@ -65,14 +78,14 @@ const InputField: React.FC<InputFieldProps> = ({
                         testID="password-toggle"
                     >
                         {isPasswordVisible ? (
-                            <EyeSlash size={moderateScale(20)} color="rgba(77, 75, 75, 1)" />
+                            <EyeSlash size={moderateScale(20)} color={iconColor} />
                         ) : (
-                            <Eye size={moderateScale(20)} color="rgba(77, 75, 75, 1)" />
+                            <Eye size={moderateScale(20)} color={iconColor} />
                         )}
                     </TouchableOpacity>
                 )}
                 {RightIconComponent && !isPassword && (
-                    <RightIconComponent size={moderateScale(20)} color="rgba(77, 75, 75, 1)" style={{ marginLeft: moderateScale(12) }} />
+                    <RightIconComponent size={moderateScale(20)} color={iconColor} style={{ marginLeft: moderateScale(12) }} />
                 )}
             </View>
             {error && <Text style={styles.errorText}>{typeof error === 'string' ? error : (error as any).message || String(error)}</Text>}
@@ -101,7 +114,6 @@ const styles = ScaledSheet.create({
         borderColor: 'rgba(143, 139, 139, 1)',
         borderRadius: '28@ms',
         paddingHorizontal: '14@s',
-        height: Platform.OS === 'android' ? '49@vs' : '40@vs',
     },
     inputDisabledWrapper: {
         flexDirection: 'row',
@@ -111,7 +123,6 @@ const styles = ScaledSheet.create({
         borderColor: 'rgba(204, 202, 202, 1)',
         borderRadius: '28@ms',
         paddingHorizontal: '14@s',
-        height: Platform.OS === 'android' ? '49@vs' : '40@vs',
     },
     leftIcon: {
         marginRight: '12@s',
@@ -121,6 +132,8 @@ const styles = ScaledSheet.create({
         fontSize: '14@ms',
         color: '#0F172A',
         height: '100%',
+        paddingVertical: 0,
+        textAlignVertical: 'center',
     },
     rightIcon: {
         padding: '6@ms',

@@ -3,6 +3,7 @@ import TransactionDetailsView from '@/components/transaction-flow/TransactionDet
 import TransactionDocsView from '@/components/transaction-flow/TransactionDocsView';
 import TransactionStatusView, { TransactionStatus } from '@/components/transaction-flow/TransactionStatusView';
 import TransactionViewLayout from '@/components/transaction-flow/TransactionViewLayout';
+import { useAppTheme } from '@/context/ThemeContext';
 import { useGetTransactionByIdQuery } from '@/hooks/queries/transactions/useGetTransactionByIdQuery';
 import { useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useToastStore } from '@/stores/useToastStore';
@@ -14,6 +15,7 @@ import { ActivityIndicator, View, BackHandler } from 'react-native';
 
 export default function ViewBtaScreen() {
     const router = useRouter();
+    const { colors } = useAppTheme();
     const { transactionId, fromSuccess } = useLocalSearchParams<{ transactionId: string, fromSuccess?: string }>();
     // console.log(transactionId, 'transactionId');
     const [activeTab, setActiveTab] = useState('overview');
@@ -236,7 +238,7 @@ export default function ViewBtaScreen() {
 
     if (isLoading) {
         return (
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
                 <ActivityIndicator size="large" color="#FF6B2C" />
             </View>
         );

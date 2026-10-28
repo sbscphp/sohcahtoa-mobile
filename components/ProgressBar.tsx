@@ -1,7 +1,16 @@
-import React from 'react';
+import { useAppTheme } from '@/context/ThemeContext';
+import React, { useEffect } from 'react';
 import { View } from 'react-native';
+import Animated, {
+    Easing,
+    interpolate,
+    interpolateColor,
+    useAnimatedStyle,
+    useReducedMotion,
+    useSharedValue,
+    withTiming,
+} from 'react-native-reanimated';
 import { ScaledSheet } from 'react-native-size-matters';
-import { Colors } from '../constants/theme';
 
 interface ProgressBarProps {
     progress?: number; // 0 to 1
@@ -9,17 +18,61 @@ interface ProgressBarProps {
     totalSteps?: number;
 }
 
-const ProgressBar: React.FC<ProgressBarProps> = ({ progress, step, totalSteps = 3 }) => {
-    // Determine active step. explicit 'step' takes precedence.
-    // If 'step' is provided, it's 1-based.
-    // If 'progress' is provided, we estimate the step.
+interface ProgressSegmentProps {
+    index: number;
+    isActive: boolean;
+}
 
+const ProgressSegment: React.FC<ProgressSegmentProps> = ({ index, isActive }) => {
+    const { colors } = useAppTheme();
+    const reducedMotion = useReducedMotion();
+    const progress = useSharedValue(isActive ? 1 : 0);
+
+    const activeColor = colors.primary;
+    const inactiveColor = colors.border;
+
+    useEffect(() => {
+        if (reducedMotion) {
+            progress.value = isActive ? 1 : 0;
+            return;
+        }
+        progress.value = withTiming(isActive ? 1 : 0, {
+            duration: 260,
+            easing: Easing.out(Easing.cubic),
+        });
+    }, [isActive, progress, reducedMotion]);
+
+    const animatedStyle = useAnimatedStyle(() => ({
+        backgroundColor: interpolateColor(
+            progress.value,
+            [0, 1],
+            [inactiveColor, activeColor]
+        ),
+        transform: [
+            {
+                scaleY: interpolate(progress.value, [0, 0.5, 1], [1, 1.2, 1]),
+            },
+        ],
+    }));
+
+    return (
+        <Animated.View
+            testID={`progress-segment-${index}`}
+            style={[
+                styles.segment,
+                { backgroundColor: isActive ? activeColor : inactiveColor },
+                animatedStyle,
+            ]}
+        />
+    );
+};
+
+const ProgressBar: React.FC<ProgressBarProps> = ({ progress, step, totalSteps = 3 }) => {
     let currentStep = 0;
 
     if (step !== undefined) {
         currentStep = step;
     } else {
-        // Fallback backward compatibility calculation
         let minDiff = Number.MAX_VALUE;
         for (let i = 0; i < totalSteps; i++) {
             const threshold = (i + 1) / totalSteps;
@@ -34,20 +87,11 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ progress, step, totalSteps = 
     return (
         <View style={styles.container}>
             {Array.from({ length: totalSteps }).map((_, index) => {
-                // index is 0-based. Step is 1-based.
-                // If currentStep is 1, index 0 should be active.
-                // If currentStep is 2, index 0 and 1 should be active.
                 const isActive = index < currentStep;
 
                 return (
                     <React.Fragment key={index}>
-                        <View
-                            testID={`progress-segment-${index}`}
-                            style={[
-                                styles.segment,
-                                { backgroundColor: isActive ? Colors.light.primary : '#E2E8F0' }
-                            ]}
-                        />
+                        <ProgressSegment index={index} isActive={isActive} />
                         {index < totalSteps - 1 && <View style={styles.gap} />}
                     </React.Fragment>
                 );
@@ -58,9 +102,10 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ progress, step, totalSteps = 
 
 const styles = ScaledSheet.create({
     container: {
-        width: '100%',
-        paddingVertical: '16@vs',
         flexDirection: 'row',
+        alignItems: 'center',
+        width: '100%',
+        marginVertical: '10@vs',
     },
     segment: {
         flex: 1,

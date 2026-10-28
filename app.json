@@ -12,7 +12,18 @@
       "bundleIdentifier": "com.iamkennis.sohcahtoa",
       "infoPlist": {
         "NSFaceIDUsageDescription": "Allows $(PRODUCT_NAME) to use Face ID for secure login.",
-        "UIViewControllerBasedStatusBarAppearance": false
+        "UIViewControllerBasedStatusBarAppearance": false,
+        "UIApplicationSceneManifest": {
+          "UIApplicationSupportsMultipleScenes": true,
+          "UISceneConfigurations": {
+            "UIWindowSceneSessionRoleApplication": [
+              {
+                "UISceneConfigurationName": "Default Configuration",
+                "UISceneDelegateClassName": "EXExpoAppSceneDelegate"
+              }
+            ]
+          }
+        }
       }
     },
     "android": {
@@ -29,6 +40,9 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      "@rnrepo/expo-config-plugin",
+      "./plugins/withIosDeploymentTargetFix",
+      "./plugins/withIPhoneDuoSceneDelegate",
       "expo-router",
       [
         "expo-splash-screen",
@@ -40,6 +54,12 @@
         }
       ],
       "expo-font",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Allows $(PRODUCT_NAME) to use Face ID for secure login."
+        }
+      ],
       "expo-secure-store",
       "expo-web-browser",
       "@react-native-community/datetimepicker",

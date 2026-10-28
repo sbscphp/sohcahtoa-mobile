@@ -1,19 +1,24 @@
-import * as LocalAuthentication from 'expo-local-authentication';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Fingerprint } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { Alert, Text, View } from 'react-native';
 import { useAuthStore } from '@/stores/useAuthStore';
-import { saveCredentials } from '../../utils/biometrics';
+import {
+    authenticateWithBiometrics,
+    getBiometricCapabilities,
+    saveCredentials,
+} from '../../utils/biometrics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import AuthHeader from '../../components/AuthHeader';
 import PrimaryButton from '../../components/PrimaryButton';
 import { Colors } from '../../constants/theme';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 type Status = 'idle' | 'scanning' | 'success' | 'failure' | 'unsupported';
 
 export default function FingerprintSetupScreen() {
+    const { colors, isDark } = useAppTheme();
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const { email, password } = useLocalSearchParams<{ email: string; password: string }>();
@@ -32,17 +37,11 @@ export default function FingerprintSetupScreen() {
 
     const checkBiometricAvailability = async () => {
         try {
-            const compatible = await LocalAuthentication.hasHardwareAsync();
-            setHasHardware(compatible);
+            const capabilities = await getBiometricCapabilities();
+            setHasHardware(capabilities.hasHardware);
+            setIsEnrolled(capabilities.isEnrolled);
 
-            if (compatible) {
-                const enrolled = await LocalAuthentication.isEnrolledAsync();
-                setIsEnrolled(enrolled);
-
-                if (!enrolled) {
-                    setStatus('unsupported');
-                }
-            } else {
+            if (!capabilities.hasHardware || !capabilities.isEnrolled) {
                 setStatus('unsupported');
             }
         } catch (error) {
@@ -80,19 +79,21 @@ export default function FingerprintSetupScreen() {
         setStatus('scanning');
 
         try {
-            const result = await LocalAuthentication.authenticateAsync({
+            const success = await authenticateWithBiometrics({
                 promptMessage: 'Authenticate with your fingerprint',
                 fallbackLabel: 'Use passcode',
                 cancelLabel: 'Cancel',
             });
 
-            if (result.success) {
+            if (success) {
                 if (email && password) {
                     const saved = await saveCredentials(email, password);
                     if (saved) {
                         setBiometricEnabled(true);
                         setBiometricType('fingerprint');
-                        await checkCredentials();
+                        if (typeof checkCredentials === 'function') {
+                            await checkCredentials();
+                        }
                         setStatus('success');
                     } else {
                         Alert.alert('Save Error', 'Failed to securely store credentials. Please try again.');
@@ -103,12 +104,7 @@ export default function FingerprintSetupScreen() {
                     setStatus('idle');
                 }
             } else {
-                // Authentication failed or was cancelled
-                if (result.error === 'user_cancel') {
-                    setStatus('idle');
-                } else {
-                    setStatus('failure');
-                }
+                setStatus('idle');
             }
         } catch (error) {
             console.error('Authentication error:', error);
@@ -182,13 +178,13 @@ export default function FingerprintSetupScreen() {
     const uiState = getStatusUI();
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+        <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom, backgroundColor: colors.background }]}>
             <AuthHeader title="Biometrics Setup" />
 
             <View style={styles.content}>
                 <View style={styles.textSection}>
-                    <Text style={styles.title}>{status === 'idle' ? 'Fingerprint Setup' : uiState.text}</Text>
-                    <Text style={[styles.description, status !== 'idle' && status !== 'scanning' && { color: uiState.color }]}>
+                    <Text style={[styles.title, { color: colors.text }]}>{status === 'idle' ? 'Fingerprint Setup' : uiState.text}</Text>
+                    <Text style={[styles.description, { color: colors.textMuted }, status !== 'idle' && status !== 'scanning' && { color: uiState.color }]}>
                         {uiState.description}
                     </Text>
                 </View>
@@ -198,14 +194,14 @@ export default function FingerprintSetupScreen() {
                     <View style={[styles.circleOuter, {
                         backgroundColor: status === 'success' ? '#DCFCE7'
                             : status === 'failure' ? '#FEE2E2'
-                                : status === 'unsupported' ? '#F1F5F9'
-                                    : Colors.light.primary
+                                : status === 'unsupported' ? (isDark ? colors.surfaceHighlight : '#F1F5F9')
+                                    : colors.primary
                     }]} />
                     <View style={[styles.circleMiddle, {
                         backgroundColor: status === 'success' ? '#86EFAC'
                             : status === 'failure' ? '#FCA5A5'
-                                : status === 'unsupported' ? '#CBD5E1'
-                                    : Colors.light.primary
+                                : status === 'unsupported' ? (isDark ? colors.surfaceHighlight : '#CBD5E1')
+                                    : colors.primary
                     }]} />
 
                     {/* Ring Border for active states */}
@@ -223,7 +219,7 @@ export default function FingerprintSetupScreen() {
                         <View style={[
                             styles.circleInner,
                             {
-                                backgroundColor: status === 'idle' ? Colors.light.primary : 'transparent',
+                                backgroundColor: status === 'idle' ? colors.primary : 'transparent',
                             }
                         ]}>
                             <Fingerprint

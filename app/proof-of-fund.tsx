@@ -1,6 +1,7 @@
 import Header from '@/components/Header';
 import PrimaryButton from '@/components/PrimaryButton';
 import LoadingBackdrop from '@/components/LoadingBackdrop';
+import { useAppTheme } from '@/context/ThemeContext';
 import { useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { useToastStore } from '@/stores/useToastStore';
 import { useDeclarationStore } from '@/stores/useDeclarationStore';
@@ -22,6 +23,7 @@ interface UploadSlot {
 
 export default function ProofOfFundScreen() {
     const router = useRouter();
+    const { colors, isDark } = useAppTheme();
     const showToast = useToastStore(s => s.showToast);
     
     const initialProofOfFunds = useDeclarationStore.getState().proofOfFunds;
@@ -88,28 +90,28 @@ export default function ProofOfFundScreen() {
     };
 
     return (
-        <SafeAreaView style={styles.container} edges={['top']}>
+        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
             <LoadingBackdrop visible={isPending} />
             <Header title="Proof of fund" />
             
             <ScrollView contentContainerStyle={styles.scrollContent}>
-                <Text style={styles.title}>Upload Proof of Fund Document</Text>
+                <Text style={[styles.title, { color: colors.text }]}>Upload Proof of Fund Document</Text>
                 
                 {slots.map((slot, index) => (
                     <View key={slot.id} style={styles.slotContainer}>
-                        <Text style={styles.label}>
+                        <Text style={[styles.label, { color: colors.textSecondary }]}>
                             {slot.label} <Text style={{ color: '#D92D20' }}>*</Text>
                         </Text>
                         
                         {!slot.file ? (
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: moderateScale(12) }}>
                                 <TouchableOpacity 
-                                    style={[styles.uploadBox, { flex: 1 }]} 
+                                    style={[styles.uploadBox, { flex: 1, borderColor: colors.border, backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : '#FFFFFF' }]} 
                                     onPress={() => handleUpload(index)}
                                     disabled={isPending}
                                 >
                                     <FilePlus width={moderateScale(20)} height={moderateScale(20)} />
-                                    <Text style={styles.placeholder}>Click to upload</Text>
+                                    <Text style={[styles.placeholder, { color: colors.textMuted }]}>Click to upload</Text>
                                 </TouchableOpacity>
                                 {slots.length > 1 && (
                                     <TouchableOpacity onPress={() => handleDelete(index)}>
@@ -118,14 +120,14 @@ export default function ProofOfFundScreen() {
                                 )}
                             </View>
                         ) : (
-                            <View style={styles.fileBox}>
+                            <View style={[styles.fileBox, { borderColor: colors.border, backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : '#FFFFFF' }]}>
                                 <View style={styles.fileInfo}>
-                                    <View style={styles.iconCircle}>
-                                        <Ionicons name="document-text-outline" size={moderateScale(20)} color="#64748B" />
+                                    <View style={[styles.iconCircle, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#F1F5F9' }]}>
+                                        <Ionicons name="document-text-outline" size={moderateScale(20)} color={colors.iconMuted} />
                                     </View>
                                     <View style={{ flex: 1, marginLeft: moderateScale(12) }}>
-                                        <Text style={styles.fileName} numberOfLines={1}>{slot.file.name}</Text>
-                                        <Text style={styles.fileSize}>200 KB – 100% uploaded</Text>
+                                        <Text style={[styles.fileName, { color: colors.text }]} numberOfLines={1}>{slot.file.name}</Text>
+                                        <Text style={[styles.fileSize, { color: colors.textMuted }]}>200 KB – 100% uploaded</Text>
                                     </View>
                                     <TouchableOpacity onPress={() => handleDelete(index)}>
                                         <Trash size={moderateScale(20)} color="#D92D20" variant="Outline" />
@@ -137,12 +139,12 @@ export default function ProofOfFundScreen() {
                 ))}
 
                 <TouchableOpacity style={styles.addMoreButton} onPress={addSlot}>
-                    <Ionicons name="add-circle-outline" size={moderateScale(20)} color="#FF6813" />
-                    <Text style={styles.addMoreText}>Add more input</Text>
+                    <Ionicons name="add-circle-outline" size={moderateScale(20)} color={colors.primary} />
+                    <Text style={[styles.addMoreText, { color: colors.primary }]}>Add more input</Text>
                 </TouchableOpacity>
             </ScrollView>
 
-            <View style={styles.footer}>
+            <View style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.divider }]}>
                 <PrimaryButton 
                     title="Attach Document" 
                     onPress={handleAttach} 

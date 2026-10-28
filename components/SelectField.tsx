@@ -1,3 +1,5 @@
+import { useAppTheme } from '@/context/ThemeContext';
+import { useResponsiveInputHeight } from '@/hooks/useDevicePose';
 import { Icon } from 'iconsax-react-nativejs';
 import React, { ReactNode } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
@@ -26,6 +28,10 @@ const SelectField: React.FC<SelectFieldProps> = ({
     onPress,
     error
 }) => {
+    const { colors, isDark } = useAppTheme();
+    const defaultHeight = useResponsiveInputHeight(40, 50, 49);
+    const iconColor = isDark ? colors.iconMuted : 'rgba(77, 75, 75, 1)';
+
     const renderIcon = (iconProp: Icon | ReactNode, style?: any) => {
         if (!iconProp) return null;
 
@@ -35,7 +41,7 @@ const SelectField: React.FC<SelectFieldProps> = ({
 
         if (typeof iconProp === 'function') {
             const IconComponent = iconProp as Icon;
-            return <IconComponent size={moderateScale(20)} color="rgba(77, 75, 75, 1)" style={style} />;
+            return <IconComponent size={moderateScale(20)} color={iconColor} style={style} />;
         }
 
         return null;
@@ -43,7 +49,7 @@ const SelectField: React.FC<SelectFieldProps> = ({
 
     return (
         <View style={styles.container}>
-            <Text style={styles.label}>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>
                 {label} {required && <Text style={styles.required}>*</Text>}
             </Text>
             <TouchableOpacity
@@ -52,12 +58,24 @@ const SelectField: React.FC<SelectFieldProps> = ({
                 testID="select-field-touchable"
                 style={[
                     disabled ? styles.inputDisabledWrapper : styles.inputWrapper,
+                    {
+                        backgroundColor: disabled ? colors.inputDisabledBackground : colors.inputBackground,
+                        borderColor: disabled ? colors.inputDisabledBorder : colors.inputBorder,
+                        height: defaultHeight,
+                    },
                     error ? styles.inputError : undefined
                 ]}
             >
                 {renderIcon(icon, styles.leftIcon)}
 
-                <Text style={[styles.input, !value && styles.placeholder]}>
+                <Text
+                    style={[
+                        styles.input,
+                        { color: value ? colors.text : colors.placeholder },
+                        !value && styles.placeholder
+                    ]}
+                    numberOfLines={1}
+                >
                     {value || placeholder}
                 </Text>
 
@@ -73,10 +91,10 @@ const styles = ScaledSheet.create({
         marginBottom: '16@vs',
     },
     label: {
-        fontSize: '15@ms',
+        fontSize: '12.5@ms',
         fontWeight: '400',
         color: '#475569',
-        marginBottom: '10@vs',
+        marginBottom: '8@vs',
     },
     required: {
         color: '#EF4444',
@@ -84,12 +102,11 @@ const styles = ScaledSheet.create({
     inputWrapper: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#FFFFFF',
+        backgroundColor: 'transparent',
         borderWidth: 1,
         borderColor: 'rgba(143, 139, 139, 1)',
         borderRadius: '28@ms',
         paddingHorizontal: '14@s',
-        height: '45@vs',
     },
     inputDisabledWrapper: {
         flexDirection: 'row',
@@ -99,14 +116,13 @@ const styles = ScaledSheet.create({
         borderColor: 'rgba(204, 202, 202, 1)',
         borderRadius: '28@ms',
         paddingHorizontal: '14@s',
-        height: '45@vs',
     },
     leftIcon: {
         marginRight: '12@s',
     },
     input: {
         flex: 1,
-        fontSize: '15@ms',
+        fontSize: '14@ms',
         color: '#0F172A',
     },
     placeholder: {

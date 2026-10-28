@@ -1,18 +1,19 @@
 import React from 'react';
-import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { ArrowDown2, Eye, EyeSlash } from 'iconsax-react-nativejs';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import CurrencyDropdown, { CurrencyItem } from '@/components/CurrencyDropdown';
 import { getCurrencySymbol } from '@/utils/helpers';
-import { Colors } from '../../constants/theme';
+import { Colors } from '@/constants/theme';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { FILTERS } from './homeConfig';
 
-const Dot = () => (
+const Dot = ({ color = '#0F172A' }: { color?: string }) => (
     <View style={{
         width: moderateScale(10),
         height: moderateScale(10),
         borderRadius: moderateScale(5),
-        backgroundColor: '#0F172A',
+        backgroundColor: color,
         marginHorizontal: moderateScale(2),
     }} />
 );
@@ -44,46 +45,73 @@ export default function HomeBalanceSection({
     setCurrencySheetVisible,
     isLoadingTotals,
 }: HomeBalanceSectionProps) {
+    const { colors, isDark } = useAppTheme();
+
     return (
         <>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterContainer}>
-                {FILTERS.map((filter) => (
-                    <TouchableOpacity
-                        key={filter}
-                        style={[styles.filterChip, selectedFilter === filter && styles.filterChipActive]}
-                        onPress={() => onSelectFilter(filter)}
-                    >
-                        <Text style={[styles.filterText, selectedFilter === filter && styles.filterTextActive]}>
-                            {filter}
-                        </Text>
-                    </TouchableOpacity>
-                ))}
+                {FILTERS.map((filter) => {
+                    const isActive = selectedFilter === filter;
+                    return (
+                        <Pressable
+                            key={filter}
+                            style={({ pressed }) => [
+                                styles.filterChip,
+                                { borderColor: colors.border, backgroundColor: colors.card },
+                                isActive && [
+                                    styles.filterChipActive,
+                                    {
+                                        backgroundColor: isDark ? colors.primarySoft : '#FFF7ED',
+                                        borderColor: colors.tabIconSelected,
+                                    },
+                                ],
+                                pressed && { opacity: 0.75 },
+                            ]}
+                            onPress={() => onSelectFilter(filter)}
+                            accessibilityRole="button"
+                            accessibilityState={{ selected: isActive }}
+                        >
+                            <Text style={[styles.filterText, { color: colors.textMuted }, isActive && [styles.filterTextActive, { color: colors.tabIconSelected }]]}>
+                                {filter}
+                            </Text>
+                        </Pressable>
+                    );
+                })}
             </ScrollView>
 
             <View style={styles.balanceSection}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                     <View style={styles.balanceHeader}>
-                        <Text style={styles.balanceLabel}>{balanceLabel}</Text>
+                        <Text style={[styles.balanceLabel, { color: colors.textMuted }]}>{balanceLabel}</Text>
                         <TouchableOpacity onPress={onToggleBalance}>
                             {showBalance ?
-                                <Eye size={moderateScale(18)} color="#1E293B" variant="Bold" /> :
-                                <EyeSlash size={moderateScale(18)} color="#1E293B" variant="Bold" />
+                                <Eye size={moderateScale(18)} color={colors.icon} variant="Bold" /> :
+                                <EyeSlash size={moderateScale(18)} color={colors.icon} variant="Bold" />
                             }
                         </TouchableOpacity>
                     </View>
 
                     <View style={{ zIndex: 100 }}>
-                        <TouchableOpacity
-                            style={styles.currencySelector}
+                        <Pressable
+                            style={({ pressed }) => [
+                                styles.currencySelector,
+                                {
+                                    backgroundColor: isDark ? 'rgba(255, 255, 255, 0.10)' : 'rgba(35, 35, 35, 1)',
+                                    borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
+                                    borderWidth: isDark ? 1 : 0,
+                                },
+                                pressed && { opacity: 0.8 },
+                            ]}
                             onPress={() => setCurrencySheetVisible(!currencySheetVisible)}
-                            activeOpacity={0.7}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Select currency, current ${selectedCurrency.code}`}
                         >
                             <View style={styles.flagWrapper}>
                                 <Text style={styles.flagText}>{selectedCurrency.flag}</Text>
                             </View>
                             <Text style={styles.currencyCode}>{selectedCurrency.code}</Text>
                             <ArrowDown2 size={moderateScale(14)} color="#FFFFFF" />
-                        </TouchableOpacity>
+                        </Pressable>
 
                         {currencySheetVisible && (
                             <CurrencyDropdown
@@ -96,23 +124,36 @@ export default function HomeBalanceSection({
                 </View>
 
                 <View style={styles.balanceRow}>
-                    <View style={styles.currencyBadge}>
-                        <Text style={styles.currencySymbol}>
+                    <View
+                        style={[
+                            styles.currencyBadge,
+                            {
+                                backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#EFF6FF',
+                                borderColor: isDark ? 'rgba(255, 255, 255, 0.10)' : 'transparent',
+                                borderWidth: isDark ? 1 : 0,
+                            },
+                        ]}
+                    >
+                        <Text style={[styles.currencySymbol, { color: colors.text }]}>
                             {getCurrencySymbol(selectedCurrency.code)}
                         </Text>
                     </View>
                     {showBalance ? (
                         isLoadingTotals ? (
-                            <ActivityIndicator size="small" color="#1E293B" style={{ marginLeft: moderateScale(10) }} />
+                            <ActivityIndicator size="small" color={colors.text} style={{ marginLeft: moderateScale(10) }} />
                         ) : (
-                            <Text style={styles.balanceAmount}>
+                            <Text
+                                style={[styles.balanceAmount, { color: colors.text }]}
+                                numberOfLines={1}
+                                adjustsFontSizeToFit
+                            >
                                 {balanceAmount}
-                                <Text style={styles.balanceDecimal}>.00</Text>
+                                <Text style={[styles.balanceDecimal, { color: colors.textMuted }]}>.00</Text>
                             </Text>
                         )
                     ) : (
                         <View style={{ flexDirection: 'row', alignItems: 'center', height: moderateScale(38) }}>
-                            <Dot /><Dot /><Dot />
+                            <Dot color={colors.text} /><Dot color={colors.text} /><Dot color={colors.text} />
                         </View>
                     )}
                 </View>
@@ -123,7 +164,7 @@ export default function HomeBalanceSection({
 
 const styles = ScaledSheet.create({
     filterContainer: {
-        paddingHorizontal: '10@s',
+        paddingHorizontal: '14@s',
         marginBottom: '24@vs',
     },
     filterChip: {
@@ -147,7 +188,7 @@ const styles = ScaledSheet.create({
         fontWeight: '500',
     },
     balanceSection: {
-        paddingHorizontal: '10@s',
+        paddingHorizontal: '14@s',
         marginBottom: '24@vs',
     },
     balanceHeader: {

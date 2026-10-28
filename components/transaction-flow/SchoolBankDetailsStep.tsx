@@ -1,6 +1,7 @@
 import ControlledInput from '@/components/ControlledInput';
 import React from 'react';
 import { ScrollView, Text, View } from 'react-native';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import {
     bankStepStyles as styles,
     BankStepInvoiceUpload,
@@ -30,12 +31,13 @@ export default function SchoolBankDetailsStep({
     onUploadInvoice,
     isUploadingInvoice,
 }: SchoolBankDetailsStepProps) {
+    const { colors } = useAppTheme();
     const beneficiaryCountry = watch('beneficiaryCountry');
 
     return (
         <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-            <Text style={styles.title}>Where would you like to send the fund to?</Text>
-            <Text style={styles.description}>
+            <Text style={[styles.title, { color: colors.text }]}>Where would you like to send the fund to?</Text>
+            <Text style={[styles.description, { color: colors.textMuted }]}>
                 Enter the school and bank details for this payment.{"\n"}
                 Please upload an invoice that contains the beneficiary details so we can verify them more easily.{"\n"}
                 You may also upload an invoice below to use as confirmation during internet banking.
@@ -62,7 +64,7 @@ export default function SchoolBankDetailsStep({
                 placeholder="Enter student passport number"
             />
 
-            <Text style={styles.sectionTitle}>For the School (Beneficiary)</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>For the School (Beneficiary)</Text>
             <View style={styles.sectionContainer}>
                 <ControlledInput
                     control={control}
@@ -115,7 +117,7 @@ export default function SchoolBankDetailsStep({
                 />
             </View>
 
-            <Text style={styles.sectionTitle}>Beneficiary Bank details</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Beneficiary Bank details</Text>
             <View style={styles.sectionContainer}>
                 <ControlledInput
                     control={control}

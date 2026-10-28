@@ -6,8 +6,10 @@ import React, { useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 export default function MyProfileScreen() {
+    const { colors } = useAppTheme();
     const insets = useSafeAreaInsets();
     const user = useAuthStore((state) => state.user);
     const initials = user?.profile
@@ -29,34 +31,34 @@ export default function MyProfileScreen() {
     ];
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top }]}>
+        <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
             <Header title="My Profile" />
-            <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent}>
+            <ScrollView style={[styles.content, { backgroundColor: colors.background }]} contentContainerStyle={styles.scrollContent}>
 
-                <View style={styles.profileCard}>
+                <View style={[styles.profileCard, { backgroundColor: colors.surface }]}>
                     <View style={styles.profileHeader}>
                         <View style={styles.avatarContainer}>
-                            <View style={styles.avatarCircle}>
+                            <View style={[styles.avatarCircle, { backgroundColor: colors.primary }]}>
                                 <Text style={styles.avatarInitials}>{initials}</Text>
                             </View>
                         </View>
                         <View style={styles.nameContainer}>
-                            <Text style={styles.profileName}>{user?.profile ? `${user.profile.firstName} ${user.profile.lastName}` : 'User'}</Text>
-                            <Text style={styles.profileHandle}>{user?.role}</Text>
+                            <Text style={[styles.profileName, { color: colors.text }]}>{user?.profile ? `${user.profile.firstName} ${user.profile.lastName}` : 'User'}</Text>
+                            <Text style={[styles.profileHandle, { color: colors.textMuted }]}>{user?.role}</Text>
                         </View>
                     </View>
                 </View>
 
-                <View style={styles.detailsCard}>
+                <View style={[styles.detailsCard, { backgroundColor: colors.card }]}>
                     <TouchableOpacity
                         style={styles.detailsHeader}
                         onPress={() => setExpanded(!expanded)}
                         activeOpacity={0.7}
                     >
-                        <Text style={styles.detailsTitle}>Basic Details</Text>
+                        <Text style={[styles.detailsTitle, { color: colors.text }]}>Basic Details</Text>
                         <ArrowDown2
                             size={moderateScale(20)}
-                            color="#292D32"
+                            color={colors.icon}
                             variant="Linear"
                         />
                     </TouchableOpacity>
@@ -65,8 +67,8 @@ export default function MyProfileScreen() {
                         <View style={styles.detailsList}>
                             {basicDetails.map((item, index) => (
                                 <View key={index} style={styles.detailRow}>
-                                    <Text style={styles.detailLabel}>{item.label}</Text>
-                                    <Text style={styles.detailValue}>{item.value}</Text>
+                                    <Text style={[styles.detailLabel, { color: colors.text }]}>{item.label}</Text>
+                                    <Text style={[styles.detailValue, { color: colors.textMuted }]}>{item.value}</Text>
                                 </View>
                             ))}
                         </View>

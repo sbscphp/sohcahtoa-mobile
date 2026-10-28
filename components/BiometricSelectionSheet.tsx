@@ -1,9 +1,11 @@
+import AnimatedBottomSheet from '@/components/ui/AnimatedBottomSheet';
 import { Colors } from '@/constants/theme';
 import { Fingerprint, ScanFaceIcon } from 'lucide-react-native';
 import React from 'react';
-import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Text, TouchableOpacity, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import PrimaryButton from './PrimaryButton';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 interface BiometricSelectionSheetProps {
     visible: boolean;
@@ -18,72 +20,58 @@ const BiometricSelectionSheet: React.FC<BiometricSelectionSheetProps> = ({
     onSelectFace,
     onSelectFingerprint,
 }) => {
+    const { colors, isDark } = useAppTheme();
+
     return (
-        <Modal
-            animationType="slide"
-            transparent={true}
+        <AnimatedBottomSheet
             visible={visible}
-            onRequestClose={onClose}
+            onClose={onClose}
+            sheetStyle={[styles.sheetContent, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 1 : 0 }]}
         >
-            <View style={styles.overlay}>
-                {/* Close on backdrop press */}
-                <TouchableOpacity style={styles.backdrop} onPress={onClose} activeOpacity={1} />
-
-                <View style={styles.sheetContent}>
-                    <View style={styles.headerIconContainer}>
-                        <View style={styles.warningIconBg}>
-                            {/* ! icon or InfoCircle - using InfoCircle orange as per design vibe */}
-                            <Text style={styles.exclamationMark}>!</Text>
-                        </View>
-                    </View>
-
-                    <Text style={styles.title}>Choose Biometric Setup</Text>
-
-                    <Text style={styles.description}>
-                        Select desired biometrics for secure login to your account.
-                    </Text>
-
-                    <View style={styles.graphicContainer}>
-                        <ScanFaceIcon size={moderateScale(48)} color="#94A3B8" />
-                        <View style={styles.verticalDivider} />
-                        <Fingerprint size={moderateScale(48)} color="#94A3B8" />
-                    </View>
-
-                    <View style={styles.buttonContainer}>
-                        <PrimaryButton
-                            title="Face Recognition"
-                            onPress={onSelectFace}
-                            style={styles.faceButton}
-                        />
-
-                        <TouchableOpacity
-                            style={styles.fingerprintButton}
-                            onPress={onSelectFingerprint}
-                        >
-                            <Text style={styles.fingerprintButtonText}>Fingerprint</Text>
-                        </TouchableOpacity>
-                    </View>
+            <View style={styles.headerIconContainer}>
+                <View style={[styles.warningIconBg, { backgroundColor: isDark ? 'rgba(255, 107, 44, 0.15)' : '#FFF7ED' }]}>
+                    <Text style={[styles.exclamationMark, { color: colors.primary }]}>!</Text>
                 </View>
             </View>
-        </Modal>
+
+            <Text style={[styles.title, { color: colors.text }]}>Choose Biometric Setup</Text>
+
+            <Text style={[styles.description, { color: colors.textMuted }]}>
+                Select desired biometrics for secure login to your account.
+            </Text>
+
+            <View style={styles.graphicContainer}>
+                <ScanFaceIcon size={moderateScale(48)} color={colors.icon} />
+                <View style={[styles.verticalDivider, { backgroundColor: colors.primary }]} />
+                <Fingerprint size={moderateScale(48)} color={colors.icon} />
+            </View>
+
+            <View style={styles.buttonContainer}>
+                <PrimaryButton
+                    title="Face Recognition"
+                    onPress={onSelectFace}
+                    style={styles.faceButton}
+                />
+
+                <TouchableOpacity
+                    style={[styles.fingerprintButton, { backgroundColor: isDark ? colors.surfaceHighlight : '#F1F5F9' }]}
+                    onPress={onSelectFingerprint}
+                >
+                    <Text style={[styles.fingerprintButtonText, { color: colors.text }]}>Fingerprint</Text>
+                </TouchableOpacity>
+            </View>
+        </AnimatedBottomSheet>
     );
 };
 
 const styles = ScaledSheet.create({
-    overlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        justifyContent: 'flex-end',
-    },
-    backdrop: {
-        ...StyleSheet.absoluteFillObject,
-    },
     sheetContent: {
+        width: '100%',
         backgroundColor: '#FFFFFF',
-        borderTopLeftRadius: '24@ms',
-        borderTopRightRadius: '24@ms',
+        borderRadius: '28@ms',
         padding: '24@s',
-        paddingBottom: '40@vs',
+        paddingTop: '12@vs',
+        paddingBottom: '32@vs',
     },
     headerIconContainer: {
         marginBottom: '16@vs',

@@ -1,20 +1,27 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-    Animated,
-    Dimensions,
     FlatList,
     Image,
     ImageSourcePropType,
     Text,
+    useWindowDimensions,
     View
 } from 'react-native';
+import Animated, {
+    Extrapolation,
+    SharedValue,
+    interpolate,
+    useAnimatedScrollHandler,
+    useAnimatedStyle,
+    useSharedValue,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet } from 'react-native-size-matters';
 import PrimaryButton from './PrimaryButton';
 import { StatusBar } from 'expo-status-bar';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 
-const { width } = Dimensions.get('window');
 
 interface OnboardingSlide {
     id: string;
@@ -65,9 +72,140 @@ export interface OnboardingScreenProps {
     onLogin: () => void;
 }
 
+function OnboardingDot({
+    index,
+    scrollX,
+    isActive,
+}: {
+    index: number;
+    scrollX: SharedValue<number>;
+    isActive: boolean;
+}) {
+    const { width } = useWindowDimensions();
+    const animatedDotStyle = useAnimatedStyle(() => {
+        const inputRange = [
+            (index - 1) * width,
+            index * width,
+            (index + 1) * width,
+        ];
+        const opacity = interpolate(
+            scrollX.value,
+            inputRange,
+            [0.3, 1, 0.3],
+            Extrapolation.CLAMP
+        );
+        const scale = interpolate(
+            scrollX.value,
+            inputRange,
+            [0.8, 1.2, 0.8],
+            Extrapolation.CLAMP
+        );
+        return {
+            opacity,
+            transform: [{ rotate: '45deg' }, { scale }],
+        };
+    });
+
+    return (
+        <Animated.View
+            style={[
+                styles.dot,
+                animatedDotStyle,
+                isActive && styles.activeDot,
+            ]}
+        />
+    );
+}
+
+function OnboardingSlideItem({
+    item,
+    index,
+    scrollX,
+    activeIndex,
+}: {
+    item: OnboardingSlide;
+    index: number;
+    scrollX: SharedValue<number>;
+    activeIndex: number;
+}) {
+    const { width } = useWindowDimensions();
+    const { colors, isDark } = useAppTheme();
+    const animatedSlideStyle = useAnimatedStyle(() => {
+        const inputRange = [
+            (index - 1) * width,
+            index * width,
+            (index + 1) * width,
+        ];
+        const opacity = interpolate(
+            scrollX.value,
+            inputRange,
+            [0, 1, 0],
+            Extrapolation.CLAMP
+        );
+        const scale = interpolate(
+            scrollX.value,
+            inputRange,
+            [0.9, 1, 0.9],
+            Extrapolation.CLAMP
+        );
+        return {
+            opacity,
+            transform: [{ scale }],
+        };
+    });
+
+    return (
+        <View style={[styles.slideWrapper, { width }]}>
+            <View style={[styles.slideContainer, { backgroundColor: isDark ? colors.surface : 'rgba(241, 241, 241, 1)' }]}>
+                <View style={styles.logoPlaceholder}>
+                    <Image
+                        source={require('../assets/images/logo-s.png')}
+                        style={styles.logo}
+                    />
+                </View>
+                <Animated.View style={[styles.imageContainer, animatedSlideStyle]}>
+                    <View style={styles.titleOverlay}>
+                        <Text style={styles.title}>{item.title}</Text>
+                        <Text style={styles.subtitle}>{item.subtitle}</Text>
+                    </View>
+
+                    <View style={[
+                        styles.testimonialCard,
+                        {
+                            backgroundColor: colors.card,
+                            borderColor: colors.border,
+                            borderWidth: isDark ? 1 : 0,
+                        }
+                    ]}>
+                        <Text style={[styles.testimonialText, { color: colors.textMuted }]} numberOfLines={4}>{item.testimonial}</Text>
+                        <View style={styles.authorContainer}>
+                            <Image source={item.image as any} style={styles.authorAvatar} />
+                            <View>
+                                <Text style={[styles.authorName, { color: colors.text }]}>{item.author}</Text>
+                                <Text style={[styles.authorRole, { color: colors.textMuted }]}>{item.role}</Text>
+                            </View>
+                        </View>
+                    </View>
+                </Animated.View>
+                <View style={styles.paginationContainer}>
+                    {ONBOARDING_DATA.map((_, dotIndex) => (
+                        <OnboardingDot
+                            key={dotIndex}
+                            index={dotIndex}
+                            scrollX={scrollX}
+                            isActive={activeIndex === dotIndex}
+                        />
+                    ))}
+                </View>
+            </View>
+        </View>
+    );
+}
+
 const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onSignUp, onLogin }) => {
-    const scrollX = useRef(new Animated.Value(0)).current;
-    const flatListRef = useRef<FlatList>(null);
+    const { colors, isDark } = useAppTheme();
+    const scrollX = useSharedValue(0);
+    const flatListRef = useRef<FlatList<OnboardingSlide>>(null);
     const [activeIndex, setActiveIndex] = useState(0);
     const insets = useSafeAreaInsets();
 
@@ -90,114 +228,36 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onSignUp, onLogin }
         return () => clearInterval(timer);
     }, [activeIndex]);
 
-    const handleScroll = Animated.event(
-        [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-        { useNativeDriver: false }
-    );
+    const handleScroll = useAnimatedScrollHandler({
+        onScroll: (event) => {
+            scrollX.value = event.contentOffset.x;
+        },
+    });
 
-    const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
-        if (viewableItems.length > 0) {
+    const handleViewableItemsChanged = useCallback(({ viewableItems }: any) => {
+        if (viewableItems.length > 0 && viewableItems[0].index !== null) {
             setActiveIndex(viewableItems[0].index);
         }
-    }).current;
+    }, []);
 
-    const viewabilityConfig = useRef({
+    const viewabilityConfig = useMemo(() => ({
         itemVisiblePercentThreshold: 50,
-    }).current;
+    }), []);
 
-    const renderItem = ({ item, index }: { item: OnboardingSlide, index: number }) => {
-        const inputRange = [
-            (index - 1) * width,
-            index * width,
-            (index + 1) * width,
-        ];
-
-        const opacity = scrollX.interpolate({
-            inputRange,
-            outputRange: [0, 1, 0],
-            extrapolate: 'clamp',
-        });
-
-
-        const scale = scrollX.interpolate({
-            inputRange,
-            outputRange: [0.9, 1, 0.9],
-            extrapolate: 'clamp',
-        });
-
-        return (
-            <View style={styles.slideWrapper}>
-                <View style={styles.slideContainer}>
-                    <View style={styles.logoPlaceholder}>
-                        <Image
-                            source={require('../assets/images/logo-s.png')}
-                            style={styles.logo}
-                        />
-                    </View>
-                    <Animated.View style={[styles.imageContainer, { opacity, transform: [{ scale }] }]}>
-
-
-                        <View style={styles.titleOverlay}>
-                            <Text style={styles.title}>{item.title}</Text>
-                            <Text style={styles.subtitle}>{item.subtitle}</Text>
-                        </View>
-
-
-                        <View style={styles.testimonialCard}>
-                            <Text style={styles.testimonialText} numberOfLines={4}>{item.testimonial}</Text>
-                            <View style={styles.authorContainer}>
-                                <Image source={item.image as any} style={styles.authorAvatar} />
-                                <View>
-                                    <Text style={styles.authorName}>{item.author}</Text>
-                                    <Text style={styles.authorRole}>{item.role}</Text>
-                                </View>
-                            </View>
-                        </View>
-                    </Animated.View>
-                    <View style={styles.paginationContainer}>
-                        {ONBOARDING_DATA.map((_, index) => {
-                            const opacity = scrollX.interpolate({
-                                inputRange: [
-                                    (index - 1) * width,
-                                    index * width,
-                                    (index + 1) * width,
-                                ],
-                                outputRange: [0.3, 1, 0.3],
-                                extrapolate: 'clamp',
-                            });
-
-                            const scale = scrollX.interpolate({
-                                inputRange: [
-                                    (index - 1) * width,
-                                    index * width,
-                                    (index + 1) * width,
-                                ],
-                                outputRange: [0.8, 1.2, 0.8],
-                                extrapolate: 'clamp',
-                            });
-
-                            return (
-                                <Animated.View
-                                    key={index}
-                                    style={[
-                                        styles.dot,
-                                        { opacity, transform: [{ rotate: '45deg' }, { scale }] },
-                                        activeIndex === index && styles.activeDot,
-                                    ]}
-                                />
-                            );
-                        })}
-                    </View>
-                </View>
-            </View>
-        );
-    };
+    const renderItem = ({ item, index }: { item: OnboardingSlide; index: number }) => (
+        <OnboardingSlideItem
+            item={item}
+            index={index}
+            scrollX={scrollX}
+            activeIndex={activeIndex}
+        />
+    );
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-            <StatusBar style="dark" hidden={true} />
+        <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom, paddingLeft: insets.left, paddingRight: insets.right, backgroundColor: colors.background }]}>
+            <StatusBar style={isDark ? "light" : "dark"} hidden={true} />
             <View style={styles.contentContainer}>
-                <FlatList
+                <Animated.FlatList
                     ref={flatListRef}
                     data={ONBOARDING_DATA}
                     renderItem={renderItem}
@@ -205,7 +265,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onSignUp, onLogin }
                     pagingEnabled
                     showsHorizontalScrollIndicator={false}
                     onScroll={handleScroll}
-                    onViewableItemsChanged={onViewableItemsChanged}
+                    onViewableItemsChanged={handleViewableItemsChanged}
                     viewabilityConfig={viewabilityConfig}
                     keyExtractor={(item) => item.id}
                     scrollEventThrottle={16}
@@ -227,15 +287,15 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onSignUp, onLogin }
                     <PrimaryButton
                         title="Log in"
                         onPress={onLogin}
-                        style={styles.loginButton}
-                        textStyle={styles.loginButtonText}
+                        style={[styles.loginButton, { backgroundColor: isDark ? colors.surfaceHighlight : 'rgba(243, 243, 243, 1)' }]}
+                        textStyle={[styles.loginButtonText, { color: colors.text }]}
                     />
                 </View>
 
                 {/* License */}
                 <View style={styles.licenseContainer}>
                     <Image source={require('../assets/images/cbn.png')} style={styles.licenseImage} />
-                    <Text style={styles.licenseText}>Licensed by CBN</Text>
+                    <Text style={[styles.licenseText, { color: colors.textMuted }]}>Licensed by CBN</Text>
                 </View>
             </View>
         </View>
@@ -262,7 +322,6 @@ const styles = ScaledSheet.create({
         flex: 1,
     },
     slideWrapper: {
-        width: width,
         height: '100%',
         alignItems: 'center',
         justifyContent: 'center',

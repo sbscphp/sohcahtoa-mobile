@@ -1,10 +1,13 @@
 import React from 'react';
-import { Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native';
-import { ScaledSheet, moderateScale } from 'react-native-size-matters';
-import { ArrowDown2, CloseCircle } from 'iconsax-react-nativejs';
+import { Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView } from 'react-native-gesture-handler';
+import { ScaledSheet } from 'react-native-size-matters';
+import { ArrowDown2 } from 'iconsax-react-nativejs';
 import PrimaryButton from '@/components/PrimaryButton';
 import InputField from '@/components/InputField';
 import { SelectionItem } from '@/components/GenericSelectionSheet';
+import { AnimatedBottomSheet } from '@/components/ui/AnimatedBottomSheet';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 interface AddBankAccountModalProps {
     visible: boolean;
@@ -29,72 +32,69 @@ export default function AddBankAccountModal({
     isResolving,
     onSave,
 }: AddBankAccountModalProps) {
+    const { colors, isDark } = useAppTheme();
+
+    const headerContent = (
+        <View style={[styles.sheetHeader, { borderBottomColor: colors.border }]}>
+            <Text style={[styles.sheetTitle, { color: colors.text }]}>Add Bank Account</Text>
+        </View>
+    );
+
     return (
-        <Modal
-            animationType="slide"
-            transparent={true}
+        <AnimatedBottomSheet
             visible={visible}
-            onRequestClose={onClose}
+            onClose={onClose}
+            headerComponent={headerContent}
+            sheetStyle={[styles.bottomSheet, { backgroundColor: colors.card }]}
         >
-            <View style={styles.modalOverlay}>
-                <View style={styles.bottomSheet}>
-                    <View style={styles.sheetHeader}>
-                        <Text style={styles.sheetTitle}>Add Bank Account</Text>
-                        <TouchableOpacity onPress={onClose}>
-                            <CloseCircle size={moderateScale(24)} color="#94A3B8" variant="Bold" />
-                        </TouchableOpacity>
-                    </View>
-
-                    <ScrollView contentContainerStyle={styles.sheetContent}>
-                        <TouchableOpacity onPress={onOpenBankSheet} activeOpacity={0.8}>
-                            <View pointerEvents="none">
-                                <InputField
-                                    label="Bank Name"
-                                    placeholder="Select Bank"
-                                    required
-                                    value={selectedBank?.label || ''}
-                                    rightIcon={ArrowDown2}
-                                    editable={false}
-                                />
-                            </View>
-                        </TouchableOpacity>
-
+            <ScrollView contentContainerStyle={styles.sheetContent}>
+                <TouchableOpacity onPress={onOpenBankSheet} activeOpacity={0.8}>
+                    <View pointerEvents="none">
                         <InputField
-                            label="Account Number"
-                            placeholder="Enter 10-digit number"
+                            label="Bank Name"
+                            placeholder="Select Bank"
                             required
-                            keyboardType="numeric"
-                            maxLength={10}
-                            value={accountNumber}
-                            onChangeText={setAccountNumber}
+                            value={selectedBank?.label || ''}
+                            rightIcon={ArrowDown2}
+                            editable={false}
                         />
+                    </View>
+                </TouchableOpacity>
 
-                        {accountName ? (
-                            <View style={styles.resolvedNameContainer}>
-                                <Text style={styles.resolvedLabel}>Account Name</Text>
-                                <Text style={styles.resolvedValue}>{accountName}</Text>
-                            </View>
-                        ) : isResolving ? (
-                            <Text style={styles.resolvingText}>Resolving account name...</Text>
-                        ) : null}
+                <InputField
+                    label="Account Number"
+                    placeholder="Enter 10-digit number"
+                    required
+                    keyboardType="numeric"
+                    maxLength={10}
+                    value={accountNumber}
+                    onChangeText={setAccountNumber}
+                />
 
-                        <View style={styles.sheetFooter}>
-                            <PrimaryButton
-                                title="Save Bank Details"
-                                onPress={onSave}
-                                disabled={!selectedBank || accountNumber.length !== 10 || !accountName}
-                            />
-                            <TouchableOpacity
-                                style={styles.sheetCloseBtn}
-                                onPress={onClose}
-                            >
-                                <Text style={styles.sheetCloseText}>Cancel</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </ScrollView>
+                {accountName ? (
+                    <View style={[styles.resolvedNameContainer, { backgroundColor: isDark ? colors.surface : '#F8FAFC', borderColor: colors.border }]}>
+                        <Text style={[styles.resolvedLabel, { color: colors.textMuted }]}>Account Name</Text>
+                        <Text style={[styles.resolvedValue, { color: colors.text }]}>{accountName}</Text>
+                    </View>
+                ) : isResolving ? (
+                    <Text style={styles.resolvingText}>Resolving account name...</Text>
+                ) : null}
+
+                <View style={styles.sheetFooter}>
+                    <PrimaryButton
+                        title="Save Bank Details"
+                        onPress={onSave}
+                        disabled={!selectedBank || accountNumber.length !== 10 || !accountName}
+                    />
+                    <TouchableOpacity
+                        style={[styles.sheetCloseBtn, { backgroundColor: isDark ? colors.surfaceHighlight : '#F1F5F9' }]}
+                        onPress={onClose}
+                    >
+                        <Text style={[styles.sheetCloseText, { color: colors.text }]}>Cancel</Text>
+                    </TouchableOpacity>
                 </View>
-            </View>
-        </Modal>
+            </ScrollView>
+        </AnimatedBottomSheet>
     );
 }
 
@@ -105,6 +105,7 @@ const styles = ScaledSheet.create({
         justifyContent: 'flex-end',
     },
     bottomSheet: {
+        width: '100%',
         backgroundColor: '#FFFFFF',
         borderTopLeftRadius: '24@ms',
         borderTopRightRadius: '24@ms',
@@ -112,10 +113,9 @@ const styles = ScaledSheet.create({
         paddingBottom: '24@vs',
     },
     sheetHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '20@ms',
+        width: '100%',
+        paddingHorizontal: '20@ms',
+        paddingVertical: '12@vs',
         borderBottomWidth: 1,
         borderBottomColor: '#F1F5F9',
     },

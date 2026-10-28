@@ -11,6 +11,7 @@ import InputField from '@/components/InputField';
 import LoadingBackdrop from '@/components/LoadingBackdrop';
 import AddBankAccountModal from '@/components/more/AddBankAccountModal';
 import TransactionLayout from '@/components/transaction-flow/TransactionLayout';
+import { useAppTheme } from '@/context/ThemeContext';
 import { useGetBanksQuery } from '@/hooks/queries/banks/useGetBanksQuery';
 import { useGetSavedAccountsQuery } from '@/hooks/queries/banks/useGetSavedAccountsQuery';
 import { useAddBankAccount } from '@/hooks/useAddBankAccount';
@@ -29,6 +30,7 @@ const formatAmount = (num: number) => num.toLocaleString(undefined, { minimumFra
 
 export default function ImtoScreen() {
     const router = useRouter();
+    const { colors, isDark } = useAppTheme();
     const { step: initialStepParam } = useLocalSearchParams<{ step?: string }>();
     const totalSteps = 4;
 
@@ -118,16 +120,16 @@ export default function ImtoScreen() {
     ];
 
     const renderLimitBanner = () => (
-        <View style={styles.infoBanner}>
+        <View style={[styles.infoBanner, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <InfoCircle size={moderateScale(20)} color="#F97316" variant="Bold" />
-            <Text style={styles.infoText}>
-                Maximum cash pickup is <Text style={{ fontWeight: '700' }}>{formattedLimitNaira}</Text>
+            <Text style={[styles.infoText, { color: colors.textMuted }]}>
+                Maximum cash pickup is <Text style={{ fontWeight: '700', color: colors.text }}>{formattedLimitNaira}</Text>
             </Text>
         </View>
     );
 
     return (
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, backgroundColor: colors.background }}>
             <LoadingBackdrop visible={isSaving} />
 
             <TransactionLayout
@@ -136,7 +138,7 @@ export default function ImtoScreen() {
             >
                 {currentStep === 0 && (
                     <View>
-                        <Text style={styles.sectionTitle}>How would you like to receive your funds?</Text>
+                        <Text style={[styles.sectionTitle, { color: colors.text }]}>How would you like to receive your funds?</Text>
                         {renderLimitBanner()}
                         <View style={styles.optionsContainer}>
                             {IMTO_PROVIDERS.map((provider) => {
@@ -144,7 +146,11 @@ export default function ImtoScreen() {
                                 return (
                                     <React.Fragment key={provider.id}>
                                         <TouchableOpacity
-                                            style={[styles.optionCard, isSelected && styles.optionCardSelected]}
+                                            style={[
+                                                styles.optionCard,
+                                                { backgroundColor: colors.card, borderColor: isSelected ? colors.primary : colors.border },
+                                                isSelected && (isDark ? { backgroundColor: 'rgba(255, 104, 19, 0.10)', borderWidth: 1.5 } : styles.optionCardSelected),
+                                            ]}
                                             onPress={() => { setSelectedImto(provider.id); setValidationErrors((p) => ({ ...p, selectedImto: undefined })); }}
                                             activeOpacity={0.8}
                                         >
@@ -153,11 +159,11 @@ export default function ImtoScreen() {
                                             ) : (
                                                 <View style={styles.iconPlaceholderYellow}><Text style={styles.iconTextBlack}>W</Text></View>
                                             )}
-                                            <Text style={styles.optionText}>{provider.title}</Text>
+                                            <Text style={[styles.optionText, { color: colors.text }]}>{provider.title}</Text>
                                         </TouchableOpacity>
 
                                         {isSelected && (
-                                            <View style={styles.formContainer}>
+                                            <View style={[styles.formContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
                                                 <InputField
                                                     label={provider.refLabel} placeholder={provider.refPlaceholder} value={referenceNumber}
                                                     onChangeText={(text) => { setReferenceNumber(text); setShowError(false); setValidationErrors((p) => ({ ...p, referenceNumber: undefined })); }}
@@ -182,23 +188,37 @@ export default function ImtoScreen() {
 
                 {currentStep === 1 && (
                     <View>
-                        <Text style={styles.sectionTitle}>Reference Details</Text>
+                        <Text style={[styles.sectionTitle, { color: colors.text }]}>Reference Details</Text>
                         {renderLimitBanner()}
-                        <View style={styles.detailsContainer}>
-                            <Text style={styles.detailsHeader}>Transaction Details</Text>
+                        <View style={[styles.detailsContainer, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 1 : 0, borderRadius: 12, padding: 16 }]}>
+                            <Text style={[styles.detailsHeader, { color: colors.text }]}>Transaction Details</Text>
                             {detailRows.map((row) => (
                                 <React.Fragment key={row.label}>
                                     <View style={styles.detailRow}>
-                                        <Text style={styles.detailLabel}>{row.label}</Text>
-                                        <Text style={styles.detailValue}>{row.value}</Text>
+                                        <Text style={[styles.detailLabel, { color: colors.textMuted }]}>{row.label}</Text>
+                                        <Text style={[styles.detailValue, { color: colors.text }]}>{row.value}</Text>
                                     </View>
-                                    <View style={styles.divider} />
+                                    <View style={[styles.divider, { backgroundColor: colors.divider }]} />
                                 </React.Fragment>
                             ))}
                             <View style={styles.detailRow}>
-                                <Text style={styles.detailLabel}>Status</Text>
-                                <View style={[styles.statusBadge, isVerified ? styles.badgeVerified : styles.badgeNotVerified]}>
-                                    <Text style={[styles.statusText, isVerified ? styles.textVerified : styles.textNotVerified]}>
+                                <Text style={[styles.detailLabel, { color: colors.textMuted }]}>Status</Text>
+                                <View style={[
+                                    styles.statusBadge,
+                                    isVerified ? styles.badgeVerified : styles.badgeNotVerified,
+                                    isDark && {
+                                        backgroundColor: isVerified ? 'rgba(16, 185, 129, 0.16)' : 'rgba(239, 68, 68, 0.16)',
+                                        borderColor: isVerified ? 'rgba(16, 185, 129, 0.28)' : 'rgba(239, 68, 68, 0.28)',
+                                        borderWidth: 1,
+                                    }
+                                ]}>
+                                    <Text style={[
+                                        styles.statusText,
+                                        isVerified ? styles.textVerified : styles.textNotVerified,
+                                        isDark && {
+                                            color: isVerified ? '#34D399' : '#F87171',
+                                        }
+                                    ]}>
                                         {isVerified ? 'Verified' : 'Not Verified'}
                                     </Text>
                                 </View>
@@ -209,7 +229,7 @@ export default function ImtoScreen() {
 
                 {currentStep === 2 && (
                     <View>
-                        <Text style={styles.sectionTitle}>How would you like to receive your funds?</Text>
+                        <Text style={[styles.sectionTitle, { color: colors.text }]}>How would you like to receive your funds?</Text>
                         <CurrencyConverter
                             transactionType={transactionType} onTransactionTypeChange={setTransactionType}
                             currencyGet={currencyGet} onCurrencyGetChange={setCurrencyGet}
@@ -218,11 +238,11 @@ export default function ImtoScreen() {
                             rate={`USD 1 - NGN ${rate.toLocaleString()}`}
                             onAmountGetChange={setAmountGet} onAmountSendChange={setAmountSend}
                         />
-                        <View style={styles.rateInfoBanner}>
+                        <View style={[styles.rateInfoBanner, { backgroundColor: isDark ? 'rgba(255, 104, 19, 0.12)' : '#FFF7ED' }]}>
                             <InfoCircle size={moderateScale(20)} color="#F97316" variant="Bold" />
                             <View style={{ flex: 1 }}>
-                                <Text style={styles.rateInfoTitle}>Exchange Rate Details</Text>
-                                <Text style={styles.rateInfoText}>
+                                <Text style={[styles.rateInfoTitle, { color: isDark ? colors.primaryLight : '#334155' }]}>Exchange Rate Details</Text>
+                                <Text style={[styles.rateInfoText, { color: colors.textMuted }]}>
                                     {`Funds will be converted to Naira at the rate of USD 1 - NGN ${rate.toLocaleString()} and disbursed to your account.`}
                                 </Text>
                             </View>
@@ -232,17 +252,21 @@ export default function ImtoScreen() {
 
                 {currentStep === 3 && (
                     <View>
-                        <Text style={styles.sectionTitle}>How would you like your funds disbursed?</Text>
+                        <Text style={[styles.sectionTitle, { color: colors.text }]}>How would you like your funds disbursed?</Text>
                         <TouchableOpacity
-                            style={[styles.optionHeader, selectedMethod === 'bank' && styles.optionHeaderSelected]}
+                            style={[
+                                styles.optionHeader,
+                                { backgroundColor: colors.card, borderColor: colors.border },
+                                selectedMethod === 'bank' && [styles.optionHeaderSelected, isDark && { backgroundColor: 'rgba(255, 104, 19, 0.12)' }],
+                            ]}
                             onPress={() => setSelectedMethod('bank')} activeOpacity={0.8}
                         >
-                            <Text style={styles.optionText}>Bank Transfer</Text>
+                            <Text style={[styles.optionText, { color: colors.text }]}>Bank Transfer</Text>
                         </TouchableOpacity>
 
                         {selectedMethod === 'bank' && (
-                            <View style={styles.optionContent}>
-                                <Text style={styles.subLabel}>Please select your preferred bank</Text>
+                            <View style={[styles.optionContent, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                                <Text style={[styles.subLabel, { color: colors.textSecondary }]}>Please select your preferred bank</Text>
                                 {isLoadingAccounts ? (
                                     <ActivityIndicator size="small" color="#F97316" style={{ marginVertical: moderateScale(16) }} />
                                 ) : savedAccounts.length > 0 ? (
@@ -250,24 +274,28 @@ export default function ImtoScreen() {
                                         {savedAccounts.map((account) => (
                                             <TouchableOpacity
                                                 key={account.id}
-                                                style={[styles.bankCard, selectedBank === account.id && styles.optionHeaderSelected]}
+                                                style={[
+                                                    styles.bankCard,
+                                                    { backgroundColor: colors.card, borderColor: colors.border },
+                                                    selectedBank === account.id && [styles.optionHeaderSelected, isDark && { backgroundColor: 'rgba(255, 104, 19, 0.12)' }],
+                                                ]}
                                                 onPress={() => setSelectedBank(account.id)} activeOpacity={0.8}
                                             >
-                                                <View style={styles.bankIconContainer}><Bank size={moderateScale(20)} color="#D97706" /></View>
+                                                <View style={[styles.bankIconContainer, { backgroundColor: isDark ? 'rgba(255, 104, 19, 0.12)' : '#FFF7ED' }]}><Bank size={moderateScale(20)} color={isDark ? colors.primaryLight : '#D97706'} /></View>
                                                 <View style={{ flex: 1 }}>
-                                                    <Text style={styles.bankName}>{account.bankName}</Text>
-                                                    <Text style={styles.accountDetails} numberOfLines={1}>{account.accountNumber} - {account.accountName}</Text>
+                                                    <Text style={[styles.bankName, { color: colors.text }]}>{account.bankName}</Text>
+                                                    <Text style={[styles.accountDetails, { color: colors.textMuted }]} numberOfLines={1}>{account.accountNumber} - {account.accountName}</Text>
                                                 </View>
                                             </TouchableOpacity>
                                         ))}
                                     </View>
                                 ) : (
-                                    <View style={styles.emptyContainer}>
-                                        <Text style={styles.infoText}>No saved bank accounts found. Please add a new account.</Text>
+                                    <View style={[styles.emptyContainer, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : '#F8FAFC' }]}>
+                                        <Text style={[styles.infoText, { color: colors.textMuted }]}>No saved bank accounts found. Please add a new account.</Text>
                                     </View>
                                 )}
 
-                                <TouchableOpacity style={styles.addAccountButton} onPress={() => setAddModalVisible(true)} activeOpacity={0.8}>
+                                <TouchableOpacity style={[styles.addAccountButton, { backgroundColor: isDark ? 'rgba(255, 104, 19, 0.12)' : '#FFFFFF' }]} onPress={() => setAddModalVisible(true)} activeOpacity={0.8}>
                                     <Add size={moderateScale(18)} color="#F97316" />
                                     <Text style={styles.addAccountText}>Add New Account</Text>
                                 </TouchableOpacity>
@@ -314,10 +342,10 @@ const styles = ScaledSheet.create({
     detailLabel: { fontSize: '14@ms', color: '#64748B' },
     detailValue: { fontSize: '14@ms', color: '#334155', fontWeight: '500' },
     divider: { height: 1, backgroundColor: '#F1F5F9', marginVertical: '8@vs' },
-    statusBadge: { paddingHorizontal: '12@s', paddingVertical: '4@vs', borderRadius: '12@ms' },
+    statusBadge: { paddingHorizontal: '10@s', paddingVertical: '3@vs', borderRadius: '12@ms' },
     badgeVerified: { backgroundColor: '#DCFCE7' },
     badgeNotVerified: { backgroundColor: '#FEE2E2' },
-    statusText: { fontSize: '12@ms', fontWeight: '600' },
+    statusText: { fontSize: '10@ms', fontWeight: '600' },
     textVerified: { color: '#166534' },
     textNotVerified: { color: '#991B1B' },
     rateInfoBanner: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#FFF7ED', borderRadius: '12@ms', padding: '16@ms', gap: '12@s', marginTop: '24@vs' },

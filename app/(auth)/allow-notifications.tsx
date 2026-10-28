@@ -1,3 +1,4 @@
+import { useAppTheme } from '@/context/ThemeContext';
 import { useRouter } from 'expo-router';
 import { Notification } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
@@ -13,6 +14,7 @@ import { useAuthStore } from '@/stores/useAuthStore';
 export default function AllowNotificationsScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
+    const { colors, isDark } = useAppTheme();
     const setHasSeenNotificationPrompt = useAuthStore((s) => s.setHasSeenNotificationPrompt);
     const [loading, setLoading] = useState(false);
 
@@ -52,18 +54,18 @@ export default function AllowNotificationsScreen() {
     };
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+        <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom, backgroundColor: colors.background }]}>
             <View style={styles.content}>
                 <View style={styles.textSection}>
-                    <Text style={styles.title}>Never miss an update</Text>
-                    <Text style={styles.description}>
+                    <Text style={[styles.title, { color: colors.text }]}>Never miss an update</Text>
+                    <Text style={[styles.description, { color: colors.textMuted }]}>
                         Enable notifications to get real-time updates on your transactions, currency rates, and security alerts.
                     </Text>
                 </View>
 
                 <View style={styles.graphicContainer}>
-                    <View style={styles.circleOuter} />
-                    <View style={styles.circleMiddle} />
+                    <View style={[styles.circleOuter, isDark && { backgroundColor: 'rgba(255, 104, 19, 0.05)' }]} />
+                    <View style={[styles.circleMiddle, isDark && { backgroundColor: 'rgba(255, 104, 19, 0.10)' }]} />
                     <View style={styles.circleInner}>
                         <Notification variant="Bold" size={moderateScale(64)} color="#FFFFFF" />
                     </View>
@@ -78,8 +80,8 @@ export default function AllowNotificationsScreen() {
                     <PrimaryButton
                         title="Skip for Now"
                         onPress={handleSkip}
-                        style={styles.skipButton}
-                        textStyle={styles.skipButtonText}
+                        style={[styles.skipButton, { backgroundColor: colors.buttonSecondaryBackground }]}
+                        textStyle={[styles.skipButtonText, { color: colors.buttonSecondaryText }]}
                     />
                 </View>
             </View>

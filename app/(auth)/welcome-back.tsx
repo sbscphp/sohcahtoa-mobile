@@ -3,14 +3,18 @@ import BiometricSelectionSheet from '@/components/BiometricSelectionSheet';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useRouter } from 'expo-router';
 import { Lock } from 'iconsax-react-nativejs';
-import { Delete, ScanFace } from 'lucide-react-native';
+import { Delete, Fingerprint, ScanFace } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { Image, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import { Colors } from '../../constants/theme';
+import { authenticateWithBiometrics, getStoredCredentials } from '@/utils/biometrics';
+import { useLoginMutation } from '@/hooks/queries/auth/useLoginMutation';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 export default function WelcomeBackScreen() {
+    const { colors, isDark } = useAppTheme();
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const user = useAuthStore((state) => state.user);
@@ -19,10 +23,22 @@ export default function WelcomeBackScreen() {
     const [showBiometricBottomSheet, setShowBiometricBottomSheet] = useState(false);
     const [showBiometricSheet, setShowBiometricSheet] = useState(false);
 
+    const isBiometricEnabled = useAuthStore((state) => state.isBiometricEnabled);
+    const biometricType = useAuthStore((state) => state.biometricType);
+    const hasCredentials = useAuthStore((state) => state.hasCredentials);
+    const checkCredentials = useAuthStore((state) => state.checkCredentials);
+    const { mutate: login } = useLoginMutation();
+
     const userName = user?.profile ? `${user.profile.firstName} ${user.profile.lastName}` : 'User';
     // console.log('userName', user);
     const PASSCODE_LENGTH = 6;
     const CORRECT_PASSCODE = '123456';
+
+    useEffect(() => {
+        if (typeof checkCredentials === 'function') {
+            checkCredentials();
+        }
+    }, []);
 
     useEffect(() => {
         if (passcode.length === PASSCODE_LENGTH) {
@@ -55,7 +71,17 @@ export default function WelcomeBackScreen() {
         setError(false);
     };
 
-    const handleBiometric = () => {
+    const handleBiometric = async () => {
+        if (isBiometricEnabled && hasCredentials) {
+            const success = await authenticateWithBiometrics('Log in with biometrics');
+            if (success) {
+                const creds = await getStoredCredentials();
+                if (creds) {
+                    login({ email: creds.email, password: creds.password });
+                    return;
+                }
+            }
+        }
         setShowBiometricBottomSheet(true);
     };
 
@@ -69,12 +95,12 @@ export default function WelcomeBackScreen() {
             onPress={() => handlePress(number)}
             activeOpacity={0.7}
         >
-            <Text style={styles.keyText}>{number}</Text>
+            <Text style={[styles.keyText, { color: colors.text }]}>{number}</Text>
         </TouchableOpacity>
     );
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+        <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom, backgroundColor: colors.background }]}>
             <View style={styles.content}>
 
                 <View style={styles.userSection}>
@@ -86,15 +112,15 @@ export default function WelcomeBackScreen() {
                         />
                     </View>
                     <View style={styles.userInfo}>
-                        <Text style={styles.welcomeText}>Welcome Back</Text>
-                        <Text style={styles.userName}>{userName}</Text>
+                        <Text style={[styles.welcomeText, { color: colors.textMuted }]}>Welcome Back</Text>
+                        <Text style={[styles.userName, { color: colors.text }]}>{userName}</Text>
                     </View>
                 </View>
 
                 <View style={styles.passcodeSection}>
                     <View style={styles.passcodeLabelRow}>
-                        <Lock size={moderateScale(16)} color="#64748B" variant="Bold" />
-                        <Text style={styles.passcodeLabel}>Enter Passcode</Text>
+                        <Lock size={moderateScale(16)} color={colors.icon} variant="Bold" />
+                        <Text style={[styles.passcodeLabel, { color: colors.textMuted }]}>Enter Passcode</Text>
                     </View>
 
                     <View style={styles.dotsContainer}>
@@ -105,7 +131,7 @@ export default function WelcomeBackScreen() {
                                     key={index}
                                     style={[
                                         styles.dot,
-                                        isFilled && styles.dotFilled,
+                                        isFilled && [styles.dotFilled, { backgroundColor: colors.primary }],
                                         error && styles.dotError
                                     ]}
                                 />
@@ -134,7 +160,7 @@ export default function WelcomeBackScreen() {
                         <View style={styles.keyButtonEmpty} />
                         <KeyButton number="0" />
                         <TouchableOpacity style={styles.backspaceButton} onPress={handleDelete}>
-                            <View style={styles.backspaceIconBg}>
+                            <View style={[styles.backspaceIconBg, { backgroundColor: colors.primary }]}>
                                 <Delete size={moderateScale(20)} color="#FFFFFF" strokeWidth={2.5} />
                             </View>
                         </TouchableOpacity>
@@ -142,15 +168,26 @@ export default function WelcomeBackScreen() {
                 </View>
 
                 <View style={styles.footer}>
-                    <TouchableOpacity style={styles.biometricButton} onPress={handleBiometric}>
-                        <ScanFace size={moderateScale(32)} color={Colors.light.primary} />
-                        <Text style={styles.biometricText}>Face Recognition</Text>
+                    <TouchableOpacity
+                        style={styles.biometricButton}
+                        onPress={handleBiometric}
+                        accessibilityRole="button"
+                        accessibilityLabel={biometricType === 'fingerprint' ? 'Fingerprint Login' : 'Face Recognition'}
+                    >
+                        {biometricType === 'fingerprint' ? (
+                            <Fingerprint size={moderateScale(32)} color={colors.primary} />
+                        ) : (
+                            <ScanFace size={moderateScale(32)} color={colors.primary} />
+                        )}
+                        <Text style={[styles.biometricText, { color: colors.primary }]}>
+                            {biometricType === 'fingerprint' ? 'Fingerprint' : 'Face Recognition'}
+                        </Text>
                     </TouchableOpacity>
 
                     <View style={styles.signupContainer}>
-                        <Text style={styles.notUserText}>Not {userName}? </Text>
+                        <Text style={[styles.notUserText, { color: colors.textMuted }]}>Not {userName}? </Text>
                         <TouchableOpacity onPress={handleSignUp}>
-                            <Text style={styles.signupText}>Sign Up</Text>
+                            <Text style={[styles.signupText, { color: colors.primary }]}>Sign Up</Text>
                         </TouchableOpacity>
                     </View>
                 </View>

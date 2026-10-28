@@ -1,3 +1,4 @@
+import { useAppTheme } from '@/context/ThemeContext';
 import { useForgotPasswordMutation } from '@/hooks/queries/auth/useForgotPasswordMutation';
 import { forgetPasswordSchema } from '@/lib/validations/auth';
 import { useRouter } from 'expo-router';
@@ -15,6 +16,7 @@ import ProgressBar from '../../components/ProgressBar';
 export default function ForgotPasswordScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
+    const { colors } = useAppTheme();
     const [email, setEmail] = useState('');
     const [error, setError] = useState<string>();
 
@@ -58,7 +60,7 @@ export default function ForgotPasswordScreen() {
     };
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+        <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom, backgroundColor: colors.background }]}>
             <AuthHeader title="Forget Password" />
 
             <View style={styles.contentContainer}>
@@ -70,7 +72,7 @@ export default function ForgotPasswordScreen() {
                     style={{ flex: 1 }}
                 >
                     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-                        <Text style={styles.title}>Enter your Email Address to Continue</Text>
+                        <Text style={[styles.title, { color: colors.text }]}>Enter your Email Address to Continue</Text>
 
                         <InputField
                             label="Email Address"

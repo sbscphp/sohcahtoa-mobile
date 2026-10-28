@@ -10,6 +10,9 @@ import { Notification } from 'iconsax-react-nativejs';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { moderateScale, ScaledSheet } from 'react-native-size-matters';
+import { AnimatedTabScreen } from '@/components/ui/AnimatedTabScreen';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 interface Currency {
     code: string;
@@ -27,7 +30,9 @@ const currencies: Currency[] = [
 ];
 
 export default function FxRateScreen() {
+    const { colors, isDark } = useAppTheme();
     const router = useRouter();
+    const insets = useSafeAreaInsets();
     const [transactionType, setTransactionType] = useState<'buy' | 'sell'>('buy');
     const [currencyGet, setCurrencyGet] = useState<Currency>(currencies[0]); 
     const [currencySend, setCurrencySend] = useState<Currency>(currencies[1]); 
@@ -72,12 +77,12 @@ export default function FxRateScreen() {
     })) || [];
 
     return (
-        <View style={styles.container}>
+        <AnimatedTabScreen style={[styles.container, { paddingTop: insets.top }]}>
             <Header
                 title="FX Rate"
                 rightIcon={
                     <TouchableOpacity onPress={() => router.push('/notifications')}>
-                        <Notification size={moderateScale(24)} color="#1E293B" variant="Linear" />
+                        <Notification size={moderateScale(24)} color={colors.icon} variant="Linear" />
                         {unreadCount > 0 && (
                             <View style={styles.unreadBadge}>
                                 <Text style={styles.unreadText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
@@ -105,44 +110,43 @@ export default function FxRateScreen() {
                 />
 
                 <View style={styles.otherRatesContainer}>
-                    <Text style={styles.otherRatesTitle}>Other FX rate</Text>
+                    <Text style={[styles.otherRatesTitle, { color: colors.text }]}>Other FX rate</Text>
 
-                    <View style={styles.table}>
-                        <View style={styles.tableHeader}>
-                            <Text style={[styles.tableHeaderText, { flex: 2 }]}>Currency</Text>
-                            <Text style={[styles.tableHeaderText, { flex: 1.5, textAlign: 'center' }]}>We buy at</Text>
-                            <Text style={[styles.tableHeaderText, { flex: 1.5, textAlign: 'right' }]}>We Sell at</Text>
+                    <View style={[styles.table, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }]}>
+                        <View style={[styles.tableHeader, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(241, 241, 241, 1)', borderBottomColor: colors.border, borderBottomWidth: 1 }]}>
+                            <Text style={[styles.tableHeaderText, { flex: 2, color: colors.textMuted }]}>Currency</Text>
+                            <Text style={[styles.tableHeaderText, { flex: 1.5, textAlign: 'center', color: colors.textMuted }]}>We buy at</Text>
+                            <Text style={[styles.tableHeaderText, { flex: 1.5, textAlign: 'right', color: colors.textMuted }]}>We Sell at</Text>
                         </View>
 
                         {isLoadingRates ? (
                             <View style={{ padding: moderateScale(20) }}>
-                                <ActivityIndicator color="#0F172A" />
+                                <ActivityIndicator color={colors.text} />
                             </View>
                         ) : ratesData.map((item, index) => (
                             <View key={index} style={styles.tableRow}>
-                                <Text style={[styles.tableCellText, { flex: 2 }]}>{item.currency}</Text>
-                                <Text style={[styles.tableCellText, { flex: 1.5, textAlign: 'center' }]}>{item.buy}</Text>
-                                <Text style={[styles.tableCellText, { flex: 1.5, textAlign: 'right' }]}>{item.sell}</Text>
+                                <Text style={[styles.tableCellText, { flex: 2, color: colors.text }]}>{item.currency}</Text>
+                                <Text style={[styles.tableCellText, { flex: 1.5, textAlign: 'center', color: colors.text }]}>{item.buy}</Text>
+                                <Text style={[styles.tableCellText, { flex: 1.5, textAlign: 'right', color: colors.text }]}>{item.sell}</Text>
                             </View>
                         ))}
                     </View>
                 </View>
             </ScrollView>
-        </View>
+        </AnimatedTabScreen>
     );
 }
 
 const styles = ScaledSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#FFFFFF',
         paddingTop: '40@vs',
     },
     content: {
         flex: 1,
     },
     scrollContent: {
-        paddingHorizontal: '10@ms',
+        paddingHorizontal: '14@s',
         paddingBottom: '40@vs',
         gap: '24@vs',
         marginTop: '20@vs',

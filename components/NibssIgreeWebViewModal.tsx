@@ -219,7 +219,7 @@ const styles = ScaledSheet.create({
         backgroundColor: '#FFFFFF',
     },
     loadingOverlay: {
-        ...StyleSheet.absoluteFillObject,
+        ...StyleSheet.absoluteFill,
         backgroundColor: '#FFFFFF',
         justifyContent: 'center',
         alignItems: 'center',

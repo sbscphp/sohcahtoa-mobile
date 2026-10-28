@@ -375,7 +375,88 @@ export const getStatusLabel = (status: string): string => {
     return map[status] || status;
 };
 
-export const getStatusStyle = (status: string) => {
+export const getStatusStyle = (status: string, isDark?: boolean) => {
+    if (isDark) {
+        switch (status) {
+            case 'AWAITING_VERIFICATION':
+            case 'AWAITING_DEPOSIT':
+            case 'DEPOSIT_PENDING':
+            case 'ADMIN_APPROVAL_PENDING':
+            case 'AWAITING_DISBURSEMENT':
+            case 'Pending':
+            case 'Awaiting Verification':
+            case 'Awaiting Deposit':
+            case 'Deposit Pending':
+            case 'Admin Approval Pending':
+            case 'Awaiting Disbursement':
+            case 'Awaiting Refund Verification':
+                return {
+                    color: '#FBBF24',
+                    bg: 'rgba(245, 158, 11, 0.16)',
+                    backgroundColor: 'rgba(245, 158, 11, 0.16)',
+                    borderColor: 'transparent',
+                };
+            case 'VERIFICATION_IN_PROGRESS':
+            case 'VERIFICATION_COMPLETED':
+            case 'DEPOSIT_CONFIRMED':
+            case 'COMPLIANCE_REVIEW':
+            case 'DISBURSEMENT_IN_PROGRESS':
+            case 'In Progress':
+            case 'Verification In Progress':
+            case 'Verification Completed':
+            case 'Deposit Confirmed':
+            case 'Compliance Review':
+            case 'Disbursement In Progress':
+                return {
+                    color: '#60A5FA',
+                    bg: 'rgba(59, 130, 246, 0.16)',
+                    backgroundColor: 'rgba(59, 130, 246, 0.16)',
+                    borderColor: 'transparent',
+                };
+            case 'REJECTED':
+            case 'CANCELLED':
+            case 'REFUNDED':
+            case 'Declined':
+            case 'Rejected':
+            case 'Cancelled':
+            case 'Refunded':
+                return {
+                    color: '#F87171',
+                    bg: 'rgba(239, 68, 68, 0.16)',
+                    backgroundColor: 'rgba(239, 68, 68, 0.16)',
+                    borderColor: 'transparent',
+                };
+            case 'APPROVED':
+            case 'COMPLETED':
+            case 'Approved':
+            case 'Settled':
+            case 'Completed':
+                return {
+                    color: '#34D399',
+                    bg: 'rgba(16, 185, 129, 0.16)',
+                    backgroundColor: 'rgba(16, 185, 129, 0.16)',
+                    borderColor: 'transparent',
+                };
+            case 'MORE_INFO':
+            case 'More Info':
+                return {
+                    color: '#C084FC',
+                    bg: 'rgba(168, 85, 247, 0.16)',
+                    backgroundColor: 'rgba(168, 85, 247, 0.16)',
+                    borderColor: 'transparent',
+                };
+            case 'DRAFT':
+            case 'Draft':
+            default:
+                return {
+                    color: '#94A3B8',
+                    bg: 'rgba(148, 163, 184, 0.14)',
+                    backgroundColor: 'rgba(148, 163, 184, 0.14)',
+                    borderColor: 'transparent',
+                };
+        }
+    }
+
     switch (status) {
         case 'AWAITING_VERIFICATION':
         case 'AWAITING_DEPOSIT':
@@ -389,7 +470,7 @@ export const getStatusStyle = (status: string) => {
         case 'Admin Approval Pending':
         case 'Awaiting Disbursement':
         case 'Awaiting Refund Verification':
-            return { color: '#B54708', bg: '#FFFAEB', backgroundColor: '#FFFAEB' };
+            return { color: '#B54708', bg: '#FFFAEB', backgroundColor: '#FFFAEB', borderColor: 'transparent' };
         case 'VERIFICATION_IN_PROGRESS':
         case 'VERIFICATION_COMPLETED':
         case 'DEPOSIT_CONFIRMED':
@@ -401,7 +482,7 @@ export const getStatusStyle = (status: string) => {
         case 'Deposit Confirmed':
         case 'Compliance Review':
         case 'Disbursement In Progress':
-            return { color: '#3538CD', bg: '#EEF4FF', backgroundColor: '#EEF4FF' };
+            return { color: '#3538CD', bg: '#EEF4FF', backgroundColor: '#EEF4FF', borderColor: 'transparent' };
         case 'REJECTED':
         case 'CANCELLED':
         case 'REFUNDED':
@@ -409,18 +490,21 @@ export const getStatusStyle = (status: string) => {
         case 'Rejected':
         case 'Cancelled':
         case 'Refunded':
-            return { color: '#B42318', bg: '#FEF3F2', backgroundColor: '#FEF3F2' };
+            return { color: '#B42318', bg: '#FEF3F2', backgroundColor: '#FEF3F2', borderColor: 'transparent' };
         case 'APPROVED':
         case 'COMPLETED':
         case 'Approved':
         case 'Settled':
         case 'Completed':
-            return { color: '#027A48', bg: '#ECFDF3', backgroundColor: '#ECFDF3' };
+            return { color: '#027A48', bg: '#ECFDF3', backgroundColor: '#ECFDF3', borderColor: 'transparent' };
+        case 'MORE_INFO':
+        case 'More Info':
+            return { color: '#7C3AED', bg: '#F3E8FF', backgroundColor: '#F3E8FF', borderColor: 'transparent' };
         case 'DRAFT':
         case 'Draft':
-            return { color: '#344054', bg: '#F2F4F7', backgroundColor: '#F2F4F7' };
+            return { color: '#344054', bg: '#F2F4F7', backgroundColor: '#F2F4F7', borderColor: 'transparent' };
         default:
-            return { color: '#344054', bg: '#F2F4F7', backgroundColor: '#F2F4F7' };
+            return { color: '#344054', bg: '#F2F4F7', backgroundColor: '#F2F4F7', borderColor: 'transparent' };
     }
 };
 

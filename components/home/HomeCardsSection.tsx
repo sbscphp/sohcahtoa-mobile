@@ -3,6 +3,8 @@ import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { Add } from 'iconsax-react-nativejs';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import VirtualCard from '@/components/VirtualCard';
+import { useAppTheme } from '@/hooks/useAppTheme';
+import { useDevicePose } from '@/hooks/useDevicePose';
 
 interface HomeCardsSectionProps {
     userName: string;
@@ -11,12 +13,16 @@ interface HomeCardsSectionProps {
 }
 
 export default function HomeCardsSection({ userName, onManageCards, onAddCard }: HomeCardsSectionProps) {
+    const { colors } = useAppTheme();
+    const { isFoldedDisplay, isIPhoneDuo } = useDevicePose();
+    const isFoldedMode = isFoldedDisplay && isIPhoneDuo;
+
     return (
         <View style={styles.cardsSection}>
             <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Cards</Text>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>Cards</Text>
                 <TouchableOpacity onPress={onManageCards}>
-                    <Text style={styles.seeAllBtn}>Manage Cards</Text>
+                    <Text style={[styles.seeAllBtn, { color: colors.text, borderColor: colors.border }]}>Manage Cards</Text>
                 </TouchableOpacity>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.cardsScroll}>
@@ -28,8 +34,15 @@ export default function HomeCardsSection({ userName, onManageCards, onAddCard }:
                     />
                 </View>
 
-                <TouchableOpacity style={styles.addCardButton} onPress={onAddCard}>
-                    <Add size={moderateScale(26)} color="#1E293B" />
+                <TouchableOpacity
+                    style={[
+                        styles.addCardButton,
+                        { backgroundColor: colors.card, borderColor: colors.border },
+                        isFoldedMode && styles.addCardButtonFolded,
+                    ]}
+                    onPress={onAddCard}
+                >
+                    <Add size={moderateScale(26)} color={colors.icon} />
                 </TouchableOpacity>
             </ScrollView>
         </View>
@@ -44,7 +57,7 @@ const styles = ScaledSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: '10@s',
+        paddingHorizontal: '14@s',
         marginBottom: '10@vs',
     },
     sectionTitle: {
@@ -63,27 +76,32 @@ const styles = ScaledSheet.create({
         color: '#0F172A',
     },
     cardsScroll: {
-        paddingHorizontal: '10@s',
+        paddingHorizontal: '14@s',
         gap: '12@s',
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
     },
     card: {
-        width: '275@s',
-        height: '145@vs',
+        width: '260@s',
+        aspectRatio: 1.586,
         borderRadius: '20@ms',
         overflow: 'hidden',
     },
     addCardButton: {
-        width: '49@s',
-        height: '125@vs',
-        borderRadius: '15@ms',
+        width: '50@s',
+        height: '160@vs',
+        borderRadius: '16@ms',
         borderWidth: 1,
         borderColor: '#0F172A',
         borderStyle: 'dashed',
         justifyContent: 'center',
         alignItems: 'center',
+        alignSelf: 'center',
         backgroundColor: '#F8FAFC',
+    },
+    addCardButtonFolded: {
+        height: '164@vs',
+        width: '54@s',
     },
 });

@@ -1,11 +1,15 @@
-import { CloseCircle, SearchNormal1 } from 'iconsax-react-nativejs';
+import { SearchNormal1 } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
-import { FlatList, Image, KeyboardAvoidingView, Modal, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, KeyboardAvoidingView, Platform, StyleProp, StyleSheet, Text, TouchableOpacity, View, ViewStyle } from 'react-native';
+import { FlatList } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import Money from '../assets/icons/money-02.svg';
 import InputField from './InputField';
 import PrimaryButton from './PrimaryButton';
+import { AnimatedBottomSheet } from './ui/AnimatedBottomSheet';
+import { useAppTheme } from '@/hooks/useAppTheme';
+import { useDevicePose } from '@/hooks/useDevicePose';
 interface Currency {
     code: string;
     country: string;
@@ -18,6 +22,7 @@ interface CurrencySelectionSheetProps {
     onClose: () => void;
     onSelect: (currency: Currency) => void;
     selectedCurrency?: string;
+    sheetStyle?: StyleProp<ViewStyle>;
 }
 
 const POPULAR_CURRENCIES: Currency[] = [
@@ -31,18 +36,27 @@ const CurrencySelectionSheet: React.FC<CurrencySelectionSheetProps> = ({
     visible,
     onClose,
     onSelect,
-    selectedCurrency
+    selectedCurrency,
+    sheetStyle
 }) => {
+    const { colors, isDark } = useAppTheme();
     const insets = useSafeAreaInsets();
+    const { height: screenHeight, isLandscape } = useDevicePose();
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedCode, setSelectedCode] = useState<string | undefined>(selectedCurrency);
+    const [prevVisible, setPrevVisible] = useState(visible);
 
-    React.useEffect(() => {
+    const sheetHeight = isLandscape
+        ? Math.min(screenHeight * 0.90, moderateScale(480))
+        : Math.min(screenHeight * 0.80, moderateScale(650));
+
+    if (visible !== prevVisible) {
+        setPrevVisible(visible);
         if (visible) {
             setSelectedCode(selectedCurrency);
             setSearchQuery('');
         }
-    }, [visible, selectedCurrency]);
+    }
 
     const filteredCurrencies = POPULAR_CURRENCIES.filter(curr =>
         curr.country.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -64,84 +78,89 @@ const CurrencySelectionSheet: React.FC<CurrencySelectionSheetProps> = ({
         const isSelected = selectedCode === item.code;
         return (
             <TouchableOpacity
-                style={[styles.itemContainer, isSelected && styles.itemContainerSelected]}
+                style={[
+                    styles.itemContainer,
+                    { backgroundColor: colors.surface, borderColor: colors.border },
+                    isSelected && [
+                        styles.itemContainerSelected,
+                        {
+                            borderColor: colors.primary,
+                            backgroundColor: isDark ? 'rgba(255, 107, 44, 0.15)' : '#FFF7ED',
+                        },
+                    ],
+                ]}
                 onPress={() => setSelectedCode(item.code)}
             >
                 <Image source={{ uri: item.flagUrl }} style={styles.flag} />
-                <Text style={styles.itemText}>
+                <Text style={[styles.itemText, { color: colors.text }]}>
                     {item.country} • {item.currencyName}
                 </Text>
             </TouchableOpacity>
         );
     };
 
-    return (
-        <Modal
-            animationType="slide"
-            transparent={true}
-            visible={visible}
-            onRequestClose={onClose}
-        >
-            <View style={styles.overlay}>
-                <TouchableOpacity style={styles.backdrop} onPress={onClose} activeOpacity={1} />
-
-                <KeyboardAvoidingView
-                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                    style={[styles.sheetContent, { paddingBottom: insets.bottom + moderateScale(20) }]}
-                >
-
-                    <View style={styles.headerIconContainer}>
-                        <SearchNormal1 size={24} color="#FF6B2C" variant="Bold" />
-                    </View>
-
-                    <View style={styles.headerRow}>
-                        <View style={styles.iconCircle}>
-                            <Money />
-                        </View>
-                        <TouchableOpacity onPress={onClose}>
-                            <CloseCircle size={24} color="#94A3B8" variant="Bold" />
-                        </TouchableOpacity>
-                    </View>
-
-
-                    <Text style={styles.title}>Select Currency</Text>
-                    <Text style={styles.subtitle}>Select an option below</Text>
-
-
-                    <InputField
-                        label=''
-                        placeholder="Enter key word"
-                        placeholderTextColor="#94A3B8"
-                        value={searchQuery}
-                        onChangeText={setSearchQuery}
-                        icon={<SearchNormal1 size={moderateScale(20)} color="#94A3B8" />}
-                    />
-
-                    <FlatList
-                        data={filteredCurrencies}
-                        renderItem={renderItem}
-                        keyExtractor={(item) => item.code}
-                        contentContainerStyle={styles.listContent}
-                        showsVerticalScrollIndicator={false}
-                        style={{ maxHeight: moderateScale(400) }}
-                    />
-
-                    <View style={styles.footerActions}>
-                        <PrimaryButton
-                            title="Select Currency"
-                            onPress={handleConfirm}
-                            disabled={!selectedCode}
-                        />
-                        <PrimaryButton
-                            title="No, Close"
-                            onPress={onClose}
-                            style={styles.secondaryBtn}
-                            textStyle={styles.secondaryBtnText}
-                        />
-                    </View>
-                </KeyboardAvoidingView>
+    const headerContent = (
+        <View style={styles.header}>
+            <View style={[styles.iconCircle, { backgroundColor: isDark ? 'rgba(255, 107, 44, 0.18)' : '#FFF7ED' }]}>
+                <Money />
             </View>
-        </Modal>
+            <Text style={[styles.title, { color: colors.text }]}>Select Currency</Text>
+            <Text style={[styles.subtitle, { color: colors.textMuted }]}>Select an option below</Text>
+        </View>
+    );
+
+    return (
+        <AnimatedBottomSheet
+            visible={visible}
+            onClose={onClose}
+            headerComponent={headerContent}
+            sheetStyle={[
+                styles.sheetContent,
+                {
+                    height: sheetHeight,
+                    backgroundColor: colors.surface,
+                    paddingBottom: Math.max(insets.bottom, moderateScale(16)) + moderateScale(8),
+                },
+                sheetStyle,
+            ]}
+        >
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                style={styles.keyboardAvoidingView}
+            >
+                <InputField
+                    label=''
+                    placeholder="Enter key word"
+                    placeholderTextColor={colors.placeholder}
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                    icon={<SearchNormal1 size={moderateScale(20)} color={colors.icon} />}
+                />
+
+                <FlatList
+                    data={filteredCurrencies}
+                    renderItem={renderItem}
+                    keyExtractor={(item) => item.code}
+                    contentContainerStyle={styles.listContent}
+                    showsVerticalScrollIndicator={false}
+                    style={styles.flatList}
+                />
+
+                <View style={styles.footerActions}>
+                    <PrimaryButton
+                        title="Select Currency"
+                        onPress={handleConfirm}
+                        disabled={!selectedCode}
+                    />
+                    <PrimaryButton
+                        title="No, Close"
+                        onPress={onClose}
+                        style={[styles.secondaryBtn, { backgroundColor: isDark ? colors.surfaceHighlight : '#F1F5F9' }]}
+                        textStyle={[styles.secondaryBtnText, { color: colors.text }]}
+                    />
+                </View>
+            </KeyboardAvoidingView>
+        </AnimatedBottomSheet>
     );
 };
 
@@ -152,22 +171,26 @@ const styles = ScaledSheet.create({
         justifyContent: 'flex-end',
     },
     backdrop: {
-        ...StyleSheet.absoluteFillObject,
+        ...StyleSheet.absoluteFill,
     },
     sheetContent: {
+        width: '100%',
         backgroundColor: '#FFFFFF',
         borderRadius: '24@ms',
         paddingHorizontal: '20@s',
-        paddingTop: '24@vs',
-        maxHeight: '80%',
-        marginBottom: '40@vs',
-        marginHorizontal: '12@s',
+        paddingTop: '16@vs',
+        maxHeight: '92%',
     },
-    headerRow: {
-        flexDirection: 'row',
+    keyboardAvoidingView: {
+        flex: 1,
         justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: '16@vs'
+    },
+    flatList: {
+        flex: 1,
+    },
+    header: {
+        width: '100%',
+        marginBottom: '6@vs',
     },
     iconCircle: {
         width: '48@ms',
@@ -176,6 +199,7 @@ const styles = ScaledSheet.create({
         backgroundColor: '#FFF7ED',
         justifyContent: 'center',
         alignItems: 'center',
+        marginBottom: '12@vs',
     },
     title: {
         fontSize: '18@ms',
@@ -234,7 +258,8 @@ const styles = ScaledSheet.create({
     },
     footerActions: {
         gap: '12@vs',
-        marginTop: '10@vs'
+        marginTop: 'auto',
+        paddingTop: '16@vs',
     },
     primaryBtn: {
         backgroundColor: '#FFD7C5',

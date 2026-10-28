@@ -1,5 +1,6 @@
 import Header from '@/components/Header';
 import PrimaryButton from '@/components/PrimaryButton';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { Image, Text, TouchableOpacity, View } from 'react-native';
@@ -23,11 +24,12 @@ const SuccessScreen: React.FC<SuccessScreenProps> = ({
     onViewTransaction,
     onGoHome,
 }) => {
+    const { colors, isDark } = useAppTheme();
     const router = useRouter();
     const insets = useSafeAreaInsets();
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top }]}>
+        <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
             <Header title={headerTitle} showBackButton={false} />
 
             <View style={styles.content}>
@@ -35,13 +37,16 @@ const SuccessScreen: React.FC<SuccessScreenProps> = ({
                     <Image source={require('../assets/icons/success.gif')} style={styles.icon} />
                 </View>
 
-                <Text style={styles.title}>{title}</Text>
-                <Text style={styles.description}>{description}</Text>
+                <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
+                <Text style={[styles.description, { color: colors.textMuted }]}>{description}</Text>
 
                 <View style={styles.footer}>
                     <PrimaryButton title={primaryButtonText} onPress={onViewTransaction} />
-                    <TouchableOpacity style={styles.secondaryBtn} onPress={onGoHome}>
-                        <Text style={styles.secondaryBtnText}>Go to Home</Text>
+                    <TouchableOpacity
+                        style={[styles.secondaryBtn, { backgroundColor: isDark ? colors.surfaceHighlight : 'rgba(243, 243, 243, 1)' }]}
+                        onPress={onGoHome}
+                    >
+                        <Text style={[styles.secondaryBtnText, { color: colors.text }]}>Go to Home</Text>
                     </TouchableOpacity>
                 </View>
             </View>

@@ -1,5 +1,6 @@
 import Header from '@/components/Header';
 import PrimaryButton from '@/components/PrimaryButton';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { useRouter } from 'expo-router';
 import { Copy, InfoCircle } from 'iconsax-react-nativejs';
 import React, { useEffect, useState, useRef } from 'react';
@@ -18,6 +19,7 @@ interface PaymentLayoutProps {
 }
 
 export default function PaymentLayout({ transactionId, amount: initialAmount, onSent }: PaymentLayoutProps) {
+    const { colors, isDark } = useAppTheme();
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const showToast = useToastStore(s => s.showToast);
@@ -164,7 +166,7 @@ export default function PaymentLayout({ transactionId, amount: initialAmount, on
         `Transfer the exact amount specified to the account number provided. Kindly use your registered name as the sender’s name.\n\nThe account is valid for single use only. Complete the transfer before ${formattedExpiryDate}.\n\nYour transaction will be automatically confirmed once the deposit is received. Do not share this account number with anyone`;
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top }]}>
+        <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
             <Header title="Payment" onBackPress={handleBack} />
 
             <KeyboardAvoidingView
@@ -173,96 +175,96 @@ export default function PaymentLayout({ transactionId, amount: initialAmount, on
             >
                 <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
-                    <View style={styles.amountContainer}>
+                    <View style={[styles.amountContainer, { backgroundColor: colors.card }]}>
                         <View style={styles.amountHeader}>
-                            <Text style={styles.amountLabel}>Amount to Send</Text>
+                            <Text style={[styles.amountLabel, { color: colors.textMuted }]}>Amount to Send</Text>
                             <View style={styles.currencyBadge}>
                                 <Image
                                     source={{ uri: 'https://flagcdn.com/w40/ng.png' }}
                                     style={styles.flag}
                                 />
-                                <Text style={styles.currencyText}>Naira (₦)</Text>
+                                <Text style={[styles.currencyText, { color: colors.textMuted }]}>Naira (₦)</Text>
                             </View>
                         </View>
                         {isLoadingDeposit ? (
-                            <ActivityIndicator size="small" color="#0F172A" />
+                            <ActivityIndicator size="small" color={colors.text} />
                         ) : (
-                            <Text style={styles.amountValue}>{displayAmount}</Text>
+                            <Text style={[styles.amountValue, { color: colors.text }]}>{displayAmount}</Text>
                         )}
                         {!isLoadingDeposit && depositData && depositData.feeAmount > 0 && (
-                            <View style={styles.chargeBreakdown}>
-                                <Text style={styles.chargeLabel}>
+                            <View style={[styles.chargeBreakdown, { borderTopColor: colors.border }]}>
+                                <Text style={[styles.chargeLabel, { color: colors.textMuted }]}>
                                     Includes ₦{depositData.feeAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} processing fee
                                 </Text>
                             </View>
                         )}
                     </View>
 
-                    <Text style={styles.sectionTitle}>Account Details</Text>
+                    <Text style={[styles.sectionTitle, { color: colors.text }]}>Account Details</Text>
 
                     <View style={styles.detailsContainer}>
                         <View style={styles.detailRow}>
-                            <Text style={styles.detailLabel}>Account Number</Text>
+                            <Text style={[styles.detailLabel, { color: colors.text }]}>Account Number</Text>
                             <View style={styles.copyRow}>
                                 {isLoadingDeposit ? (
-                                    <ActivityIndicator size="small" color="#64748B" />
+                                    <ActivityIndicator size="small" color={colors.textMuted} />
                                 ) : (
                                     <>
-                                        <Text style={styles.detailValue}>{depositData?.accountNumber || '...'}</Text>
+                                        <Text style={[styles.detailValue, { color: colors.textMuted }]}>{depositData?.accountNumber || '...'}</Text>
                                         <TouchableOpacity onPress={() => handleCopy(depositData?.accountNumber || '', 'Account number')}>
-                                            <Copy size={moderateScale(16)} color="#64748B" variant="Linear" />
+                                            <Copy size={moderateScale(16)} color={colors.icon} variant="Linear" />
                                         </TouchableOpacity>
                                     </>
                                 )}
                             </View>
                         </View>
-                        <View style={styles.separator} />
+                        <View style={[styles.separator, { backgroundColor: colors.divider }]} />
 
                         <View style={styles.detailRow}>
-                            <Text style={styles.detailLabel}>Bank Name</Text>
+                            <Text style={[styles.detailLabel, { color: colors.text }]}>Bank Name</Text>
                             <View style={styles.copyRow}>
                                 {isLoadingDeposit ? (
-                                    <ActivityIndicator size="small" color="#64748B" />
+                                    <ActivityIndicator size="small" color={colors.textMuted} />
                                 ) : (
                                     <>
-                                        <Text style={styles.detailValue}>{depositData?.bankName || '...'}</Text>
+                                        <Text style={[styles.detailValue, { color: colors.textMuted }]}>{depositData?.bankName || '...'}</Text>
                                         <TouchableOpacity onPress={() => handleCopy(depositData?.bankName || '', 'Bank name')}>
-                                            <Copy size={moderateScale(16)} color="#64748B" variant="Linear" />
+                                            <Copy size={moderateScale(16)} color={colors.icon} variant="Linear" />
                                         </TouchableOpacity>
                                     </>
                                 )}
                             </View>
                         </View>
-                        <View style={styles.separator} />
+                        <View style={[styles.separator, { backgroundColor: colors.divider }]} />
 
                         <View style={styles.detailRow}>
-                            <Text style={styles.detailLabel}>Account Name</Text>
+                            <Text style={[styles.detailLabel, { color: colors.text }]}>Account Name</Text>
                             <View style={styles.copyRow}>
                                 {isLoadingDeposit ? (
-                                    <ActivityIndicator size="small" color="#64748B" />
+                                    <ActivityIndicator size="small" color={colors.textMuted} />
                                 ) : (
                                     <>
-                                        <Text style={styles.detailValue}>{depositData?.accountName || '...'}</Text>
+                                        <Text style={[styles.detailValue, { color: colors.textMuted }]}>{depositData?.accountName || '...'}</Text>
                                         <TouchableOpacity onPress={() => handleCopy(depositData?.accountName || '', 'Account name')}>
-                                            <Copy size={moderateScale(16)} color="#64748B" variant="Linear" />
+                                            <Copy size={moderateScale(16)} color={colors.icon} variant="Linear" />
                                         </TouchableOpacity>
                                     </>
                                 )}
                             </View>
                         </View>
-                        <View style={styles.separator} />
+                        <View style={[styles.separator, { backgroundColor: colors.divider }]} />
                     </View>
 
                     {/* Timer */}
                     <View style={styles.timerContainer}>
-                        <Text style={styles.timerLabel}>Account Expires in</Text>
+                        <Text style={[styles.timerLabel, { color: colors.textMuted }]}>Account Expires in</Text>
                         <Text style={styles.timerValue}>{formatTime(timeLeft)}</Text>
                     </View>
 
              
-                    <View style={styles.infoBox}>
+                    <View style={[styles.infoBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                         <InfoCircle size={moderateScale(20)} color="rgba(221, 79, 5, 1)" variant="Bold" style={{ marginTop: 2 }} />
-                        <Text style={styles.infoText}>
+                        <Text style={[styles.infoText, { color: colors.textMuted }]}>
                             {instructionsText}
                         </Text>
                     </View>
@@ -280,8 +282,8 @@ export default function PaymentLayout({ transactionId, amount: initialAmount, on
             </KeyboardAvoidingView>
 
            
-            <View style={[styles.footer, { paddingBottom: insets.bottom + moderateScale(10) }]}>
-                <Text style={styles.footerLabel}>Have you send the Money?</Text>
+            <View style={[styles.footer, { paddingBottom: insets.bottom + moderateScale(10), backgroundColor: colors.surface, borderTopColor: colors.border }]}>
+                <Text style={[styles.footerLabel, { color: colors.textMuted }]}>Have you send the Money?</Text>
                 <PrimaryButton title="Yes, I have sent the Money" onPress={handleSentPress} />
             </View>
 
@@ -291,16 +293,16 @@ export default function PaymentLayout({ transactionId, amount: initialAmount, on
                 animationType="fade"
                 onRequestClose={handleCloseConfirming}
             >
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
+                <View style={[styles.modalOverlay, { backgroundColor: colors.overlay }]}>
+                    <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
                         <ActivityIndicator size="large" color="rgba(255, 104, 19, 1)" style={styles.modalLoader} />
-                        <Text style={styles.modalTitle}>Confirming payment</Text>
-                        <Text style={styles.modalMessage}>
+                        <Text style={[styles.modalTitle, { color: colors.text }]}>Confirming payment</Text>
+                        <Text style={[styles.modalMessage, { color: colors.textMuted }]}>
                             Please wait while we confirm your transaction. This should take between 3-5 minutes.{"\n\n"}
                             Please keep this window open while we continue checking your transfer.
                         </Text>
-                        <TouchableOpacity style={styles.modalCloseButton} onPress={handleCloseConfirming}>
-                            <Text style={styles.modalCloseText}>Cancel</Text>
+                        <TouchableOpacity style={[styles.modalCloseButton, { backgroundColor: isDark ? colors.surfaceHighlight : '#F1F5F9' }]} onPress={handleCloseConfirming}>
+                            <Text style={[styles.modalCloseText, { color: colors.text }]}>Cancel</Text>
                         </TouchableOpacity>
                     </View>
                 </View>

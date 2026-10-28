@@ -4,6 +4,7 @@ import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import { Trash } from 'iconsax-react-nativejs';
 import * as DocumentPicker from 'expo-document-picker';
 import FilePlus from '../../assets/icons/elements.svg';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 interface SupportFileUploadProps {
     onUpload: () => void;
@@ -16,16 +17,18 @@ export default function SupportFileUpload({
     onRemove,
     file,
 }: SupportFileUploadProps) {
+    const { colors, isDark } = useAppTheme();
+
     if (file) {
         return (
-            <View style={styles.fileFilledContainer}>
+            <View style={[styles.fileFilledContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
                 <View style={styles.fileInfo}>
-                    <View style={styles.fileIconWrapper}>
+                    <View style={[styles.fileIconWrapper, { backgroundColor: isDark ? colors.surfaceHighlight : '#F1F5F9' }]}>
                         <FilePlus width={moderateScale(20)} height={moderateScale(20)} />
                     </View>
                     <View style={{ flex: 1 }}>
-                        <Text style={styles.fileName} numberOfLines={1}>{file.name}</Text>
-                        <Text style={styles.fileSize}>
+                        <Text style={[styles.fileName, { color: colors.text }]} numberOfLines={1}>{file.name}</Text>
+                        <Text style={[styles.fileSize, { color: colors.textMuted }]}>
                             {file.size ? `${(file.size / 1024).toFixed(0)} KB` : 'Unknown size'} – 100% uploaded
                         </Text>
                     </View>
@@ -38,11 +41,11 @@ export default function SupportFileUpload({
     }
 
     return (
-        <TouchableOpacity style={styles.fileEmptyContainer} onPress={onUpload}>
+        <TouchableOpacity style={[styles.fileEmptyContainer, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]} onPress={onUpload}>
             <View style={styles.uploadIconWrapper}>
                 <FilePlus width={moderateScale(20)} height={moderateScale(20)} />
             </View>
-            <Text style={styles.uploadText}>Click to upload</Text>
+            <Text style={[styles.uploadText, { color: colors.textMuted }]}>Click to upload</Text>
         </TouchableOpacity>
     );
 }

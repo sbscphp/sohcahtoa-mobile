@@ -16,6 +16,7 @@ import LoadingBackdrop from '@/components/LoadingBackdrop';
 import BankAccountCard from '@/components/more/BankAccountCard';
 import AddBankAccountModal from '@/components/more/AddBankAccountModal';
 import DeleteAccountModal from '@/components/more/DeleteAccountModal';
+import { useAppTheme } from '@/context/ThemeContext';
 
 import { useGetSavedAccountsQuery } from '@/hooks/queries/banks/useGetSavedAccountsQuery';
 import { useGetBanksQuery } from '@/hooks/queries/banks/useGetBanksQuery';
@@ -27,6 +28,7 @@ import { useToastStore } from '@/stores/useToastStore';
 
 export default function BankAccountsScreen() {
   const insets = useSafeAreaInsets();
+  const { colors, isDark } = useAppTheme();
   const showToast = useToastStore((state) => state.showToast);
 
   const { data: savedAccountsResponse, isLoading: isLoadingAccounts } = useGetSavedAccountsQuery();
@@ -136,12 +138,12 @@ export default function BankAccountsScreen() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
       <Header
         title="Bank Accounts"
         rightIcon={
-          <View style={styles.addBtnHeader}>
-            <Add size={moderateScale(20)} color="#FF6813" variant="Linear" />
+          <View style={[styles.addBtnHeader, { backgroundColor: isDark ? 'rgba(255, 104, 19, 0.12)' : '#FFF5F1' }]}>
+            <Add size={moderateScale(20)} color={isDark ? colors.primaryLight : '#FF6813'} variant="Linear" />
           </View>
         }
         onRightPress={() => setAddModalVisible(true)}
@@ -153,11 +155,11 @@ export default function BankAccountsScreen() {
         </View>
       ) : savedAccounts.length === 0 ? (
         <ScrollView contentContainerStyle={styles.emptyContainer}>
-          <View style={styles.emptyIconContainer}>
-            <Bank size={moderateScale(48)} color="#94A3B8" variant="Linear" />
+          <View style={[styles.emptyIconContainer, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F8FAFC' }]}>
+            <Bank size={moderateScale(48)} color={colors.iconMuted} variant="Linear" />
           </View>
-          <Text style={styles.emptyTitle}>No Bank Accounts Saved</Text>
-          <Text style={styles.emptySubtitle}>
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>No Bank Accounts Saved</Text>
+          <Text style={[styles.emptySubtitle, { color: colors.textMuted }]}>
             Save your bank account details for faster electronic transfers.
           </Text>
           <PrimaryButton
@@ -167,7 +169,7 @@ export default function BankAccountsScreen() {
           />
         </ScrollView>
       ) : (
-        <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent}>
+        <ScrollView style={[styles.content, { backgroundColor: colors.background }]} contentContainerStyle={styles.scrollContent}>
           {savedAccounts.map((account) => (
             <BankAccountCard
               key={account.id}

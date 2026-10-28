@@ -1,5 +1,8 @@
+import { LiquidGlassView } from '@/components/ui/LiquidGlassView';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import React from 'react';
 import { FlatList, Text, TouchableOpacity, View } from 'react-native';
+import Animated, { FadeInUp, FadeOutUp } from 'react-native-reanimated';
 import { ScaledSheet } from 'react-native-size-matters';
 
 export interface CurrencyItem {
@@ -26,13 +29,22 @@ const CurrencyDropdown: React.FC<CurrencyDropdownProps> = ({
     selectedCurrencyCode,
     onClose
 }) => {
+    const { colors, isDark } = useAppTheme();
+
     const renderItem = ({ item }: { item: CurrencyItem }) => {
         const isSelected = item.code === selectedCurrencyCode;
         return (
             <TouchableOpacity
                 style={[
                     styles.itemContainer,
-                    isSelected && styles.itemContainerSelected
+                    { backgroundColor: colors.surface, borderColor: colors.border },
+                    isSelected && [
+                        styles.itemContainerSelected,
+                        {
+                            borderColor: colors.primary,
+                            backgroundColor: isDark ? 'rgba(255, 107, 44, 0.15)' : '#F8FAFC',
+                        },
+                    ],
                 ]}
                 onPress={() => {
                     onSelect(item);
@@ -43,30 +55,44 @@ const CurrencyDropdown: React.FC<CurrencyDropdownProps> = ({
                 <View style={styles.flagContainer}>
                     <Text style={styles.flag}>{item.flag}</Text>
                 </View>
-                <Text style={styles.currencyCode}>{item.code}</Text>
+                <Text style={[styles.currencyCode, { color: colors.text }]}>{item.code}</Text>
             </TouchableOpacity>
         );
     };
 
     return (
-        <View style={styles.dropdown}>
-            <FlatList
-                data={CURRENCIES}
-                renderItem={renderItem}
-                keyExtractor={(item) => item.id}
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.listContent}
-                scrollEnabled={false} 
-            />
-        </View>
+        <Animated.View
+            entering={FadeInUp.springify().damping(18).stiffness(220)}
+            exiting={FadeOutUp.duration(140)}
+            style={styles.dropdownPosition}
+        >
+            <LiquidGlassView
+                variant="regular"
+                colorScheme={isDark ? 'dark' : 'light'}
+                tintColor={isDark ? 'rgba(30, 41, 59, 0.88)' : 'rgba(255, 255, 255, 0.88)'}
+                style={[styles.dropdown, { backgroundColor: colors.surface }]}
+            >
+                <FlatList
+                    data={CURRENCIES}
+                    renderItem={renderItem}
+                    keyExtractor={(item) => item.id}
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={styles.listContent}
+                    scrollEnabled={false} 
+                />
+            </LiquidGlassView>
+        </Animated.View>
     );
 };
 
 const styles = ScaledSheet.create({
-    dropdown: {
+    dropdownPosition: {
         position: 'absolute',
         top: '110%',
         right: 0,
+        zIndex: 1000,
+    },
+    dropdown: {
         backgroundColor: '#FFFFFF',
         borderRadius: '24@ms',
         padding: '10@ms',
@@ -75,7 +101,6 @@ const styles = ScaledSheet.create({
         shadowOpacity: 0.1,
         shadowRadius: 10,
         elevation: 10,
-        zIndex: 1000,
         minWidth: '140@s',
     },
     listContent: {

@@ -1,8 +1,9 @@
 import React from 'react';
-import { Modal, Text, View } from 'react-native';
+import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import { Warning2 } from 'iconsax-react-nativejs';
 import PrimaryButton from '@/components/PrimaryButton';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 interface DeleteAccountModalProps {
     visible: boolean;
@@ -15,6 +16,8 @@ export default function DeleteAccountModal({
     onClose,
     onConfirm,
 }: DeleteAccountModalProps) {
+    const { colors, isDark } = useAppTheme();
+
     return (
         <Modal
             transparent
@@ -23,12 +26,17 @@ export default function DeleteAccountModal({
             onRequestClose={onClose}
         >
             <View style={styles.modalOverlay}>
-                <View style={styles.modalContent}>
-                    <View style={styles.warningIconContainer}>
+                <TouchableOpacity
+                    style={[StyleSheet.absoluteFill, { backgroundColor: 'transparent' }]}
+                    onPress={onClose}
+                    activeOpacity={1}
+                />
+                <View style={[styles.modalContent, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 1 : 0 }]}>
+                    <View style={[styles.warningIconContainer, isDark && { backgroundColor: 'rgba(239, 68, 68, 0.15)' }]}>
                         <Warning2 size={moderateScale(24)} color="#EF4444" variant="Bold" />
                     </View>
-                    <Text style={styles.modalTitle}>Delete Bank Account</Text>
-                    <Text style={styles.modalMessage}>
+                    <Text style={[styles.modalTitle, { color: colors.text }]}>Delete Bank Account</Text>
+                    <Text style={[styles.modalMessage, { color: colors.textMuted }]}>
                         Are you sure you want to remove this bank account? This action cannot be undone.
                     </Text>
                     <PrimaryButton
@@ -39,8 +47,8 @@ export default function DeleteAccountModal({
                     <PrimaryButton
                         title="No, Cancel"
                         onPress={onClose}
-                        style={{ backgroundColor: '#F1F5F9' }}
-                        textStyle={{ color: '#0F172A' }}
+                        style={{ backgroundColor: isDark ? colors.surfaceHighlight : '#F1F5F9' }}
+                        textStyle={{ color: colors.text }}
                     />
                 </View>
             </View>

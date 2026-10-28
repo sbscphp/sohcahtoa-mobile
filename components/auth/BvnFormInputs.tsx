@@ -146,7 +146,7 @@ const styles = ScaledSheet.create({
         marginBottom: '24@vs',
     },
     datePickerContainer: {
-        marginBottom: '12@vs',
+        marginBottom: 0,
     },
     bvnHint: {
         fontSize: '12@ms',

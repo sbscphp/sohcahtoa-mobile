@@ -3,6 +3,7 @@ import InputField from '@/components/InputField';
 import PasswordStrengthValidator, { validatePassword } from '@/components/PasswordStrengthValidator';
 import PrimaryButton from '@/components/PrimaryButton';
 import ProgressBar from '@/components/ProgressBar';
+import { useAppTheme } from '@/context/ThemeContext';
 import { useChangePasswordMutation } from '@/hooks/queries/user/useChangePasswordMutation';
 import { loginUser } from '@/services/auth';
 import { useAuthStore } from '@/stores/useAuthStore';
@@ -10,14 +11,23 @@ import { useToastStore } from '@/stores/useToastStore';
 import { clearStoredCredentials } from '@/utils/biometrics';
 import { useRouter } from 'expo-router';
 import { Lock } from 'iconsax-react-nativejs';
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
+import Animated, {
+    Easing,
+    useAnimatedStyle,
+    useReducedMotion,
+    useSharedValue,
+    withSpring,
+    withTiming,
+} from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet } from 'react-native-size-matters';
 
 export default function ChangePasswordScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
+    const { colors, isDark } = useAppTheme();
     const [step, setStep] = useState(1);
     const [currentPassword, setCurrentPassword] = useState('');
     const [confirmCurrentPassword, setConfirmCurrentPassword] = useState('');
@@ -68,9 +78,7 @@ export default function ChangePasswordScreen() {
             changePassword({ oldPassword: currentPassword, newPassword }, {
                 onSuccess: async () => {
                     showToast('Password changed successfully. Please login again.', 'success');
-                    await clearStoredCredentials();
-                    useAuthStore.getState().setBiometricEnabled(false);
-                    await useAuthStore.getState().checkCredentials();
+                    await useAuthStore.getState().disableBiometrics();
                     logout();
                     router.replace('/(auth)/login');
                 }
@@ -83,9 +91,39 @@ export default function ChangePasswordScreen() {
     const validations = validatePassword(newPassword);
     const isNewPasswordValid = Object.values(validations).every(Boolean);
 
+    const reducedMotion = useReducedMotion();
+    const prevStepRef = useRef(step);
+    const stepOpacity = useSharedValue(1);
+    const stepTranslateX = useSharedValue(0);
+
+    useEffect(() => {
+        if (prevStepRef.current === step) return;
+        const direction = step >= prevStepRef.current ? 1 : -1;
+        prevStepRef.current = step;
+
+        if (reducedMotion) {
+            stepOpacity.value = 1;
+            stepTranslateX.value = 0;
+            return;
+        }
+
+        stepOpacity.value = 0;
+        stepTranslateX.value = direction * 24;
+        stepOpacity.value = withTiming(1, { duration: 220, easing: Easing.out(Easing.cubic) });
+        stepTranslateX.value = withSpring(0, { damping: 24, stiffness: 260 });
+    }, [step, reducedMotion, stepOpacity, stepTranslateX]);
+
+    const animatedStepStyle = useAnimatedStyle(() => ({
+        opacity: stepOpacity.value,
+        transform: [{ translateX: stepTranslateX.value }],
+    }));
+
     return (
-        <SafeAreaView style={styles.container}>
-            <Header title={step === 1 ? "Change Password" : "Create New Password"} />
+        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+            <Header
+                title={step === 1 ? "Change Password" : "Create New Password"}
+                onBackPress={step === 2 ? () => setStep(1) : undefined}
+            />
 
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -100,10 +138,10 @@ export default function ChangePasswordScreen() {
                 >
                     <ProgressBar step={step} totalSteps={2} />
 
-                    <View style={styles.content}>
+                    <Animated.View style={[styles.content, animatedStepStyle]}>
                         {step === 1 ? (
                             <>
-                                <Text style={styles.title}>Enter your Current Password to Continue</Text>
+                                <Text style={[styles.title, { color: colors.text }]}>Enter your Current Password to Continue</Text>
                                 <InputField
                                     label="Current Password"
                                     placeholder="****************"
@@ -125,7 +163,7 @@ export default function ChangePasswordScreen() {
                             </>
                         ) : (
                             <>
-                                <Text style={styles.title}>Create a New Password to Secure your Account</Text>
+                                <Text style={[styles.title, { color: colors.text }]}>Create a New Password to Secure your Account</Text>
                                 <InputField
                                     label="New Password"
                                     placeholder="Enter new password"
@@ -149,10 +187,10 @@ export default function ChangePasswordScreen() {
                                 />
                             </>
                         )}
-                    </View>
+                    </Animated.View>
                 </ScrollView>
 
-                <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
+                <View style={[styles.footer, { paddingBottom: insets.bottom + 20, backgroundColor: colors.background, borderTopColor: colors.divider }]}>
                     {step === 1 ? (
                         <PrimaryButton
                             title="Continue"

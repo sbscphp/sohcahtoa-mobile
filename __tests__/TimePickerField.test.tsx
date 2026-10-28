@@ -20,18 +20,16 @@ describe('TimePickerField', () => {
     it('renders the label and current value', () => {
         const { getByText } = render(<TimePickerField {...defaultProps} />);
         expect(getByText('Start Time')).toBeTruthy();
-        expect(getByText('09:00')).toBeTruthy();
+        expect(getByText('09:00 AM')).toBeTruthy();
     });
 
     it('opens the picker and calls onTimeChange on Android', async () => {
         Platform.OS = 'android';
         const { getByText, queryByText } = render(<TimePickerField {...defaultProps} />);
 
-        fireEvent.press(getByText('09:00'));
+        fireEvent.press(getByText('09:00 AM'));
 
-        // Android renders DateTimePicker directly
-        // Our mock has a "Change Date" button
-        fireEvent.press(getByText('Change Date'));
+        fireEvent.press(getByText('Confirm'));
 
         expect(defaultProps.onTimeChange).toHaveBeenCalled();
         Platform.OS = 'ios'; // Reset
@@ -41,13 +39,12 @@ describe('TimePickerField', () => {
         Platform.OS = 'ios';
         const { getByText, getAllByText } = render(<TimePickerField {...defaultProps} />);
 
-        fireEvent.press(getByText('09:00'));
+        fireEvent.press(getByText('09:00 AM'));
 
         // Modal with title and buttons should be visible
         expect(getAllByText('Start Time').length).toBeGreaterThan(0);
         expect(getByText('Confirm')).toBeTruthy();
 
-        fireEvent.press(getByText('Change Date'));
         fireEvent.press(getByText('Confirm'));
 
         expect(defaultProps.onTimeChange).toHaveBeenCalled();
@@ -56,7 +53,7 @@ describe('TimePickerField', () => {
     it('closes the picker when cancel is pressed (iOS)', () => {
         Platform.OS = 'ios';
         const { getByText, queryByText } = render(<TimePickerField {...defaultProps} />);
-        fireEvent.press(getByText('09:00'));
+        fireEvent.press(getByText('09:00 AM'));
 
         fireEvent.press(getByText('Cancel'));
         expect(queryByText('Confirm')).toBeNull();

@@ -1,4 +1,5 @@
 import ProgressBar from '@/components/ProgressBar';
+import { useAppTheme } from '@/context/ThemeContext';
 import { useForgotPasswordMutation } from '@/hooks/queries/auth/useForgotPasswordMutation';
 import { useResendEmailOtpMutation } from '@/hooks/queries/auth/useResendEmailOtpMutation';
 import { useResendExpatriateOtpMutation } from '@/hooks/queries/auth/useResendExpatriateOtpMutation';
@@ -20,6 +21,7 @@ import PrimaryButton from '../../components/PrimaryButton';
 
 export default function OtpVerificationScreen() {
     const router = useRouter();
+    const { colors, isDark } = useAppTheme();
     const { flowContext, target, type, userType, contactInfo } = useLocalSearchParams<{
         flowContext: 'bvn' | 'email';
         target: 'phone' | 'email';
@@ -29,7 +31,7 @@ export default function OtpVerificationScreen() {
     }>();
     const insets = useSafeAreaInsets();
     const [otp, setOtp] = useState(['', '', '', '', '', '']);
-    const inputs = useRef<TextInput[]>([]);
+    const inputs = useRef<(React.ElementRef<typeof TextInput> | null)[]>([]);
     const [timer, setTimer] = useState(180);
 
     const { mutate: validateOtp, isPending: isValidatingNigerian } = useValidateOtpMutation();
@@ -188,10 +190,10 @@ export default function OtpVerificationScreen() {
     }
 
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                style={styles.container}
+                style={[styles.container, { backgroundColor: colors.background }]}
             >
                 <AuthHeader title={headerTitle} />
 
@@ -204,17 +206,24 @@ export default function OtpVerificationScreen() {
                     {isResetPassword && <ProgressBar step={1} totalSteps={2} />}
 
                     <View style={styles.content}>
-                        <Text style={styles.title}>{title}</Text>
-                        <Text style={styles.subtitle}>{subtitle}</Text>
+                        <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
+                        <Text style={[styles.subtitle, { color: colors.textMuted }]}>{subtitle}</Text>
 
                         <View style={styles.otpContainer}>
                             {otp.map((digit, index) => (
                                 <TextInput
                                     key={index}
                                     ref={(ref) => {
-                                        inputs.current[index] = ref as TextInput;
+                                        inputs.current[index] = ref;
                                     }}
-                                    style={styles.otpInput}
+                                    style={[
+                                        styles.otpInput,
+                                        {
+                                            backgroundColor: isDark ? colors.card : '#FFFFFF',
+                                            borderColor: colors.border,
+                                            color: colors.text,
+                                        },
+                                    ]}
                                     value={digit}
                                     onChangeText={(value) => handleOtpChange(value, index)}
                                     onKeyPress={(e) => handleKeyPress(e, index)}
@@ -225,12 +234,12 @@ export default function OtpVerificationScreen() {
                             ))}
                         </View>
 
-                        <Text style={styles.timerText}>
+                        <Text style={[styles.timerText, { color: colors.textMuted }]}>
                             OTP expires in <Text style={styles.timerValue}>{formatTime(timer)}</Text>
                         </Text>
 
                         <View style={styles.resendContainer}>
-                            <Text style={styles.resendText}>{"Didn't Receive Code? "}</Text>
+                            <Text style={[styles.resendText, { color: colors.textMuted }]}>{"Didn't Receive Code? "}</Text>
                             <TouchableOpacity
                                 onPress={handleResendOtp}
                                 disabled={isPending || timer > 0}
@@ -248,7 +257,7 @@ export default function OtpVerificationScreen() {
                     </View>
                 </ScrollView>
 
-                <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
+                <View style={[styles.footer, { paddingBottom: insets.bottom + 20, backgroundColor: colors.background }]}>
                     <PrimaryButton
                         title="Validate OTP"
                         onPress={handleValidate}
