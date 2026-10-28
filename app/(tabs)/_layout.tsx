@@ -1,13 +1,14 @@
 import MoneyExchange from '@/assets/images/money-exchange-03.svg';
-import { LiquidGlassView, useLiquidGlassAvailable } from '@/components/ui/LiquidGlassView';
+import { useLiquidGlassAvailable } from '@/components/ui/LiquidGlassView';
 import { useAppTheme } from '@/context/ThemeContext';
+import { useDevicePose } from '@/hooks/useDevicePose';
 import * as Haptics from 'expo-haptics';
 import { Tabs } from 'expo-router';
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import { Home, More } from 'iconsax-react-nativejs';
 import { TrendingUp } from 'lucide-react-native';
 import React from 'react';
-import { Platform, StyleSheet } from 'react-native';
+import { Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const TAB_HOME_ICON = require('@/assets/icons/tabs/tab-home.png');
@@ -18,10 +19,11 @@ const TAB_MORE_ICON = require('@/assets/icons/tabs/tab-more.png');
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
   const { colors, isDark } = useAppTheme();
+  const { isIPhoneDuo, isFoldedDisplay } = useDevicePose();
+  const isFoldedDuo = isIPhoneDuo && isFoldedDisplay;
   const tintColor = colors.tabIconSelected;
   const inactiveTintColor = colors.tabIconDefault;
   const canUseLiquidGlass = useLiquidGlassAvailable();
-  const bottomOffset = insets.bottom > 0 ? insets.bottom + 8 : 16;
 
   const triggerTabHaptic = () => {
     if (Platform.OS !== 'web') {
@@ -32,7 +34,7 @@ export default function TabLayout() {
   if (canUseLiquidGlass) {
     return (
       <NativeTabs
-        minimizeBehavior="onScrollDown"
+        preferredPlacement="sidebar"
         tintColor={tintColor}
         backgroundColor={colors.tabBarBackground}
         blurEffect={isDark ? 'systemChromeMaterialDark' : 'systemChromeMaterialLight'}
@@ -104,45 +106,24 @@ export default function TabLayout() {
         tabBarInactiveTintColor: inactiveTintColor,
         headerShown: false,
         tabBarStyle: {
-          position: 'absolute',
-          left: 18,
-          right: 18,
-          bottom: bottomOffset,
-          height: 64,
-          borderRadius: 32,
-          backgroundColor: isDark ? 'rgba(15, 23, 42, 0.78)' : 'rgba(255, 255, 255, 0.82)',
-          borderTopWidth: 0,
-          borderWidth: 1,
-          borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)',
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 8 },
-          shadowOpacity: isDark ? 0.35 : 0.12,
-          shadowRadius: 16,
-          elevation: 8,
-          paddingTop: 8,
-          paddingBottom: 8,
-        },
-        tabBarBackground: () => (
-          <LiquidGlassView
-            variant="regular"
-            colorScheme={isDark ? 'dark' : 'light'}
-            borderRadius={32}
-            style={[
-              StyleSheet.absoluteFill,
-              {
-                borderRadius: 32,
-                overflow: 'hidden',
-              },
-            ]}
-          />
-        ),
-        tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: '500',
-          marginTop: 2,
+          backgroundColor: colors.tabBarBackground,
+          borderTopWidth: 1,
+          borderTopColor: colors.tabBarBorder,
+          height: isFoldedDuo ? 98 : 90,
+          paddingTop: isFoldedDuo ? 6 : 10,
+          marginLeft: insets.left,
+          marginRight: insets.right,
+          justifyContent: 'center',
+          alignItems: 'center',
         },
         tabBarItemStyle: {
-          paddingVertical: 2,
+          justifyContent: 'center',
+          alignItems: 'center',
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '500',
+          marginBottom: 10,
         },
       }}
     >

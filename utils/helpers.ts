@@ -394,7 +394,7 @@ export const getStatusStyle = (status: string, isDark?: boolean) => {
                     color: '#FBBF24',
                     bg: 'rgba(245, 158, 11, 0.16)',
                     backgroundColor: 'rgba(245, 158, 11, 0.16)',
-                    borderColor: 'rgba(245, 158, 11, 0.28)',
+                    borderColor: 'transparent',
                 };
             case 'VERIFICATION_IN_PROGRESS':
             case 'VERIFICATION_COMPLETED':
@@ -411,7 +411,7 @@ export const getStatusStyle = (status: string, isDark?: boolean) => {
                     color: '#60A5FA',
                     bg: 'rgba(59, 130, 246, 0.16)',
                     backgroundColor: 'rgba(59, 130, 246, 0.16)',
-                    borderColor: 'rgba(59, 130, 246, 0.28)',
+                    borderColor: 'transparent',
                 };
             case 'REJECTED':
             case 'CANCELLED':
@@ -424,7 +424,7 @@ export const getStatusStyle = (status: string, isDark?: boolean) => {
                     color: '#F87171',
                     bg: 'rgba(239, 68, 68, 0.16)',
                     backgroundColor: 'rgba(239, 68, 68, 0.16)',
-                    borderColor: 'rgba(239, 68, 68, 0.28)',
+                    borderColor: 'transparent',
                 };
             case 'APPROVED':
             case 'COMPLETED':
@@ -435,7 +435,7 @@ export const getStatusStyle = (status: string, isDark?: boolean) => {
                     color: '#34D399',
                     bg: 'rgba(16, 185, 129, 0.16)',
                     backgroundColor: 'rgba(16, 185, 129, 0.16)',
-                    borderColor: 'rgba(16, 185, 129, 0.28)',
+                    borderColor: 'transparent',
                 };
             case 'MORE_INFO':
             case 'More Info':
@@ -443,7 +443,7 @@ export const getStatusStyle = (status: string, isDark?: boolean) => {
                     color: '#C084FC',
                     bg: 'rgba(168, 85, 247, 0.16)',
                     backgroundColor: 'rgba(168, 85, 247, 0.16)',
-                    borderColor: 'rgba(168, 85, 247, 0.28)',
+                    borderColor: 'transparent',
                 };
             case 'DRAFT':
             case 'Draft':
@@ -452,7 +452,7 @@ export const getStatusStyle = (status: string, isDark?: boolean) => {
                     color: '#94A3B8',
                     bg: 'rgba(148, 163, 184, 0.14)',
                     backgroundColor: 'rgba(148, 163, 184, 0.14)',
-                    borderColor: 'rgba(148, 163, 184, 0.22)',
+                    borderColor: 'transparent',
                 };
         }
     }

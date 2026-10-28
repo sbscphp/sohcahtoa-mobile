@@ -201,12 +201,11 @@ const styles = ScaledSheet.create({
         bottom: 0,
     },
     sheetContainer: {
+        width: '100%',
         backgroundColor: '#FFFFFF',
         borderRadius: '24@ms',
-        maxHeight: '80%',
+        maxHeight: '85%',
         paddingTop: '12@vs',
-        marginBottom: '40@vs',
-        marginHorizontal: '12@s',
     },
     scrollContent: {
         paddingHorizontal: '16@ms',

@@ -106,13 +106,12 @@ const OtpOptionSheet: React.FC<OtpOptionSheetProps> = ({ isVisible, onClose, onS
 
 const styles = ScaledSheet.create({
     sheetContainer: {
+        width: '100%',
         backgroundColor: '#FFFFFF',
         borderRadius: '30@ms',
         paddingHorizontal: '24@s',
         paddingTop: '14@vs',
         paddingBottom: '32@vs',
-        marginBottom: '28@vs',
-        marginHorizontal: '12@s',
     },
     headerIconContainer: {
         marginBottom: '16@vs',

@@ -154,12 +154,11 @@ const InitiateTransactionSheet: React.FC<InitiateTransactionSheetProps> = ({
 
 const styles = ScaledSheet.create({
     sheetContent: {
+        width: '100%',
         backgroundColor: '#FFFFFF',
         borderRadius: '24@ms',
         paddingHorizontal: '16@s',
         paddingTop: '14@vs',
-        marginBottom: '40@vs',
-        marginHorizontal: '12@s',
     },
     headerIconContainer: {
         marginBottom: '16@vs',

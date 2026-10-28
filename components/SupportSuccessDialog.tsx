@@ -1,7 +1,7 @@
 import PrimaryButton from '@/components/PrimaryButton';
 import { LiquidGlassView } from '@/components/ui/LiquidGlassView';
 import React from 'react';
-import { Image, Modal, Text, View } from 'react-native';
+import { Image, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { ScaledSheet } from 'react-native-size-matters';
 import { useAppTheme } from '@/hooks/useAppTheme';
@@ -31,6 +31,11 @@ const SupportSuccessDialog: React.FC<SupportSuccessDialogProps> = ({
             onRequestClose={onClose}
         >
             <View style={styles.overlay}>
+                <TouchableOpacity
+                    style={[StyleSheet.absoluteFill, { backgroundColor: 'transparent' }]}
+                    onPress={onClose}
+                    activeOpacity={1}
+                />
                 <Animated.View
                     entering={FadeInDown.duration(200).springify().damping(24).stiffness(280)}
                     style={styles.dialogWrapper}

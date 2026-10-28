@@ -2,7 +2,7 @@ import * as Haptics from 'expo-haptics';
 import { AlertCircle, Check, X } from 'lucide-react-native';
 import React, { useEffect, useMemo, useRef } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { GestureDetector, usePanGesture } from 'react-native-gesture-handler';
 import Animated, {
     Easing,
     useAnimatedStyle,
@@ -99,7 +99,7 @@ const Toast: React.FC<ToastProps> = ({
                 }
             );
         };
-    }, [initialTranslate, onDismiss, opacity, reducedMotion, scale, translateY]);
+    }, [initialTranslate, onDismiss, reducedMotion]);
 
     useEffect(() => {
         if (visible) {
@@ -151,70 +151,66 @@ const Toast: React.FC<ToastProps> = ({
         duration,
         activeTheme.hapticType,
         reducedMotion,
-        translateY,
-        scale,
-        opacity,
         dismissToast,
         initialTranslate,
     ]);
 
-    const panGesture = useMemo(
-        () =>
-            Gesture.Pan()
-                .activeOffsetY([-6, 6])
-                .onUpdate((event) => {
-                    if (isBottom) {
-                        if (event.translationY > 0) {
-                            // Dragging down towards dismissal
-                            translateY.value = event.translationY;
-                            const factor = Math.max(0.88, 1 - event.translationY / 400);
-                            scale.value = factor;
-                        } else {
-                            // Elastic upward resistance
-                            translateY.value = event.translationY * 0.12;
-                        }
-                    } else {
-                        if (event.translationY < 0) {
-                            // Dragging up towards dismissal
-                            translateY.value = event.translationY;
-                            const factor = Math.max(0.88, 1 + event.translationY / 400);
-                            scale.value = factor;
-                        } else {
-                            // Elastic downward resistance
-                            translateY.value = event.translationY * 0.12;
-                        }
-                    }
-                })
-                .onEnd((event) => {
-                    const shouldDismiss = isBottom
-                        ? event.translationY > 24 || event.velocityY > 280
-                        : event.translationY < -24 || event.velocityY < -280;
+    const panGesture = usePanGesture({
+        activeOffsetY: [-6, 6],
+        onUpdate: (event) => {
+            'worklet';
+            if (isBottom) {
+                if (event.translationY > 0) {
+                    // Dragging down towards dismissal
+                    translateY.value = event.translationY;
+                    const factor = Math.max(0.88, 1 - event.translationY / 400);
+                    scale.value = factor;
+                } else {
+                    // Elastic upward resistance
+                    translateY.value = event.translationY * 0.12;
+                }
+            } else {
+                if (event.translationY < 0) {
+                    // Dragging up towards dismissal
+                    translateY.value = event.translationY;
+                    const factor = Math.max(0.88, 1 + event.translationY / 400);
+                    scale.value = factor;
+                } else {
+                    // Elastic downward resistance
+                    translateY.value = event.translationY * 0.12;
+                }
+            }
+        },
+        onDeactivate: (event) => {
+            'worklet';
+            const shouldDismiss = isBottom
+                ? event.translationY > 24 || event.velocityY > 280
+                : event.translationY < -24 || event.velocityY < -280;
 
-                    if (shouldDismiss) {
-                        opacity.value = withTiming(0, { duration: 140 });
-                        scale.value = withTiming(0.92, { duration: 140 });
-                        translateY.value = withTiming(
-                            initialTranslate,
-                            { duration: 160, easing: Easing.in(Easing.quad) },
-                            (finished) => {
-                                if (finished && onDismiss) {
-                                    scheduleOnRN(onDismiss);
-                                }
-                            }
-                        );
-                    } else {
-                        translateY.value = withSpring(0, {
-                            damping: 18,
-                            stiffness: 250,
-                        });
-                        scale.value = withSpring(1, {
-                            damping: 18,
-                            stiffness: 250,
-                        });
+            if (shouldDismiss) {
+                opacity.value = withTiming(0, { duration: 140 });
+                scale.value = withTiming(0.92, { duration: 140 });
+                translateY.value = withTiming(
+                    initialTranslate,
+                    { duration: 160, easing: Easing.in(Easing.quad) },
+                    (finished) => {
+                        if (finished && onDismiss) {
+                            scheduleOnRN(onDismiss);
+                        }
                     }
-                }),
-        [initialTranslate, isBottom, onDismiss, opacity, scale, translateY]
-    );
+                );
+            } else {
+                translateY.value = withSpring(0, {
+                    damping: 18,
+                    stiffness: 250,
+                });
+                scale.value = withSpring(1, {
+                    damping: 18,
+                    stiffness: 250,
+                });
+            }
+        },
+    });
 
     const animatedStyle = useAnimatedStyle(() => ({
         transform: [
@@ -230,6 +226,11 @@ const Toast: React.FC<ToastProps> = ({
         ? { bottom: Math.max(insets.bottom, 16) + moderateScale(16) }
         : { top: Math.max(insets.top, 16) + moderateScale(8) };
 
+    const horizontalOffsetStyle = {
+        paddingLeft: Math.max(insets.left, 12),
+        paddingRight: Math.max(insets.right, 12),
+    };
+
     const handleActionPress = () => {
         if (action?.onPress) {
             action.onPress();
@@ -244,7 +245,7 @@ const Toast: React.FC<ToastProps> = ({
             testID="toast-overlay"
         >
             <GestureDetector gesture={panGesture}>
-                <Animated.View style={[styles.capsuleWrapper, animatedStyle]}>
+                <Animated.View style={[styles.capsuleWrapper, horizontalOffsetStyle, animatedStyle]}>
                     <Pressable
                         onPress={dismissToast}
                         style={({ pressed }) => [
@@ -318,6 +319,8 @@ const styles = ScaledSheet.create({
     },
     capsuleCard: {
         width: '100%',
+        maxWidth: 560,
+        alignSelf: 'center',
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#1E2024',

@@ -89,10 +89,10 @@ export default function FaceCaptureScreen() {
     if (capturedImage) {
         return (
             <View style={styles.container}>
-                <StatusBar style="light" />
+                <StatusBar style="light" verticalBarBehaviorIOS="disabled" />
                 <Image source={{ uri: capturedImage }} style={styles.previewImage} />
 
-                <View style={[styles.overlay, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+                <View style={[styles.overlay, { paddingTop: insets.top, paddingBottom: insets.bottom, paddingLeft: insets.left, paddingRight: insets.right }]}>
                     <View style={styles.previewHeader}>
                         <Text style={styles.previewTitle}>Face Captured Successfully!</Text>
                         <Text style={styles.previewSubtitle}>Review your photo below</Text>
@@ -118,14 +118,14 @@ export default function FaceCaptureScreen() {
     // Show camera view
     return (
         <View style={styles.container}>
-            <StatusBar style="light" />
+            <StatusBar style="light" verticalBarBehaviorIOS="disabled" />
 
             <CameraView
                 ref={cameraRef}
                 style={styles.camera}
                 facing="front"
             >
-                <View style={[styles.overlay, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+                <View style={[styles.overlay, { paddingTop: insets.top, paddingBottom: insets.bottom, paddingLeft: insets.left, paddingRight: insets.right }]}>
                     {/* Frame Overlay */}
                     <View style={styles.frameContainer}>
                         {/* Top Left Corner */}

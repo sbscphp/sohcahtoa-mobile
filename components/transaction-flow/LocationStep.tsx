@@ -8,6 +8,7 @@ import { Platform, Text, TouchableOpacity, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import LocationIcon from '../../assets/icons/location-08.svg';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { useResponsiveInputHeight } from '@/hooks/useDevicePose';
 
 interface LocationStepProps {
     states: LocationItem[];
@@ -57,6 +58,7 @@ export default function LocationStep({
     title = "Where would you like to pick up your card and cash?"
 }: LocationStepProps) {
     const { colors, isDark } = useAppTheme();
+    const inputHeight = useResponsiveInputHeight(40, 50, 49);
     const [stateSheetVisible, setStateSheetVisible] = useState(false);
     const [citySheetVisible, setCitySheetVisible] = useState(false);
     const [locationSheetVisible, setLocationSheetVisible] = useState(false);
@@ -80,7 +82,7 @@ export default function LocationStep({
 
             <View style={styles.inputGroup}>
                 <Text style={[styles.label, { color: colors.textMuted }]}>State <Text style={styles.required}>*</Text></Text>
-                <TouchableOpacity style={[styles.dropdownInput, { borderColor: isDark ? colors.border : 'rgba(143, 139, 139, 1)' }, errors?.state ? styles.dropdownError : undefined]} onPress={() => setStateSheetVisible(true)}>
+                <TouchableOpacity style={[styles.dropdownInput, { height: inputHeight, borderColor: isDark ? colors.border : 'rgba(143, 139, 139, 1)' }, errors?.state ? styles.dropdownError : undefined]} onPress={() => setStateSheetVisible(true)}>
                     <Text style={[styles.dropdownPlaceholder, { color: colors.textMuted }, selectedState && [styles.dropdownSelectedText, { color: colors.text }]]}>
                         {selectedState ? selectedState.title : 'Select an Option'}
                     </Text>
@@ -92,7 +94,7 @@ export default function LocationStep({
             <View style={styles.inputGroup}>
                 <Text style={[styles.label, { color: colors.textMuted }]}>Select a City <Text style={styles.required}>*</Text></Text>
                 <TouchableOpacity
-                    style={[styles.dropdownInput, { borderColor: isDark ? colors.border : 'rgba(143, 139, 139, 1)' }, !selectedState && { backgroundColor: isDark ? colors.surfaceHighlight : '#F1F5F9' }, errors?.city ? styles.dropdownError : undefined]}
+                    style={[styles.dropdownInput, { height: inputHeight, borderColor: isDark ? colors.border : 'rgba(143, 139, 139, 1)' }, !selectedState && { backgroundColor: isDark ? colors.surfaceHighlight : '#F1F5F9' }, errors?.city ? styles.dropdownError : undefined]}
                     disabled={!selectedState}
                     onPress={() => setCitySheetVisible(true)}
                 >
@@ -275,7 +277,6 @@ const styles = ScaledSheet.create({
         borderColor: 'rgba(143, 139, 139, 1)',
         borderRadius: '28@ms',
         paddingHorizontal: '14@s',
-        height: Platform.OS === 'android' ? '49@vs' : '40@vs',
         backgroundColor: 'transparent',
     },
     dropdownPlaceholder: {

@@ -142,7 +142,11 @@ export default function HomeBalanceSection({
                         isLoadingTotals ? (
                             <ActivityIndicator size="small" color={colors.text} style={{ marginLeft: moderateScale(10) }} />
                         ) : (
-                            <Text style={[styles.balanceAmount, { color: colors.text }]}>
+                            <Text
+                                style={[styles.balanceAmount, { color: colors.text }]}
+                                numberOfLines={1}
+                                adjustsFontSizeToFit
+                            >
                                 {balanceAmount}
                                 <Text style={[styles.balanceDecimal, { color: colors.textMuted }]}>.00</Text>
                             </Text>
@@ -160,7 +164,7 @@ export default function HomeBalanceSection({
 
 const styles = ScaledSheet.create({
     filterContainer: {
-        paddingHorizontal: '10@s',
+        paddingHorizontal: '14@s',
         marginBottom: '24@vs',
     },
     filterChip: {
@@ -184,7 +188,7 @@ const styles = ScaledSheet.create({
         fontWeight: '500',
     },
     balanceSection: {
-        paddingHorizontal: '10@s',
+        paddingHorizontal: '14@s',
         marginBottom: '24@vs',
     },
     balanceHeader: {

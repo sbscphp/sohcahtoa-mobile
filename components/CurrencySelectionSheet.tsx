@@ -1,4 +1,4 @@
-import { CloseCircle, SearchNormal1 } from 'iconsax-react-nativejs';
+import { SearchNormal1 } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
 import { Image, KeyboardAvoidingView, Platform, StyleProp, StyleSheet, Text, TouchableOpacity, View, ViewStyle } from 'react-native';
 import { FlatList } from 'react-native-gesture-handler';
@@ -7,8 +7,9 @@ import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import Money from '../assets/icons/money-02.svg';
 import InputField from './InputField';
 import PrimaryButton from './PrimaryButton';
-import AnimatedBottomSheet from './ui/AnimatedBottomSheet';
+import { AnimatedBottomSheet } from './ui/AnimatedBottomSheet';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { useDevicePose } from '@/hooks/useDevicePose';
 interface Currency {
     code: string;
     country: string;
@@ -40,15 +41,22 @@ const CurrencySelectionSheet: React.FC<CurrencySelectionSheetProps> = ({
 }) => {
     const { colors, isDark } = useAppTheme();
     const insets = useSafeAreaInsets();
+    const { height: screenHeight, isLandscape } = useDevicePose();
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedCode, setSelectedCode] = useState<string | undefined>(selectedCurrency);
+    const [prevVisible, setPrevVisible] = useState(visible);
 
-    React.useEffect(() => {
+    const sheetHeight = isLandscape
+        ? Math.min(screenHeight * 0.90, moderateScale(480))
+        : Math.min(screenHeight * 0.80, moderateScale(650));
+
+    if (visible !== prevVisible) {
+        setPrevVisible(visible);
         if (visible) {
             setSelectedCode(selectedCurrency);
             setSearchQuery('');
         }
-    }, [visible, selectedCurrency]);
+    }
 
     const filteredCurrencies = POPULAR_CURRENCIES.filter(curr =>
         curr.country.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -91,37 +99,35 @@ const CurrencySelectionSheet: React.FC<CurrencySelectionSheetProps> = ({
         );
     };
 
+    const headerContent = (
+        <View style={styles.header}>
+            <View style={[styles.iconCircle, { backgroundColor: isDark ? 'rgba(255, 107, 44, 0.18)' : '#FFF7ED' }]}>
+                <Money />
+            </View>
+            <Text style={[styles.title, { color: colors.text }]}>Select Currency</Text>
+            <Text style={[styles.subtitle, { color: colors.textMuted }]}>Select an option below</Text>
+        </View>
+    );
+
     return (
         <AnimatedBottomSheet
             visible={visible}
             onClose={onClose}
+            headerComponent={headerContent}
             sheetStyle={[
                 styles.sheetContent,
-                { backgroundColor: colors.surface },
+                {
+                    height: sheetHeight,
+                    backgroundColor: colors.surface,
+                    paddingBottom: Math.max(insets.bottom, moderateScale(16)) + moderateScale(8),
+                },
                 sheetStyle,
-                { paddingBottom: insets.bottom + moderateScale(20) },
             ]}
         >
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 style={styles.keyboardAvoidingView}
             >
-                <View style={styles.headerIconContainer}>
-                    <SearchNormal1 size={24} color="#FF6B2C" variant="Bold" />
-                </View>
-
-                <View style={styles.headerRow}>
-                    <View style={[styles.iconCircle, { backgroundColor: isDark ? 'rgba(255, 107, 44, 0.18)' : '#FFF7ED' }]}>
-                        <Money />
-                    </View>
-                    <TouchableOpacity onPress={onClose}>
-                        <CloseCircle size={24} color={colors.icon} variant="Bold" />
-                    </TouchableOpacity>
-                </View>
-
-                <Text style={[styles.title, { color: colors.text }]}>Select Currency</Text>
-                <Text style={[styles.subtitle, { color: colors.textMuted }]}>Select an option below</Text>
-
                 <InputField
                     label=''
                     placeholder="Enter key word"
@@ -168,26 +174,23 @@ const styles = ScaledSheet.create({
         ...StyleSheet.absoluteFill,
     },
     sheetContent: {
+        width: '100%',
         backgroundColor: '#FFFFFF',
         borderRadius: '24@ms',
         paddingHorizontal: '20@s',
         paddingTop: '16@vs',
-        height: '82%',
-        maxHeight: '90%',
-        marginBottom: '20@vs',
-        marginHorizontal: '12@s',
+        maxHeight: '92%',
     },
     keyboardAvoidingView: {
         flex: 1,
+        justifyContent: 'space-between',
     },
     flatList: {
         flex: 1,
     },
-    headerRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: '16@vs'
+    header: {
+        width: '100%',
+        marginBottom: '6@vs',
     },
     iconCircle: {
         width: '48@ms',
@@ -196,6 +199,7 @@ const styles = ScaledSheet.create({
         backgroundColor: '#FFF7ED',
         justifyContent: 'center',
         alignItems: 'center',
+        marginBottom: '12@vs',
     },
     title: {
         fontSize: '18@ms',
@@ -254,7 +258,8 @@ const styles = ScaledSheet.create({
     },
     footerActions: {
         gap: '12@vs',
-        marginTop: '10@vs'
+        marginTop: 'auto',
+        paddingTop: '16@vs',
     },
     primaryBtn: {
         backgroundColor: '#FFD7C5',

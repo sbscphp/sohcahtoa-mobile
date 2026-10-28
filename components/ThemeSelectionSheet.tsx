@@ -1,11 +1,11 @@
-import AnimatedBottomSheet from '@/components/ui/AnimatedBottomSheet';
+import { AnimatedBottomSheet } from '@/components/ui/AnimatedBottomSheet';
 import { ThemeMode } from '@/constants/theme';
 import { useAppTheme } from '@/context/ThemeContext';
 import * as Haptics from 'expo-haptics';
-import { CloseCircle, TickCircle } from 'iconsax-react-nativejs';
+import { TickCircle } from 'iconsax-react-nativejs';
 import { Moon, Smartphone, Sun } from 'lucide-react-native';
 import React from 'react';
-import { Platform, Pressable, Text, TouchableOpacity, View } from 'react-native';
+import { Platform, Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { moderateScale, ScaledSheet } from 'react-native-size-matters';
 
@@ -64,10 +64,38 @@ export const ThemeSelectionSheet: React.FC<ThemeSelectionSheetProps> = ({
     return <Smartphone size={size} color={iconColor} />;
   };
 
+  const headerContent = (
+    <View style={styles.header}>
+      <View
+        style={[
+          styles.headerIconBadge,
+          {
+            backgroundColor: isDark
+              ? 'rgba(255, 255, 255, 0.05)'
+              : colors.primarySoft,
+            borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
+            borderWidth: isDark ? 1 : 0,
+          },
+        ]}
+      >
+        {isDark ? (
+          <Moon size={moderateScale(22)} color={colors.primaryLight} />
+        ) : (
+          <Sun size={moderateScale(22)} color={colors.primary} />
+        )}
+      </View>
+      <Text style={[styles.title, { color: colors.text }]}>Appearance</Text>
+      <Text style={[styles.subtitle, { color: colors.textMuted }]}>
+        Choose how SohCahToa looks on your device
+      </Text>
+    </View>
+  );
+
   return (
     <AnimatedBottomSheet
       visible={visible}
       onClose={onClose}
+      headerComponent={headerContent}
       sheetStyle={[
         styles.sheetContent,
         {
@@ -76,39 +104,6 @@ export const ThemeSelectionSheet: React.FC<ThemeSelectionSheetProps> = ({
         },
       ]}
     >
-      <View style={styles.headerRow}>
-        <View
-          style={[
-            styles.headerIconBadge,
-            {
-              backgroundColor: isDark
-                ? 'rgba(255, 255, 255, 0.05)'
-                : colors.primarySoft,
-              borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
-              borderWidth: isDark ? 1 : 0,
-            },
-          ]}
-        >
-          {isDark ? (
-            <Moon size={moderateScale(22)} color={colors.primaryLight} />
-          ) : (
-            <Sun size={moderateScale(22)} color={colors.primary} />
-          )}
-        </View>
-        <TouchableOpacity
-          onPress={onClose}
-          accessibilityRole="button"
-          accessibilityLabel="Close theme settings"
-        >
-          <CloseCircle size={moderateScale(24)} color={colors.iconMuted} variant="Bold" />
-        </TouchableOpacity>
-      </View>
-
-      <Text style={[styles.title, { color: colors.text }]}>Appearance</Text>
-      <Text style={[styles.subtitle, { color: colors.textMuted }]}>
-        Choose how SohCahToa looks on your device
-      </Text>
-
       <View style={styles.optionsList}>
         {THEME_OPTIONS.map((option) => {
           const isSelected = themeMode === option.mode;
@@ -192,17 +187,14 @@ export const ThemeSelectionSheet: React.FC<ThemeSelectionSheetProps> = ({
 
 const styles = ScaledSheet.create({
   sheetContent: {
+    width: '100%',
     borderRadius: '24@ms',
     paddingHorizontal: '20@s',
     paddingTop: '14@vs',
-    marginBottom: '20@vs',
-    marginHorizontal: '12@s',
   },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '14@vs',
+  header: {
+    width: '100%',
+    marginBottom: '6@vs',
   },
   headerIconBadge: {
     width: '44@ms',
@@ -210,6 +202,7 @@ const styles = ScaledSheet.create({
     borderRadius: '22@ms',
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: '10@vs',
   },
   title: {
     fontSize: '18@ms',

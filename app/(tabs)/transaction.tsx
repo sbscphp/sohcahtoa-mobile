@@ -5,15 +5,15 @@ import { useQuery } from '@tanstack/react-query';
 import { getTransactions } from '@/services/transactions';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Notification, Refresh } from 'iconsax-react-nativejs';
-import React, { useMemo, useState, useCallback } from 'react';
-import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import { getStatusLabel, getStatusStyle, formatListDate, formatListTime, formatAmount } from '@/utils/helpers';
 import SearchEmpty from '../../assets/icons/empty-state.svg';
 import Header from '../../components/Header';
 import { useGetUnreadCountQuery } from '@/hooks/queries/notifications/useGetUnreadCountQuery';
-import AnimatedTabScreen from '@/components/ui/AnimatedTabScreen';
+import { AnimatedTabScreen } from '@/components/ui/AnimatedTabScreen';
 import { useAppTheme } from '@/hooks/useAppTheme';
 
 const FILTER_TO_GROUP: Record<string, string | undefined> = {
@@ -85,9 +85,15 @@ export default function TransactionScreen() {
 
 
 
-    const totalCount = stats?.total ?? transactionsData?.pages?.[0]?.pagination?.total ?? 0;
+    const allTxs: Transaction[] = (allTransactionsResponse as any)?.data || [];
+    const totalCount = stats?.total ?? transactionsData?.pages?.[0]?.pagination?.total ?? allTxs.length;
     const statusCounts = stats
-        && { completed: stats.completed, declined: stats.rejected, pending: stats.pending }
+        ? { completed: stats.completed, declined: stats.rejected, pending: stats.pending }
+        : {
+            completed: allTxs.filter((t: Transaction) => t.status === 'COMPLETED').length,
+            declined: allTxs.filter((t: Transaction) => t.status === 'REJECTED' || t.status === 'DECLINED').length,
+            pending: allTxs.filter((t: Transaction) => t.status === 'PENDING').length,
+        };
         
 
     const renderEmpty = () => (
@@ -127,15 +133,15 @@ export default function TransactionScreen() {
 
                 <View style={styles.statusCardsContainer}>
                     <View style={[styles.statusCard, { borderColor: colors.border, backgroundColor: colors.card }]}>
-                        <Text style={[styles.cardLabel, { color: colors.textMuted }]}>Completed</Text>
+                        <Text style={[styles.cardLabel, { color: colors.textMuted }]} numberOfLines={1} adjustsFontSizeToFit>Completed</Text>
                         <Text style={[styles.cardCount, styles.textCompleted]}>{statusCounts?.completed}</Text>
                     </View>
                     <View style={[styles.statusCard, { borderColor: colors.border, backgroundColor: colors.card }]}>
-                        <Text style={[styles.cardLabel, { color: colors.textMuted }]}>Rejected</Text>
+                        <Text style={[styles.cardLabel, { color: colors.textMuted }]} numberOfLines={1} adjustsFontSizeToFit>Rejected</Text>
                         <Text style={[styles.cardCount, styles.textDeclined]}>{statusCounts?.declined}</Text>
                     </View>
                     <View style={[styles.statusCard, { borderColor: colors.border, backgroundColor: colors.card }]}>
-                        <Text style={[styles.cardLabel, { color: colors.textMuted }]}>Pending</Text>
+                        <Text style={[styles.cardLabel, { color: colors.textMuted }]} numberOfLines={1} adjustsFontSizeToFit>Pending</Text>
                         <Text style={[styles.cardCount, styles.textPending]}>{statusCounts?.pending}</Text>
                     </View>
                 </View>
@@ -186,34 +192,38 @@ export default function TransactionScreen() {
                     </View>
                 ) : transactions.length > 0 ? (
                     <View style={[styles.transactionListContainer, { backgroundColor: colors.card }]}>
-                        {transactions.map((item) => {
+                        {transactions.map((item, index) => {
                             const statusLabel = getStatusLabel(item.status);
                             const statusStyle = getStatusStyle(statusLabel, isDark);
+                            const isLast = index === transactions.length - 1;
                             return (
-                                <TouchableOpacity key={item.id} style={styles.transactionItem} onPress={() => router.push({ pathname: getTransactionRoute(item.type) as any, params: { transactionId: item.id } })}>
-                                    <View style={[styles.iconContainer, { backgroundColor: colors.surface }]}>
-                                        <Refresh size={moderateScale(18)} color={colors.icon} />
-                                    </View>
-                                    <View style={styles.itemContent}>
-                                        <Text style={[styles.itemTitle, { color: colors.text }]} numberOfLines={1}>{item.purpose || item.type}</Text>
-                                        <Text style={[styles.itemDate, { color: colors.textMuted }]}>{formatListDate(item.createdAt)} • {formatListTime(item.createdAt)}</Text>
-                                    </View>
-                                    <View style={styles.itemRight}>
-                                        <Text style={[styles.itemAmount, { color: colors.text }]}>{formatAmount(item.foreignAmount, item.currency)}</Text>
-                                        <View style={[
-                                            styles.statusBadge,
-                                            {
-                                                backgroundColor: statusStyle.backgroundColor,
-                                                borderColor: statusStyle.borderColor,
-                                                borderWidth: isDark ? 1 : 0,
-                                            },
-                                        ]}>
-                                            <Text style={[styles.statusText, { color: statusStyle.color }]}>
-                                                {statusLabel}
-                                            </Text>
+                                <View key={item.id}>
+                                    <TouchableOpacity style={styles.transactionItem} onPress={() => router.push({ pathname: getTransactionRoute(item.type) as any, params: { transactionId: item.id } })}>
+                                        <View style={[styles.iconContainer, { backgroundColor: colors.surface }]}>
+                                            <Refresh size={moderateScale(18)} color={colors.icon} />
                                         </View>
-                                    </View>
-                                </TouchableOpacity>
+                                        <View style={styles.itemContent}>
+                                            <Text style={[styles.itemTitle, { color: colors.text }]} numberOfLines={2}>{item.purpose || item.type}</Text>
+                                            <Text style={[styles.itemDate, { color: colors.textMuted }]}>{formatListDate(item.createdAt)} • {formatListTime(item.createdAt)}</Text>
+                                        </View>
+                                        <View style={styles.itemRight}>
+                                            <Text style={[styles.itemAmount, { color: colors.text }]}>{formatAmount(item.foreignAmount, item.currency)}</Text>
+                                            <View style={[
+                                                styles.statusBadge,
+                                                {
+                                                    backgroundColor: statusStyle.backgroundColor,
+                                                },
+                                            ]}>
+                                                <Text style={[styles.statusText, { color: statusStyle.color }]}>
+                                                    {statusLabel}
+                                                </Text>
+                                            </View>
+                                        </View>
+                                    </TouchableOpacity>
+                                    {!isLast && (
+                                        <View style={[styles.itemDivider, { backgroundColor: isDark ? colors.border : '#E2E8F0' }]} />
+                                    )}
+                                </View>
                             );
                         })}
                     </View>
@@ -232,10 +242,10 @@ const styles = ScaledSheet.create({
         flex: 1,
     },
     scrollContent: {
-        paddingBottom: '120@vs',
+        paddingBottom: '20@vs',
     },
     totalSection: {
-        paddingHorizontal: '13@s',
+        paddingHorizontal: '16@s',
         marginTop: '16@vs',
     },
     totalLabel: {
@@ -250,13 +260,13 @@ const styles = ScaledSheet.create({
     },
     statusCardsContainer: {
         flexDirection: 'row',
-        paddingHorizontal: '13@s',
+        paddingHorizontal: '16@s',
         marginTop: '16@vs',
         gap: '8@s',
     },
     statusCard: {
         flex: 1,
-        padding: '12@ms',
+        padding: '8@ms',
         borderRadius: '12@ms',
         borderWidth: 1,
         borderColor: '#dededeff',
@@ -273,12 +283,12 @@ const styles = ScaledSheet.create({
         // backgroundColor: '#FFFBEB',
     },
     cardLabel: {
-        fontSize: '15@ms',
+        fontSize: '12@ms',
         color: '#64748B',
-        marginBottom: '8@vs',
+        marginBottom: '6@vs',
     },
     cardCount: {
-        fontSize: '20@ms',
+        fontSize: '18@ms',
         fontWeight: '600',
     },
     textCompleted: {
@@ -294,7 +304,7 @@ const styles = ScaledSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: '13@s',
+        paddingHorizontal: '16@s',
         marginTop: '24@vs',
         marginBottom: '16@vs',
     },
@@ -314,7 +324,7 @@ const styles = ScaledSheet.create({
         overflow: 'hidden',
     },
     filterContainer: {
-        paddingHorizontal: '13@s',
+        paddingHorizontal: '16@s',
         paddingBottom: '8@vs',
         gap: '8@s',
         marginBottom: '12@vs',
@@ -341,24 +351,25 @@ const styles = ScaledSheet.create({
     },
     transactionListContainer: {
         backgroundColor: 'rgba(247, 247, 247, 1)',
-        borderRadius: '12@ms',
-        marginHorizontal: '13@s',
+        borderRadius: '16@ms',
+        marginHorizontal: '16@s',
         paddingVertical: '8@vs',
     },
     transactionItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: '8@s',
+        paddingLeft: '6@s',
+        paddingRight: '8@s',
         paddingVertical: '12@vs',
     },
     iconContainer: {
-        width: '30@ms',
-        height: '30@ms',
-        borderRadius: '20@ms',
+        width: '32@ms',
+        height: '32@ms',
+        borderRadius: '16@ms',
         backgroundColor: '#ffffffff',
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: '12@s',
+        marginRight: '8@s',
     },
     itemContent: {
         flex: 1,
@@ -369,6 +380,7 @@ const styles = ScaledSheet.create({
         fontWeight: '500',
         color: '#334155',
         marginBottom: '4@vs',
+        lineHeight: '19@ms',
     },
     itemDate: {
         fontSize: '12@ms',
@@ -382,6 +394,11 @@ const styles = ScaledSheet.create({
         fontWeight: '600',
         color: '#0F172A',
         marginBottom: '4@vs',
+    },
+    itemDivider: {
+        height: StyleSheet.hairlineWidth,
+        marginHorizontal: '8@s',
+        backgroundColor: '#E2E8F0',
     },
     statusBadge: {
         paddingHorizontal: '7@s',

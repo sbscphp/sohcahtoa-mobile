@@ -1,9 +1,10 @@
 import PrimaryButton from '@/components/PrimaryButton';
-import AnimatedBottomSheet from '@/components/ui/AnimatedBottomSheet';
+import { AnimatedBottomSheet } from '@/components/ui/AnimatedBottomSheet';
 import { useAppTheme } from '@/hooks/useAppTheme';
-import { CloseCircle, Icon, SearchNormal1 } from 'iconsax-react-nativejs';
+import { useResponsiveInputHeight } from '@/hooks/useDevicePose';
+import { Icon, SearchNormal1 } from 'iconsax-react-nativejs';
 import React, { useEffect, useState } from 'react';
-import { Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
@@ -49,6 +50,7 @@ const GenericSelectionSheet: React.FC<GenericSelectionSheetProps> = ({
 }) => {
     const { colors, isDark } = useAppTheme();
     const insets = useSafeAreaInsets();
+    const searchHeight = useResponsiveInputHeight(40, 50, 49);
     const [tempSelected, setTempSelected] = useState(selectedItem);
     const [searchQuery, setSearchQuery] = useState('');
 
@@ -71,36 +73,31 @@ const GenericSelectionSheet: React.FC<GenericSelectionSheetProps> = ({
         item.label.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
+    const headerContent = (
+        <View style={styles.header}>
+            {HeaderIcon && (
+                <View style={[styles.iconCircle, { backgroundColor: isDark ? 'rgba(255, 107, 44, 0.18)' : headerIconBg }]}>
+                    <HeaderIcon size={moderateScale(24)} color={headerIconColor} variant="Linear" />
+                </View>
+            )}
+            <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
+            <Text style={[styles.subtitle, { color: colors.textMuted }]}>{subtitle}</Text>
+        </View>
+    );
+
     return (
         <AnimatedBottomSheet
             visible={visible}
             onClose={onClose}
+            headerComponent={headerContent}
             sheetStyle={[
                 styles.sheetContent,
                 { backgroundColor: colors.surface },
                 { paddingBottom: insets.bottom + moderateScale(20) },
             ]}
         >
-            {/* Header Row */}
-            <View style={styles.headerRow}>
-                {HeaderIcon ? (
-                    <View style={[styles.iconCircle, { backgroundColor: isDark ? 'rgba(255, 107, 44, 0.18)' : headerIconBg }]}>
-                        <HeaderIcon size={moderateScale(24)} color={headerIconColor} variant="Linear" />
-                    </View>
-                ) : (
-                    <View style={{ width: moderateScale(48), height: moderateScale(48) }} />
-                )}
-
-                <TouchableOpacity onPress={onClose}>
-                    <CloseCircle size={moderateScale(24)} color={colors.icon} variant="Bold" />
-                </TouchableOpacity>
-            </View>
-
-            <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
-            <Text style={[styles.subtitle, { color: colors.textMuted }]}>{subtitle}</Text>
-
             {searchable && (
-                <View style={[styles.searchContainer, { borderColor: colors.border, backgroundColor: colors.inputBackground }]}>
+                <View style={[styles.searchContainer, { borderColor: colors.border, backgroundColor: colors.inputBackground, height: searchHeight }]}>
                     <SearchNormal1 size={moderateScale(20)} color={colors.icon} />
                     <TextInput
                         style={[styles.searchInput, { color: colors.text }]}
@@ -185,19 +182,16 @@ const styles = ScaledSheet.create({
         ...StyleSheet.absoluteFill,
     },
     sheetContent: {
+        width: '100%',
         backgroundColor: '#FFFFFF',
         borderRadius: '24@ms',
         paddingHorizontal: '20@s',
         paddingTop: '20@vs',
-        maxHeight: '80%',
-        marginBottom: '40@vs',
-        marginHorizontal: '12@s',
+        maxHeight: '85%',
     },
-    headerRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: '16@vs',
+    header: {
+        width: '100%',
+        marginBottom: '6@vs',
     },
     iconCircle: {
         width: '48@ms',
@@ -205,6 +199,7 @@ const styles = ScaledSheet.create({
         borderRadius: '24@ms',
         justifyContent: 'center',
         alignItems: 'center',
+        marginBottom: '12@vs',
     },
     title: {
         fontSize: '18@ms',
@@ -224,7 +219,6 @@ const styles = ScaledSheet.create({
         borderColor: 'rgba(143, 139, 139, 1)',
         borderRadius: '28@ms',
         paddingHorizontal: '14@s',
-        height: Platform.OS === 'android' ? '49@vs' : '40@vs',
         marginBottom: '16@vs',
     },
     searchInput: {

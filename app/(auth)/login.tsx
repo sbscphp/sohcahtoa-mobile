@@ -46,6 +46,16 @@ export default function LoginScreen() {
 
     const userName =  `${user?.profile?.firstName} ${user?.profile?.lastName}`;
 
+    const isTouchId = Platform.OS === 'ios' && biometricType === 'fingerprint';
+    const isFaceId = Platform.OS === 'ios' && biometricType === 'face';
+    const biometricLabel = isTouchId
+        ? 'Touch ID'
+        : isFaceId
+        ? 'Face ID'
+        : biometricType === 'fingerprint'
+        ? 'Fingerprint'
+        : 'Biometrics';
+
     const { mutate: login, isPending } = useLoginMutation();
     const autoPromptAttempted = useRef(false);
 
@@ -63,7 +73,7 @@ export default function LoginScreen() {
                 await checkCredentials();
             }
 
-            if (available && !biometricType && capabilities.primaryType) {
+            if (available && capabilities.primaryType && capabilities.primaryType !== biometricType) {
                 setBiometricType(capabilities.primaryType);
             }
 
@@ -90,25 +100,44 @@ export default function LoginScreen() {
     }, [isAuthenticated, isBiometricEnabled]);
 
     const handleBiometricLogin = async () => {
-        const success = await authenticateWithBiometrics('Log in with biometrics');
+        const credentials = await getStoredCredentials();
+        if (!credentials?.email || !credentials?.password) {
+            showToast('Biometric credentials not found. Please login manually.', 'warning');
+            return;
+        }
+
+        const promptTitle = `Log in with ${biometricLabel}`;
+        const success = await authenticateWithBiometrics(promptTitle);
         if (success) {
             useAuthStore.getState().setBiometricEnabled(true);
-            const credentials = await getStoredCredentials();
-            if (credentials) {
-                setEmail(credentials.email);
-                setPassword(credentials.password);
-                login({ email: credentials.email, password: credentials.password });
-            } else {
-                showToast('Biometric credentials not found. Please login manually.', 'warning');
-            }
+            setEmail(credentials.email);
+            setPassword(credentials.password);
+            login({ email: credentials.email, password: credentials.password });
         }
     };
 
-    const handleBiometricPress = () => {
+    const handleBiometricPress = async () => {
+        if (!biometricsSupported) {
+            showToast('Biometric authentication is not supported or enrolled on this device.', 'warning');
+            return;
+        }
+
+        // Check if credentials exist in SecureStore
+        const credentials = await getStoredCredentials();
+        if (credentials?.email && credentials?.password) {
+            await handleBiometricLogin();
+            return;
+        }
+
         if (hasCredentials) {
-            handleBiometricLogin();
-        } else if (biometricsSupported) {
-            if (email && password) {
+            await handleBiometricLogin();
+            return;
+        }
+
+        if (email && password) {
+            const promptTitle = `Authenticate with ${biometricLabel}`;
+            const success = await authenticateWithBiometrics(promptTitle);
+            if (success) {
                 const targetPath = biometricType === 'face'
                     ? '/(auth)/biometrics-setup'
                     : '/(auth)/fingerprint-setup';
@@ -116,11 +145,9 @@ export default function LoginScreen() {
                     pathname: targetPath,
                     params: { email, password },
                 });
-            } else {
-                showToast('Please login with your password first to enable biometric login.', 'warning');
             }
         } else {
-            showToast('Biometric authentication is not supported or enrolled on this device.', 'warning');
+            showToast('Please login with your password first to enable biometric login.', 'warning');
         }
     };
 
@@ -226,7 +253,7 @@ export default function LoginScreen() {
                         <TouchableOpacity
                             testID="biometric-login-button"
                             accessibilityRole="button"
-                            accessibilityLabel={biometricType === 'fingerprint' ? 'Fingerprint Login' : 'Face ID Login'}
+                            accessibilityLabel={`${biometricLabel} Login`}
                             style={[
                                 styles.biometricButton,
                                 !biometricsSupported && { opacity: 0.3 },

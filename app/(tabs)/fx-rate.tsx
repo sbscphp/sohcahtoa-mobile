@@ -10,7 +10,8 @@ import { Notification } from 'iconsax-react-nativejs';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { moderateScale, ScaledSheet } from 'react-native-size-matters';
-import AnimatedTabScreen from '@/components/ui/AnimatedTabScreen';
+import { AnimatedTabScreen } from '@/components/ui/AnimatedTabScreen';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/hooks/useAppTheme';
 
 interface Currency {
@@ -31,6 +32,7 @@ const currencies: Currency[] = [
 export default function FxRateScreen() {
     const { colors, isDark } = useAppTheme();
     const router = useRouter();
+    const insets = useSafeAreaInsets();
     const [transactionType, setTransactionType] = useState<'buy' | 'sell'>('buy');
     const [currencyGet, setCurrencyGet] = useState<Currency>(currencies[0]); 
     const [currencySend, setCurrencySend] = useState<Currency>(currencies[1]); 
@@ -75,7 +77,7 @@ export default function FxRateScreen() {
     })) || [];
 
     return (
-        <AnimatedTabScreen style={styles.container}>
+        <AnimatedTabScreen style={[styles.container, { paddingTop: insets.top }]}>
             <Header
                 title="FX Rate"
                 rightIcon={
@@ -144,8 +146,8 @@ const styles = ScaledSheet.create({
         flex: 1,
     },
     scrollContent: {
-        paddingHorizontal: '10@ms',
-        paddingBottom: '120@vs',
+        paddingHorizontal: '14@s',
+        paddingBottom: '40@vs',
         gap: '24@vs',
         marginTop: '20@vs',
     },

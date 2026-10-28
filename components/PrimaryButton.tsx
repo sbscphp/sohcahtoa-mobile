@@ -1,6 +1,7 @@
 import { useAppTheme } from '@/context/ThemeContext';
+import { useResponsiveButtonHeight } from '@/hooks/useDevicePose';
 import React from 'react';
-import { ActivityIndicator, Platform, Pressable, StyleProp, Text, TextStyle, ViewStyle } from 'react-native';
+import { ActivityIndicator, Pressable, StyleProp, Text, TextStyle, ViewStyle } from 'react-native';
 import { ScaledSheet } from 'react-native-size-matters';
 
 interface PrimaryButtonProps {
@@ -25,6 +26,7 @@ const PrimaryButton: React.FC<PrimaryButtonProps> = ({
     accessibilityLabel,
 }) => {
     const { colors } = useAppTheme();
+    const buttonHeight = useResponsiveButtonHeight(42, 50, 50);
 
     return (
         <Pressable
@@ -32,7 +34,7 @@ const PrimaryButton: React.FC<PrimaryButtonProps> = ({
             disabled={disabled || loading}
             style={({ pressed }) => [
                 styles.button,
-                { backgroundColor: colors.primary },
+                { backgroundColor: colors.primary, height: buttonHeight },
                 (disabled || loading) && [styles.disabledButton, { backgroundColor: colors.buttonDisabledBackground }],
                 pressed && { opacity: 0.8 },
                 style
@@ -52,7 +54,6 @@ const PrimaryButton: React.FC<PrimaryButtonProps> = ({
 
 const styles = ScaledSheet.create({
     button: {
-        height: Platform.OS === 'android' ? '50@vs' : '42@vs',
         borderRadius: '28@ms',
         justifyContent: 'center',
         alignItems: 'center',

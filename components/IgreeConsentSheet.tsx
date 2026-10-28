@@ -69,13 +69,12 @@ const IgreeConsentSheet: React.FC<IgreeConsentSheetProps> = ({
 
 const styles = ScaledSheet.create({
     sheetContainer: {
+        width: '100%',
         backgroundColor: '#FFFFFF',
         borderRadius: '28@ms',
         paddingHorizontal: '24@s',
         paddingTop: '14@vs',
         paddingBottom: '32@vs',
-        marginBottom: '28@vs',
-        marginHorizontal: '12@s',
         alignItems: 'center',
     },
     headerIconContainer: {
@@ -109,7 +108,7 @@ const styles = ScaledSheet.create({
         gap: '12@vs',
     },
     reopenButton: {
-        height: '42@vs',
+        height: '52@vs',
         borderRadius: '28@ms',
         borderWidth: 1,
         borderColor: '#E2E8F0',

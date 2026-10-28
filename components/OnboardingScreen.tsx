@@ -1,10 +1,10 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-    Dimensions,
     FlatList,
     Image,
     ImageSourcePropType,
     Text,
+    useWindowDimensions,
     View
 } from 'react-native';
 import Animated, {
@@ -22,7 +22,6 @@ import { StatusBar } from 'expo-status-bar';
 import { useAppTheme } from '@/hooks/useAppTheme';
 
 
-const { width } = Dimensions.get('window');
 
 interface OnboardingSlide {
     id: string;
@@ -82,6 +81,7 @@ function OnboardingDot({
     scrollX: SharedValue<number>;
     isActive: boolean;
 }) {
+    const { width } = useWindowDimensions();
     const animatedDotStyle = useAnimatedStyle(() => {
         const inputRange = [
             (index - 1) * width,
@@ -128,6 +128,7 @@ function OnboardingSlideItem({
     scrollX: SharedValue<number>;
     activeIndex: number;
 }) {
+    const { width } = useWindowDimensions();
     const { colors, isDark } = useAppTheme();
     const animatedSlideStyle = useAnimatedStyle(() => {
         const inputRange = [
@@ -154,7 +155,7 @@ function OnboardingSlideItem({
     });
 
     return (
-        <View style={styles.slideWrapper}>
+        <View style={[styles.slideWrapper, { width }]}>
             <View style={[styles.slideContainer, { backgroundColor: isDark ? colors.surface : 'rgba(241, 241, 241, 1)' }]}>
                 <View style={styles.logoPlaceholder}>
                     <Image
@@ -233,15 +234,15 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onSignUp, onLogin }
         },
     });
 
-    const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
+    const handleViewableItemsChanged = useCallback(({ viewableItems }: any) => {
         if (viewableItems.length > 0 && viewableItems[0].index !== null) {
             setActiveIndex(viewableItems[0].index);
         }
-    }).current;
+    }, []);
 
-    const viewabilityConfig = useRef({
+    const viewabilityConfig = useMemo(() => ({
         itemVisiblePercentThreshold: 50,
-    }).current;
+    }), []);
 
     const renderItem = ({ item, index }: { item: OnboardingSlide; index: number }) => (
         <OnboardingSlideItem
@@ -253,7 +254,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onSignUp, onLogin }
     );
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom, backgroundColor: colors.background }]}>
+        <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom, paddingLeft: insets.left, paddingRight: insets.right, backgroundColor: colors.background }]}>
             <StatusBar style={isDark ? "light" : "dark"} hidden={true} />
             <View style={styles.contentContainer}>
                 <Animated.FlatList
@@ -264,7 +265,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onSignUp, onLogin }
                     pagingEnabled
                     showsHorizontalScrollIndicator={false}
                     onScroll={handleScroll}
-                    onViewableItemsChanged={onViewableItemsChanged}
+                    onViewableItemsChanged={handleViewableItemsChanged}
                     viewabilityConfig={viewabilityConfig}
                     keyExtractor={(item) => item.id}
                     scrollEventThrottle={16}
@@ -321,7 +322,6 @@ const styles = ScaledSheet.create({
         flex: 1,
     },
     slideWrapper: {
-        width: width,
         height: '100%',
         alignItems: 'center',
         justifyContent: 'center',

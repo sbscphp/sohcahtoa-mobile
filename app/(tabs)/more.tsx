@@ -1,7 +1,8 @@
 import Header from '@/components/Header';
 import PrimaryButton from '@/components/PrimaryButton';
-import ThemeSelectionSheet, { THEME_OPTIONS } from '@/components/ThemeSelectionSheet';
-import AnimatedTabScreen from '@/components/ui/AnimatedTabScreen';
+import { ThemeSelectionSheet, THEME_OPTIONS } from '@/components/ThemeSelectionSheet';
+import { AnimatedTabScreen } from '@/components/ui/AnimatedTabScreen';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/context/ThemeContext';
 import { useLogoutMutation } from '@/hooks/queries/auth/useLogoutMutation';
 import { useGetUnreadCountQuery } from '@/hooks/queries/notifications/useGetUnreadCountQuery';
@@ -23,6 +24,7 @@ import {
     Modal,
     Pressable,
     ScrollView,
+    StyleSheet,
     Text,
     TouchableOpacity,
     View,
@@ -41,7 +43,8 @@ interface MenuItem {
 
 export default function MoreScreen() {
     const router = useRouter();
-    const { colors, themeMode, setThemeMode, isDark } = useAppTheme();
+    const insets = useSafeAreaInsets();
+    const { colors, themeMode, isDark } = useAppTheme();
     const [logoutModalVisible, setLogoutModalVisible] = useState(false);
     const [themeSheetVisible, setThemeSheetVisible] = useState(false);
     const { mutate: logout, isPending } = useLogoutMutation();
@@ -124,7 +127,7 @@ export default function MoreScreen() {
     ];
 
     return (
-        <AnimatedTabScreen style={[styles.container, { backgroundColor: colors.background }]}>
+        <AnimatedTabScreen style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
             <Header
                 title="More"
                 rightIcon={
@@ -191,6 +194,11 @@ export default function MoreScreen() {
                 onRequestClose={() => setLogoutModalVisible(false)}
             >
                 <View style={[styles.modalOverlay, { backgroundColor: colors.overlay }]}>
+                    <TouchableOpacity
+                        style={[StyleSheet.absoluteFill, { backgroundColor: 'transparent' }]}
+                        onPress={() => setLogoutModalVisible(false)}
+                        activeOpacity={1}
+                    />
                     <Animated.View
                         entering={FadeInDown.duration(200).springify().damping(24).stiffness(280)}
                         style={styles.modalWrapper}
@@ -246,8 +254,8 @@ const styles = ScaledSheet.create({
         flex: 1,
     },
     scrollContent: {
-        padding: '20@ms',
-        paddingBottom: '120@vs',
+        paddingHorizontal: '14@s',
+        paddingVertical: '16@vs',
         gap: '6@vs',
     },
     themeBadge: {

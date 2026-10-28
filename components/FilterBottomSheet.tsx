@@ -1,7 +1,8 @@
 import DatePickerField from '@/components/DatePickerField';
-import AnimatedBottomSheet from '@/components/ui/AnimatedBottomSheet';
+import { AnimatedBottomSheet } from '@/components/ui/AnimatedBottomSheet';
 import { useAppTheme } from '@/hooks/useAppTheme';
-import { CloseCircle, TickSquare, WalletMinus } from 'iconsax-react-nativejs';
+import { useDevicePose } from '@/hooks/useDevicePose';
+import { TickSquare, WalletMinus } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
@@ -71,6 +72,7 @@ const FilterBottomSheet: React.FC<FilterBottomSheetProps> = ({
     onFilter
 }) => {
     const { colors, isDark } = useAppTheme();
+    const { isFoldedDisplay } = useDevicePose();
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
     const [selectedStatus, setSelectedStatus] = useState('');
@@ -126,31 +128,29 @@ const FilterBottomSheet: React.FC<FilterBottomSheetProps> = ({
         </View>
     );
 
+    const headerContent = (
+        <View style={styles.header}>
+            <View style={[styles.headerIconContainer, { backgroundColor: isDark ? 'rgba(255, 107, 44, 0.18)' : '#FFF7ED' }]}>
+                <WalletMinus color="#FF6B2C" width={24} height={24} />
+            </View>
+            <Text style={[styles.title, { color: colors.text }]}>Filter Transaction</Text>
+            <Text style={[styles.subtitle, { color: colors.textMuted }]}>Select an option below</Text>
+        </View>
+    );
+
     return (
         <AnimatedBottomSheet
             visible={visible}
             onClose={onClose}
+            headerComponent={headerContent}
             sheetStyle={[styles.sheetContent, { backgroundColor: colors.surface }]}
         >
-            <View style={styles.topRow}>
-                <View style={[styles.headerIconContainer, { backgroundColor: isDark ? 'rgba(255, 107, 44, 0.18)' : '#FFF7ED' }]}>
-                    <WalletMinus color="#FF6B2C" width={24} height={24} />
-                </View>
-                <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
-                    <CloseCircle size={moderateScale(24)} color={colors.icon} variant="Bulk" />
-                </TouchableOpacity>
-            </View>
-            <View style={styles.header}>
-                <Text style={[styles.title, { color: colors.text }]}>Filter Transaction</Text>
-                <Text style={[styles.subtitle, { color: colors.textMuted }]}>Select an option below</Text>
-            </View>
-
             <ScrollView showsVerticalScrollIndicator={false}>
                 {/* Date Filter */}
                 <View style={styles.section}>
                     <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>Filter by Date</Text>
-                    <View style={styles.dateRow}>
-                        <View style={styles.dateInputContainer}>
+                    <View style={[styles.dateRow, isFoldedDisplay && styles.dateColumn]}>
+                        <View style={[styles.dateInputContainer, isFoldedDisplay && styles.dateInputContainerFull]}>
                             <DatePickerField
                                 label="Start Date"
                                 value={startDate}
@@ -158,7 +158,7 @@ const FilterBottomSheet: React.FC<FilterBottomSheetProps> = ({
                                 placeholder="DD/MM/YYYY"
                             />
                         </View>
-                        <View style={styles.dateInputContainer}>
+                        <View style={[styles.dateInputContainer, isFoldedDisplay && styles.dateInputContainerFull]}>
                             <DatePickerField
                                 label="End Date"
                                 value={endDate}
@@ -221,26 +221,17 @@ const styles = ScaledSheet.create({
         ...StyleSheet.absoluteFill,
     },
     sheetContent: {
+        width: '100%',
         backgroundColor: '#FFFFFF',
         borderRadius: '24@ms',
         paddingHorizontal: '20@s',
         paddingTop: '10@vs',
         paddingBottom: '24@vs',
-        marginHorizontal: '12@s',
-        marginBottom: '40@vs',
-        maxHeight: '80%',
+        maxHeight: '85%',
     },
     header: {
-        marginBottom: '24@vs',
-    },
-    topRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
+        width: '100%',
         marginBottom: '16@vs',
-    },
-    closeBtn: {
-        padding: '4@ms',
     },
     headerIconContainer: {
         width: '48@ms',
@@ -249,6 +240,7 @@ const styles = ScaledSheet.create({
         backgroundColor: '#FFF7ED',
         justifyContent: 'center',
         alignItems: 'center',
+        marginBottom: '12@vs',
     },
     title: {
         fontSize: '17@ms',
@@ -273,8 +265,16 @@ const styles = ScaledSheet.create({
         flexDirection: 'row',
         gap: '12@s',
     },
+    dateColumn: {
+        flexDirection: 'column',
+        gap: '12@vs',
+    },
     dateInputContainer: {
         flex: 1,
+    },
+    dateInputContainerFull: {
+        flex: 0,
+        width: '100%',
     },
     chipRow: {
         flexDirection: 'row',

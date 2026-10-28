@@ -1,11 +1,10 @@
 import { Calendar } from 'iconsax-react-nativejs';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
     FlatList,
     Modal,
     NativeScrollEvent,
     NativeSyntheticEvent,
-    Platform,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -14,6 +13,7 @@ import {
 import { moderateScale, ScaledSheet, verticalScale } from 'react-native-size-matters';
 import PrimaryButton from './PrimaryButton';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { useResponsiveInputHeight } from '@/hooks/useDevicePose';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -241,6 +241,7 @@ const DatePickerField: React.FC<DatePickerFieldProps> = ({
 }) => {
     const { colors, isDark } = useAppTheme();
     const [showPicker, setShowPicker] = useState(false);
+    const defaultHeight = useResponsiveInputHeight(40, 50, 49);
 
     const [tempDay, setTempDay] = useState(1);
     const [tempMonth, setTempMonth] = useState(1);
@@ -274,10 +275,10 @@ const DatePickerField: React.FC<DatePickerFieldProps> = ({
         return range(1, max);
     }, [tempMonth, tempYear]);
 
-    useEffect(() => {
-        const max = daysInMonth(tempMonth, tempYear);
-        if (tempDay > max) setTempDay(max);
-    }, [tempMonth, tempYear, tempDay]);
+    const maxDays = daysInMonth(tempMonth, tempYear);
+    if (tempDay > maxDays) {
+        setTempDay(maxDays);
+    }
 
     const selectionBg = isDark ? 'rgba(255, 107, 44, 0.15)' : '#FFF7ED';
     const selectionBorder = isDark ? 'rgba(255, 107, 44, 0.4)' : '#FF6B2C33';
@@ -291,7 +292,7 @@ const DatePickerField: React.FC<DatePickerFieldProps> = ({
             <TouchableOpacity
                 style={[
                     styles.inputWrapper,
-                    { borderColor: colors.border, backgroundColor: colors.inputBackground },
+                    { borderColor: colors.border, backgroundColor: colors.inputBackground, height: defaultHeight },
                     error ? styles.inputError : undefined,
                 ]}
                 onPress={handleOpen}
@@ -394,7 +395,6 @@ const styles = ScaledSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        height: Platform.OS === 'android' ? '49@vs' : '40@vs',
         borderWidth: 1,
         borderColor: 'rgba(143, 139, 139, 1)',
         borderRadius: '28@ms',
@@ -425,6 +425,7 @@ const styles = ScaledSheet.create({
     },
     backdrop: {
         ...StyleSheet.absoluteFill,
+        backgroundColor: 'transparent',
     },
     sheetContent: {
         backgroundColor: '#FFFFFF',

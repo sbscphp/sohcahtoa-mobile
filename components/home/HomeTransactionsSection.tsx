@@ -1,4 +1,4 @@
-import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Refresh } from 'iconsax-react-nativejs';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import { Transaction } from '@/types/api/transactions';
@@ -72,35 +72,38 @@ export default function HomeTransactionsSection({
 
             <View style={[styles.transactionList, { backgroundColor: colors.card }]}>
                 {transactions.length > 0 ? (
-                    transactions.map((tx: Transaction) => {
+                    transactions.map((tx: Transaction, index: number) => {
                         const statusLabel = getStatusLabel(tx.status);
                         const statusStyle = getStatusStyle(tx.status, isDark);
+                        const isLast = index === transactions.length - 1;
                         return (
-                            <TouchableOpacity
-                                key={tx.id}
-                                style={styles.transactionItem}
-                                onPress={() => onTransactionPress(tx)}
-                            >
-                                <View style={[styles.transactionIcon, { backgroundColor: colors.surface }]}>
-                                    <Refresh size={moderateScale(16)} color={colors.icon} />
-                                </View>
-                                <View style={styles.transactionInfo}>
-                                    <Text style={[styles.transactionTitle, { color: colors.text }]} numberOfLines={3}>{tx.purpose || tx.type}</Text>
-                                    <Text style={[styles.transactionDate, { color: colors.textMuted }]}>{formatDate(tx.createdAt)} • {formatTime(tx.createdAt)}</Text>
-                                </View>
-                                <View style={styles.transactionAmountContainer}>
-                                    <Text style={[styles.transactionAmount, { color: colors.text }]}>{formatCurrency(tx.foreignAmount, getCurrencySymbol(tx.currency))}</Text>
-                                    <View style={[styles.transactionStatus, {
-                                        backgroundColor: statusStyle.backgroundColor,
-                                        borderColor: statusStyle.borderColor,
-                                        borderWidth: isDark ? 1 : 0,
-                                    }]}>
-                                        <Text style={[styles.transactionStatusText, { color: statusStyle.color }]}>
-                                            {statusLabel}
-                                        </Text>
+                            <View key={tx.id}>
+                                <TouchableOpacity
+                                    style={styles.transactionItem}
+                                    onPress={() => onTransactionPress(tx)}
+                                >
+                                    <View style={[styles.transactionIcon, { backgroundColor: colors.surface }]}>
+                                        <Refresh size={moderateScale(16)} color={colors.icon} />
                                     </View>
-                                </View>
-                            </TouchableOpacity>
+                                    <View style={styles.transactionInfo}>
+                                        <Text style={[styles.transactionTitle, { color: colors.text }]} numberOfLines={2} ellipsizeMode="tail">{tx.purpose || tx.type}</Text>
+                                        <Text style={[styles.transactionDate, { color: colors.textMuted }]}>{formatDate(tx.createdAt)} • {formatTime(tx.createdAt)}</Text>
+                                    </View>
+                                    <View style={styles.transactionAmountContainer}>
+                                        <Text style={[styles.transactionAmount, { color: colors.text }]}>{formatCurrency(tx.foreignAmount, getCurrencySymbol(tx.currency))}</Text>
+                                        <View style={[styles.transactionStatus, {
+                                            backgroundColor: statusStyle.backgroundColor,
+                                        }]}>
+                                            <Text style={[styles.transactionStatusText, { color: statusStyle.color }]}>
+                                                {statusLabel}
+                                            </Text>
+                                        </View>
+                                    </View>
+                                </TouchableOpacity>
+                                {!isLast && (
+                                    <View style={[styles.itemDivider, { backgroundColor: isDark ? colors.border : '#E2E8F0' }]} />
+                                )}
+                            </View>
                         );
                     })
                 ) : !isLoadingTransactions && (
@@ -119,7 +122,7 @@ const styles = ScaledSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: '10@s',
+        paddingHorizontal: '14@s',
         marginBottom: '10@vs',
     },
     sectionTitle: {
@@ -143,7 +146,7 @@ const styles = ScaledSheet.create({
         flexDirection: 'row',
         marginBottom: '16@vs',
         gap: '8@s',
-        paddingHorizontal: '10@s',
+        paddingHorizontal: '14@s',
     },
     filterChip: {
         paddingHorizontal: '10@s',
@@ -168,31 +171,35 @@ const styles = ScaledSheet.create({
     transactionList: {
         backgroundColor: 'rgba(245, 245, 245, 1)',
         borderRadius: '12@ms',
-        marginHorizontal: '10@s',
+        marginHorizontal: '14@s',
+        overflow: 'hidden',
     },
     transactionItem: {
         flexDirection: 'row',
         alignItems: 'center',
         paddingVertical: '12@vs',
         borderRadius: '12@ms',
-        paddingHorizontal: '15@s',
+        paddingLeft: '10@s',
+        paddingRight: '12@s',
     },
     transactionIcon: {
-        width: '40@ms',
-        height: '40@ms',
-        borderRadius: '20@ms',
+        width: '34@ms',
+        height: '34@ms',
+        borderRadius: '17@ms',
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: '12@s',
+        marginRight: '8@s',
     },
     transactionInfo: {
         flex: 1,
+        marginRight: '8@s',
     },
     transactionTitle: {
         fontSize: '13@ms',
         fontWeight: '500',
         color: '#0F172A',
         marginBottom: '2@vs',
+        lineHeight: '18@ms',
     },
     transactionDate: {
         fontSize: '11@ms',
@@ -216,5 +223,10 @@ const styles = ScaledSheet.create({
     transactionStatusText: {
         fontSize: '9.5@ms',
         fontWeight: '600',
+    },
+    itemDivider: {
+        height: StyleSheet.hairlineWidth,
+        marginHorizontal: '10@s',
+        backgroundColor: '#E2E8F0',
     },
 });

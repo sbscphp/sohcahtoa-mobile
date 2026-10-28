@@ -103,7 +103,7 @@ const VirtualCard: React.FC<VirtualCardProps> = ({
                             <Text style={styles.cardNumber}>{isHidden ? '••••' : last4Digits}</Text>
                         </View>
 
-                        <Text style={styles.balanceText}>{isHidden ? '••••' : balance}</Text>
+                        <Text style={styles.balanceText} numberOfLines={1}>{isHidden ? '••••' : balance}</Text>
                     </View>
 
                     <View style={styles.footerRow}>
@@ -114,7 +114,7 @@ const VirtualCard: React.FC<VirtualCardProps> = ({
                             </View>
                             <Text style={styles.expiryDate}>{isHidden ? '••/••' : expiry}</Text>
                         </View>
-                        <Text style={styles.cardHolder}>{name}</Text>
+                        <Text style={styles.cardHolder} numberOfLines={1} ellipsizeMode="tail">{name}</Text>
                     </View>
                 </View>
             </View>
@@ -240,7 +240,6 @@ const styles = ScaledSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'flex-end',
-        marginBottom: '25@vs',
     },
     expiryContainer: {
         flexDirection: 'row',

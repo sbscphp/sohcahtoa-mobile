@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import ActionSelectionSheet from '@/components/ActionSelectionSheet';
@@ -15,7 +15,7 @@ import HomeQuickActions from '@/components/home/HomeQuickActions';
 import HomeCardsSection from '@/components/home/HomeCardsSection';
 import HomeTransactionsSection from '@/components/home/HomeTransactionsSection';
 import { getActionSheetConfig, getTransactionRoute } from '@/components/home/homeConfig';
-import AnimatedTabScreen from '@/components/ui/AnimatedTabScreen';
+import { AnimatedTabScreen } from '@/components/ui/AnimatedTabScreen';
 
 export default function HomeScreen() {
     const router = useRouter();
@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     scrollContent: {
-        paddingBottom: 120,
+        paddingBottom: 100,
     },
 });
  

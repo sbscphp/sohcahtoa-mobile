@@ -1,5 +1,6 @@
 import { LiquidGlassView, useLiquidGlassAvailable } from '@/components/ui/LiquidGlassView';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { useDevicePose } from '@/hooks/useDevicePose';
 import React from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { Notification } from 'iconsax-react-nativejs';
@@ -20,6 +21,11 @@ interface HomeHeaderProps {
 export default function HomeHeader({ user, unreadCount, onNotificationPress }: HomeHeaderProps) {
     const { colors, isDark } = useAppTheme();
     const canUseGlass = useLiquidGlassAvailable();
+    const { isIPhoneDuo, insets } = useDevicePose();
+    const rightOffset = isIPhoneDuo
+        ? (insets.right > 0 ? Math.min(insets.right, moderateScale(48)) : moderateScale(42))
+        : insets.right;
+
     const initials = user?.profile
         ? `${user.profile.firstName?.[0] ?? ''}${user.profile.lastName?.[0] ?? ''}`.toUpperCase()
         : 'U';
@@ -42,6 +48,7 @@ export default function HomeHeader({ user, unreadCount, onNotificationPress }: H
                 variant="clear"
                 interactive
                 borderRadius={moderateScale(20)}
+                style={{ marginRight: rightOffset }}
                 glassStyle={styles.notificationGlass}
             >
                 <Pressable
@@ -71,7 +78,8 @@ const styles = ScaledSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         paddingHorizontal: '14@s',
-        marginVertical: '12@vs',
+        marginVertical: '16@vs',
+        minHeight: '56@vs',
     },
     headerLeft: {
         flexDirection: 'row',
@@ -79,9 +87,9 @@ const styles = ScaledSheet.create({
         gap: '12@s',
     },
     avatar: {
-        width: '40@ms',
-        height: '40@ms',
-        borderRadius: '20@ms',
+        width: '44@ms',
+        height: '44@ms',
+        borderRadius: '22@ms',
         backgroundColor: '#FFF7ED',
         justifyContent: 'center',
         alignItems: 'center',

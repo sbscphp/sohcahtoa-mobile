@@ -12,7 +12,18 @@
       "bundleIdentifier": "com.iamkennis.sohcahtoa",
       "infoPlist": {
         "NSFaceIDUsageDescription": "Allows $(PRODUCT_NAME) to use Face ID for secure login.",
-        "UIViewControllerBasedStatusBarAppearance": false
+        "UIViewControllerBasedStatusBarAppearance": false,
+        "UIApplicationSceneManifest": {
+          "UIApplicationSupportsMultipleScenes": true,
+          "UISceneConfigurations": {
+            "UIWindowSceneSessionRoleApplication": [
+              {
+                "UISceneConfigurationName": "Default Configuration",
+                "UISceneDelegateClassName": "EXExpoAppSceneDelegate"
+              }
+            ]
+          }
+        }
       }
     },
     "android": {
@@ -31,6 +42,7 @@
     "plugins": [
       "@rnrepo/expo-config-plugin",
       "./plugins/withIosDeploymentTargetFix",
+      "./plugins/withIPhoneDuoSceneDelegate",
       "expo-router",
       [
         "expo-splash-screen",

@@ -1,9 +1,11 @@
-import AnimatedBottomSheet from '@/components/ui/AnimatedBottomSheet';
+import { AnimatedBottomSheet } from '@/components/ui/AnimatedBottomSheet';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { useDevicePose } from '@/hooks/useDevicePose';
+import { ArrowRight2 } from 'iconsax-react-nativejs';
 import React from 'react';
-import { Pressable, Text, View } from 'react-native';
-import { FlatList } from 'react-native-gesture-handler';
-import { ScaledSheet } from 'react-native-size-matters';
+import { FlatList, Pressable, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 
 export interface ActionItem {
     id: string;
@@ -31,6 +33,12 @@ const ActionSelectionSheet: React.FC<ActionSelectionSheetProps> = ({
     actions,
 }) => {
     const { colors, isDark } = useAppTheme();
+    const insets = useSafeAreaInsets();
+    const { isIPhoneDuo, isFoldedDisplay, isLandscape } = useDevicePose();
+
+    const listMaxHeight = isLandscape
+        ? moderateScale(220)
+        : (isFoldedDisplay ? moderateScale(340) : moderateScale(380));
 
     const renderItem = ({ item }: { item: ActionItem }) => (
         <Pressable
@@ -40,39 +48,80 @@ const ActionSelectionSheet: React.FC<ActionSelectionSheetProps> = ({
             ]}
             onPress={item.onPress}
             accessibilityRole="button"
+            accessibilityLabel={item.title}
         >
             <View style={[styles.itemIconContainer, { backgroundColor: colors.surface }]}>
                 {item.icon}
             </View>
             <View style={styles.itemTextContainer}>
-                <Text style={[styles.itemTitle, { color: colors.text }]}>{item.title}</Text>
-                <Text style={[styles.itemSubtitle, { color: colors.textMuted }]}>{item.subtitle}</Text>
+                <Text
+                    style={[styles.itemTitle, { color: colors.text }]}
+                    numberOfLines={1}
+                >
+                    {item.title}
+                </Text>
+                <Text
+                    style={[styles.itemSubtitle, { color: colors.textMuted }]}
+                    numberOfLines={2}
+                >
+                    {item.subtitle}
+                </Text>
+            </View>
+            <View style={styles.chevronContainer}>
+                <ArrowRight2 size={moderateScale(16)} color={colors.textMuted} />
             </View>
         </Pressable>
+    );
+
+    const headerContent = (
+        <View style={styles.header}>
+            {headerIcon && (
+                <View style={[
+                    styles.headerIconContainer,
+                    { backgroundColor: isDark ? 'rgba(255, 107, 44, 0.18)' : '#FFF7ED' }
+                ]}>
+                    {headerIcon}
+                </View>
+            )}
+            <View style={styles.headerText}>
+                <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
+                {description ? (
+                    <Text style={[styles.description, { color: colors.textMuted }]}>{description}</Text>
+                ) : null}
+            </View>
+        </View>
     );
 
     return (
         <AnimatedBottomSheet
             visible={visible}
             onClose={onClose}
-            sheetStyle={[styles.sheetContent, { backgroundColor: colors.surface }]}
+            headerComponent={headerContent}
+            sheetStyle={[
+                styles.sheetContent,
+                {
+                    backgroundColor: colors.surface,
+                    paddingBottom: Math.max(insets.bottom, moderateScale(16)) + moderateScale(8),
+                    marginBottom: isIPhoneDuo ? moderateScale(10) : moderateScale(16),
+                },
+            ]}
         >
-            <View style={styles.header}>
-                {headerIcon && (
-                    <View style={[styles.headerIconContainer, { backgroundColor: isDark ? 'rgba(255, 107, 44, 0.18)' : '#FFF7ED' }]}>
-                        {headerIcon}
-                    </View>
-                )}
-                <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
-                <Text style={[styles.description, { color: colors.textMuted }]}>{description}</Text>
-            </View>
-
-            <View style={[styles.listContainer, { backgroundColor: colors.card }]}>
+            <View style={[
+                styles.listContainer,
+                {
+                    backgroundColor: isDark ? colors.card : 'rgba(241, 241, 241, 0.75)',
+                    borderColor: isDark ? colors.border : 'transparent',
+                    borderWidth: isDark ? 1 : 0,
+                    maxHeight: listMaxHeight,
+                }
+            ]}>
                 <FlatList
                     data={actions}
                     renderItem={renderItem}
                     keyExtractor={(item) => item.id}
                     showsVerticalScrollIndicator={false}
+                    bounces={true}
+                    nestedScrollEnabled={true}
                     contentContainerStyle={styles.listContent}
                     ItemSeparatorComponent={() => <View style={[styles.separator, { backgroundColor: colors.divider }]} />}
                 />
@@ -83,76 +132,88 @@ const ActionSelectionSheet: React.FC<ActionSelectionSheetProps> = ({
 
 const styles = ScaledSheet.create({
     sheetContent: {
+        width: '100%',
         backgroundColor: '#FFFFFF',
-        borderRadius: '30@ms',
-        paddingHorizontal: '12@s',
-        paddingTop: '12@vs',
-        paddingBottom: '30@vs',
-        maxHeight: '100%', 
-        marginBottom: '40@vs',
-        marginHorizontal: '12@s',
+        borderRadius: '28@ms',
+        paddingHorizontal: '16@s',
+        paddingTop: '6@vs',
+        maxHeight: '90%',
     },
     header: {
-        marginBottom: '12@vs',
+        width: '100%',
+        marginBottom: '10@vs',
     },
     headerIconContainer: {
         width: '40@ms',
         height: '40@ms',
-        borderRadius: '30@ms',
-        backgroundColor: '#FFF7ED', 
+        borderRadius: '20@ms',
+        backgroundColor: '#FFF7ED',
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: '16@vs',
+        marginBottom: '10@vs',
+    },
+    headerText: {
+        width: '100%',
     },
     title: {
-        fontSize: '17@ms',
-        fontWeight: '600',
+        fontSize: '18@ms',
+        fontWeight: '700',
         color: '#0F172A',
-        marginBottom: '8@vs',
+        marginBottom: '4@vs',
     },
     description: {
         fontSize: '13@ms',
         color: '#64748B',
     },
     listContainer: {
+        width: '100%',
         backgroundColor: 'rgba(241, 241, 241, 1)',
         borderRadius: '16@ms',
-        padding: '14@ms',
+        padding: '10@ms',
+        flexShrink: 1,
     },
     listContent: {
-        paddingBottom: '6@vs',
+        paddingVertical: '2@vs',
     },
     actionItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: '4@vs',
+        paddingVertical: '8@vs',
+        paddingHorizontal: '6@s',
+        width: '100%',
     },
     itemIconContainer: {
-        width: '42@ms',
-        height: '42@ms',
-        borderRadius: '20@ms',
+        width: '38@ms',
+        height: '38@ms',
+        borderRadius: '19@ms',
         backgroundColor: '#FFFFFF',
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: '16@s',
+        marginRight: '12@s',
     },
     itemTextContainer: {
         flex: 1,
+        justifyContent: 'center',
+    },
+    chevronContainer: {
+        marginLeft: '8@s',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     itemTitle: {
-        fontSize: '14@ms',
+        fontSize: '13.5@ms',
         fontWeight: '600',
         color: '#0F172A',
-        marginBottom: '4@vs',
+        marginBottom: '2@vs',
     },
     itemSubtitle: {
-        fontSize: '12@ms',
+        fontSize: '11.5@ms',
         color: 'rgba(102, 102, 102, 1)',
-        lineHeight: '18@ms',
+        lineHeight: '16@ms',
     },
     separator: {
         height: 1,
-        marginVertical: '4@vs',
+        marginVertical: '2@vs',
     },
 });
 

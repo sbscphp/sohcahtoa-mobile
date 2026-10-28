@@ -1,12 +1,12 @@
 import React from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
-import { ScaledSheet, moderateScale } from 'react-native-size-matters';
-import { ArrowDown2, CloseCircle } from 'iconsax-react-nativejs';
+import { ScaledSheet } from 'react-native-size-matters';
+import { ArrowDown2 } from 'iconsax-react-nativejs';
 import PrimaryButton from '@/components/PrimaryButton';
 import InputField from '@/components/InputField';
 import { SelectionItem } from '@/components/GenericSelectionSheet';
-import AnimatedBottomSheet from '@/components/ui/AnimatedBottomSheet';
+import { AnimatedBottomSheet } from '@/components/ui/AnimatedBottomSheet';
 import { useAppTheme } from '@/hooks/useAppTheme';
 
 interface AddBankAccountModalProps {
@@ -34,19 +34,19 @@ export default function AddBankAccountModal({
 }: AddBankAccountModalProps) {
     const { colors, isDark } = useAppTheme();
 
+    const headerContent = (
+        <View style={[styles.sheetHeader, { borderBottomColor: colors.border }]}>
+            <Text style={[styles.sheetTitle, { color: colors.text }]}>Add Bank Account</Text>
+        </View>
+    );
+
     return (
         <AnimatedBottomSheet
             visible={visible}
             onClose={onClose}
+            headerComponent={headerContent}
             sheetStyle={[styles.bottomSheet, { backgroundColor: colors.card }]}
         >
-            <View style={[styles.sheetHeader, { borderBottomColor: colors.border }]}>
-                <Text style={[styles.sheetTitle, { color: colors.text }]}>Add Bank Account</Text>
-                <TouchableOpacity onPress={onClose}>
-                    <CloseCircle size={moderateScale(24)} color={colors.icon} variant="Bold" />
-                </TouchableOpacity>
-            </View>
-
             <ScrollView contentContainerStyle={styles.sheetContent}>
                 <TouchableOpacity onPress={onOpenBankSheet} activeOpacity={0.8}>
                     <View pointerEvents="none">
@@ -105,6 +105,7 @@ const styles = ScaledSheet.create({
         justifyContent: 'flex-end',
     },
     bottomSheet: {
+        width: '100%',
         backgroundColor: '#FFFFFF',
         borderTopLeftRadius: '24@ms',
         borderTopRightRadius: '24@ms',
@@ -112,10 +113,9 @@ const styles = ScaledSheet.create({
         paddingBottom: '24@vs',
     },
     sheetHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '20@ms',
+        width: '100%',
+        paddingHorizontal: '20@ms',
+        paddingVertical: '12@vs',
         borderBottomWidth: 1,
         borderBottomColor: '#F1F5F9',
     },

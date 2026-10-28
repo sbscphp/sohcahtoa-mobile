@@ -1,5 +1,6 @@
 import { LiquidGlassView, useLiquidGlassAvailable } from '@/components/ui/LiquidGlassView';
 import { useAppTheme } from '@/context/ThemeContext';
+import { useResponsiveHeaderHeight, useDevicePose } from '@/hooks/useDevicePose';
 import { useRouter } from 'expo-router';
 import { ArrowCircleLeft2 } from 'iconsax-react-nativejs';
 import React, { ReactNode } from 'react';
@@ -18,9 +19,15 @@ const Header: React.FC<HeaderProps> = ({ title, rightIcon, onRightPress, onBackP
     const router = useRouter();
     const canUseGlass = useLiquidGlassAvailable();
     const { colors } = useAppTheme();
+    const headerMinHeight = useResponsiveHeaderHeight(56, 68);
+    const { isIPhoneDuo, insets } = useDevicePose();
+
+    const rightOffset = isIPhoneDuo
+        ? (insets.right > 0 ? Math.min(insets.right, moderateScale(48)) : moderateScale(42))
+        : insets.right;
 
     return (
-        <View style={[styles.header, { backgroundColor: colors.background, borderBottomColor: colors.divider }]}>
+        <View style={[styles.header, { minHeight: headerMinHeight, backgroundColor: colors.background, borderBottomColor: colors.divider }]}>
             {showBackButton ? (
                 <LiquidGlassView
                     variant="clear"
@@ -44,9 +51,9 @@ const Header: React.FC<HeaderProps> = ({ title, rightIcon, onRightPress, onBackP
                 <View style={{ width: moderateScale(36) }} />
             )}
 
-            <Text style={[styles.headerTitle, { color: colors.text }]}>{title}</Text>
+            <Text style={[styles.headerTitle, { color: colors.text }]} numberOfLines={1}>{title}</Text>
 
-            <View style={styles.rightContainer}>
+            <View style={[styles.rightContainer, rightIcon && { marginRight: rightOffset }]}>
                 {rightIcon ? (
                     <LiquidGlassView
                         variant="clear"
@@ -77,8 +84,9 @@ const styles = ScaledSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: '10@s',
-        paddingVertical: '12@vs',
+        paddingHorizontal: '14@s',
+        paddingVertical: '16@vs',
+        minHeight: '56@vs',
         backgroundColor: '#FFFFFF',
         borderBottomWidth: 1,
         borderBottomColor: '#F1F5F9',

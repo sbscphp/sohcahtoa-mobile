@@ -1,11 +1,10 @@
 import { Clock } from 'iconsax-react-nativejs';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
     FlatList,
     Modal,
     NativeScrollEvent,
     NativeSyntheticEvent,
-    Platform,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -20,6 +19,7 @@ import {
 } from '@/utils/pickupDateTime';
 import PrimaryButton from './PrimaryButton';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { useResponsiveInputHeight } from '@/hooks/useDevicePose';
 
 const ITEM_HEIGHT = verticalScale(44);
 const VISIBLE_ITEMS = 5;
@@ -241,6 +241,7 @@ const TimePickerField: React.FC<TimePickerFieldProps> = ({
     const { colors, isDark } = useAppTheme();
     const [showPicker, setShowPicker] = useState(false);
     const [pickerError, setPickerError] = useState('');
+    const defaultHeight = useResponsiveInputHeight(40, 50, 49);
 
     const [tempHour12, setTempHour12] = useState(12);
     const [tempMinute, setTempMinute] = useState(0);
@@ -314,7 +315,7 @@ const TimePickerField: React.FC<TimePickerFieldProps> = ({
             <TouchableOpacity
                 style={[
                     styles.inputWrapper,
-                    { borderColor: colors.border, backgroundColor: colors.inputBackground },
+                    { borderColor: colors.border, backgroundColor: colors.inputBackground, height: defaultHeight },
                     error ? styles.inputError : undefined,
                 ]}
                 onPress={handleOpen}
@@ -423,7 +424,6 @@ const styles = ScaledSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        height: Platform.OS === 'android' ? '49@vs' : '40@vs',
         borderWidth: 1,
         borderColor: 'rgba(143, 139, 139, 1)',
         borderRadius: '28@ms',
@@ -454,6 +454,7 @@ const styles = ScaledSheet.create({
     },
     backdrop: {
         ...StyleSheet.absoluteFill,
+        backgroundColor: 'transparent',
     },
     sheetContent: {
         backgroundColor: '#FFFFFF',

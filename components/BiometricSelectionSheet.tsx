@@ -66,13 +66,12 @@ const BiometricSelectionSheet: React.FC<BiometricSelectionSheetProps> = ({
 
 const styles = ScaledSheet.create({
     sheetContent: {
+        width: '100%',
         backgroundColor: '#FFFFFF',
         borderRadius: '28@ms',
         padding: '24@s',
         paddingTop: '12@vs',
         paddingBottom: '32@vs',
-        marginBottom: '28@vs',
-        marginHorizontal: '12@s',
     },
     headerIconContainer: {
         marginBottom: '16@vs',

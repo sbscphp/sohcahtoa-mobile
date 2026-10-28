@@ -1,7 +1,8 @@
 import { useAppTheme } from '@/context/ThemeContext';
+import { useResponsiveInputHeight } from '@/hooks/useDevicePose';
 import { Eye, EyeSlash, Icon } from 'iconsax-react-nativejs';
 import React, { ReactNode, useState } from 'react';
-import { Platform, Text, TextInput, TextInputProps, TouchableOpacity, View } from 'react-native';
+import { Text, TextInput, TextInputProps, TouchableOpacity, View } from 'react-native';
 import { moderateScale, ScaledSheet } from 'react-native-size-matters';
 
 interface InputFieldProps extends TextInputProps {
@@ -30,6 +31,7 @@ const InputField: React.FC<InputFieldProps> = ({
 }) => {
     const [isPasswordVisible, setIsPasswordVisible] = useState(false);
     const { colors, isDark } = useAppTheme();
+    const defaultHeight = useResponsiveInputHeight(40, 50, 49);
 
     const iconColor = isDark ? colors.iconMuted : 'rgba(77, 75, 75, 1)';
     const placeholderColor = props.placeholderTextColor || colors.placeholder;
@@ -46,9 +48,9 @@ const InputField: React.FC<InputFieldProps> = ({
                 {
                     backgroundColor: disabled ? colors.inputDisabledBackground : colors.inputBackground,
                     borderColor: disabled ? colors.inputDisabledBorder : colors.inputBorder,
+                    height: height ?? defaultHeight,
                 },
                 wrapperStyle,
-                height ? { height } : undefined,
                 error ? styles.inputError : undefined
             ]}>
                 {icon && (
@@ -112,7 +114,6 @@ const styles = ScaledSheet.create({
         borderColor: 'rgba(143, 139, 139, 1)',
         borderRadius: '28@ms',
         paddingHorizontal: '14@s',
-        height: Platform.OS === 'android' ? '49@vs' : '40@vs',
     },
     inputDisabledWrapper: {
         flexDirection: 'row',
@@ -122,7 +123,6 @@ const styles = ScaledSheet.create({
         borderColor: 'rgba(204, 202, 202, 1)',
         borderRadius: '28@ms',
         paddingHorizontal: '14@s',
-        height: Platform.OS === 'android' ? '49@vs' : '40@vs',
     },
     leftIcon: {
         marginRight: '12@s',

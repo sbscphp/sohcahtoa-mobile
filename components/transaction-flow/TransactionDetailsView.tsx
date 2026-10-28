@@ -51,7 +51,7 @@ const getStatusColors = (status: string, isDark?: boolean) => {
         normalized.includes('DISBURSED')
     ) {
         return isDark
-            ? { bg: 'rgba(16, 185, 129, 0.16)', text: '#34D399', border: 'rgba(16, 185, 129, 0.28)' }
+            ? { bg: 'rgba(16, 185, 129, 0.16)', text: '#34D399', border: 'transparent' }
             : { bg: '#ECFDF5', text: '#059669', border: 'transparent' };
     }
     if (
@@ -61,11 +61,11 @@ const getStatusColors = (status: string, isDark?: boolean) => {
         normalized.includes('CANCELLED')
     ) {
         return isDark
-            ? { bg: 'rgba(239, 68, 68, 0.16)', text: '#F87171', border: 'rgba(239, 68, 68, 0.28)' }
+            ? { bg: 'rgba(239, 68, 68, 0.16)', text: '#F87171', border: 'transparent' }
             : { bg: '#FEF2F2', text: '#DC2626', border: 'transparent' };
     }
     return isDark
-        ? { bg: 'rgba(245, 158, 11, 0.16)', text: '#FBBF24', border: 'rgba(245, 158, 11, 0.28)' }
+        ? { bg: 'rgba(245, 158, 11, 0.16)', text: '#FBBF24', border: 'transparent' }
         : { bg: '#FFFBEB', text: '#D97706', border: 'transparent' };
 };
 
@@ -106,8 +106,6 @@ export default function TransactionDetailsView({
                         {isStatusOrStep && statusColors ? (
                             <View style={[styles.statusBadge, {
                                 backgroundColor: statusColors.bg,
-                                borderColor: statusColors.border,
-                                borderWidth: isDark ? 1 : 0,
                             }]}>
                                 <Text style={[styles.statusText, { color: statusColors.text }]}>
                                     {item.value}
@@ -199,8 +197,6 @@ export default function TransactionDetailsView({
                             return (
                                 <View style={[styles.statusBadge, {
                                     backgroundColor: disbColors.bg,
-                                    borderColor: disbColors.border,
-                                    borderWidth: isDark ? 1 : 0,
                                 }]}>
                                     <Text style={[styles.statusText, { color: disbColors.text }]}>{disbursementDetails.status}</Text>
                                 </View>

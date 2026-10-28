@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal, Text, View } from 'react-native';
+import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import { Warning2 } from 'iconsax-react-nativejs';
 import PrimaryButton from '@/components/PrimaryButton';
@@ -26,6 +26,11 @@ export default function DeleteAccountModal({
             onRequestClose={onClose}
         >
             <View style={styles.modalOverlay}>
+                <TouchableOpacity
+                    style={[StyleSheet.absoluteFill, { backgroundColor: 'transparent' }]}
+                    onPress={onClose}
+                    activeOpacity={1}
+                />
                 <View style={[styles.modalContent, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 1 : 0 }]}>
                     <View style={[styles.warningIconContainer, isDark && { backgroundColor: 'rgba(239, 68, 68, 0.15)' }]}>
                         <Warning2 size={moderateScale(24)} color="#EF4444" variant="Bold" />

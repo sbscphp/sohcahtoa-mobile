@@ -1,7 +1,8 @@
 import { useAppTheme } from '@/context/ThemeContext';
+import { useResponsiveInputHeight } from '@/hooks/useDevicePose';
 import { Icon } from 'iconsax-react-nativejs';
 import React, { ReactNode } from 'react';
-import { Platform, Text, TouchableOpacity, View } from 'react-native';
+import { Text, TouchableOpacity, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 
 interface SelectFieldProps {
@@ -28,6 +29,7 @@ const SelectField: React.FC<SelectFieldProps> = ({
     error
 }) => {
     const { colors, isDark } = useAppTheme();
+    const defaultHeight = useResponsiveInputHeight(40, 50, 49);
     const iconColor = isDark ? colors.iconMuted : 'rgba(77, 75, 75, 1)';
 
     const renderIcon = (iconProp: Icon | ReactNode, style?: any) => {
@@ -59,6 +61,7 @@ const SelectField: React.FC<SelectFieldProps> = ({
                     {
                         backgroundColor: disabled ? colors.inputDisabledBackground : colors.inputBackground,
                         borderColor: disabled ? colors.inputDisabledBorder : colors.inputBorder,
+                        height: defaultHeight,
                     },
                     error ? styles.inputError : undefined
                 ]}
@@ -104,7 +107,6 @@ const styles = ScaledSheet.create({
         borderColor: 'rgba(143, 139, 139, 1)',
         borderRadius: '28@ms',
         paddingHorizontal: '14@s',
-        height: Platform.OS === 'android' ? '49@vs' : '40@vs',
     },
     inputDisabledWrapper: {
         flexDirection: 'row',
@@ -114,7 +116,6 @@ const styles = ScaledSheet.create({
         borderColor: 'rgba(204, 202, 202, 1)',
         borderRadius: '28@ms',
         paddingHorizontal: '14@s',
-        height: Platform.OS === 'android' ? '49@vs' : '40@vs',
     },
     leftIcon: {
         marginRight: '12@s',

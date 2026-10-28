@@ -61,7 +61,7 @@ export default function AllTransactionsScreen() {
         }, [refetch])
     );
 
-    const transactions: Transaction[] = transactionsData?.pages?.flatMap(p => p.data) || [];
+    const transactions: Transaction[] = useMemo(() => transactionsData?.pages?.flatMap(p => p.data) || [], [transactionsData]);
     const sections = useMemo(() => groupTransactionsByDate(transactions), [transactions]);
 
     const handleFilter = (filters: { startDate: string; endDate: string; status: string; type: string; group: string; currency: string }) => {
@@ -121,8 +121,6 @@ export default function AllTransactionsScreen() {
                             <Text style={[styles.itemDate, { color: colors.textMuted }]}>{formatListDate(item.createdAt)} • {formatListTime(item.createdAt)}</Text>
                             <View style={[styles.statusBadge, {
                                 backgroundColor: style.backgroundColor,
-                                borderColor: style.borderColor,
-                                borderWidth: isDark ? 1 : 0,
                             }]}>
                                 <Text style={[styles.statusText, { color: style.color }]}>{statusLabel}</Text>
                             </View>
@@ -143,7 +141,9 @@ export default function AllTransactionsScreen() {
     };
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
+        <View
+            style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}
+        >
             <Header
                 title="All Transactions"
                 rightIcon={<FilterMailSquare color="rgba(152, 162, 179, 1)" />}
@@ -162,7 +162,10 @@ export default function AllTransactionsScreen() {
                     renderSectionHeader={({ section: { title } }) => (
                         <Text style={[styles.sectionHeader, { color: colors.text }]}>{title}</Text>
                     )}
-                    contentContainerStyle={styles.listContent}
+                    contentContainerStyle={[
+                        styles.listContent,
+                        { paddingBottom: Math.max(insets.bottom, 24) },
+                    ]}
                     stickySectionHeadersEnabled={false}
                     showsVerticalScrollIndicator={false}
                     ListFooterComponent={renderFooter}
@@ -216,7 +219,7 @@ const styles = ScaledSheet.create({
     },
     transactionWrapper: {
         backgroundColor: 'rgba(247, 247, 247, 1)',
-        marginHorizontal: '4@s',
+        marginHorizontal: 0,
         padding: '12@ms',
     },
     topRadius: {

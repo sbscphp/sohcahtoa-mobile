@@ -1,4 +1,5 @@
 import { useAppTheme } from '@/context/ThemeContext';
+import { useResponsiveHeaderHeight } from '@/hooks/useDevicePose';
 import { useRouter } from 'expo-router';
 import { ArrowCircleLeft2 } from 'iconsax-react-nativejs';
 import React from 'react';
@@ -14,9 +15,10 @@ interface AuthHeaderProps {
 const AuthHeader: React.FC<AuthHeaderProps> = ({ title, showBackButton = true, disableBackButton = false }) => {
     const router = useRouter();
     const { colors } = useAppTheme();
+    const headerMinHeight = useResponsiveHeaderHeight(52, 64);
 
     return (
-        <View style={[styles.header, { backgroundColor: colors.background, borderBottomColor: colors.divider }]}>
+        <View style={[styles.header, { minHeight: headerMinHeight, backgroundColor: colors.background, borderBottomColor: colors.divider }]}>
             {showBackButton ? (
                 <TouchableOpacity
                     onPress={() => router.back()}

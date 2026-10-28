@@ -7,6 +7,7 @@ import { Controller } from 'react-hook-form';
 import { Platform, Text, TouchableOpacity, View } from 'react-native';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { useResponsiveInputHeight } from '@/hooks/useDevicePose';
 
 export const BENEFICIARY_COUNTRIES: SelectionItem[] = [
     { id: '1', label: '🇬🇧 United Kingdom', value: 'United Kingdom' },
@@ -27,6 +28,7 @@ export function CountrySelectionField({
     beneficiaryCountry?: string;
 }) {
     const { colors, isDark } = useAppTheme();
+    const inputHeight = useResponsiveInputHeight(40, 50, 49);
     const [countrySheetVisible, setCountrySheetVisible] = useState(false);
 
     return (
@@ -40,7 +42,7 @@ export function CountrySelectionField({
                             Country/Region <Text style={bankStepStyles.required}>*</Text>
                         </Text>
                         <TouchableOpacity
-                            style={[bankStepStyles.dropdownInput, { borderColor: isDark ? colors.border : 'rgba(143, 139, 139, 1)' }, error ? bankStepStyles.dropdownError : undefined]}
+                            style={[bankStepStyles.dropdownInput, { height: inputHeight, borderColor: isDark ? colors.border : 'rgba(143, 139, 139, 1)' }, error ? bankStepStyles.dropdownError : undefined]}
                             onPress={() => setCountrySheetVisible(true)}
                         >
                             <Text style={[bankStepStyles.dropdownPlaceholder, { color: colors.textMuted }, value ? [bankStepStyles.dropdownSelectedText, { color: colors.text }] : undefined]}>
@@ -270,7 +272,6 @@ export const bankStepStyles = ScaledSheet.create({
         borderColor: 'rgba(143, 139, 139, 1)',
         borderRadius: '28@ms',
         paddingHorizontal: '14@s',
-        height: Platform.OS === 'android' ? '49@vs' : '40@vs',
         backgroundColor: 'transparent',
     },
     dropdownPlaceholder: {

@@ -1,14 +1,15 @@
-import { CloseCircle, SearchNormal1 } from 'iconsax-react-nativejs';
+import { SearchNormal1 } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
-import { Platform, StyleProp, StyleSheet, Text, TextInput, TouchableOpacity, View, ViewStyle } from 'react-native';
+import { StyleProp, StyleSheet, Text, TextInput, TouchableOpacity, View, ViewStyle } from 'react-native';
 import { FlatList } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import { LocationItem } from '@/utils/locations';
 import LocationIcon from '../assets/icons/location-08.svg';
 import PrimaryButton from './PrimaryButton';
-import AnimatedBottomSheet from './ui/AnimatedBottomSheet';
+import { AnimatedBottomSheet } from './ui/AnimatedBottomSheet';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { useResponsiveInputHeight } from '@/hooks/useDevicePose';
 
 interface LocationSelectionSheetProps {
     visible: boolean;
@@ -39,6 +40,7 @@ const LocationSelectionSheet: React.FC<LocationSelectionSheetProps> = ({
 }) => {
     const { colors, isDark } = useAppTheme();
     const insets = useSafeAreaInsets();
+    const searchHeight = useResponsiveInputHeight(40, 50, 49);
     const [searchQuery, setSearchQuery] = useState('');
 
     const filteredData = data.filter(item =>
@@ -71,10 +73,21 @@ const LocationSelectionSheet: React.FC<LocationSelectionSheetProps> = ({
         );
     };
 
+    const headerContent = (
+        <View style={styles.header}>
+            <View style={[styles.iconCircle, { backgroundColor: isDark ? 'rgba(255, 107, 44, 0.18)' : '#FFF7ED' }]}>
+                {icon || <LocationIcon width={iconSize || moderateScale(24)} height={iconSize || moderateScale(24)} color={iconColor || '#FF6B2C'} />}
+            </View>
+            <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
+            <Text style={[styles.subtitle, { color: colors.textMuted }]}>Select an option below</Text>
+        </View>
+    );
+
     return (
         <AnimatedBottomSheet
             visible={visible}
             onClose={onClose}
+            headerComponent={headerContent}
             sheetStyle={[
                 styles.sheetContent,
                 { backgroundColor: colors.surface },
@@ -82,19 +95,7 @@ const LocationSelectionSheet: React.FC<LocationSelectionSheetProps> = ({
                 { paddingBottom: insets.bottom + moderateScale(20) },
             ]}
         >
-            <View style={styles.headerRow}>
-                <View style={[styles.iconCircle, { backgroundColor: isDark ? 'rgba(255, 107, 44, 0.18)' : '#FFF7ED' }]}>
-                    {icon || <LocationIcon width={iconSize || moderateScale(24)} height={iconSize || moderateScale(24)} color={iconColor || '#FF6B2C'} />}
-                </View>
-                <TouchableOpacity onPress={onClose}>
-                    <CloseCircle size={24} color={colors.icon} variant="Bold" />
-                </TouchableOpacity>
-            </View>
-
-            <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
-            <Text style={[styles.subtitle, { color: colors.textMuted }]}>Select an option below</Text>
-
-            <View style={[styles.searchContainer, { borderColor: colors.border, backgroundColor: colors.inputBackground }]}>
+            <View style={[styles.searchContainer, { borderColor: colors.border, backgroundColor: colors.inputBackground, height: searchHeight }]}>
                 <SearchNormal1 size={moderateScale(20)} color={colors.icon} />
                 <TextInput
                     style={[styles.searchInput, { color: colors.text }]}
@@ -141,23 +142,20 @@ const styles = ScaledSheet.create({
         ...StyleSheet.absoluteFill,
     },
     sheetContent: {
+        width: '100%',
         backgroundColor: '#FFFFFF',
         borderRadius: '24@ms',
         paddingHorizontal: '20@s',
         paddingTop: '14@vs',
         height: '82%',
         maxHeight: '90%',
-        marginBottom: '20@vs',
-        marginHorizontal: '12@s',
     },
     flatList: {
         flex: 1,
     },
-    headerRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: '16@vs'
+    header: {
+        width: '100%',
+        marginBottom: '6@vs',
     },
     iconCircle: {
         width: '48@ms',
@@ -166,6 +164,7 @@ const styles = ScaledSheet.create({
         backgroundColor: '#FFF7ED',
         justifyContent: 'center',
         alignItems: 'center',
+        marginBottom: '12@vs',
     },
     title: {
         fontSize: '18@ms',
@@ -185,7 +184,6 @@ const styles = ScaledSheet.create({
         borderColor: 'rgba(143, 139, 139, 1)',
         borderRadius: '28@ms',
         paddingHorizontal: '14@s',
-        height: Platform.OS === 'android' ? '49@vs' : '40@vs',
         marginBottom: '16@vs',
     },
     searchInput: {
