@@ -128,14 +128,36 @@ describe('LoginScreen', () => {
         expect(mockPush).toHaveBeenCalledWith('/(auth)/forget-password');
     });
 
-    it('should render the biometric login button', () => {
-        const { getByTestId } = render(<LoginScreen />, { wrapper });
+    it('should NOT render the biometric login button when biometrics is disabled', () => {
+        mockAuthState.isBiometricEnabled = false;
+        const { queryByTestId } = render(<LoginScreen />, { wrapper });
 
-        const biometricButton = getByTestId('biometric-login-button');
-        expect(biometricButton).toBeTruthy();
+        const biometricButton = queryByTestId('biometric-login-button');
+        expect(biometricButton).toBeNull();
     });
 
-    it('should trigger biometric login when credentials exist and user presses biometric button', async () => {
+    it('should render the biometric login button when biometrics is enabled and supported', async () => {
+        mockAuthState.isBiometricEnabled = true;
+        const biometricsUtil = require('../utils/biometrics');
+        jest.spyOn(biometricsUtil, 'getBiometricCapabilities').mockResolvedValue({
+            hasHardware: true,
+            isEnrolled: true,
+            supportedTypes: [2],
+            primaryType: 'face',
+        });
+
+        const { getByTestId } = render(<LoginScreen />, { wrapper });
+
+        await waitFor(() => {
+            const biometricButton = getByTestId('biometric-login-button');
+            expect(biometricButton).toBeTruthy();
+        });
+    });
+
+    it('should trigger biometric login when enabled, credentials exist, and user presses biometric button', async () => {
+        mockAuthState.isBiometricEnabled = true;
+        mockAuthState.hasCredentials = true;
+
         const biometricsUtil = require('../utils/biometrics');
         jest.spyOn(biometricsUtil, 'getBiometricCapabilities').mockResolvedValue({
             hasHardware: true,
@@ -149,15 +171,15 @@ describe('LoginScreen', () => {
             password: 'BioPassword123!',
         });
 
-        mockAuthState.hasCredentials = true;
-
         const { getByTestId } = render(<LoginScreen />, { wrapper });
-        const biometricButton = getByTestId('biometric-login-button');
 
         await waitFor(() => {
+            const biometricButton = getByTestId('biometric-login-button');
+            expect(biometricButton).toBeTruthy();
             expect(biometricButton.props.accessibilityState?.disabled).toBe(false);
         });
 
+        const biometricButton = getByTestId('biometric-login-button');
         fireEvent.press(biometricButton);
 
         await waitFor(() => {

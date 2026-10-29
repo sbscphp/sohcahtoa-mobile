@@ -1,11 +1,19 @@
 import Header from '@/components/Header';
 import PrimaryButton from '@/components/PrimaryButton';
 import { ThemeSelectionSheet, THEME_OPTIONS } from '@/components/ThemeSelectionSheet';
+import { EnableBiometricsSheet } from '@/components/EnableBiometricsSheet';
 import { AnimatedTabScreen } from '@/components/ui/AnimatedTabScreen';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/context/ThemeContext';
 import { useLogoutMutation } from '@/hooks/queries/auth/useLogoutMutation';
 import { useGetUnreadCountQuery } from '@/hooks/queries/notifications/useGetUnreadCountQuery';
+import { useAuthStore } from '@/stores/useAuthStore';
+import { useToastStore } from '@/stores/useToastStore';
+import {
+    authenticateWithBiometrics,
+    getBiometricCapabilities,
+    getStoredCredentials,
+} from '@/utils/biometrics';
 import { useRouter } from 'expo-router';
 import {
     Bookmark,
@@ -18,13 +26,15 @@ import {
     ProfileTick,
     ShieldSecurity,
 } from 'iconsax-react-nativejs';
-import { Moon, Sun } from 'lucide-react-native';
-import React, { useState } from 'react';
+import { Fingerprint, Moon, ScanFaceIcon, Sun } from 'lucide-react-native';
+import React, { useEffect, useState } from 'react';
 import {
     Modal,
+    Platform,
     Pressable,
     ScrollView,
     StyleSheet,
+    Switch,
     Text,
     TouchableOpacity,
     View,
@@ -55,6 +65,73 @@ export default function MoreScreen() {
     const currentThemeLabel =
         THEME_OPTIONS.find((opt) => opt.mode === themeMode)?.label || 'System Default';
 
+    const isBiometricEnabled = useAuthStore((state) => state.isBiometricEnabled);
+    const setBiometricEnabled = useAuthStore((state) => state.setBiometricEnabled);
+    const biometricType = useAuthStore((state) => state.biometricType);
+    const setBiometricType = useAuthStore((state) => state.setBiometricType);
+    const disableBiometrics = useAuthStore((state) => state.disableBiometrics);
+    const showToast = useToastStore((state) => state.showToast);
+
+    const [enableBioSheetVisible, setEnableBioSheetVisible] = useState(false);
+    const [detectedBiometricType, setDetectedBiometricType] = useState<'face' | 'fingerprint' | null>(null);
+
+    useEffect(() => {
+        let isMounted = true;
+        (async () => {
+            const capabilities = await getBiometricCapabilities();
+            if (isMounted && capabilities.primaryType) {
+                setDetectedBiometricType(capabilities.primaryType);
+            }
+        })();
+        return () => {
+            isMounted = false;
+        };
+    }, []);
+
+    const effectiveBiometricType = biometricType || detectedBiometricType;
+    const isFace = effectiveBiometricType === 'face';
+    const isTouchId = Platform.OS === 'ios' && effectiveBiometricType === 'fingerprint';
+    const isFaceId = Platform.OS === 'ios' && isFace;
+    const biometricTitle = isTouchId
+        ? 'Touch ID'
+        : isFaceId
+        ? 'Face ID'
+        : isFace
+        ? 'Face Recognition'
+        : 'Fingerprint';
+
+    const handleToggleBiometrics = async () => {
+        if (isBiometricEnabled) {
+            await disableBiometrics();
+            showToast(`${biometricTitle} disabled`, 'info');
+        } else {
+            const capabilities = await getBiometricCapabilities();
+            if (!capabilities.hasHardware) {
+                showToast('Biometric hardware is not available on this device.', 'error');
+                return;
+            }
+            if (!capabilities.isEnrolled) {
+                showToast(`No biometrics enrolled. Please set up ${biometricTitle} in device settings.`, 'warning');
+                return;
+            }
+
+            const creds = await getStoredCredentials();
+            if (creds?.email && creds?.password) {
+                const promptMsg = `Authenticate to enable ${biometricTitle}`;
+                const success = await authenticateWithBiometrics(promptMsg);
+                if (success) {
+                    setBiometricEnabled(true);
+                    if (capabilities.primaryType) {
+                        setBiometricType(capabilities.primaryType);
+                    }
+                    showToast(`${biometricTitle} enabled successfully`, 'success');
+                }
+            } else {
+                setEnableBioSheetVisible(true);
+            }
+        }
+    };
+
     const menuItems: MenuItem[] = [
         {
             icon: <ProfileTick size={moderateScale(18)} color={colors.primary} variant="Linear" />,
@@ -67,6 +144,31 @@ export default function MoreScreen() {
             title: 'Security',
             subtitle: 'Update password, keep your account secure.',
             onPress: () => router.push('/security/change-password'),
+        },
+        {
+            icon: isFace ? (
+                <ScanFaceIcon size={moderateScale(18)} color={colors.primary} />
+            ) : (
+                <Fingerprint size={moderateScale(18)} color={colors.primary} />
+            ),
+            title: biometricTitle,
+            subtitle: isBiometricEnabled
+                ? 'Enabled for fast, secure sign-in'
+                : 'Enable to sign in with biometric scan',
+            onPress: handleToggleBiometrics,
+            rightElement: (
+                <Switch
+                    testID="biometric-toggle-switch"
+                    value={isBiometricEnabled}
+                    onValueChange={handleToggleBiometrics}
+                    trackColor={{
+                        false: isDark ? '#334155' : '#E2E8F0',
+                        true: colors.primary,
+                    }}
+                    thumbColor="#FFFFFF"
+                    accessibilityLabel={`Toggle ${biometricTitle}`}
+                />
+            ),
         },
         {
             icon: isDark ? (
@@ -185,6 +287,13 @@ export default function MoreScreen() {
             <ThemeSelectionSheet
                 visible={themeSheetVisible}
                 onClose={() => setThemeSheetVisible(false)}
+            />
+
+            <EnableBiometricsSheet
+                visible={enableBioSheetVisible}
+                onClose={() => setEnableBioSheetVisible(false)}
+                biometricTitle={biometricTitle}
+                biometricType={effectiveBiometricType}
             />
 
             <Modal

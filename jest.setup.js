@@ -246,6 +246,7 @@ jest.mock('react-native-gesture-handler', () => {
         FlatList,
         RectButton: TouchableOpacity,
         BorderlessButton: TouchableOpacity,
+        usePanGesture: jest.fn(() => panBuilder),
     };
 });
 

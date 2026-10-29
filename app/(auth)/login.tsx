@@ -244,35 +244,46 @@ export default function LoginScreen() {
                         <TouchableOpacity
                             onPress={() => router.push('/(auth)/forget-password')}
                             style={styles.forgotPassword}
+                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                         >
                             <Text style={[styles.forgotPasswordText, { color: colors.primary }]}>Forgot Password ?</Text>
                         </TouchableOpacity>
                     </View>
 
-                    <View style={styles.biometricSection}>
-                        <TouchableOpacity
-                            testID="biometric-login-button"
-                            accessibilityRole="button"
-                            accessibilityLabel={`${biometricLabel} Login`}
-                            style={[
-                                styles.biometricButton,
-                                !biometricsSupported && { opacity: 0.3 },
-                                biometricsSupported && !hasCredentials && { opacity: 0.6 }
-                            ]}
-                            onPress={handleBiometricPress}
-                            disabled={!biometricsSupported}
-                        >
-                            {biometricType === 'fingerprint' ? (
-                                <Fingerprint size={moderateScale(42)} color={colors.icon} />
-                            ) : (
-                                <ScanFaceIcon size={moderateScale(42)} color={colors.icon} />
-                            )}
-                        </TouchableOpacity>
-                    </View>
+                    {isBiometricEnabled && biometricsSupported && (
+                        <View style={styles.biometricSection}>
+                            <TouchableOpacity
+                                testID="biometric-login-button"
+                                accessibilityRole="button"
+                                accessibilityLabel={`${biometricLabel} Login`}
+                                style={[
+                                    styles.biometricButton,
+                                    !biometricsSupported && { opacity: 0.3 },
+                                    biometricsSupported && !hasCredentials && { opacity: 0.6 }
+                                ]}
+                                onPress={handleBiometricPress}
+                                disabled={!biometricsSupported}
+                            >
+                                {biometricType === 'fingerprint' ? (
+                                    <Fingerprint size={moderateScale(42)} color={colors.icon} />
+                                ) : (
+                                    <ScanFaceIcon size={moderateScale(42)} color={colors.icon} />
+                                )}
+                            </TouchableOpacity>
+                        </View>
+                    )}
 
-                    <View style={styles.signUpFooter}>
+                    <View
+                        style={[
+                            styles.signUpFooter,
+                            (!isBiometricEnabled || !biometricsSupported) && styles.signUpFooterNoBiometrics,
+                        ]}
+                    >
                         <Text style={[styles.notUserText, { color: colors.textMuted }]}>{user ? `Not ${userName} ?` : 'Don\'t have an account?'} </Text>
-                        <TouchableOpacity onPress={handleSignUp}>
+                        <TouchableOpacity
+                            onPress={handleSignUp}
+                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        >
                             <Text style={[styles.signUpText, { color: colors.primary }]}>Sign Up</Text>
                         </TouchableOpacity>
                     </View>
@@ -292,9 +303,10 @@ const styles = ScaledSheet.create({
         flex: 1,
     },
     scrollContent: {
+        flexGrow: 1,
         paddingHorizontal: '24@s',
         paddingTop: '24@vs',
-        paddingBottom: '32@vs',
+        paddingBottom: '36@vs',
     },
     welcomeSection: {
         marginBottom: '24@vs',
@@ -330,6 +342,8 @@ const styles = ScaledSheet.create({
     },
     forgotPassword: {
         alignSelf: 'flex-end',
+        paddingVertical: '6@vs',
+        marginBottom: '16@vs',
     },
     forgotPasswordText: {
         fontSize: '13@ms',
@@ -339,8 +353,8 @@ const styles = ScaledSheet.create({
     },
     biometricSection: {
         alignItems: 'center',
-        marginTop: '32@vs',
-        marginBottom: '32@vs',
+        marginTop: '20@vs',
+        marginBottom: '24@vs',
     },
     biometricButton: {
         padding: '10@ms',
@@ -349,6 +363,11 @@ const styles = ScaledSheet.create({
         flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
+        marginTop: '16@vs',
+        paddingVertical: '8@vs',
+    },
+    signUpFooterNoBiometrics: {
+        marginTop: '56@vs',
     },
     notUserText: {
         fontSize: '13@ms',
