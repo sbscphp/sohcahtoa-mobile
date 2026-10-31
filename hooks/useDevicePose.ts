@@ -36,6 +36,15 @@ export interface DevicePose {
   isIPhoneDuo: boolean;
 }
 
+// Helper hook to safely get rail edge only on iOS without native module exceptions on Android/Web
+function useSafeRailEdge(): VerticalBarEdgeIOS | null {
+  if (Platform.OS !== 'ios') {
+    return null;
+  }
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  return useVerticalBarEdgeIOS();
+}
+
 /**
  * Reusable hook to monitor iPhone Duo / foldable device pose,
  * vertical rail placement, safe area boundaries, and responsive display modes.
@@ -46,8 +55,7 @@ export function useDevicePose(): DevicePose {
   
   // On iOS 27+, returns 'leading' | 'trailing' when the rail is drawn, null otherwise.
   // On other platforms or in unfolded portrait, returns null.
-  const rawRailEdge = useVerticalBarEdgeIOS();
-  const railEdge = Platform.OS === 'ios' ? rawRailEdge : null;
+  const railEdge = useSafeRailEdge();
   const hasRail = railEdge !== null;
 
   const isLandscape = width > height;
@@ -58,7 +66,7 @@ export function useDevicePose(): DevicePose {
   // and has railEdge === 'leading'
   const isSplitView = railEdge === 'leading' || (isOpenDisplay && width < 520);
 
-  const isDuoModel = Boolean(
+  const isDuoModel = Platform.OS === 'ios' && Boolean(
     Device.modelName?.toLowerCase().includes('duo') ||
     Device.deviceName?.toLowerCase().includes('duo')
   );
@@ -89,10 +97,10 @@ export function useDevicePose(): DevicePose {
  * Returns 40@vs on normal iPhone, 50@vs on iPhone Duo, and androidHeight (default 49@vs) on Android.
  */
 export function useResponsiveInputHeight(normalHeight = 40, duoHeight = 50, androidHeight = 49): number {
-  const { isIPhoneDuo } = useDevicePose();
   if (Platform.OS === 'android') {
     return verticalScale(androidHeight);
   }
+  const { isIPhoneDuo } = useDevicePose();
   return verticalScale(isIPhoneDuo ? duoHeight : normalHeight);
 }
 
@@ -100,10 +108,10 @@ export function useResponsiveInputHeight(normalHeight = 40, duoHeight = 50, andr
  * Returns 42@vs on normal iPhone, 50@vs on iPhone Duo, and androidHeight (default 50@vs) on Android.
  */
 export function useResponsiveButtonHeight(normalHeight = 42, duoHeight = 50, androidHeight = 50): number {
-  const { isIPhoneDuo } = useDevicePose();
   if (Platform.OS === 'android') {
     return verticalScale(androidHeight);
   }
+  const { isIPhoneDuo } = useDevicePose();
   return verticalScale(isIPhoneDuo ? duoHeight : normalHeight);
 }
 
@@ -111,6 +119,9 @@ export function useResponsiveButtonHeight(normalHeight = 42, duoHeight = 50, and
  * Returns minHeight for navigation/screen headers: 56@vs on normal iPhone, 66@vs on iPhone Duo.
  */
 export function useResponsiveHeaderHeight(normalHeight = 56, duoHeight = 66): number {
+  if (Platform.OS === 'android') {
+    return verticalScale(normalHeight);
+  }
   const { isIPhoneDuo } = useDevicePose();
   return verticalScale(isIPhoneDuo ? duoHeight : normalHeight);
 }

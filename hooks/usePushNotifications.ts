@@ -41,6 +41,8 @@ export const usePushNotifications = () => {
                 };
                 register(payload);
             }
+        }).catch((err) => {
+            console.warn('Push registration error:', err);
         });
 
         notificationListener.current = Notifications.addNotificationReceivedListener((notification: Notifications.Notification) => {

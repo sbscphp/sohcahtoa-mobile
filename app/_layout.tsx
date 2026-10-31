@@ -25,7 +25,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
-SplashScreen.preventAutoHideAsync();
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export const unstable_settings = {
   initialRouteName: 'index',
@@ -94,7 +94,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (loaded && isReady) {
-      SplashScreen.hideAsync();
+      SplashScreen.hideAsync().catch(() => {});
     }
   }, [loaded, isReady]);
 

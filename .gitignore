@@ -13,6 +13,7 @@ expo-env.d.ts
 .claude
 .gemini
 .vscode
+.argent
 .pnpm-store
 
 
