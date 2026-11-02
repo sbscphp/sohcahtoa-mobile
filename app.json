@@ -48,9 +48,9 @@
         "expo-splash-screen",
         {
           "image": "./assets/images/s-logo.png",
-          "imageWidth": "100%",
-          "imageHeight": "100%",
-          "resizeMode": "contain"
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff"
         }
       ],
       "expo-font",

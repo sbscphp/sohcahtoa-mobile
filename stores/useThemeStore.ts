@@ -17,7 +17,8 @@ function syncNativeAppearance(mode: ThemeMode) {
   if (Platform.OS === 'web') return;
   try {
     if (typeof Appearance?.setColorScheme === 'function') {
-      Appearance.setColorScheme((mode === 'system' ? null : mode) as any);
+      const scheme = mode === 'dark' || mode === 'light' ? mode : 'unspecified';
+      Appearance.setColorScheme(scheme);
     }
   } catch {
     // Ignore on platforms/environments where setColorScheme is unsupported

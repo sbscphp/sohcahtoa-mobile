@@ -58,7 +58,7 @@ export default function LocationStep({
     title = "Where would you like to pick up your card and cash?"
 }: LocationStepProps) {
     const { colors, isDark } = useAppTheme();
-    const inputHeight = useResponsiveInputHeight(40, 50, 49);
+    const inputHeight = useResponsiveInputHeight(40, 50);
     const [stateSheetVisible, setStateSheetVisible] = useState(false);
     const [citySheetVisible, setCitySheetVisible] = useState(false);
     const [locationSheetVisible, setLocationSheetVisible] = useState(false);

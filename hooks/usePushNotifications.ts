@@ -41,6 +41,8 @@ export const usePushNotifications = () => {
                 };
                 register(payload);
             }
+        }).catch((err) => {
+            console.warn('Push registration error:', err);
         });
 
         notificationListener.current = Notifications.addNotificationReceivedListener((notification: Notifications.Notification) => {
@@ -116,28 +118,32 @@ export const usePushNotifications = () => {
 async function registerForPushNotificationsAsync() {
     let token;
 
-    if (Platform.OS === 'android') {
-        await Notifications.setNotificationChannelAsync('default', {
-            name: 'default',
-            importance: Notifications.AndroidImportance.MAX,
-            vibrationPattern: [0, 250, 250, 250],
-            lightColor: '#FF231F7C',
-        });
-    }
+    try {
+        if (Platform.OS === 'android') {
+            await Notifications.setNotificationChannelAsync('default', {
+                name: 'default',
+                importance: Notifications.AndroidImportance.MAX,
+                vibrationPattern: [0, 250, 250, 250],
+                lightColor: '#FF231F7C',
+            });
+        }
 
-    if (Device.isDevice) {
-        const { status: existingStatus } = await Notifications.getPermissionsAsync();
-        if (existingStatus !== 'granted') {
-            return;
+        if (Device.isDevice) {
+            const { status: existingStatus } = await Notifications.getPermissionsAsync();
+            if (existingStatus !== 'granted') {
+                return;
+            }
+            
+            try {
+                token = (await Notifications.getDevicePushTokenAsync()).data;
+            } catch (e) {
+                console.warn('Error getting device push token', e);
+            }
+        } else {
+            console.log('Must use physical device for Push Notifications');
         }
-        
-        try {
-            token = (await Notifications.getDevicePushTokenAsync()).data;
-        } catch (e) {
-            console.error('Error getting push token', e);
-        }
-    } else {
-        console.log('Must use physical device for Push Notifications');
+    } catch (error) {
+        console.warn('Failed to configure push notifications:', error);
     }
 
     return token;

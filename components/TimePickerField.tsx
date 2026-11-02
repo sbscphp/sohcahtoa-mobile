@@ -241,7 +241,7 @@ const TimePickerField: React.FC<TimePickerFieldProps> = ({
     const { colors, isDark } = useAppTheme();
     const [showPicker, setShowPicker] = useState(false);
     const [pickerError, setPickerError] = useState('');
-    const defaultHeight = useResponsiveInputHeight(40, 50, 49);
+    const defaultHeight = useResponsiveInputHeight(40, 50);
 
     const [tempHour12, setTempHour12] = useState(12);
     const [tempMinute, setTempMinute] = useState(0);

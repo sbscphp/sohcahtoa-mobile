@@ -1,2 +1,8 @@
-# patchedDependencies:
-#   expo-router@55.0.18: patches/expo-router@55.0.18.patch
+allowBuilds:
+  '@fails-components/webtransport-transport-http3-quiche': true
+  '@parcel/watcher': true
+  node-pty: true
+  tree-sitter: true
+  tree-sitter-javascript: true
+  tree-sitter-typescript: true
+  unrs-resolver: true

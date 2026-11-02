@@ -28,7 +28,7 @@ export function CountrySelectionField({
     beneficiaryCountry?: string;
 }) {
     const { colors, isDark } = useAppTheme();
-    const inputHeight = useResponsiveInputHeight(40, 50, 49);
+    const inputHeight = useResponsiveInputHeight(40, 50);
     const [countrySheetVisible, setCountrySheetVisible] = useState(false);
 
     return (

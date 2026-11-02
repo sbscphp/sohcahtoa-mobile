@@ -29,7 +29,7 @@ const SelectField: React.FC<SelectFieldProps> = ({
     error
 }) => {
     const { colors, isDark } = useAppTheme();
-    const defaultHeight = useResponsiveInputHeight(40, 50, 49);
+    const defaultHeight = useResponsiveInputHeight(40, 50);
     const iconColor = isDark ? colors.iconMuted : 'rgba(77, 75, 75, 1)';
 
     const renderIcon = (iconProp: Icon | ReactNode, style?: any) => {

@@ -40,7 +40,7 @@ const LocationSelectionSheet: React.FC<LocationSelectionSheetProps> = ({
 }) => {
     const { colors, isDark } = useAppTheme();
     const insets = useSafeAreaInsets();
-    const searchHeight = useResponsiveInputHeight(40, 50, 49);
+    const searchHeight = useResponsiveInputHeight(40, 50);
     const [searchQuery, setSearchQuery] = useState('');
 
     const filteredData = data.filter(item =>

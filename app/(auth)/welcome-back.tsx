@@ -168,21 +168,23 @@ export default function WelcomeBackScreen() {
                 </View>
 
                 <View style={styles.footer}>
-                    <TouchableOpacity
-                        style={styles.biometricButton}
-                        onPress={handleBiometric}
-                        accessibilityRole="button"
-                        accessibilityLabel={biometricType === 'fingerprint' ? 'Fingerprint Login' : 'Face Recognition'}
-                    >
-                        {biometricType === 'fingerprint' ? (
-                            <Fingerprint size={moderateScale(32)} color={colors.primary} />
-                        ) : (
-                            <ScanFace size={moderateScale(32)} color={colors.primary} />
-                        )}
-                        <Text style={[styles.biometricText, { color: colors.primary }]}>
-                            {biometricType === 'fingerprint' ? 'Fingerprint' : 'Face Recognition'}
-                        </Text>
-                    </TouchableOpacity>
+                    {isBiometricEnabled && (
+                        <TouchableOpacity
+                            style={styles.biometricButton}
+                            onPress={handleBiometric}
+                            accessibilityRole="button"
+                            accessibilityLabel={biometricType === 'fingerprint' ? 'Fingerprint Login' : 'Face Recognition'}
+                        >
+                            {biometricType === 'fingerprint' ? (
+                                <Fingerprint size={moderateScale(32)} color={colors.primary} />
+                            ) : (
+                                <ScanFace size={moderateScale(32)} color={colors.primary} />
+                            )}
+                            <Text style={[styles.biometricText, { color: colors.primary }]}>
+                                {biometricType === 'fingerprint' ? 'Fingerprint' : 'Face Recognition'}
+                            </Text>
+                        </TouchableOpacity>
+                    )}
 
                     <View style={styles.signupContainer}>
                         <Text style={[styles.notUserText, { color: colors.textMuted }]}>Not {userName}? </Text>

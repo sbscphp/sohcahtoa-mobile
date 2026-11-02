@@ -4,7 +4,7 @@ import { useAppTheme } from '@/context/ThemeContext';
 import { useDevicePose } from '@/hooks/useDevicePose';
 import * as Haptics from 'expo-haptics';
 import { Tabs } from 'expo-router';
-import { NativeTabs } from 'expo-router/unstable-native-tabs';
+import { NativeTabs } from 'expo-router/native-tabs';
 import { Home, More } from 'iconsax-react-nativejs';
 import { TrendingUp } from 'lucide-react-native';
 import React from 'react';

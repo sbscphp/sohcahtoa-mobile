@@ -22,10 +22,9 @@ export const useLoginMutation = () => {
                 );
 
                 const isBiometricEnabled = useAuthStore.getState().isBiometricEnabled;
-                const biometricType = useAuthStore.getState().biometricType;
                 const checkCredentials = useAuthStore.getState().checkCredentials;
                 
-                if (isBiometricEnabled || biometricType) {
+                if (isBiometricEnabled) {
                     saveCredentials(variables.email, variables.password).then(() => {
                         checkCredentials();
                     });
