@@ -1,6 +1,10 @@
 {
   "denyList": {
-    "android": ["react-native-safe-area-context"],
+    "android": [
+      "react-native-safe-area-context",
+      "react-native-worklets",
+      "react-native-reanimated"
+    ],
     "ios": ["expo-router"]
   }
 }

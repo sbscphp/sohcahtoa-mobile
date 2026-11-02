@@ -241,7 +241,7 @@ const DatePickerField: React.FC<DatePickerFieldProps> = ({
 }) => {
     const { colors, isDark } = useAppTheme();
     const [showPicker, setShowPicker] = useState(false);
-    const defaultHeight = useResponsiveInputHeight(40, 50, 49);
+    const defaultHeight = useResponsiveInputHeight(40, 50);
 
     const [tempDay, setTempDay] = useState(1);
     const [tempMonth, setTempMonth] = useState(1);

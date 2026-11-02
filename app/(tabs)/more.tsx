@@ -103,7 +103,7 @@ export default function MoreScreen() {
     const handleToggleBiometrics = async () => {
         if (isBiometricEnabled) {
             await disableBiometrics();
-            showToast(`${biometricTitle} disabled`, 'info');
+            showToast(`${biometricTitle} disabled`, 'warning');
         } else {
             const capabilities = await getBiometricCapabilities();
             if (!capabilities.hasHardware) {

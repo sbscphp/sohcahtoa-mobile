@@ -94,25 +94,27 @@ export function useDevicePose(): DevicePose {
 }
 
 /**
- * Returns 40@vs on normal iPhone, 50@vs on iPhone Duo, and androidHeight (default 49@vs) on Android.
+ * Returns 40@vs on normal iPhone and standard Android, 50@vs on iPhone Duo / wide displays.
  */
-export function useResponsiveInputHeight(normalHeight = 40, duoHeight = 50, androidHeight = 49): number {
-  if (Platform.OS === 'android') {
-    return verticalScale(androidHeight);
-  }
-  const { isIPhoneDuo } = useDevicePose();
-  return verticalScale(isIPhoneDuo ? duoHeight : normalHeight);
+export function useResponsiveInputHeight(normalHeight = 40, duoHeight = 50, androidHeight?: number): number {
+  const { isIPhoneDuo, isOpenDisplay } = useDevicePose();
+  const isExpanded = isIPhoneDuo || (Platform.OS === 'android' && isOpenDisplay);
+  const targetHeight = (Platform.OS === 'android' && androidHeight !== undefined)
+    ? androidHeight
+    : (isExpanded ? duoHeight : normalHeight);
+  return verticalScale(targetHeight);
 }
 
 /**
- * Returns 42@vs on normal iPhone, 50@vs on iPhone Duo, and androidHeight (default 50@vs) on Android.
+ * Returns 42@vs on normal iPhone and standard Android, 50@vs on iPhone Duo / wide displays.
  */
-export function useResponsiveButtonHeight(normalHeight = 42, duoHeight = 50, androidHeight = 50): number {
-  if (Platform.OS === 'android') {
-    return verticalScale(androidHeight);
-  }
-  const { isIPhoneDuo } = useDevicePose();
-  return verticalScale(isIPhoneDuo ? duoHeight : normalHeight);
+export function useResponsiveButtonHeight(normalHeight = 42, duoHeight = 50, androidHeight?: number): number {
+  const { isIPhoneDuo, isOpenDisplay } = useDevicePose();
+  const isExpanded = isIPhoneDuo || (Platform.OS === 'android' && isOpenDisplay);
+  const targetHeight = (Platform.OS === 'android' && androidHeight !== undefined)
+    ? androidHeight
+    : (isExpanded ? duoHeight : normalHeight);
+  return verticalScale(targetHeight);
 }
 
 /**

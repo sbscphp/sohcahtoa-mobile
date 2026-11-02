@@ -31,7 +31,7 @@ const InputField: React.FC<InputFieldProps> = ({
 }) => {
     const [isPasswordVisible, setIsPasswordVisible] = useState(false);
     const { colors, isDark } = useAppTheme();
-    const defaultHeight = useResponsiveInputHeight(40, 50, 49);
+    const defaultHeight = useResponsiveInputHeight(40, 50);
 
     const iconColor = isDark ? colors.iconMuted : 'rgba(77, 75, 75, 1)';
     const placeholderColor = props.placeholderTextColor || colors.placeholder;

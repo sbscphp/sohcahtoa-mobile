@@ -50,7 +50,7 @@ const GenericSelectionSheet: React.FC<GenericSelectionSheetProps> = ({
 }) => {
     const { colors, isDark } = useAppTheme();
     const insets = useSafeAreaInsets();
-    const searchHeight = useResponsiveInputHeight(40, 50, 49);
+    const searchHeight = useResponsiveInputHeight(40, 50);
     const [tempSelected, setTempSelected] = useState(selectedItem);
     const [searchQuery, setSearchQuery] = useState('');
 

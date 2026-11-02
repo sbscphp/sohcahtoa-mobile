@@ -26,7 +26,7 @@ const PrimaryButton: React.FC<PrimaryButtonProps> = ({
     accessibilityLabel,
 }) => {
     const { colors } = useAppTheme();
-    const buttonHeight = useResponsiveButtonHeight(42, 50, 50);
+    const buttonHeight = useResponsiveButtonHeight(42, 50);
 
     return (
         <Pressable

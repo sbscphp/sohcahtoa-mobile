@@ -28,7 +28,7 @@ import 'react-native-reanimated';
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export const unstable_settings = {
-  initialRouteName: 'index',
+  anchor: 'index',
 };
 
 function InitialLayout() {
@@ -89,14 +89,16 @@ export default function RootLayout() {
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    if (error) throw error;
+    if (error) {
+      console.warn('Font loading error:', error);
+    }
   }, [error]);
 
   useEffect(() => {
-    if (loaded && isReady) {
+    if ((loaded || error) && isReady) {
       SplashScreen.hideAsync().catch(() => {});
     }
-  }, [loaded, isReady]);
+  }, [loaded, error, isReady]);
 
   useEffect(() => {
     const initApp = async () => {
@@ -145,7 +147,7 @@ export default function RootLayout() {
     initApp();
   }, []);
 
-  if (!loaded || !isReady) {
+  if ((!loaded && !error) || !isReady) {
     return null;
   }
 
