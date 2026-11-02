@@ -15,7 +15,9 @@ expo-env.d.ts
 .vscode
 .argent
 .pnpm-store
-
+.mcp.json
+.mcp.log
+.mcp.err
 
 # Native
 .kotlin/
