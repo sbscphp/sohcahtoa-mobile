@@ -3,14 +3,13 @@ import { Notification } from '@/types/api/notifications';
 import { ArrowRight2, Calendar1, Clock } from 'iconsax-react-nativejs';
 import React, { useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
-import { SectionList, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, RefreshControl, SectionList, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, moderateScale } from 'react-native-size-matters';
 import { useGetNotificationsQuery } from '@/hooks/queries/notifications/useGetNotificationsQuery';
 import { useMarkAsReadMutation } from '@/hooks/queries/notifications/useMarkAsReadMutation';
 import { useMarkAllAsReadMutation } from '@/hooks/queries/notifications/useMarkAllAsReadMutation';
 import { useGetTransactionsQuery } from '@/hooks/queries/transactions/useGetTransactionsQuery';
-import { ActivityIndicator } from 'react-native';
 import { formatDate, formatTime, getNotificationRoute } from '@/utils/helpers';
 import { getTransactionById } from '@/services/transactions';
 import { useAppTheme } from '@/hooks/useAppTheme';
@@ -51,7 +50,12 @@ interface Section {
 const groupByDate = (notifications: Notification[]): Section[] => {
     const groups: Record<string, Notification[]> = {};
     if (Array.isArray(notifications)) {
-        notifications.forEach((n) => {
+        const sorted = [...notifications].sort((a, b) => {
+            const timeA = new Date(a.createdAt || 0).getTime();
+            const timeB = new Date(b.createdAt || 0).getTime();
+            return timeB - timeA;
+        });
+        sorted.forEach((n) => {
             const label = getDateLabel(n.createdAt);
             if (!groups[label]) groups[label] = [];
             groups[label].push(n);
@@ -66,16 +70,14 @@ export default function NotificationsScreen() {
     const router = useRouter();
     const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
 
-    const { data: notificationsData, isLoading } = useGetNotificationsQuery();
+    const { data: notificationsData, isLoading, refetch, isRefetching } = useGetNotificationsQuery();
     const { mutate: markRead } = useMarkAsReadMutation();
-    const { mutate: markAllRead } = useMarkAllAsReadMutation();
+    const { mutate: markAllRead, isPending: isMarkingAllRead } = useMarkAllAsReadMutation();
     const { data: transactionsData } = useGetTransactionsQuery();
 
     const transactions = useMemo(() => {
         return transactionsData?.pages?.flatMap(p => p.data) || [];
     }, [transactionsData]);
-
-    // console.log(JSON.stringify(notificationsData, null, 2));
 
     const notifications = useMemo(() => {
         if (!notificationsData) return [];
@@ -104,7 +106,8 @@ export default function NotificationsScreen() {
 
     const tabs: { key: FilterTab; label: string }[] = [
         { key: 'all', label: `All ${notifications.length}` },
-        { key: 'unread', label: `Unread ${unreadCount}` }
+        { key: 'unread', label: `Unread ${unreadCount}` },
+        { key: 'transactions', label: 'Transactions' },
     ];
 
     const renderSectionHeader = ({ section }: { section: Section }) => (
@@ -202,8 +205,8 @@ export default function NotificationsScreen() {
     );
 
     const MarkAllReadIcon = (
-        <Text style={{ fontSize: moderateScale(12), color: '#FF6B2C', fontWeight: '600' }}>
-            Mark All
+        <Text style={{ fontSize: moderateScale(12), color: isMarkingAllRead ? colors.textMuted : '#FF6B2C', fontWeight: '600' }}>
+            {isMarkingAllRead ? 'Marking...' : 'Mark All'}
         </Text>
     );
 
@@ -212,7 +215,11 @@ export default function NotificationsScreen() {
             <Header 
                 title="Notifications" 
                 rightIcon={unreadCount > 0 ? MarkAllReadIcon : undefined}
-                onRightPress={() => markAllRead()}
+                onRightPress={() => {
+                    if (!isMarkingAllRead && unreadCount > 0) {
+                        markAllRead();
+                    }
+                }}
             />
 
             <View style={[styles.tabRow, { borderBottomColor: colors.border }]}>
@@ -249,6 +256,16 @@ export default function NotificationsScreen() {
                     contentContainerStyle={styles.listContent}
                     showsVerticalScrollIndicator={false}
                     stickySectionHeadersEnabled={false}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={isRefetching}
+                            onRefresh={() => {
+                                refetch();
+                            }}
+                            tintColor="#FF6B2C"
+                            colors={['#FF6B2C']}
+                        />
+                    }
                     ListEmptyComponent={
                         <View style={styles.emptyState}>
                             <Text style={[styles.emptyStateText, { color: colors.textMuted }]}>No notifications</Text>

@@ -28,7 +28,8 @@ export const usePushNotifications = () => {
     const hasSeenPrompt = useAuthStore((state) => state.hasSeenNotificationPrompt);
     const notificationListener = useRef<Notifications.EventSubscription | undefined>(undefined);
     const responseListener = useRef<Notifications.EventSubscription | undefined>(undefined);
- 
+    const hasHandledInitialResponse = useRef(false);
+
     useEffect(() => {
         registerForPushNotificationsAsync().then(token => {
             if (token && isAuthenticated) {
@@ -45,6 +46,16 @@ export const usePushNotifications = () => {
             console.warn('Push registration error:', err);
         });
 
+        // Handle cold start: App was launched from killed state via notification tap
+        Notifications.getLastNotificationResponseAsync().then(response => {
+            if (response && !hasHandledInitialResponse.current) {
+                hasHandledInitialResponse.current = true;
+                handleNotificationResponse(response, queryClient);
+            }
+        }).catch((err) => {
+            console.warn('Error checking last notification response:', err);
+        });
+
         notificationListener.current = Notifications.addNotificationReceivedListener((notification: Notifications.Notification) => {
             if (isAuthenticated) {
                 queryClient.invalidateQueries({ queryKey: ['notifications'] });
@@ -52,59 +63,7 @@ export const usePushNotifications = () => {
         });
 
         responseListener.current = Notifications.addNotificationResponseReceivedListener(async (response: Notifications.NotificationResponse) => {
-            const data = (response.notification.request.content.data || {}) as Record<string, any>;
-            const title = response.notification.request.content.title || '';
-            const body = response.notification.request.content.body || '';
-            
-            if (data?.notificationId) {
-                markAsRead(data.notificationId).catch(() => {});
-                queryClient.invalidateQueries({ queryKey: ['notifications'] });
-            }
-            let routeInfo = getNotificationRoute(data?.actionUrl, data, [], title, body);
-            
-            // Fallback: If routeInfo is null but we have a transactionId, fetch from server
-            if (!routeInfo) {
-                let transactionId = data?.transactionId || data?.transaction_id || data?.id;
-                if (data?.actionUrl) {
-                    const idMatch = data.actionUrl.match(/[?&](transactionId|transaction_id|id)=([^&]+)/);
-                    if (idMatch && idMatch[2]) {
-                        transactionId = decodeURIComponent(idMatch[2]);
-                    }
-                    if (!transactionId) {
-                        const pathPart = data.actionUrl.split('?')[0];
-                        const segments = pathPart.split('/').filter(Boolean);
-                        for (let i = segments.length - 1; i >= 0; i--) {
-                            const seg = segments[i];
-                            if (seg && (seg.length > 5 || /^\d+$/.test(seg))) {
-                                transactionId = seg;
-                                break;
-                            }
-                        }
-                    }
-                }
-                
-                if (transactionId) {
-                    try {
-                        const res = await getTransactionById(transactionId);
-                        if (res && res.success && res.data && res.data.type) {
-                            routeInfo = getNotificationRoute(data?.actionUrl, { ...data, type: res.data.type, transactionId }, [], title, body);
-                        }
-                    } catch (e) {
-                        console.error('Failed to fetch transaction type:', e);
-                    }
-                }
-            }
-
-            if (routeInfo) {
-                router.push({
-                    pathname: routeInfo.pathname as any,
-                    params: routeInfo.params
-                });
-            } else if (data?.actionUrl) {
-                router.push(data.actionUrl);
-            } else {
-                router.push('/notifications');
-            }
+            handleNotificationResponse(response, queryClient);
         });
 
         return () => {
@@ -113,6 +72,64 @@ export const usePushNotifications = () => {
         };
     }, [isAuthenticated, hasSeenPrompt]);
 };
+
+async function handleNotificationResponse(response: Notifications.NotificationResponse, queryClient: any) {
+    const data = (response.notification.request.content.data || {}) as Record<string, any>;
+    const title = response.notification.request.content.title || '';
+    const body = response.notification.request.content.body || '';
+
+    const notifId = data?.notificationId || data?.id;
+    if (notifId) {
+        markAsRead(notifId).catch(() => {});
+        queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    }
+
+    let routeInfo = getNotificationRoute(data?.actionUrl, data, [], title, body);
+
+    // Fallback: If routeInfo is null but we have a transactionId, fetch from server
+    if (!routeInfo) {
+        let transactionId = data?.transactionId || data?.transaction_id || data?.id;
+        if (data?.actionUrl) {
+            const idMatch = data.actionUrl.match(/[?&](transactionId|transaction_id|id)=([^&]+)/);
+            if (idMatch && idMatch[2]) {
+                transactionId = decodeURIComponent(idMatch[2]);
+            }
+            if (!transactionId) {
+                const pathPart = data.actionUrl.split('?')[0];
+                const segments = pathPart.split('/').filter(Boolean);
+                for (let i = segments.length - 1; i >= 0; i--) {
+                    const seg = segments[i];
+                    if (seg && (seg.length > 5 || /^\d+$/.test(seg))) {
+                        transactionId = seg;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (transactionId) {
+            try {
+                const res = await getTransactionById(transactionId);
+                if (res && res.success && res.data && res.data.type) {
+                    routeInfo = getNotificationRoute(data?.actionUrl, { ...data, type: res.data.type, transactionId }, [], title, body);
+                }
+            } catch (e) {
+                console.error('Failed to fetch transaction type:', e);
+            }
+        }
+    }
+
+    if (routeInfo) {
+        router.push({
+            pathname: routeInfo.pathname as any,
+            params: routeInfo.params
+        });
+    } else if (data?.actionUrl) {
+        router.push(data.actionUrl);
+    } else {
+        router.push('/notifications');
+    }
+}
 
 
 async function registerForPushNotificationsAsync() {

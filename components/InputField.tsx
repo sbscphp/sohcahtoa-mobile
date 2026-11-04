@@ -5,8 +5,8 @@ import React, { ReactNode, useState } from 'react';
 import { Text, TextInput, TextInputProps, TouchableOpacity, View } from 'react-native';
 import { moderateScale, ScaledSheet } from 'react-native-size-matters';
 
-interface InputFieldProps extends TextInputProps {
-    label: string;
+export interface InputFieldProps extends TextInputProps {
+    label?: string;
     icon?: Icon | ReactNode;
     rightIcon?: Icon;
     isPassword?: boolean;
@@ -15,6 +15,14 @@ interface InputFieldProps extends TextInputProps {
     wrapperStyle?: any;
     height?: number | string;
     error?: string;
+    value?: string;
+    onChangeText?: (text: string) => void;
+    placeholder?: string;
+    editable?: boolean;
+    keyboardType?: any;
+    maxLength?: number;
+    autoCapitalize?: any;
+    autoCorrect?: boolean;
 }
 
 const InputField: React.FC<InputFieldProps> = ({
