@@ -1,17 +1,16 @@
 import React from 'react';
 import { Control, Controller, FieldValues, Path, RegisterOptions } from 'react-hook-form';
-import InputField from './InputField';
+import InputField, { InputFieldProps } from './InputField';
 
-type InputFieldProps = React.ComponentProps<typeof InputField>;
-
-interface ControlledInputProps<TFieldValues extends FieldValues> extends Omit<InputFieldProps, 'value' | 'onChangeText' | 'error'> {
+export interface ControlledInputProps<TFieldValues extends FieldValues = any>
+    extends Omit<InputFieldProps, 'value' | 'onChangeText' | 'error'> {
     name: Path<TFieldValues>;
     control: Control<TFieldValues>;
     rules?: Omit<RegisterOptions<TFieldValues, Path<TFieldValues>>, 'valueAsNumber' | 'valueAsDate' | 'setValueAs' | 'disabled'>;
     filterType?: 'numeric' | 'alphanumeric' | 'none';
 }
 
-const ControlledInput = <TFieldValues extends FieldValues>({
+const ControlledInput = <TFieldValues extends FieldValues = any>({
     name,
     control,
     rules,
@@ -23,7 +22,7 @@ const ControlledInput = <TFieldValues extends FieldValues>({
             name={name}
             control={control}
             rules={rules}
-            render={({ field: { onChange, onBlur, value }, fieldState: { error } }) => {
+            render={({ field: { onChange, onBlur, value }, fieldState: { error } }: any) => {
                 const handleChangeText = (text: string) => {
                     let filteredText = text;
                     if (filterType === 'numeric') {
@@ -37,7 +36,7 @@ const ControlledInput = <TFieldValues extends FieldValues>({
                 return (
                     <InputField
                         {...inputProps}
-                        value={value as string}
+                        value={(value as string) ?? ''}
                         onChangeText={handleChangeText}
                         onBlur={onBlur}
                         error={error?.message}

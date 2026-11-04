@@ -1,4 +1,13 @@
-const { withDangerousMod } = require('expo/config-plugins');
+let withDangerousMod;
+try {
+  ({ withDangerousMod } = require('expo/config-plugins'));
+} catch {
+  try {
+    ({ withDangerousMod } = require('@expo/config-plugins'));
+  } catch {
+    ({ withDangerousMod } = require('../node_modules/expo/config-plugins'));
+  }
+}
 const fs = require('fs');
 const path = require('path');
 

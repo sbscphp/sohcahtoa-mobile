@@ -1,4 +1,13 @@
-const { withAppDelegate, withInfoPlist } = require('expo/config-plugins');
+let withAppDelegate, withInfoPlist;
+try {
+  ({ withAppDelegate, withInfoPlist } = require('expo/config-plugins'));
+} catch {
+  try {
+    ({ withAppDelegate, withInfoPlist } = require('@expo/config-plugins'));
+  } catch {
+    ({ withAppDelegate, withInfoPlist } = require('../node_modules/expo/config-plugins'));
+  }
+}
 
 function withIPhoneDuoSceneDelegate(config) {
   // 1. Configure Info.plist with UIApplicationSceneManifest

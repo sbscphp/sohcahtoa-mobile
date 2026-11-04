@@ -5,6 +5,10 @@
     "types": ["jest"],
     "module": "preserve",
     "moduleResolution": "bundler",
+    "customConditions": ["react-native"],
+    "resolvePackageJsonExports": true,
+    "allowJs": true,
+    "esModuleInterop": true,
     "jsx": "react-jsx",
     "lib": [
       "DOM",

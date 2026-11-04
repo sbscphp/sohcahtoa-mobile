@@ -35,11 +35,13 @@ jest.mock('react-native-size-matters', () => ({
 
 jest.mock('iconsax-react-nativejs', () => ({
     Calendar: 'Calendar',
+    Calendar1: 'Calendar1',
     Clock: 'Clock',
     SearchStatus: 'SearchStatus',
     TickCircle: 'TickCircle',
     CloseCircle: 'CloseCircle',
     ArrowDown2: 'ArrowDown2',
+    ArrowRight2: 'ArrowRight2',
     Edit2: 'Edit2',
     Eye: 'Eye',
     EyeSlash: 'EyeSlash',
@@ -95,10 +97,11 @@ jest.mock('react-native-safe-area-context', () => ({
 
 jest.mock('@/components/Header', () => {
     const { Text, View, Pressable } = require('react-native');
-    return ({ title, onBackPress }) => (
+    return ({ title, onBackPress, rightIcon, onRightPress }) => (
         <View>
             <Pressable onPress={onBackPress}><Text>Back</Text></Pressable>
             <Text>{title}</Text>
+            {rightIcon && <Pressable onPress={onRightPress}>{rightIcon}</Pressable>}
         </View>
     );
 });
