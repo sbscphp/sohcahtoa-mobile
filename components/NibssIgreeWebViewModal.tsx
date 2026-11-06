@@ -25,6 +25,37 @@ interface NibssIgreeWebViewModalProps {
     onRestartFreshSession?: () => void;
 }
 
+export const ALLOWED_WEBVIEW_ORIGINS = [
+    'https://*.nibss-plc.com.ng',
+    'https://nibss-plc.com.ng',
+    'https://*.clocksurewise.com',
+    'https://clocksurewise.com',
+    'sohcahtoa://*',
+    'about:blank',
+];
+
+export const isUrlAllowed = (url: string): boolean => {
+    if (!url) return false;
+    if (url === 'about:blank') return true;
+    if (url.startsWith('sohcahtoa://')) return true;
+
+    try {
+        const parsed = new URL(url);
+        if (parsed.protocol !== 'https:') {
+            return false;
+        }
+        const hostname = parsed.hostname.toLowerCase();
+        return (
+            hostname === 'nibss-plc.com.ng' ||
+            hostname.endsWith('.nibss-plc.com.ng') ||
+            hostname === 'clocksurewise.com' ||
+            hostname.endsWith('.clocksurewise.com')
+        );
+    } catch {
+        return false;
+    }
+};
+
 export const extractCodeAndState = (urlStr: string) => {
     try {
         const parsed = Linking.parse(urlStr);
@@ -138,6 +169,10 @@ const NibssIgreeWebViewModal: React.FC<NibssIgreeWebViewModalProps> = ({
                                 if (intercepted) {
                                     return false;
                                 }
+                                if (!isUrlAllowed(request.url)) {
+                                    console.warn('Blocked navigation to untrusted URL in WebView:', request.url);
+                                    return false;
+                                }
                                 return true;
                             }}
                             onNavigationStateChange={(navState: WebViewNavigation) => {
@@ -146,8 +181,8 @@ const NibssIgreeWebViewModal: React.FC<NibssIgreeWebViewModalProps> = ({
                             javaScriptEnabled
                             domStorageEnabled
                             sharedCookiesEnabled
-                            thirdPartyCookiesEnabled
-                            originWhitelist={['*']}
+                            thirdPartyCookiesEnabled={false}
+                            originWhitelist={ALLOWED_WEBVIEW_ORIGINS}
                             startInLoadingState
                             renderLoading={() => (
                                 <View style={styles.loadingOverlay}>

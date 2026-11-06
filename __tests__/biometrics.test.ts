@@ -173,8 +173,8 @@ describe('Biometrics Utility', () => {
 
             const saved = await saveCredentials('test@example.com', 'SecurePass123!');
             expect(saved).toBe(true);
-            expect(SecureStore.setItemAsync).toHaveBeenCalledWith(SECURE_STORE_KEYS.EMAIL, 'test@example.com');
-            expect(SecureStore.setItemAsync).toHaveBeenCalledWith(SECURE_STORE_KEYS.PASSWORD, 'SecurePass123!');
+            expect(SecureStore.setItemAsync).toHaveBeenCalledWith(SECURE_STORE_KEYS.EMAIL, 'test@example.com', expect.any(Object));
+            expect(SecureStore.setItemAsync).toHaveBeenCalledWith(SECURE_STORE_KEYS.PASSWORD, 'SecurePass123!', expect.any(Object));
         });
 
         it('returns false when saving with empty credentials', async () => {
@@ -212,8 +212,8 @@ describe('Biometrics Utility', () => {
 
             const cleared = await clearStoredCredentials();
             expect(cleared).toBe(true);
-            expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith(SECURE_STORE_KEYS.EMAIL);
-            expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith(SECURE_STORE_KEYS.PASSWORD);
+            expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith(SECURE_STORE_KEYS.EMAIL, expect.any(Object));
+            expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith(SECURE_STORE_KEYS.PASSWORD, expect.any(Object));
         });
     });
 });

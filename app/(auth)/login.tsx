@@ -19,6 +19,7 @@ import {
     clearStoredCredentials,
     getBiometricCapabilities,
     getStoredCredentials,
+    hasStoredCredentials,
     isBiometricsAvailable,
 } from '../../utils/biometrics';
 import { Colors } from '../../constants/theme';
@@ -85,8 +86,8 @@ export default function LoginScreen() {
                 !autoPromptAttempted.current
             ) {
                 autoPromptAttempted.current = true;
-                const credentials = await getStoredCredentials();
-                if (credentials && isMounted) {
+                const hasCreds = await hasStoredCredentials();
+                if (hasCreds && isMounted) {
                     handleBiometricLogin();
                 }
             }
@@ -100,8 +101,8 @@ export default function LoginScreen() {
     }, [isAuthenticated, isBiometricEnabled]);
 
     const handleBiometricLogin = async () => {
-        const credentials = await getStoredCredentials();
-        if (!credentials?.email || !credentials?.password) {
+        const hasCreds = (await hasStoredCredentials()) || hasCredentials;
+        if (!hasCreds) {
             showToast('Biometric credentials not found. Please login manually.', 'warning');
             return;
         }
@@ -109,6 +110,11 @@ export default function LoginScreen() {
         const promptTitle = `Log in with ${biometricLabel}`;
         const success = await authenticateWithBiometrics(promptTitle);
         if (success) {
+            const credentials = await getStoredCredentials();
+            if (!credentials?.email || !credentials?.password) {
+                showToast('Unable to retrieve stored credentials. Please login manually.', 'error');
+                return;
+            }
             useAuthStore.getState().setBiometricEnabled(true);
             setEmail(credentials.email);
             setPassword(credentials.password);
@@ -122,14 +128,9 @@ export default function LoginScreen() {
             return;
         }
 
-        // Check if credentials exist in SecureStore
-        const credentials = await getStoredCredentials();
-        if (credentials?.email && credentials?.password) {
-            await handleBiometricLogin();
-            return;
-        }
-
-        if (hasCredentials) {
+        // Check if credentials exist in SecureStore without reading secrets
+        const hasCreds = (await hasStoredCredentials()) || hasCredentials;
+        if (hasCreds) {
             await handleBiometricLogin();
             return;
         }

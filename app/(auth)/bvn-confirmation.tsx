@@ -18,10 +18,11 @@ export default function BvnConfirmationScreen() {
     const insets = useSafeAreaInsets();
     const { colors, isDark } = useAppTheme();
     const tempUserInfo = useAuthStore((state) => state.tempUserInfo);
+    const storeVerificationToken = useAuthStore((state) => state.verificationToken);
 
     const {
         userType,
-        verificationToken,
+        verificationToken: paramVerificationToken,
         flowContext,
         firstName: paramFirstName,
         lastName: paramLastName,
@@ -40,7 +41,8 @@ export default function BvnConfirmationScreen() {
         dateOfBirth?: string,
         address?: string
     }>();
-    console.log(verificationToken, "Verification Token");
+
+    const verificationToken = storeVerificationToken || paramVerificationToken;
     const firstName = tempUserInfo?.firstName || paramFirstName || '';
     const lastName = tempUserInfo?.lastName || paramLastName || '';
     const phoneNumber = tempUserInfo?.phoneNumber || paramPhoneNumber || '';

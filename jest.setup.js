@@ -52,6 +52,7 @@ jest.mock('iconsax-react-nativejs', () => ({
     Sms: 'Sms',
     InfoCircle: 'InfoCircle',
     ShieldSecurity: 'ShieldSecurity',
+    ShieldCross: 'ShieldCross',
     SearchNormal1: 'SearchNormal1',
 }));
 
@@ -191,7 +192,21 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 
 jest.mock('expo-linking', () => ({
     createURL: jest.fn((path) => `sohcahtoa://${path}`),
-    parse: jest.fn((url) => ({ queryParams: { code: 'test-code', state: 'test-state' } })),
+    parse: jest.fn((url) => {
+        if (!url || typeof url !== 'string') return { queryParams: {} };
+        try {
+            const queryIndex = url.indexOf('?');
+            if (queryIndex === -1) return { queryParams: {} };
+            const params = new URLSearchParams(url.slice(queryIndex + 1));
+            const queryParams = {};
+            params.forEach((value, key) => {
+                queryParams[key] = value;
+            });
+            return { queryParams };
+        } catch {
+            return { queryParams: {} };
+        }
+    }),
     addEventListener: jest.fn(() => ({ remove: jest.fn() })),
 }));
 
@@ -341,16 +356,20 @@ jest.mock('expo-local-authentication', () => ({
 jest.mock('expo-secure-store', () => {
     const store = new Map();
     return {
-        setItemAsync: jest.fn((key, value) => {
+        setItemAsync: jest.fn((key, value, options) => {
             store.set(key, String(value));
             return Promise.resolve();
         }),
-        getItemAsync: jest.fn((key) => Promise.resolve(store.get(key) ?? null)),
-        deleteItemAsync: jest.fn((key) => {
+        getItemAsync: jest.fn((key, options) => Promise.resolve(store.get(key) ?? null)),
+        deleteItemAsync: jest.fn((key, options) => {
             store.delete(key);
             return Promise.resolve();
         }),
         isAvailableAsync: jest.fn(() => Promise.resolve(true)),
+        WHEN_UNLOCKED_THIS_DEVICE_ONLY: 1,
+        WHEN_UNLOCKED: 2,
+        AFTER_FIRST_UNLOCK: 3,
+        AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY: 4,
     };
 });
 
