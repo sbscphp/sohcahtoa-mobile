@@ -1,5 +1,6 @@
 import { GlobalToast } from '@/components/GlobalToast';
 import InactiveSessionTracker from '@/components/InactiveSessionTracker';
+import DeviceSecurityBlockedScreen from '@/components/DeviceSecurityBlockedScreen';
 import { QueryProvider } from '@/components/QueryProvider';
 import { AppThemeProvider, useAppTheme } from '@/context/ThemeContext';
 import { useProtectedRoute } from '@/hooks/useProtectedRoute';
@@ -7,6 +8,7 @@ import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useThemeStore } from '@/stores/useThemeStore';
 import { clearStoredCredentials } from '@/utils/biometrics';
+import { checkDeviceIntegrity } from '@/utils/deviceIntegrity';
 import {
   Inter_300Light,
   Inter_400Regular,
@@ -87,6 +89,7 @@ export default function RootLayout() {
   });
 
   const [isReady, setIsReady] = useState(false);
+  const [compromisedReason, setCompromisedReason] = useState<string | null>(null);
 
   useEffect(() => {
     if (error) {
@@ -103,6 +106,11 @@ export default function RootLayout() {
   useEffect(() => {
     const initApp = async () => {
       try {
+        const integrity = await checkDeviceIntegrity();
+        if (integrity.isCompromised) {
+          setCompromisedReason(integrity.reason || 'Device integrity check failed.');
+        }
+
         await Promise.all([
           new Promise<void>((resolve) => {
             if (useAuthStore.persist.hasHydrated()) {
@@ -149,6 +157,10 @@ export default function RootLayout() {
 
   if ((!loaded && !error) || !isReady) {
     return null;
+  }
+
+  if (compromisedReason) {
+    return <DeviceSecurityBlockedScreen reason={compromisedReason} />;
   }
 
   return (

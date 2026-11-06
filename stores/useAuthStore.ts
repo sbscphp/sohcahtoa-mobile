@@ -1,5 +1,5 @@
 import { User } from '@/types/api/user';
-import { clearStoredCredentials, getStoredCredentials } from '@/utils/biometrics';
+import { clearStoredCredentials, hasStoredCredentials } from '@/utils/biometrics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
@@ -46,8 +46,8 @@ export const useAuthStore = create<AuthState>()(
             setHasCredentials: (hasCredentials) => set({ hasCredentials }),
             setHasSeenNotificationPrompt: (seen) => set({ hasSeenNotificationPrompt: seen }),
             checkCredentials: async () => {
-                const credentials = await getStoredCredentials();
-                set({ hasCredentials: !!credentials });
+                const has = await hasStoredCredentials();
+                set({ hasCredentials: has });
             },
             disableBiometrics: async () => {
                 await clearStoredCredentials();

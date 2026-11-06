@@ -103,16 +103,22 @@ export const authenticateWithBiometrics = async (
     }
 };
 
+const SECURE_STORE_OPTIONS: SecureStore.SecureStoreOptions = {
+    keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+};
+
 /**
  * Securely stores user credentials for biometric login in device KeyStore/Keychain.
+ * Configured with WHEN_UNLOCKED_THIS_DEVICE_ONLY so credentials cannot be migrated
+ * to new devices via backups or accessed when device is locked.
  */
 export const saveCredentials = async (email: string, password: string): Promise<boolean> => {
     try {
         if (!email || !password) {
             return false;
         }
-        await SecureStore.setItemAsync(SECURE_STORE_KEYS.EMAIL, email);
-        await SecureStore.setItemAsync(SECURE_STORE_KEYS.PASSWORD, password);
+        await SecureStore.setItemAsync(SECURE_STORE_KEYS.EMAIL, email, SECURE_STORE_OPTIONS);
+        await SecureStore.setItemAsync(SECURE_STORE_KEYS.PASSWORD, password, SECURE_STORE_OPTIONS);
         return true;
     } catch (error) {
         console.error('Error saving credentials to SecureStore:', error);
@@ -121,12 +127,27 @@ export const saveCredentials = async (email: string, password: string): Promise<
 };
 
 /**
+ * Checks whether credentials exist in SecureStore without decrypting or exposing the password.
+ */
+export const hasStoredCredentials = async (): Promise<boolean> => {
+    try {
+        const email = await SecureStore.getItemAsync(SECURE_STORE_KEYS.EMAIL, SECURE_STORE_OPTIONS);
+        if (email) return true;
+        const creds = await getStoredCredentials();
+        return !!creds?.email;
+    } catch {
+        return false;
+    }
+};
+
+/**
  * Retrieves stored credentials for biometric login.
+ * Should only be called AFTER successful biometric authentication verification.
  */
 export const getStoredCredentials = async (): Promise<{ email: string; password: string } | null> => {
     try {
-        const email = await SecureStore.getItemAsync(SECURE_STORE_KEYS.EMAIL);
-        const password = await SecureStore.getItemAsync(SECURE_STORE_KEYS.PASSWORD);
+        const email = await SecureStore.getItemAsync(SECURE_STORE_KEYS.EMAIL, SECURE_STORE_OPTIONS);
+        const password = await SecureStore.getItemAsync(SECURE_STORE_KEYS.PASSWORD, SECURE_STORE_OPTIONS);
         if (email && password) {
             return { email, password };
         }
@@ -138,12 +159,12 @@ export const getStoredCredentials = async (): Promise<{ email: string; password:
 };
 
 /**
- * Clears stored credentials.
+ * Clears stored credentials from Keychain/KeyStore.
  */
 export const clearStoredCredentials = async (): Promise<boolean> => {
     try {
-        await SecureStore.deleteItemAsync(SECURE_STORE_KEYS.EMAIL);
-        await SecureStore.deleteItemAsync(SECURE_STORE_KEYS.PASSWORD);
+        await SecureStore.deleteItemAsync(SECURE_STORE_KEYS.EMAIL, SECURE_STORE_OPTIONS);
+        await SecureStore.deleteItemAsync(SECURE_STORE_KEYS.PASSWORD, SECURE_STORE_OPTIONS);
         return true;
     } catch (error) {
         console.error('Error clearing credentials from SecureStore:', error);

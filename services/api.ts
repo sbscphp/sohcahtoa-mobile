@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 
 
 const api = axios.create({
-    baseURL: 'https://sohcahtoa-dev.clocksurewise.com/api',
+    baseURL: process.env.EXPO_PUBLIC_API_URL || 'https://sohcahtoa-dev.clocksurewise.com/api',
     headers: {
         'Content-Type': 'application/json',
     },
