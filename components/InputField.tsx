@@ -74,6 +74,10 @@ const InputField: React.FC<InputFieldProps> = ({
                 <TextInput
                     style={[styles.input, { color: colors.text }, props.style]}
                     secureTextEntry={isPassword && !isPasswordVisible}
+                    autoCorrect={isPassword ? false : props.autoCorrect}
+                    autoCapitalize={isPassword ? 'none' : props.autoCapitalize}
+                    spellCheck={isPassword ? false : props.spellCheck}
+                    textContentType={isPassword ? 'none' : props.textContentType}
                     placeholderTextColor={placeholderColor}
                     testID="input-field"
                     editable={!disabled && (props.editable !== undefined ? props.editable : true)}

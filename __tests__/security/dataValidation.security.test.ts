@@ -8,6 +8,7 @@ import {
     bankDetailsStepSchema,
     medicalBankDetailsStepSchema,
 } from '@/utils/validations/shared';
+import { sanitizeFileName } from '@/utils/fileDownload';
 
 describe('Data Validation & Injection Defense (MASVS-PLATFORM / MASVS-CODE)', () => {
     describe('passportDocumentNumberField', () => {
@@ -122,6 +123,24 @@ describe('Data Validation & Injection Defense (MASVS-PLATFORM / MASVS-CODE)', ()
             // Invalid email injection attempt
             const invalidEmail = { ...valid, beneficiaryEmail: 'billing@cityhospital.org<script>' };
             expect(medicalBankDetailsStepSchema.safeParse(invalidEmail).success).toBe(false);
+        });
+    });
+
+    describe('sanitizeFileName (Path Traversal Prevention)', () => {
+        it('strips directory traversal prefixes and backslashes', () => {
+            expect(sanitizeFileName('../../etc/passwd')).toBe('passwd');
+            expect(sanitizeFileName('..\\..\\windows\\system32\\calc.exe')).toBe('calc.exe');
+            expect(sanitizeFileName('/root/secret.txt')).toBe('secret.txt');
+        });
+
+        it('replaces dangerous and control characters with underscores', () => {
+            expect(sanitizeFileName('receipt; rm -rf; .pdf')).toBe('receipt__rm_-rf__.pdf');
+            expect(sanitizeFileName('statement $(whoami).pdf')).toBe('statement___whoami_.pdf');
+        });
+
+        it('defaults safely if empty or all dots provided', () => {
+            expect(sanitizeFileName('...')).toBe('downloaded_file');
+            expect(sanitizeFileName('')).toBe('downloaded_file');
         });
     });
 });

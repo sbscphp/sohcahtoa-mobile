@@ -1,5 +1,6 @@
 import { User } from '@/types/api/user';
 import { clearStoredCredentials, hasStoredCredentials } from '@/utils/biometrics';
+import { purgeDocumentPickerCache } from '@/utils/cacheCleanup';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
@@ -27,6 +28,10 @@ interface AuthState {
     disableBiometrics: () => Promise<void>;
     hasSeenNotificationPrompt: boolean;
     setHasSeenNotificationPrompt: (seen: boolean) => void;
+    pendingBiometricCredentials: { email: string; password: string } | null;
+    setPendingBiometricCredentials: (creds: { email: string; password: string } | null) => void;
+    pendingResetToken: string | null;
+    setPendingResetToken: (token: string | null) => void;
     logout: () => void;
 }
 
@@ -38,11 +43,15 @@ export const useAuthStore = create<AuthState>()(
             verificationToken: null,
             user: null,
             tempUserInfo: null,
+            pendingBiometricCredentials: null,
+            pendingResetToken: null,
             isAuthenticated: false,
             isBiometricEnabled: false,
             biometricType: null,
             hasCredentials: false,
             hasSeenNotificationPrompt: false,
+            setPendingResetToken: (pendingResetToken) => set({ pendingResetToken }),
+            setPendingBiometricCredentials: (pendingBiometricCredentials) => set({ pendingBiometricCredentials }),
             setHasCredentials: (hasCredentials) => set({ hasCredentials }),
             setHasSeenNotificationPrompt: (seen) => set({ hasSeenNotificationPrompt: seen }),
             checkCredentials: async () => {
@@ -67,13 +76,16 @@ export const useAuthStore = create<AuthState>()(
                 isAuthenticated: !!accessToken
             }),
             logout: () => {
+                purgeDocumentPickerCache().catch(() => {});
                 set({
                     token: null,
                     refreshToken: null,
                     verificationToken: null,
                     user: null,
                     isAuthenticated: false,
-                    tempUserInfo: null
+                    tempUserInfo: null,
+                    pendingBiometricCredentials: null,
+                    pendingResetToken: null,
                 });
             },
 

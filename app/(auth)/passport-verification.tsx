@@ -120,6 +120,9 @@ export default function PassportVerificationScreen() {
     const onTouristSubmit = (data: PassportFormData) => {
         const onSuccess = (response: any) => {
             if (response.success) {
+                if (response.data?.verificationToken) {
+                    useAuthStore.getState().setVerificationToken(response.data.verificationToken);
+                }
                 useAuthStore.getState().setTempUserInfo({
                     firstName: response.data?.firstName || data.firstName,
                     lastName: response.data?.lastName || data.lastName,
@@ -132,12 +135,6 @@ export default function PassportVerificationScreen() {
                     pathname: '/(auth)/bvn-confirmation',
                     params: {
                         userType: 'tourist',
-                        verificationToken: response.data?.verificationToken,
-                        firstName: response.data?.firstName || data.firstName,
-                        lastName: response.data?.lastName || data.lastName,
-                        phoneNumber: response.data?.phoneNumber || '',
-                        email: response.data?.email || '',
-                        address: response.data?.address || response.data?.nationality || '',
                         flowContext: 'passport'
                     }
                 });
@@ -159,6 +156,9 @@ export default function PassportVerificationScreen() {
     const onExpatriateSubmit = (data: PassportFormData) => {
         const onSuccess = (response: any) => {
             if (response.success) {
+                if (response.data?.verificationToken) {
+                    useAuthStore.getState().setVerificationToken(response.data.verificationToken);
+                }
                 useAuthStore.getState().setTempUserInfo({
                     firstName: response.data?.firstName || data.firstName,
                     lastName: response.data?.lastName || data.lastName,
@@ -171,13 +171,6 @@ export default function PassportVerificationScreen() {
                     pathname: '/(auth)/bvn-confirmation',
                     params: {
                         userType: 'expatriate',
-                        verificationToken: response.data?.verificationToken,
-                        firstName: response.data?.firstName || data.firstName,
-                        lastName: response.data?.lastName || data.lastName,
-                        phoneNumber: data.phoneNumber || '',
-                        email: data.email || '',
-                        dateOfBirth: response.data?.dateOfBirth || '',
-                        address: response.data?.nationality || '',
                         flowContext: 'passport'
                     }
                 });

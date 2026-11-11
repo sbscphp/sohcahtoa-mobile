@@ -259,11 +259,16 @@ describe('BvnVerificationScreen', () => {
                 pathname: '/(auth)/bvn-confirmation',
                 params: expect.objectContaining({
                     userType: 'citizen',
-                    verificationToken: 'verified-jwt-token-123',
-                    firstName: 'Chinedu',
-                    lastName: 'Okafor',
+                    flowContext: 'email',
                 }),
             });
+            expect(useAuthStore.getState().setVerificationToken).toHaveBeenCalledWith('verified-jwt-token-123');
+            expect(useAuthStore.getState().setTempUserInfo).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    firstName: 'Chinedu',
+                    lastName: 'Okafor',
+                })
+            );
         });
     });
 

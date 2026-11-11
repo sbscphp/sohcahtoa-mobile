@@ -124,13 +124,6 @@ export function useIgreeVerification({
                         pathname: '/(auth)/bvn-confirmation',
                         params: {
                             userType: userType || 'citizen',
-                            verificationToken: verificationToken,
-                            firstName: customer?.firstName || firstName,
-                            lastName: customer?.lastName || lastName,
-                            phoneNumber: phoneNumber,
-                            email: email,
-                            dateOfBirth: customer?.dateOfBirth || dateOfBirth,
-                            address: [customer?.lgaOfOrigin, customer?.stateOfOrigin].filter(Boolean).join(', ') || '',
                             flowContext: 'email',
                         },
                     });
@@ -171,6 +164,16 @@ export function useIgreeVerification({
             const processCallbackUrl = async (callbackUrl: string) => {
                 if (handledCallback) return;
                 const { code, state: returnedState } = extractCodeAndState(callbackUrl);
+
+                // CSRF Defense: Validate that the returned state matches the active session ID
+                if (sessionId && returnedState && returnedState !== sessionId) {
+                    console.warn('Rejected iGree callback: state parameter mismatch (potential CSRF).', {
+                        expected: sessionId,
+                        received: returnedState,
+                    });
+                    return;
+                }
+
                 const stateToUse = returnedState || sessionId;
 
                 if (code && stateToUse) {

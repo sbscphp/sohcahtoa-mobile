@@ -8,7 +8,7 @@ import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useThemeStore } from '@/stores/useThemeStore';
 import { clearStoredCredentials } from '@/utils/biometrics';
-import { checkDeviceIntegrity } from '@/utils/deviceIntegrity';
+import { checkDeviceIntegrity, DeviceIntegrityResult } from '@/utils/deviceIntegrity';
 import {
   Inter_300Light,
   Inter_400Regular,
@@ -23,6 +23,7 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
+import { AppState, AppStateStatus } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
@@ -89,7 +90,17 @@ export default function RootLayout() {
   });
 
   const [isReady, setIsReady] = useState(false);
-  const [compromisedReason, setCompromisedReason] = useState<string | null>(null);
+  const [securityStatus, setSecurityStatus] = useState<DeviceIntegrityResult | null>(null);
+
+  const evaluateSecurity = async () => {
+    try {
+      const integrity = await checkDeviceIntegrity();
+      setSecurityStatus(integrity.isCompromised ? integrity : null);
+      return integrity;
+    } catch {
+      return { isCompromised: false };
+    }
+  };
 
   useEffect(() => {
     if (error) {
@@ -103,13 +114,24 @@ export default function RootLayout() {
     }
   }, [loaded, error, isReady]);
 
+  // Listen for app state changes (e.g. user toggles USB Debugging in settings and returns)
+  useEffect(() => {
+    const handleAppStateChange = (nextAppState: AppStateStatus) => {
+      if (nextAppState === 'active') {
+        evaluateSecurity();
+      }
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+
   useEffect(() => {
     const initApp = async () => {
       try {
-        const integrity = await checkDeviceIntegrity();
-        if (integrity.isCompromised) {
-          setCompromisedReason(integrity.reason || 'Device integrity check failed.');
-        }
+        await evaluateSecurity();
 
         await Promise.all([
           new Promise<void>((resolve) => {
@@ -159,8 +181,14 @@ export default function RootLayout() {
     return null;
   }
 
-  if (compromisedReason) {
-    return <DeviceSecurityBlockedScreen reason={compromisedReason} />;
+  if (securityStatus?.isCompromised) {
+    return (
+      <DeviceSecurityBlockedScreen
+        reason={securityStatus.reason}
+        type={securityStatus.type}
+        onRecheck={evaluateSecurity}
+      />
+    );
   }
 
   return (

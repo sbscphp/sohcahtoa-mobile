@@ -18,11 +18,18 @@ describe('Session & Auth Security (MASVS-AUTH)', () => {
         } as any);
         store.setVerificationToken('verif_token_789');
         store.setTempUserInfo({ nin: '12345678901', bvn: '22223333444' });
+        store.setPendingBiometricCredentials({ email: 'user@example.com', password: 'SecretPassword123!' });
+        store.setPendingResetToken('mock_reset_token_xyz_789');
 
         expect(useAuthStore.getState().isAuthenticated).toBe(true);
         expect(useAuthStore.getState().token).toBe('jwt_access_token_123');
         expect(useAuthStore.getState().verificationToken).toBe('verif_token_789');
         expect(useAuthStore.getState().tempUserInfo).not.toBeNull();
+        expect(useAuthStore.getState().pendingBiometricCredentials).toEqual({
+            email: 'user@example.com',
+            password: 'SecretPassword123!',
+        });
+        expect(useAuthStore.getState().pendingResetToken).toBe('mock_reset_token_xyz_789');
 
         // Perform logout
         useAuthStore.getState().logout();
@@ -34,6 +41,8 @@ describe('Session & Auth Security (MASVS-AUTH)', () => {
         expect(stateAfter.verificationToken).toBeNull();
         expect(stateAfter.user).toBeNull();
         expect(stateAfter.tempUserInfo).toBeNull();
+        expect(stateAfter.pendingBiometricCredentials).toBeNull();
+        expect(stateAfter.pendingResetToken).toBeNull();
     });
 
     it('injects Bearer token dynamically into API request headers', async () => {

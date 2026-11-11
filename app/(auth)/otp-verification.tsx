@@ -95,13 +95,14 @@ export default function OtpVerificationScreen() {
         if (currentOtp.length === 6) {
             const onSuccess = (response: any) => {
                 if (type === 'reset-password') {
+                    if (response?.data?.resetToken) {
+                        useAuthStore.getState().setPendingResetToken(response.data.resetToken);
+                    }
                     router.push({
                         pathname: '/(auth)/secure-account',
                         params: {
                             type: 'reset-password',
                             email: contactInfo,
-                            otp: currentOtp,
-                            resetToken: response?.data?.resetToken,
                         },
                     });
                 } else {

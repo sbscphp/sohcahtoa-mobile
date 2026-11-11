@@ -19,11 +19,20 @@ import { Colors } from '../../constants/theme';
 
 export default function SecureAccountScreen() {
     const router = useRouter();
-    const { type, userType, resetToken } = useLocalSearchParams<{ type?: string; userType?: string; resetToken?: string }>();
+    const pendingResetToken = useAuthStore((state) => state.pendingResetToken);
+    const setPendingResetToken = useAuthStore((state) => state.setPendingResetToken);
+    const { type, userType, resetToken: paramResetToken } = useLocalSearchParams<{ type?: string; userType?: string; resetToken?: string }>();
+    const effectiveResetToken = pendingResetToken || paramResetToken;
     const insets = useSafeAreaInsets();
     const { colors } = useAppTheme();
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+
+    React.useEffect(() => {
+        return () => {
+            setPendingResetToken(null);
+        };
+    }, []);
 
     const { mutate: createAccount, isPending: isCreatingNigerian } = useCreateAccountMutation();
     const { mutate: createTouristAccount, isPending: isCreatingTourist } = useCreateTouristAccountMutation();
@@ -36,9 +45,10 @@ export default function SecureAccountScreen() {
     const handleCreatePassword = () => {
         if (password && password === confirmPassword) {
             if (type === 'reset-password') {
-                if (resetToken) {
-                    resetPassword({ resetToken, newPassword: password }, {
+                if (effectiveResetToken) {
+                    resetPassword({ resetToken: effectiveResetToken, newPassword: password }, {
                         onSuccess: () => {
+                            setPendingResetToken(null);
                             router.replace('/(auth)/login');
                         }
                     });

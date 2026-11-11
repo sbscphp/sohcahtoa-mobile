@@ -124,8 +124,13 @@ async function handleNotificationResponse(response: Notifications.NotificationRe
             pathname: routeInfo.pathname as any,
             params: routeInfo.params
         });
-    } else if (data?.actionUrl) {
-        router.push(data.actionUrl);
+    } else if (
+        data?.actionUrl &&
+        typeof data.actionUrl === 'string' &&
+        data.actionUrl.startsWith('/') &&
+        !data.actionUrl.startsWith('//')
+    ) {
+        router.push(data.actionUrl as any);
     } else {
         router.push('/notifications');
     }
