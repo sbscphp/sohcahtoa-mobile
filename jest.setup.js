@@ -92,9 +92,15 @@ jest.mock('expo-image', () => ({
     Image: 'Image',
 }));
 
-jest.mock('react-native-safe-area-context', () => ({
-    useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
-}));
+jest.mock('react-native-safe-area-context', () => {
+    const React = require('react');
+    const { View } = require('react-native');
+    return {
+        useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+        SafeAreaView: ({ children, ...props }) => React.createElement(View, props, children),
+        SafeAreaProvider: ({ children }) => children,
+    };
+});
 
 jest.mock('@/components/Header', () => {
     const { Text, View, Pressable } = require('react-native');
@@ -372,5 +378,11 @@ jest.mock('expo-secure-store', () => {
         AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY: 4,
     };
 });
+
+const { NativeModules } = require('react-native');
+NativeModules.SecurityBridge = {
+    isUsbDebuggingEnabled: jest.fn(() => Promise.resolve(false)),
+    openDevelopmentSettings: jest.fn(() => Promise.resolve(true)),
+};
 
 // Mocking finished

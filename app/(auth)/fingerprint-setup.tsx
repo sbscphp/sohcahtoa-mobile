@@ -21,7 +21,11 @@ export default function FingerprintSetupScreen() {
     const { colors, isDark } = useAppTheme();
     const router = useRouter();
     const insets = useSafeAreaInsets();
-    const { email, password } = useLocalSearchParams<{ email: string; password: string }>();
+    const pendingCreds = useAuthStore((state) => state.pendingBiometricCredentials);
+    const setPendingBiometricCredentials = useAuthStore((state) => state.setPendingBiometricCredentials);
+    const { email: paramEmail, password: paramPassword } = useLocalSearchParams<{ email?: string; password?: string }>();
+    const email = pendingCreds?.email || paramEmail;
+    const password = pendingCreds?.password || paramPassword;
     const setBiometricEnabled = useAuthStore((state) => state.setBiometricEnabled);
     const setBiometricType = useAuthStore((state) => state.setBiometricType);
     const checkCredentials = useAuthStore((state) => state.checkCredentials);
@@ -33,6 +37,10 @@ export default function FingerprintSetupScreen() {
     // Check biometric hardware availability on mount
     useEffect(() => {
         checkBiometricAvailability();
+        return () => {
+            // Wipes sensitive credentials from memory on unmount
+            setPendingBiometricCredentials(null);
+        };
     }, []);
 
     const checkBiometricAvailability = async () => {
@@ -81,14 +89,15 @@ export default function FingerprintSetupScreen() {
         try {
             const success = await authenticateWithBiometrics({
                 promptMessage: 'Authenticate with your fingerprint',
-                fallbackLabel: 'Use passcode',
                 cancelLabel: 'Cancel',
+                disableDeviceFallback: true,
             });
 
             if (success) {
                 if (email && password) {
                     const saved = await saveCredentials(email, password);
                     if (saved) {
+                        setPendingBiometricCredentials(null);
                         setBiometricEnabled(true);
                         setBiometricType('fingerprint');
                         if (typeof checkCredentials === 'function') {

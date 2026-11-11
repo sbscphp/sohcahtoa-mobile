@@ -17,6 +17,15 @@ export interface DownloadFileResult {
 }
 
 /**
+ * Sanitizes a file name by stripping path traversal sequences and keeping only safe characters.
+ */
+export function sanitizeFileName(name: string): string {
+    const baseName = name.replace(/^.*[/\\]/, '');
+    const cleaned = baseName.replace(/[^a-zA-Z0-9._-]/g, '_');
+    return cleaned.replace(/^\.+/, '') || 'downloaded_file';
+}
+
+/**
  * Downloads, saves, and opens/displays a file across Android, iOS, and Web.
  * - On Web: Triggers a direct browser download and opens in a new tab.
  * - On Android: Downloads locally to document storage, opens via external browser/viewer
@@ -30,12 +39,14 @@ export async function downloadAndSaveFile({
     mimeType = 'application/pdf',
     dialogTitle = 'Transaction Receipt',
 }: DownloadFileOptions): Promise<DownloadFileResult> {
+    const safeFileName = sanitizeFileName(fileName);
+
     // 1. Web browser download
     if (Platform.OS === 'web') {
         if (typeof document !== 'undefined') {
             const link = document.createElement('a');
             link.href = url;
-            link.download = fileName;
+            link.download = safeFileName;
             link.target = '_blank';
             document.body.appendChild(link);
             link.click();
@@ -47,7 +58,7 @@ export async function downloadAndSaveFile({
     try {
         // 2. Prepare local persistent storage path
         const baseDir = FileSystem.documentDirectory || FileSystem.cacheDirectory;
-        const localUri = baseDir ? `${baseDir}${fileName}` : null;
+        const localUri = baseDir ? `${baseDir}${safeFileName}` : null;
         let localFileUri = localUri || url;
 
         // 3. Download or write file locally if filesystem is available

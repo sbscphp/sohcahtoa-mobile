@@ -21,13 +21,25 @@ export default function BiometricsSetupScreen() {
     const { colors } = useAppTheme();
     const router = useRouter();
     const insets = useSafeAreaInsets();
-    const { email, password } = useLocalSearchParams<{ email: string; password: string }>();
+    const pendingCreds = useAuthStore((state) => state.pendingBiometricCredentials);
+    const setPendingBiometricCredentials = useAuthStore((state) => state.setPendingBiometricCredentials);
+    const { email: paramEmail, password: paramPassword } = useLocalSearchParams<{ email?: string; password?: string }>();
+    const email = pendingCreds?.email || paramEmail;
+    const password = pendingCreds?.password || paramPassword;
+
     const setBiometricEnabled = useAuthStore((state) => state.setBiometricEnabled);
     const setBiometricType = useAuthStore((state) => state.setBiometricType);
     const checkCredentials = useAuthStore((state) => state.checkCredentials);
     const [status, setStatus] = useState<Status>('idle');
     const [loading, setLoading] = useState(false);
     const [isContinuing, setIsContinuing] = useState(false);
+
+    React.useEffect(() => {
+        return () => {
+            // Wipes sensitive credentials from memory on unmount
+            setPendingBiometricCredentials(null);
+        };
+    }, []);
 
     const handleStart = async () => {
         setLoading(true);
@@ -53,11 +65,15 @@ export default function BiometricsSetupScreen() {
                 return;
             }
 
-            const success = await authenticateWithBiometrics('Authenticate with Face ID');
+            const success = await authenticateWithBiometrics({
+                promptMessage: 'Authenticate with Face ID',
+                disableDeviceFallback: true,
+            });
 
             if (success) {
                 const saved = await saveCredentials(email, password);
                 if (saved) {
+                    setPendingBiometricCredentials(null);
                     setBiometricEnabled(true);
                     setBiometricType('face');
                     if (typeof checkCredentials === 'function') {

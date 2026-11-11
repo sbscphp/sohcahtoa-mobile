@@ -139,13 +139,11 @@ export default function LoginScreen() {
             const promptTitle = `Authenticate with ${biometricLabel}`;
             const success = await authenticateWithBiometrics(promptTitle);
             if (success) {
+                useAuthStore.getState().setPendingBiometricCredentials({ email, password });
                 const targetPath = biometricType === 'face'
                     ? '/(auth)/biometrics-setup'
                     : '/(auth)/fingerprint-setup';
-                router.push({
-                    pathname: targetPath,
-                    params: { email, password },
-                });
+                router.push(targetPath as any);
             }
         } else {
             showToast('Please login with your password first to enable biometric login.', 'warning');

@@ -110,6 +110,16 @@ const NibssIgreeWebViewModal: React.FC<NibssIgreeWebViewModalProps> = ({
 
         if (isRedirectTarget) {
             const { code, state: returnedState } = extractCodeAndState(url);
+
+            // CSRF Defense: Validate that the returned state matches the active session ID
+            if (sessionId && returnedState && returnedState !== sessionId) {
+                console.warn('Rejected iGree callback: state parameter mismatch (potential CSRF).', {
+                    expected: sessionId,
+                    received: returnedState,
+                });
+                return false;
+            }
+
             const resolvedState = returnedState || sessionId;
 
             if (code && resolvedState) {

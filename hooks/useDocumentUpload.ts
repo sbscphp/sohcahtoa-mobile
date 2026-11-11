@@ -2,6 +2,7 @@ import { useUploadTransactionDocumentMutation } from '@/hooks/queries/transactio
 import { useReuploadTransactionDocumentMutation } from '@/hooks/queries/transactions/useReuploadTransactionDocumentMutation';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useToastStore } from '@/stores/useToastStore';
+import { deleteCachedFile } from '@/utils/cacheCleanup';
 import * as DocumentPicker from 'expo-document-picker';
 
 export interface UploadedFile {
@@ -50,11 +51,13 @@ export function useDocumentUpload({ onSuccess, onError, transactionId }: UseDocu
 
             const MAX_SIZE = 10 * 1024 * 1024;
             if (asset.size && asset.size > MAX_SIZE) {
+                deleteCachedFile(asset.uri).catch(() => {});
                 showToast('File size exceeds the 10 MB limit', 'error');
                 return;
             }
 
             if (!user?.id) {
+                deleteCachedFile(asset.uri).catch(() => {});
                 console.error('User ID not found');
                 return;
             }
@@ -89,6 +92,10 @@ export function useDocumentUpload({ onSuccess, onError, transactionId }: UseDocu
                                 onSuccess(documentType, { file, metadata, response });
                             }
                         },
+                        onError: (err: any) => {
+                            deleteCachedFile(asset.uri).catch(() => {});
+                            onError?.(err);
+                        },
                     }
                 );
             } else {
@@ -121,6 +128,10 @@ export function useDocumentUpload({ onSuccess, onError, transactionId }: UseDocu
                                 };
                                 onSuccess(documentType, { file, metadata, response });
                             }
+                        },
+                        onError: (err: any) => {
+                            deleteCachedFile(asset.uri).catch(() => {});
+                            onError?.(err);
                         },
                     }
                 );

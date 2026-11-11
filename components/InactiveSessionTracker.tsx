@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { PanResponder, View, AppState, AppStateStatus } from 'react-native';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useToastStore } from '@/stores/useToastStore';
+import { logoutUser } from '@/services/auth';
 
 
 const INACTIVITY_TIMEOUT = 5 * 60 * 1000;
@@ -25,6 +26,12 @@ export default function InactiveSessionTracker({ children }: { children: React.R
 
     const handleLogout = (message: string) => {
         if (isAuthenticated) {
+            const refreshToken = useAuthStore.getState().refreshToken;
+            if (refreshToken) {
+                logoutUser({ refreshToken }).catch((err) => {
+                    console.warn('Failed to revoke session token on inactivity logout:', err);
+                });
+            }
             logout();
             useToastStore.getState().showToast(message, 'warning');
         }
