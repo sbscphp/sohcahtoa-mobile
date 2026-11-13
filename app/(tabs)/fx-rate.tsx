@@ -1,14 +1,15 @@
 import CurrencyConverter from '@/components/CurrencyConverter';
 import Header from '@/components/Header';
+import { ExchangeRate } from '@/types/api/transactions';
 import { getCurrencySymbol } from '@/utils/helpers';
 import { useGetUnreadCountQuery } from '@/hooks/queries/notifications/useGetUnreadCountQuery';
 import { useCalculateExchangeRateMutation } from '@/hooks/queries/transactions/useCalculateExchangeRateMutation';
 import { useGetExchangeRatesQuery } from '@/hooks/queries/transactions/useGetExchangeRatesQuery';
 import { useDebounce } from '@/hooks/useDebounce';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { Notification } from 'iconsax-react-nativejs';
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, AppState, RefreshControl, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { moderateScale, ScaledSheet } from 'react-native-size-matters';
 import { AnimatedTabScreen } from '@/components/ui/AnimatedTabScreen';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -21,6 +22,12 @@ interface Currency {
     flagUrl: string;
 }
 
+
+interface RateRow {
+    currency: string;
+    buy: string;
+    sell: string;
+}
 
 const currencies: Currency[] = [
     { code: 'USD', country: 'United States', currencyName: 'US Dollar', flagUrl: 'https://flagcdn.com/w320/us.png' },
@@ -39,11 +46,32 @@ export default function FxRateScreen() {
     const [amountGet, setAmountGet] = useState('0');
     const [amountSend, setAmountSend] = useState('0');
 
-    const { data: unreadData } = useGetUnreadCountQuery();
+    const { data: unreadData, refetch: refetchUnreadCount } = useGetUnreadCountQuery();
     const unreadCount = unreadData?.data?.count || 0;
 
-    const { data: exchangeRatesData, isLoading: isLoadingRates } = useGetExchangeRatesQuery();
+    const {
+        data: exchangeRatesData,
+        isLoading: isLoadingRates,
+        isRefetching: isRefetchingRates,
+        refetch: refetchRates,
+    } = useGetExchangeRatesQuery();
     const { mutate: calculateRate, isPending: isCalculating } = useCalculateExchangeRateMutation();
+
+    useFocusEffect(
+        useCallback(() => {
+            refetchRates();
+            refetchUnreadCount();
+        }, [refetchRates, refetchUnreadCount])
+    );
+
+    useEffect(() => {
+        const subscription = AppState.addEventListener('change', (nextState) => {
+            if (nextState === 'active') {
+                refetchRates();
+            }
+        });
+        return () => subscription.remove();
+    }, [refetchRates]);
 
     // console.log(JSON.stringify(exchangeRatesData, null, 2),"Exchange Rates Data")
 
@@ -70,7 +98,7 @@ export default function FxRateScreen() {
         }
     }, [debouncedAmountGet, currencyGet.code, currencySend.code, transactionType]);
 
-    const ratesData = exchangeRatesData?.data?.map(rate => ({
+    const ratesData: RateRow[] = exchangeRatesData?.data?.map((rate: ExchangeRate) => ({
         currency: `${rate.fromCurrency} (${getCurrencySymbol(rate.fromCurrency)})`,
         buy: `₦${rate.buyRate} / ${rate.fromCurrency === 'USD' ? '$' : '1'}`,
         sell: `₦${rate.sellRate} / ${rate.fromCurrency === 'USD' ? '$' : '1'}`
@@ -92,7 +120,21 @@ export default function FxRateScreen() {
                 }
                 onRightPress={() => router.push('/notifications')}
             />
-            <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent}>
+            <ScrollView
+                style={styles.content}
+                contentContainerStyle={styles.scrollContent}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={isRefetchingRates && !isLoadingRates}
+                        onRefresh={() => {
+                            refetchRates();
+                            refetchUnreadCount();
+                        }}
+                        tintColor="#FF6B2C"
+                        colors={['#FF6B2C']}
+                    />
+                }
+            >
                 <CurrencyConverter
                     transactionType={transactionType}
                     onTransactionTypeChange={setTransactionType}
@@ -123,7 +165,13 @@ export default function FxRateScreen() {
                             <View style={{ padding: moderateScale(20) }}>
                                 <ActivityIndicator color={colors.text} />
                             </View>
-                        ) : ratesData.map((item, index) => (
+                        ) : ratesData.length === 0 ? (
+                            <View style={{ padding: moderateScale(20), alignItems: 'center' }}>
+                                <Text style={[styles.tableCellText, { color: colors.textMuted }]}>
+                                    No exchange rates available
+                                </Text>
+                            </View>
+                        ) : ratesData.map((item: RateRow, index: number) => (
                             <View key={index} style={styles.tableRow}>
                                 <Text style={[styles.tableCellText, { flex: 2, color: colors.text }]}>{item.currency}</Text>
                                 <Text style={[styles.tableCellText, { flex: 1.5, textAlign: 'center', color: colors.text }]}>{item.buy}</Text>

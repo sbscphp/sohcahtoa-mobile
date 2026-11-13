@@ -7,7 +7,7 @@ import { openDeveloperSettings, SecurityCompromiseType } from '@/utils/deviceInt
 interface DeviceSecurityBlockedScreenProps {
     reason?: string;
     type?: SecurityCompromiseType;
-    onRecheck?: () => Promise<void> | void;
+    onRecheck?: () => Promise<unknown> | void;
 }
 
 export default function DeviceSecurityBlockedScreen({
