@@ -6,6 +6,11 @@ export const useGetExchangeRatesQuery = (params?: GetExchangeRatesParams) => {
     return useQuery({
         queryKey: ['exchangeRates', params],
         queryFn: () => getExchangeRates(params),
-        staleTime: 1000 * 60 * 5,
+        staleTime: 1000 * 30,
+        refetchOnMount: 'always',
+        refetchInterval: (query) => {
+            const rates = query.state.data?.data;
+            return !rates || rates.length === 0 ? 10000 : 1000 * 60;
+        },
     });
 };
