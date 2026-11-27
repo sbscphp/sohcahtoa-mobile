@@ -1,9 +1,12 @@
 import { LiquidGlassView } from '@/components/ui/LiquidGlassView';
 import { useAppTheme } from '@/context/ThemeContext';
 import { useDevicePose } from '@/hooks/useDevicePose';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
+    Keyboard,
+    KeyboardAvoidingView,
     Modal,
+    Platform,
     Pressable,
     StyleProp,
     StyleSheet,
@@ -45,6 +48,11 @@ export interface AnimatedBottomSheetProps {
      * Touches and downward gestures in this area will smoothly drag the sheet down to close.
      */
     headerComponent?: React.ReactNode;
+    /**
+     * When true, shifts the sheet above the software keyboard on iOS and Android.
+     * @default false
+     */
+    avoidKeyboard?: boolean;
     children: React.ReactNode;
 }
 
@@ -55,6 +63,7 @@ export const AnimatedBottomSheet: React.FC<AnimatedBottomSheetProps> = ({
     showHandle = true,
     glassTintColor,
     headerComponent,
+    avoidKeyboard = false,
     children,
 }) => {
     const { width, height } = useWindowDimensions();
@@ -68,6 +77,29 @@ export const AnimatedBottomSheet: React.FC<AnimatedBottomSheetProps> = ({
     const translateY = useSharedValue(500);
     const backdropOpacity = useSharedValue(0);
     const isClosingRef = React.useRef(false);
+    const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+    useEffect(() => {
+        if (!avoidKeyboard || !visible) {
+            setKeyboardHeight(0);
+            return;
+        }
+
+        const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+        const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+        const showSub = Keyboard.addListener(showEvent, (e) => {
+            setKeyboardHeight(e.endCoordinates.height);
+        });
+        const hideSub = Keyboard.addListener(hideEvent, () => {
+            setKeyboardHeight(0);
+        });
+
+        return () => {
+            showSub.remove();
+            hideSub.remove();
+        };
+    }, [avoidKeyboard, visible]);
 
     useEffect(() => {
         if (visible) {
@@ -211,6 +243,87 @@ export const AnimatedBottomSheet: React.FC<AnimatedBottomSheetProps> = ({
         };
     }
 
+    const androidKeyboardBottom =
+        avoidKeyboard && Platform.OS === 'android' && keyboardHeight > 0
+            ? keyboardHeight + moderateScale(8)
+            : null;
+    const maxSheetHeight =
+        avoidKeyboard && keyboardHeight > 0
+            ? Math.max(200, height - keyboardHeight - insets.top - moderateScale(16))
+            : undefined;
+
+    if (androidKeyboardBottom !== null) {
+        sheetWrapperStyle = {
+            ...sheetWrapperStyle,
+            paddingBottom: androidKeyboardBottom,
+        };
+    }
+
+    const overlayContent = (
+        <>
+            <Pressable
+                style={[styles.backdropTouch, { backgroundColor: 'transparent' }]}
+                onPress={handleClose}
+                accessibilityRole="button"
+                accessibilityLabel="Close sheet"
+            >
+                <Animated.View
+                    style={[
+                        StyleSheet.absoluteFill,
+                        { backgroundColor: colors.overlay },
+                        animatedBackdropStyle,
+                    ]}
+                    pointerEvents="none"
+                />
+            </Pressable>
+
+            <Animated.View
+                pointerEvents="box-none"
+                style={[styles.sheetWrapper, sheetWrapperStyle, animatedSheetStyle]}
+            >
+                <LiquidGlassView
+                    variant="regular"
+                    colorScheme={resolvedTheme}
+                    tintColor={resolvedTint}
+                    style={[
+                        styles.defaultSheet,
+                        sheetStyle,
+                        {
+                            width: '100%',
+                            backgroundColor: colors.surface,
+                            borderColor: colors.border,
+                            borderWidth: isDark ? 1 : 0,
+                            ...(maxSheetHeight !== undefined ? { maxHeight: maxSheetHeight } : {}),
+                        },
+                    ]}
+                >
+                    {/* Interactive Swipe-Down Drag Handle & Header Zone */}
+                    <GestureDetector gesture={panGesture}>
+                        <Animated.View style={styles.topDragZone}>
+                            {showHandle && (
+                                <View style={styles.handleWrapper}>
+                                    <View
+                                        style={[
+                                            styles.handlePill,
+                                            {
+                                                backgroundColor: isDark
+                                                    ? 'rgba(148, 163, 184, 0.55)'
+                                                    : 'rgba(148, 163, 184, 0.45)',
+                                            },
+                                        ]}
+                                    />
+                                </View>
+                            )}
+                            {headerComponent}
+                        </Animated.View>
+                    </GestureDetector>
+
+                    {children}
+                </LiquidGlassView>
+            </Animated.View>
+        </>
+    );
+
     return (
         <Modal
             visible={visible}
@@ -219,67 +332,19 @@ export const AnimatedBottomSheet: React.FC<AnimatedBottomSheetProps> = ({
             statusBarTranslucent
             onRequestClose={handleClose}
         >
-            <View style={styles.overlay} pointerEvents="box-none">
-                <Pressable
-                    style={[styles.backdropTouch, { backgroundColor: 'transparent' }]}
-                    onPress={handleClose}
-                    accessibilityRole="button"
-                    accessibilityLabel="Close sheet"
-                >
-                    <Animated.View
-                        style={[
-                            StyleSheet.absoluteFill,
-                            { backgroundColor: colors.overlay },
-                            animatedBackdropStyle,
-                        ]}
-                        pointerEvents="none"
-                    />
-                </Pressable>
-
-                <Animated.View
+            {avoidKeyboard && Platform.OS === 'ios' ? (
+                <KeyboardAvoidingView
+                    behavior="padding"
+                    style={styles.overlay}
                     pointerEvents="box-none"
-                    style={[styles.sheetWrapper, sheetWrapperStyle, animatedSheetStyle]}
                 >
-                    <LiquidGlassView
-                        variant="regular"
-                        colorScheme={resolvedTheme}
-                        tintColor={resolvedTint}
-                        style={[
-                            styles.defaultSheet,
-                            sheetStyle,
-                            {
-                                width: '100%',
-                                backgroundColor: colors.surface,
-                                borderColor: colors.border,
-                                borderWidth: isDark ? 1 : 0,
-                            },
-                        ]}
-                    >
-                        {/* Interactive Swipe-Down Drag Handle & Header Zone */}
-                        <GestureDetector gesture={panGesture}>
-                            <Animated.View style={styles.topDragZone}>
-                                {showHandle && (
-                                    <View style={styles.handleWrapper}>
-                                        <View
-                                            style={[
-                                                styles.handlePill,
-                                                {
-                                                    backgroundColor: isDark
-                                                        ? 'rgba(148, 163, 184, 0.55)'
-                                                        : 'rgba(148, 163, 184, 0.45)',
-                                                },
-                                            ]}
-                                        />
-                                    </View>
-                                )}
-                                {headerComponent}
-                            </Animated.View>
-                        </GestureDetector>
-
-                        {children}
-                    </LiquidGlassView>
-                </Animated.View>
-            </View>
+                    {overlayContent}
+                </KeyboardAvoidingView>
+            ) : (
+                <View style={styles.overlay} pointerEvents="box-none">
+                    {overlayContent}
+                </View>
+            )}
         </Modal>
     );
 };

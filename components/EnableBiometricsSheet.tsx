@@ -13,7 +13,7 @@ import {
 import { Fingerprint, ScanFaceIcon } from 'lucide-react-native';
 import { Lock } from 'iconsax-react-nativejs';
 import React, { useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { moderateScale, ScaledSheet } from 'react-native-size-matters';
 
 interface EnableBiometricsSheetProps {
@@ -112,6 +112,7 @@ export const EnableBiometricsSheet: React.FC<EnableBiometricsSheetProps> = ({
         <AnimatedBottomSheet
             visible={visible}
             onClose={handleClose}
+            avoidKeyboard
             sheetStyle={[
                 styles.sheetContent,
                 {
@@ -121,70 +122,76 @@ export const EnableBiometricsSheet: React.FC<EnableBiometricsSheetProps> = ({
                 },
             ]}
         >
-            <View style={styles.headerIconContainer}>
-                <View
-                    style={[
-                        styles.iconBg,
-                        {
-                            backgroundColor: isDark
-                                ? 'rgba(255, 104, 19, 0.15)'
-                                : colors.primarySoft,
-                        },
-                    ]}
-                >
-                    {biometricType === 'fingerprint' ? (
-                        <Fingerprint size={moderateScale(26)} color={colors.primary} />
-                    ) : (
-                        <ScanFaceIcon size={moderateScale(26)} color={colors.primary} />
-                    )}
+            <ScrollView
+                bounces={false}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+            >
+                <View style={styles.headerIconContainer}>
+                    <View
+                        style={[
+                            styles.iconBg,
+                            {
+                                backgroundColor: isDark
+                                    ? 'rgba(255, 104, 19, 0.15)'
+                                    : colors.primarySoft,
+                            },
+                        ]}
+                    >
+                        {biometricType === 'fingerprint' ? (
+                            <Fingerprint size={moderateScale(26)} color={colors.primary} />
+                        ) : (
+                            <ScanFaceIcon size={moderateScale(26)} color={colors.primary} />
+                        )}
+                    </View>
                 </View>
-            </View>
 
-            <Text style={[styles.title, { color: colors.text }]}>
-                Enable {biometricTitle}
-            </Text>
+                <Text style={[styles.title, { color: colors.text }]}>
+                    Enable {biometricTitle}
+                </Text>
 
-            <Text style={[styles.description, { color: colors.textMuted }]}>
-                Enter your account password to securely save your credentials for {biometricTitle} login.
-            </Text>
+                <Text style={[styles.description, { color: colors.textMuted }]}>
+                    Enter your account password to securely save your credentials for {biometricTitle} login.
+                </Text>
 
-            <View style={styles.form}>
-                <InputField
-                    label="Account Password"
-                    placeholder="Enter your password"
-                    icon={Lock}
-                    value={password}
-                    onChangeText={(val) => {
-                        setPassword(val);
-                        if (error) setError('');
-                    }}
-                    isPassword
-                    error={error}
-                    required
-                />
-            </View>
+                <View style={styles.form}>
+                    <InputField
+                        label="Account Password"
+                        placeholder="Enter your password"
+                        icon={Lock}
+                        value={password}
+                        onChangeText={(val) => {
+                            setPassword(val);
+                            if (error) setError('');
+                        }}
+                        isPassword
+                        error={error}
+                        required
+                    />
+                </View>
 
-            <View style={styles.buttonContainer}>
-                <PrimaryButton
-                    title="Confirm & Enable"
-                    onPress={handleEnable}
-                    loading={loading}
-                    disabled={loading || !password}
-                />
+                <View style={styles.buttonContainer}>
+                    <PrimaryButton
+                        title="Confirm & Enable"
+                        onPress={handleEnable}
+                        loading={loading}
+                        disabled={loading || !password}
+                    />
 
-                <TouchableOpacity
-                    style={[
-                        styles.cancelButton,
-                        {
-                            backgroundColor: isDark ? colors.surfaceHighlight : '#F1F5F9',
-                        },
-                    ]}
-                    onPress={handleClose}
-                    disabled={loading}
-                >
-                    <Text style={[styles.cancelText, { color: colors.text }]}>Cancel</Text>
-                </TouchableOpacity>
-            </View>
+                    <TouchableOpacity
+                        style={[
+                            styles.cancelButton,
+                            {
+                                backgroundColor: isDark ? colors.surfaceHighlight : '#F1F5F9',
+                            },
+                        ]}
+                        onPress={handleClose}
+                        disabled={loading}
+                    >
+                        <Text style={[styles.cancelText, { color: colors.text }]}>Cancel</Text>
+                    </TouchableOpacity>
+                </View>
+            </ScrollView>
         </AnimatedBottomSheet>
     );
 };
